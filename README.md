@@ -105,6 +105,16 @@ TailAdmin Angular ships with a rich set of **ready-to-use dashboard features**:
 
 ## Changelog
 
+### v1.1.1 (2026-05-23)
+- **New Feature**: Added **AI Settings** page to configure models, keys, and token limits.
+- **New Feature**: Added **Maps** page with MapLibre GL, Leaflet, and iframe styles.
+- **New Feature**: Added **Vector Maps** page powered by AmCharts 5 geodata (World & USA).
+- **New Feature**: Added **Radar Charts** page with 3 unique formats.
+- **New Feature**: Added **Radial Progress Charts** page featuring 4 custom layout templates.
+- **Enhancement**: Introduced new **Bar Charts Five & Six** and **Pie Charts Four & Five**.
+- **Bug Fix**: Resolved dropdown menu z-index stacking context overlapping issue in AI Chat history.
+- **Enhancement**: Resolved spacing gaps under map card containers.
+
 ### Version 1.1.0 - [April 28, 2026]
 - Added **AI Dashboard** with token usage and revenue tracking.
 - Added **Sales Dashboard** with retention and multi-channel analytics.
