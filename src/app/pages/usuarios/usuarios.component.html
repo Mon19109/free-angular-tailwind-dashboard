@@ -1,0 +1,136 @@
+<div class="container-fluid px-4">
+  <header id="topbar" class="alt">
+  
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <nav id="topbar" aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a href="dashboard">
+                <span class="fa fa-home"></span> Panel Principal
+              </a>
+            </li>
+            <li class="breadcrumb-item">Reportes</li>
+            <li class="breadcrumb-item">Emisión</li>
+            <li class="breadcrumb-item active">Transacciones</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  
+  <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="form-group">
+          <label for="typeSearch">Tipo de búsqueda:</label>
+          <select id="typeSearch" formControlName="typeSearch" class="form-control">
+            <option value=""></option>
+            <option *ngFor="let typeSearch of typeSearchOptions" [value]="typeSearch.value">
+              {{ typeSearch.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="col-md-4 fini">
+        <div class="form-group">
+          <label for="fechaInicio">Fecha Inicio:</label>
+          <input 
+            type="date" 
+            id="fechaInicio" 
+            formControlName="fechaInicio" 
+            class="form-control"
+            [max]="formulario.get('fechaFin')?.value">
+        </div>
+      </div>
+      <div class="col-md-4 ffin">
+        <div class="form-group">
+          <label for="fechaFin">Fecha Fin:</label>
+          <input 
+            type="date" 
+            id="fechaFin" 
+            formControlName="fechaFin" 
+            class="form-control"
+            [min]="formulario.get('fechaInicio')?.value">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <!-- component.html -->
+      <div class="col-md-4">
+        <div class="form-group">
+          <label for="cuenta">Cuenta:</label>
+          <select id="cuenta" formControlName="cuenta" class="form-control">
+            <option value="">Seleccione una cuenta</option>
+            <option *ngFor="let cuenta of cuentas" [value]="cuenta.id">
+              {{ cuenta.nombre }} - {{ cuenta.numero }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="col-md-4">    
+        <div class="form-buttons">
+        <button type="submit" class="btn btn-primary" [disabled]="formulario.invalid">
+            Enviar
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="limpiarFormulario()">
+            Limpiar
+        </button>
+        </div>
+      </div>
+    </div>
+
+  </form>
+
+  <div class="form-value-preview">
+    <div class="table-responsive" style=" overflow: auto;">
+      <table id="" class="table table-bordered table-striped" cellspacing="0" width="100%">              
+        <thead class="bg-darkn">
+          <tr>
+            <th></th>
+            <th># de INE</th>
+            <th>Nombre</th>
+            <th># de Afiliación</th>
+            <th>Nombre de Afiliación</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Fecha Registro</th>
+            <th>CURP</th>    
+            <th>Tarjeta</th>
+            <th>Cuenta</th>
+            <th>Número de Cuenta </th>
+            <th>Clabe</th>
+            <th>Token</th>
+            <th>Estatus</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let operacion of operaciones">
+            <td>{{ operacion.id }}</td>
+            <td>{{ operacion.descriptionType }}</td>
+            <td>{{ operacion.amount }}</td>
+            <td>{{ operacion.description }}</td>
+            <td>{{ operacion.createdAt }}</td>
+            <td>{{ operacion.responseCode }}</td>
+            <td>{{ operacion.numericReference }}</td>
+            <td>{{ operacion.alphanumericReference }}</td>
+            <td>{{ operacion.targetName }}</td>
+            <td>{{ operacion.targetID }}</td>
+            <td>{{ operacion.targetIDCode }}</td>
+            <td>{{ operacion.targetEmail }}</td>
+            <td>{{ operacion.internalReference }}</td>
+            <td>{{ operacion.externalReference }}</td>
+            <td>{{ operacion.transactionBundler }}</td>
+            <td>{{ operacion.observation }}</td>
+            <td>{{ operacion.targetName }}</td>
+            <td>{{ operacion.amount }}</td>
+            
+            <td>{{ operacion.amount }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

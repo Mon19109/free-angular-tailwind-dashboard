@@ -865,3 +865,62 @@ pre[class*="language-"] {
 pre[class*="language-"].line-numbers {
   padding-left: 2.8em !important;
 }
+.bg-login{
+  overflow: hidden;
+  background-image: url('https://portal-antares.kashplataforma.com/public/assets/img/fondos/kashpay.jpg');
+  transition: 1s;
+  background-size: cover;
+}
+
+.text-dorado {
+  color: #c7924b !important;
+}
+
+.allcp-form .btn-azul {
+  background-color: #333F50;
+  color: #fff;
+}
+
+.allcp-form .btn-dorado {
+  background-color: #c7924b;
+  color: #fff;
+}
+@layer utilities {
+  .bg-blue {
+    background-color: #333F50;
+  }
+}
+@layer utilities {
+  .border-blue-200 {
+    border-color:  #bacce5;
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: #6b758a;
+  }
+}
+
+@layer utilities {
+  .menu-item-inactive {
+    color: #667085;
+  }
+}
+.sidebar-left-conten  {
+  overflow: hidden;
+    overflow-y: hidden;
+  background-image: url('https://portal-antares.kashplataforma.com/public/assets/img/fondos/fondoLateral.png');
+  background-size: cover;
+}
+.btn-azul {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient( 135deg, #333f50 0%, #333f50 100%);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s;
+}

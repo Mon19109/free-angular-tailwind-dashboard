@@ -1,0 +1,67 @@
+.bg-gradient-primary {
+  /*background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
+  background: linear-gradient( 135deg, #333f50 0%, #333f50 81%);
+}
+
+.logo-icon {
+  width: 35px;
+  height: 35px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-link {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  margin: 0 4px;
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.nav-link.active {
+  background: rgba(255,255,255,0.2);
+  font-weight: bold;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #ff4757;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-item {
+  white-space: normal !important;
+  padding: 12px !important;
+}
+
+.notification-icon {
+  width: 35px;
+  height: 35px;
+  background: #f0f0f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .navbar-brand span {
+    font-size: 1rem;
+  }
+}

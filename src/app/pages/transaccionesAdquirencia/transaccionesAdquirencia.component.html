@@ -1,0 +1,254 @@
+<div class="container-fluid mt-4">
+  <!-- Header con breadcrumb -->
+  <header id="topbar" class="alt">
+  
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <nav id="topbar" aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+              <a href="dashboard">
+                <span class="fa fa-home"></span> Panel Principal
+              </a>
+            </li>
+            <li class="breadcrumb-item">Reportes</li>
+            <li class="breadcrumb-item">Adquirecia</li>
+            <li class="breadcrumb-item active">Transacciones</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mensaje de error -->
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set('')"></button>
+    </div>
+  }
+
+  <!-- Panel de Filtros -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">SubAfiliado</label>
+            <select class="form-select" [(ngModel)]="filtros.subafiliado" name="subafiliado" (change)="onSubafiliadoChange()">
+              <option value="">Seleccionar</option>
+              @for (item of subafiliados(); track item.idContext) {
+                    <option [value]="item.idContext" 
+                            [attr.selected]="item.idContext == user?.idContext ? true : null">
+                    {{ item.contextDescription }}
+                    </option>
+                }
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Entidad</label>
+            <select class="form-select" [(ngModel)]="filtros.entidad" name="entidad" (change)="onEntidadChange()">
+              <option value="">Seleccionar</option>
+              @for (item of entidades(); track item.idEntity) {
+                <option [value]="item.idEntity">{{ item.entityDescription }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Sucursal</label>
+            <select class="form-select" [(ngModel)]="filtros.sucursal" name="sucursal" (change)="onSucursalChange()">
+              <option value="">Seleccionar</option>
+              @for (item of sucursales(); track item.idTerminal) {
+                <option [value]="item.idTerminal">{{ item.businessName }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Caja</label>
+            <select class="form-select" [(ngModel)]="filtros.caja" name="caja">
+              <option value="">Seleccionar</option>
+              @for (item of cajas(); track item.idTerminalUser) {
+                <option [value]="item.idTerminalUser">{{ item.tuName }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Operación</label>
+            <select class="form-select" [(ngModel)]="filtros.operacion" name="operacion">
+              <option value="">Seleccionar</option>
+              @for (item of operaciones(); track item.idTransactionType) {
+                <option [value]="item.idTransactionType">{{ item.tTypeInternalkey }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Estado de la Transacción</label>
+            <select class="form-select" [(ngModel)]="filtros.edoTransaccion" name="edoTransaccion">
+              <option value="">Seleccionar</option>
+              @for (item of estadosTransaccion(); track item.responseCode) {
+                <option [value]="item.responseCode">{{ item.respCodeDescription }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Monto</label>
+            <input type="text" class="form-control" [(ngModel)]="filtros.monto" name="monto">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Nm. Referencia</label>
+            <input type="text" class="form-control" [(ngModel)]="filtros.referencia" name="referencia">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Nm. Autorización</label>
+            <input type="text" class="form-control" [(ngModel)]="filtros.autorizacion" name="autorizacion">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Nm. Tarjeta</label>
+            <input type="text" maxlength="16" class="form-control" [(ngModel)]="filtros.numTarjeta" name="numTarjeta">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Bin</label>
+            <input type="text" class="form-control" [(ngModel)]="filtros.bin" name="bin">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Fecha Inicio</label>
+            <input type="datetime-local" class="form-control" [(ngModel)]="filtros.fechaInicio" name="fechaIiicio">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Fecha Fin</label>
+            <input type="datetime-local" class="form-control" [(ngModel)]="filtros.fechaFin" name="fechaFin">
+          </div>
+
+          <div class="col-12">
+            <div class="row">
+              <div class="col-md-3 offset-md-3">
+                <button type="button" class="btn btn-primary w-100" (click)="buscarTransacciones()" [disabled]="loading()">
+                  @if (loading()) {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                  }
+                  Buscar
+                </button>
+              </div>
+              <div class="col-md-3">
+                <button type="button" class="btn btn-danger w-100" (click)="limpiarFiltros()">
+                  Limpiar filtros
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla de Transacciones -->
+  @if (showTable()) {
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Monto</th>
+                <th>N. Autorización</th>
+                <th>Tarjeta</th>
+                <th>Folio Ticket</th>
+                <th>Fecha Autorización</th>
+                <th>Concepto</th>
+                <th>Estatus</th>
+                <th>Institución</th>
+                <th>Marca</th>
+                <th>Naturaleza</th>
+                <th>Entidad</th>
+                <th>Sucursal</th>
+                <th>Caja</th>
+                <th>Usuario Venta</th>
+                <th>Tipo</th>
+                <th>Email Cliente</th>
+                <th>Teléfono Cliente</th>
+                <th>Referencia 1</th>
+                <th>Referencia 2</th>
+                <th>Referencia 3</th>
+                <th>Propina</th>
+                <th>ResponseDescription</th>
+                <th>Bin</th>
+                <th>IVA</th>
+                <th>Comisión</th>
+                <th>Ticket</th>
+                <th>Aclaraciones</th>
+               </tr>
+            </thead>
+            <tbody>
+              @for (t of transacciones(); track t.idOperation) {
+                <tr>
+                  <td>{{ formatoMonto(t.amount) }}</td>
+                  <td>{{ t.authorizationNumber }}</td>
+                  <td>{{ maskCard(t.card) }}</td>
+                  <td>{{ t.authorizationRrcext }}</td>
+                  <td>{{ t.authorizationDate | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+                  <td>{{ t.concept }}</td>
+                  <td>
+                    <span class="badge" 
+                          [class.bg-success]="t.status === 'APROBADA' || t.status === 'Aprobada'"
+                          [class.bg-danger]="t.status === 'RECHAZADA'"
+                          [class.bg-warning]="t.status === 'DEVUELTA'">
+                      {{ t.status }}
+                    </span>
+                  </td>
+                  <td>{{ t.institution }}</td>
+                  <td>{{ t.brand }}</td>
+                  <td>{{ t.nature }}</td>
+                  <td>{{ t.entityName }}</td>
+                  <td>{{ t.terminalName }}</td>
+                  <td>{{ t.terminalUserName }}</td>
+                  <td>{{ t.terminalUserName }}</td>
+                  <td>{{ t.transactiontype }}</td>
+                  <td>{{ t.payEmail }}</td>
+                  <td>{{ t.payPhone }}</td>
+                  <td>{{ t.referenceOne }}</td>
+                  <td>{{ t.referenceTwo }}</td>
+                  <td>{{ t.referenceThree }}</td>
+                  <td>{{ formatoMonto(t.feeAmount) }}</td>
+                  <td>{{ t.responseDescription }}</td>
+                  <td>{{ t.bin }}</td>
+                  <td>{{ formatoMonto(getIVA(t)) }}</td>
+                  <td>{{ formatoMonto(getComisiones(t, 1)) }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-primary" (click)="verTicket(t)">
+                      <i class="fas fa-print"></i> Ver Ticket
+                    </button>
+                  </td>
+                  <td>
+                    @if (puedeAclarar(t)) {
+                      <a [href]="'aclaracion?validate=' + t.idOperation" class="btn btn-sm btn-info">
+                        <i class="fas fa-comment-dollar"></i> Aclarar
+                      </a>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="27" class="text-center text-muted">
+                    No se encontraron transacciones
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+</div>

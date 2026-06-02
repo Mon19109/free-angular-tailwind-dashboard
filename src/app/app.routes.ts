@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { EcommerceComponent } from './pages/dashboard/ecommerce/ecommerce.component';
+import { EcommerceComponent } from './pages/dashboard2/ecommerce/ecommerce.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { FormElementsComponent } from './pages/forms/form-elements/form-elements.component';
 import { BasicTablesComponent } from './pages/tables/basic-tables/basic-tables.component';
@@ -19,15 +19,34 @@ import { SignInComponent } from './pages/auth-pages/sign-in/sign-in.component';
 import { SignUpComponent } from './pages/auth-pages/sign-up/sign-up.component';
 import { CalenderComponent } from './pages/calender/calender.component';
 
+import { LoginComponent } from '../app/pages/login/login.component';
+import { AuthGuard } from '../app/guards/auth.guard';
+
+// Importar componentes de páginas
+import { DashboardComponent } from '../app/pages/dashboard/dashboard.component';
+import { UsuariosComponent } from '../app/pages/usuarios/usuarios.component';
+import { OperacionesEmisionComponent } from '../app/pages/operacionesEmision/operacionesEmision.component';
+import { TransaccionesEmisionComponent } from '../app/pages/transaccionesEmision/transaccionesEmision.component';
+import { TransaccionesAdquirenciaComponent } from '../app/pages/transaccionesAdquirencia/transaccionesAdquirencia.component';
+import { OperacionesAdquirenciaComponent } from '../app/pages/operacionesAdquirencia/operacionesAdquirencia.component';
+import { TarjetaComponent } from '../app/pages/tarjeta/tarjeta.component';
+import { PagoDistanciaComponent } from '../app/pages/pagoDistancia/pagoDistancia.component';
+import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component';
+
 export const routes: Routes = [
+  { 
+    path: '', 
+    component: LoginComponent,
+    title:'KASHPAY' ,
+    pathMatch: 'full'
+  },
   {
     path:'',
     component:AppLayoutComponent,
     children:[
       {
-        path: '',
+        path: 'ecommerce',
         component: EcommerceComponent,
-        pathMatch: 'full',
         title:
           'Angular Ecommerce Dashboard | TailAdmin - Angular Admin Dashboard Template',
       },
@@ -102,23 +121,74 @@ export const routes: Routes = [
         component:VideosComponent,
         title:'Angular Videos Dashboard | TailAdmin - Angular Admin Dashboard Template'
       },
+      // auth pages
+      {
+        path:'signin',
+        component:SignInComponent,
+      title:'KASHPAY'
+      },
+      {
+        path:'signup',
+        component:SignUpComponent,
+        title:'KASHPAY'
+      },
+      { 
+        path: 'dashboard', 
+        component:DashboardComponent, 
+        canActivate: [AuthGuard] ,
+        title:'KASHPAY'
+      },
+      { 
+        path: 'usuarios', 
+        component: UsuariosComponent, 
+        canActivate: [AuthGuard] ,
+        title:'KASHPAY'
+      },
+      { 
+        path: 'operacines_emision', 
+        component: OperacionesEmisionComponent, 
+        canActivate: [AuthGuard] ,
+        title:'KASHPAY'
+      },
+      { 
+        path: 'operaciones_adquirencia', 
+        component: OperacionesAdquirenciaComponent, 
+        canActivate: [AuthGuard] 
+      },
+      { 
+        path: 'transacciones_emision', 
+        component: TransaccionesEmisionComponent, 
+        canActivate: [AuthGuard] 
+      },
+      { 
+        path: 'transacciones_adquirencia', 
+        component: TransaccionesAdquirenciaComponent, 
+        canActivate: [AuthGuard] 
+      },
+      { 
+        path: 'tarjeta', 
+        component: TarjetaComponent, 
+        canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+      { 
+        path: 'pagoDistancia', 
+        component: PagoDistanciaComponent, 
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+      { 
+        path: 'addLinkPago', 
+        component: AddLinkPagoComponent, 
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+      // error pages
+      {
+        path:'**',
+        component:NotFoundComponent,
+        title:'KASHPAY'
+      },
     ]
-  },
-  // auth pages
-  {
-    path:'signin',
-    component:SignInComponent,
-    title:'Angular Sign In Dashboard | TailAdmin - Angular Admin Dashboard Template'
-  },
-  {
-    path:'signup',
-    component:SignUpComponent,
-    title:'Angular Sign Up Dashboard | TailAdmin - Angular Admin Dashboard Template'
-  },
-  // error pages
-  {
-    path:'**',
-    component:NotFoundComponent,
-    title:'Angular NotFound Dashboard | TailAdmin - Angular Admin Dashboard Template'
   },
 ];

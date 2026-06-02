@@ -1,0 +1,26 @@
+{
+  "/portalKashPayServices": {
+    "target": "https://sdbx-api-antares.kashplataforma.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/AuthenticationService": {
+    "target": "http://sdbx-polaris.kashplataforma.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/Entities": {
+    "target": "http://44.199.131.117",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/AldebaranServices": {
+    "target": "http://10.15.5.158:80",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

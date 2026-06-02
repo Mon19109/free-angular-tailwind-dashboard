@@ -1,0 +1,130 @@
+
+  <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
+    <div class="bg-white border border-gray-200 dark:bg-white/[0.03] dark:border-gray-800 rounded-2xl">
+      <div class="card account-info">
+        <div class="max-w-full overflow-x-auto">
+          <table class="w-full">
+            <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+              <tr>
+                <td style="text-align: center;">
+                  <img style="max-width: 10%; text-align: center !important;display: inline-block;" class="logoPago" src="iconos/Pagos a distancia/linkPago.png">
+                
+                  <h4 style="font-size: 20px;color: #807b7b;" class="mt-2  dark:text-white/90"><span class="text-dorado">Link</span> de pago</h4>
+                  <p style="text-align: center;">"Complete todos los campos requeridos para continuar el proceso de pago".</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>      
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;" class="">
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Número de teléfono móvil* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+        <div>
+          <app-label >Correo Electrónico* </app-label>
+          <app-input-field name="email" id="email" type="email"></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Tipo de notificación* </app-label>
+          <app-select
+          [options]="tipoNoti"
+          placeholder=""
+          (valueChange)="handleSelectChangeNoti($event)"
+          className="dark:bg-dark-900"
+          ></app-select>
+        </div>
+        <div>
+          <app-label>Nombre* </app-label>
+          <app-input-field type="text" name="nombre" id="nombre"></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Apellido Paterno* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+        <div>
+          <app-label>Apellido Materno* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Productos* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+        <div>
+          <app-label>Referencia del comercio* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Referencia 1* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+        <div>
+          <app-label>Referencia 2* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Concepto* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+        <div>
+          <app-label>Fecha de vencimiento* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Referencia 1* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+        <div>
+          <app-label>Referencia 2* </app-label>
+          <app-input-field></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <app-label>Forma de pago*</app-label>
+          <app-select
+          [options]="tipoPago"
+          placeholder=""
+          (valueChange)="handleSelectChangePago($event)"
+          className="dark:bg-dark-900"
+          ></app-select>
+        </div>
+        <div>
+          <app-label>Monto* </app-label>
+          <app-input-field id></app-input-field>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
+        <div>
+          <div class="flex items-center gap-3">
+            <app-checkbox>
+              <label class="flex items-center space-x-3 group cursor-pointer">
+              <div class="relative w-5 h-5">
+                <input type="checkbox" class="w-5 h-5 appearance-none cursor-pointer dark:border-gray-700 border border-gray-300 checked:border-transparent rounded-md checked:bg-brand-500 disabled:opacity-60" id="undefined">
+                <!--container--><!--container-->
+              </div><!--container--></label>
+            </app-checkbox>
+            <span class="block text-sm font-medium text-gray-700 dark:text-gray-400"> Meses sin intereses </span></div>
+          </div>
+        <div>
+        </div>
+      </div>
+    </div>
+  </form>
+  

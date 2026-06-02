@@ -1,0 +1,71 @@
+<!-- operaciones-emision.component.html -->
+<div class="container-fluid px-4">
+  <!-- Loading -->
+   @if (loading) {
+
+  <div  class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p class="mt-2">Cargando operaciones...</p>
+  </div>
+  } @else {
+  <div>Por favor inicia sesión</div>
+}
+  <!-- Error -->
+  <div *ngIf="error" class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    {{ error }}
+    <button type="button" class="btn-close" (click)="error = null"></button>
+  </div>
+
+  <!-- Tabla -->
+  <div *ngIf="!loading && operaciones" class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Número</th>
+              <th>Cliente</th>
+              <th>Tipo</th>
+              <th>Monto</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let operacion of operaciones; let i = index">
+              <td>id</td>
+              <td>autori</td>
+              <td>cli</td>
+              <td>tipo
+              </td>
+              <td>monto </td>
+              <td>
+                
+              </td>
+              <td>fecha</td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary me-1">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="operaciones.length === 0">
+              <td colspan="8" class="text-center py-4">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+                <p class="mt-2 mb-0">No hay operaciones registradas</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
