@@ -65,6 +65,8 @@ export class LoginComponent implements OnInit {
         latitud: latitud,
         longitud: longitud
       };
+      
+     // console.log('Coordenadas:', latitud, longitud);
 
       this.authService.login(credentials).subscribe({
         next: (response: any) => {

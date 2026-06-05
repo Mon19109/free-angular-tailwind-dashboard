@@ -18,9 +18,10 @@
     "logLevel": "debug"
   },
   "/AldebaranServices": {
-    "target": "http://10.15.5.158:80",
+"target": "https://api-aldebaran.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   }
+   
 }

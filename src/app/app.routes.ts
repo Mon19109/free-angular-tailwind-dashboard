@@ -32,6 +32,7 @@ import { OperacionesAdquirenciaComponent } from '../app/pages/operacionesAdquire
 import { TarjetaComponent } from '../app/pages/tarjeta/tarjeta.component';
 import { PagoDistanciaComponent } from '../app/pages/pagoDistancia/pagoDistancia.component';
 import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component';
+import { SaldosComponent } from '../app/pages/saldos/saldos.component';
 
 export const routes: Routes = [
   { 
@@ -50,6 +51,13 @@ export const routes: Routes = [
         title:
           'Angular Ecommerce Dashboard | TailAdmin - Angular Admin Dashboard Template',
       },
+      {
+        path: 'saldos',
+        component: SaldosComponent,
+        canActivate: [AuthGuard],
+        title: 'KASHPAY'
+      },
+      
       {
         path:'calendar',
         component:CalenderComponent,

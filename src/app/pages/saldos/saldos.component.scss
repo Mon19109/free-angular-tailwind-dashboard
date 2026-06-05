@@ -1,0 +1,167 @@
+
+
+.page-header{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  margin-bottom:20px;
+}
+.title-section{
+  display:flex;
+  align-items:center;
+  gap:35px;
+}
+.breadcrumb{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+}
+.breadcrumb-link{
+  color:#999;
+  text-decoration:none;
+  transition:.2s;
+}
+.breadcrumb-link:hover{
+  color:#0d6efd;
+}
+
+.home-btn{
+  width:42px;
+  height:42px;
+  border:none;
+  border-radius:4px;
+  background:#334155;
+  color:white;
+  cursor:pointer;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+
+.page-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.page-header span{
+  color:#999;
+}
+
+.page-container {
+  padding: 15px;
+  background: #edf1f5;
+  min-height: 100vh;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d7dde4;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.filters-row {
+  display: flex;
+  gap: 60px;
+}
+
+.filter-group {
+  flex: 1;
+}
+
+.filter-group label {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.form-control {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #d3d8df;
+  border-radius: 4px;
+  padding: 0 12px;
+  font-size: 14px;
+  background: white;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.total-rows {
+  font-size: 16px;
+  color: #666;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 20px;
+}
+
+.export-btn {
+  background: #eef2f6;
+  border: 1px solid #dde3ea;
+  color: #8d96a5;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.export-btn:hover {
+  background: #e5eaf0;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead tr {
+  background: #344154;
+}
+
+thead th {
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px;
+  border-right: 1px solid #556273;
+}
+
+tbody td {
+  padding: 10px 12px;
+  color: #555;
+  border: 1px solid #dfe3e8;
+  font-size: 13px;
+}
+
+tbody tr:nth-child(odd) {
+  background: #d8dde3;
+}
+
+tbody tr:nth-child(even) {
+  background: #f6f6f6;
+}
+
+.page-title {
+  color: #333f50;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 25px;
+}

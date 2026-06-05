@@ -5,6 +5,10 @@ import { RouterModule } from '@angular/router';
 import { ThemeToggleButtonComponent } from '../../components/common/theme-toggle/theme-toggle-button.component';
 import { NotificationDropdownComponent } from '../../components/header/notification-dropdown/notification-dropdown.component';
 import { UserDropdownComponent } from '../../components/header/user-dropdown/user-dropdown.component';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
+
+
 
 @Component({
   selector: 'app-header',
@@ -17,15 +21,61 @@ import { UserDropdownComponent } from '../../components/header/user-dropdown/use
   ],
   templateUrl: './app-header.component.html',
 })
+
+
+
+
+
 export class AppHeaderComponent {
+
+
   isApplicationMenuOpen = false;
   readonly isMobileOpen$;
 
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
 
-  constructor(public sidebarService: SidebarService) {
-    this.isMobileOpen$ = this.sidebarService.isMobileOpen$;
-  }
+
+tituloPagina = '';
+
+constructor(
+  public sidebarService: SidebarService,
+  private router: Router
+) {
+
+  this.isMobileOpen$ = this.sidebarService.isMobileOpen$;
+
+  this.router.events
+    .pipe(
+      filter(event => event instanceof NavigationEnd)
+    )
+    .subscribe(() => {
+
+      const url = this.router.url;
+
+      if (url.includes('dashboard')) {
+        this.tituloPagina = 'Panel Principal';
+      }
+      else if (url.includes('saldos')) {
+        this.tituloPagina = 'Detalle de saldo';
+      }
+      else if (url.includes('usuarios')) {
+        this.tituloPagina = 'Usuarios';
+      }
+      else {
+        this.tituloPagina = '';
+      }
+
+    });
+}
+
+
+
+
+
+
+
+
+
 
   handleToggle() {
     if (window.innerWidth >= 1280) {

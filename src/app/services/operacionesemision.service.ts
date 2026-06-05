@@ -52,10 +52,45 @@ export class OperacionesEmisionService {
 
   obtenerCuentas(): Observable<Cuenta[]> {
     return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
+     //return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('entitySonID')}&level=`);
     
 
     //return this.http.get<Cuenta[]>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
   }
+
+
+obtenerConcentratorAccounts(): Observable<any> {
+
+  const headers = new HttpHeaders({
+    Authorization: 'Basic YWRtaW46c2VjcmV0'
+  });
+
+  return this.http.get<any>(
+    `${this.apiUrl}account/getConcentratorAccounts?sirioId=${localStorage.getItem('entitySonID')}`,
+    { headers }
+  );
+}
+
+  
+
+  /**
+   * Obtiene las entidades 
+   */
+obtenerEntidades(cuenta: string): Observable<any> {
+
+  console.log(
+    `${this.apiUrlCuentas}getEntityLevels?fatherId=${cuenta}&level=`
+  );
+
+  return this.http.get<any>(
+    `${this.apiUrlCuentas}getEntityLevels?fatherId=${cuenta}&level=`
+  );
+}
+
+
+
+
+
 
   /**
    * Obtiene la lista de tipos de operación del API
