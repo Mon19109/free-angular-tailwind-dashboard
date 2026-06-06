@@ -77,6 +77,15 @@ export interface Caja {
   idTerminalUser: number;
   tuName: string;
 }
+export interface Operacion {
+  idTransactionType: number;
+  description: string;
+}
+
+export interface EstadoTransaccion {
+  idResponseCode: number;
+  responseDescription: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -96,21 +105,38 @@ export class TransaccionesAdquirenciaService {
   }
 
   // Catalogos
-  getOperaciones(): Observable<any> {
+ /* getOperaciones(): Observable<any> {
     const headers = this.getCommonHeaders();
     return this.http.get(`${this.baseUrl}/transacciones/getOperaciones`, { 
           headers: headers,
           withCredentials: true
         });
-  }
+  }*/
 
-  getEstadosTransaccion(): Observable<any> {
-    const headers = this.getCommonHeaders();
-    return this.http.get(`${this.baseUrl}/transacciones/getEstados`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }
+
+getOperaciones(): Observable<any> {
+
+  const headers = this.getCommonHeaders();
+
+  return this.http.get(
+    `${this.baseUrl}catTransactionType/getAll`,
+    {
+      headers
+    }
+  );
+
+}
+
+
+
+ getEstadosTransaccion(): Observable<any> {
+  const headers = this.getCommonHeaders();
+
+  return this.http.get(
+    `${this.baseUrl}catResponseCode/getAll`,
+    { headers }
+  );
+}
 
   getSubafiliados(): Observable<any> {
     const headers = this.getCommonHeaders();
@@ -137,14 +163,14 @@ export class TransaccionesAdquirenciaService {
     return this.http.get(`${this.baseUrl}/transacciones/getSubafiliados`);
   }*/
 
-  getEntidades(subafiliadoId: number): Observable<any> {
-    const headers = this.getCommonHeaders();
+ getEntidades(subafiliadoId: number): Observable<any> {
+  const headers = this.getCommonHeaders();
 
-    return this.http.get(`${this.baseUrl}/transacciones/searchEntidad/${subafiliadoId}`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }
+  return this.http.get(
+    `${this.baseUrl}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
+    { headers }
+  );
+}
 
   getSucursales(subafiliadoId: number, entidadId: number): Observable<any> {
     const headers = this.getCommonHeaders();

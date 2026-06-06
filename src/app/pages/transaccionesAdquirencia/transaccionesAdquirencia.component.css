@@ -1,0 +1,157 @@
+.page-container {
+  background: #f4f5f7;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.filter-card {
+  background: #fff;
+  border: 1px solid #dcdfe4;
+  border-radius: 4px;
+  padding: 25px;
+  margin-bottom: 30px;
+}
+
+.filter-card .row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.filter-card .col-md-4 {
+  width: 33.333333%;
+  padding: 0 15px;
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 6px;
+  font-weight: 400;
+}
+
+.form-control,
+.form-select {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #d3d8de;
+  border-radius: 4px;
+  padding: 0 12px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #7b8aa0;
+  box-shadow: none;
+}
+
+.botones-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin-top: 15px !important;
+  padding-bottom: 10px;
+}
+
+.btn-buscar,
+.btn-limpiar {
+  width: 180px;
+  height: 40px;
+  border: none;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-buscar {
+  background: #354458;
+  color: white;
+}
+
+.btn-limpiar {
+  background: #ef4444;
+  color: white;
+}
+
+.transactions-card {
+  background: #fff;
+  border: 1px solid #dcdfe4;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.transactions-wrapper {
+  overflow-x: auto;
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.transactions-table th {
+  background: #f7f8fa;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+}
+
+.transactions-table td {
+  padding: 12px;
+  font-size: 13px;
+  border-bottom: 1px solid #eee;
+}
+
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.btn-export {
+  background: #b8b8b8;
+  color: #666;
+  border: none;
+  padding: 14px 24px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-export:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.btn-export:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.transactions-wrapper {
+  overflow-x: auto;
+}
+
+.transactions-table {
+  min-width: 2200px;
+  border-collapse: collapse;
+}
+
+.transactions-table th {
+  background: #f3f4f6;
+  border: 1px solid #ddd;
+  padding: 12px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.transactions-table td {
+  border: 1px solid #eee;
+  padding: 12px;
+  white-space: nowrap;
+}

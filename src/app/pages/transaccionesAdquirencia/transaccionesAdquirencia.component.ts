@@ -12,7 +12,8 @@ declare var moment: any;
   selector: 'app-transacciones',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './transaccionesAdquirencia.component.html'
+  templateUrl: './transaccionesAdquirencia.component.html',
+  styleUrls: ['./transaccionesAdquirencia.component.css']
 })
 export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit {
   private transaccionesAdquirenciaService = inject(TransaccionesAdquirenciaService);
@@ -88,10 +89,30 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   cargarCatalogos() {
-    // Aquí cargarías los catálogos desde tu API
-    // this.transaccionesService.getOperaciones().subscribe(...)
-    // this.transaccionesService.getEstadosTransaccion().subscribe(...)
-  }
+
+  this.transaccionesAdquirenciaService.getOperaciones().subscribe({
+    next: (res) => {
+      console.log('OPERACIONES', res);
+
+      this.operaciones.set(
+        res.catTransactionTypes || []
+      );
+    },
+    error: (err) => console.error(err)
+  });
+
+  this.transaccionesAdquirenciaService.getEstadosTransaccion().subscribe({
+    next: (res) => {
+      console.log('ESTADOS', res);
+
+      this.estadosTransaccion.set(
+        res.catResponseCodes || []
+      );
+    },
+    error: (err) => console.error(err)
+  });
+
+}
   
   cargarDependenciasIniciales() {
     this.cargarSubafiliados();

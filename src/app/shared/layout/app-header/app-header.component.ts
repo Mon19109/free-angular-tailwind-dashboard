@@ -61,9 +61,16 @@ constructor(
       else if (url.includes('usuarios')) {
         this.tituloPagina = 'Usuarios';
       }
+      else if (url.includes('transacciones_adquirencia')) {
+  this.tituloPagina = 'Transacciones';
+}
+else if (url.includes('operaciones_adquirencia')) {
+  this.tituloPagina = 'Operaciones';
+}
       else {
         this.tituloPagina = '';
       }
+      
 
     });
 }
