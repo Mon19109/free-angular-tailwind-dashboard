@@ -67,6 +67,12 @@ constructor(
 else if (url.includes('operaciones_adquirencia')) {
   this.tituloPagina = 'Operaciones';
 }
+else if (url.includes('transacciones_emision')) {
+  this.tituloPagina = 'Transacciones Emisión';
+}
+
+
+
       else {
         this.tituloPagina = '';
       }
