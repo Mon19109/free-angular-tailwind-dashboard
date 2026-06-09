@@ -71,6 +71,10 @@ else if (url.includes('transacciones_emision')) {
   this.tituloPagina = 'Transacciones Emisión';
 }
 
+else if (url.includes('operaciones_emision')) {
+  this.tituloPagina = 'Operaciones Emisión';
+}
+
 
 
       else {

@@ -13,7 +13,8 @@ import { OperacionesEmisionService } from '../../services/operacionesemision.ser
 })
 export class OperacionesEmisionComponent implements OnInit {
   formulario: FormGroup;
-  cuentas: any[] = [];
+  //cuentas: any[] = [];
+  entidades: any[] = [];
   tiposOperacion: any[] = [];
   operaciones: any[] = [];
   estatusOptions = [
@@ -67,14 +68,12 @@ export class OperacionesEmisionComponent implements OnInit {
 
   cargarDatosIniciales(): void {
     // Cargar cuentas
-    this.operaEmiService.obtenerCuentas().subscribe({
-      next: (data) => {
-        this.cuentas = data;
-      },
-      error: (error) => {
-        console.error('Error al cargar cuentas:', error);
-      }
-    });
+   this.operaEmiService.obtenerCuentas().subscribe({
+  next: (data) => {
+    this.entidades = data;
+    console.log('Entidades:', data);
+  }
+});
 
     // Cargar tipos de operación
     this.operaEmiService.obtenerTiposOperacion().subscribe({

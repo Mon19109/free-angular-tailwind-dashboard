@@ -153,12 +153,12 @@ export const routes: Routes = [
         canActivate: [AuthGuard] ,
         title:'KASHPAY'
       },
-      { 
-        path: 'operacines_emision', 
-        component: OperacionesEmisionComponent, 
-        canActivate: [AuthGuard] ,
-        title:'KASHPAY'
-      },
+      {
+  path: 'operaciones_emision',
+  component: OperacionesEmisionComponent,
+  canActivate: [AuthGuard],
+  title:'KASHPAY'
+},
       { 
         path: 'operaciones_adquirencia', 
         component: OperacionesAdquirenciaComponent, 
