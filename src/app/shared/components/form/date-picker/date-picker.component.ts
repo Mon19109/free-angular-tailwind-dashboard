@@ -24,17 +24,23 @@ export class DatePickerComponent {
   private flatpickrInstance: flatpickr.Instance | undefined;
 
   ngAfterViewInit() {
-    this.flatpickrInstance = flatpickr(this.dateInput.nativeElement, {
-      mode: this.mode,
-      static: true,
-      monthSelectorType: 'static',
-      dateFormat: 'Y-m-d',
-      defaultDate: this.defaultDate,
-      onChange: (selectedDates, dateStr, instance) => {
-        this.dateChange.emit({ selectedDates, dateStr, instance });
-      }
-    });
-  }
+  this.flatpickrInstance = flatpickr(this.dateInput.nativeElement, {
+    mode: this.mode,
+    static: true,
+    monthSelectorType: 'static',
+
+    enableTime: true,
+    time_24hr: true,
+
+    dateFormat: 'Y-m-d H:i',
+
+    defaultDate: this.defaultDate,
+
+    onChange: (selectedDates, dateStr, instance) => {
+      this.dateChange.emit({ selectedDates, dateStr, instance });
+    }
+  });
+}
 
   ngOnDestroy() {
     if (this.flatpickrInstance) {

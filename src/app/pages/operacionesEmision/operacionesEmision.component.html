@@ -10,24 +10,12 @@
         <div class="col-md-6">
           <div class="form-group">
 
-            <label class="form-label">
-              Tipo de operación
-            </label>
-
-            <select
-              multiple
-              formControlName="tipoOperacion"
-              class="form-select multi-select">
-
-              <option
-                *ngFor="let tipo of tiposOperacion"
-                [value]="tipo.idOperationType">
-
-                {{ tipo.name }}
-
-              </option>
-
-            </select>
+           <app-multi-select
+  label="Tipo de operación"
+  [options]="tipoOperacionOptions"
+  [defaultSelected]="defaultTipoOperacion"
+  (selectionChange)="onTipoOperacionChange($event)">
+</app-multi-select>
 
           </div>
         </div>
@@ -35,24 +23,12 @@
         <div class="col-md-6">
           <div class="form-group">
 
-            <label class="form-label">
-              Estatus de Operación
-            </label>
-
-            <select
-              multiple
-              formControlName="estatus"
-              class="form-select multi-select">
-
-              <option
-                *ngFor="let estatus of estatusOptions"
-                [value]="estatus.value">
-
-                {{ estatus.label }}
-
-              </option>
-
-            </select>
+         <app-multi-select
+  label="Estatus de Operación"
+  [options]="estatusMultiOptions"
+  [defaultSelected]="defaultEstatus"
+  (selectionChange)="onEstatusChange($event)">
+</app-multi-select>
 
           </div>
         </div>
@@ -77,11 +53,11 @@
                 Seleccione una entidad
               </option>
 
-             <option
- *ngFor="let entidad of entidades"
- [value]="entidad.idEntity">
+           <option
+  *ngFor="let entidad of entidades"
+  [value]="entidad.bundle">
 
- {{ entidad.businessName }}
+  {{ entidad.bussinesName }}
 
 </option>
 
@@ -101,14 +77,12 @@
 
           <div class="form-group">
 
-            <label class="form-label">
-              Fecha Inicio
-            </label>
-
-            <input
-              type="datetime-local"
-              formControlName="fechaInicio"
-              class="form-control">
+          <app-date-picker
+  id="fechaInicio"
+  label="Fecha Inicio"
+ placeholder="YYYY-MM-DD HH:mm"
+  (dateChange)="onFechaInicioChange($event)">
+</app-date-picker>
 
           </div>
 
@@ -118,14 +92,12 @@
 
           <div class="form-group">
 
-            <label class="form-label">
-              Fecha Fin
-            </label>
-
-            <input
-              type="datetime-local"
-              formControlName="fechaFin"
-              class="form-control">
+         <app-date-picker
+  id="fechaFin"
+  label="Fecha Fin"
+  placeholder="YYYY-MM-DD HH:mm"
+  (dateChange)="onFechaFinChange($event)">
+</app-date-picker>
 
           </div>
 
