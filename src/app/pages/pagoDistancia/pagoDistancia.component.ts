@@ -8,14 +8,15 @@ import { LabelComponent } from '../../shared/components/form/label/label.compone
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import { SelectComponent } from '../../shared/components/form/select/select.component';
 
+import { InputFieldComponent } from '../../shared/components/form/input/input-field.component';
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule,LabelComponent,
-      DefaultInputsComponent,DatePickerComponent,SelectComponent],
+      DefaultInputsComponent,DatePickerComponent,SelectComponent,InputFieldComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
-})
+}) 
 export class PagoDistanciaComponent implements OnInit {
   formulario: FormGroup;
   cuentas: any[] = [];
