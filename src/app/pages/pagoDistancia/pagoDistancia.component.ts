@@ -3,11 +3,16 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService, UserSessionData } from '../../services/auth.service';
 import { PagoDistanciaService,  } from '../../services/pagoDistancia.service';
+import { DefaultInputsComponent } from '../../shared/components/form/form-elements/default-inputs/default-inputs.component';
+import { LabelComponent } from '../../shared/components/form/label/label.component';
+import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
+import { SelectComponent } from '../../shared/components/form/select/select.component';
 
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule,LabelComponent,
+      DefaultInputsComponent,DatePickerComponent,SelectComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 })
@@ -15,6 +20,21 @@ export class PagoDistanciaComponent implements OnInit {
   formulario: FormGroup;
   cuentas: any[] = [];
   tarjeta: string = '';
+  filtros = [
+        { value: '1', label: 'Apellido Paterno' },
+        { value: '2', label: 'Apellido Materno' },
+        { value: '3', label: 'Nombre' },
+        { value: '3', label: 'Concepto' },
+        { value: '3', label: 'Correo Electrónico' },
+        { value: '3', label: 'Monto' },
+        { value: '3', label: 'Referencia del comercio' },
+        { value: '3', label: 'Teléfono' },
+        { value: '3', label: 'Fecha Expiración' }
+    ];
+  selectedOptionFil = '';
+  dateValue='';
+  
+                                    
 
   private  pagoDistanciaService = inject(PagoDistanciaService);
 
@@ -44,6 +64,16 @@ export class PagoDistanciaComponent implements OnInit {
       }
     });
 
+  }
+
+  handleSelectChangeFil(value: string) {
+    this.selectedOptionFil = value;
+    console.log('Selected value:', value);
+    //this.opcionSeleccionada = value
+  }
+  handleDateChange(event: any) {
+    this.dateValue = event;
+    console.log('Date changed:', event);
   }
 
   onSubmit(): void {

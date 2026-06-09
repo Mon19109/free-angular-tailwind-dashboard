@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
+import { AuthService, UserSessionData } from '../services/auth.service';
+
 
 export interface FiltrosTransaccion {
   subafiliado?: string;
@@ -19,69 +21,45 @@ export interface FiltrosTransaccion {
   fechaFin?: string;
 }
 
-export interface Transaccion {
+export interface FormularioData {
+  nombre: string;
+  aPaterno: string;
+  aMaterno: string;
+  tel: string;
+  email: string;
+  ref1: string;
+  ref2: string;
+  monto: number;
+  refCom: string;
+  concepto: string;
+  fechaVen: string;
+  propina: boolean;
+  msi: boolean;
+}
+
+export interface PagarLinkPago {
   idOperation: number;
-  amount: number;
-  authorizationNumber: string;
-  card: string;
-  authorizationRrcext: string;
-  authorizationDate: string;
-  concept: string;
-  status: string;
-  institution: string;
-  brand: string;
-  nature: string;
-  entityName: string;
-  terminalName: string;
-  terminalUserName: string;
-  transactiontype: string;
-  entryMode: string;
-  payEmail: string;
-  payPhone: string;
-  referenceOne: string;
-  referenceTwo: string;
-  referenceThree: string;
-  feeAmount: number;
-  responseDescription: string;
-  qtPay: string;
-  planId: string;
-  graceNumber: string;
-  bin: string;
-  sendSirio: string;
-  entityOperationId: string;
-  transactionBuilder: string;
-  liquidation_id: string;
-  statusSirio: string;
-  latitude: string;
-  longitude: string;
-  paymentLink: string;
-  operationSirio?: any;
+  nombre: string;
+  aPaterno: string;
+  aMaterno: string;
+  tel: string;
+  email: string;
+  ref1: string;
+  ref2: string;
+  monto: number;
+  refCom: string;
+  concepto: string;
+  fechaVen: string;
+  propina: boolean;
+  msi: boolean;
+    
 }
 
-export interface Subafiliado {
-  idContext: number;
-  contextDescription: string;
-}
-
-export interface Entidad {
-  idEntity: number;
-  entityDescription: string;
-}
-
-export interface Sucursal {
-  idTerminal: number;
-  businessName: string;
-}
-
-export interface Caja {
-  idTerminalUser: number;
-  tuName: string;
-}
 
 @Injectable({
   providedIn: 'root'
 })
-export class TransaccionesAdquirenciaService {
+export class PagarLinkPagoService {
   private http = inject(HttpClient);
   private baseUrl = environment.api.kashpay; // Tu base URLAdquirenciaAdquirencia
   //private wsKashPayServices = environment.api.kashpay;
@@ -95,87 +73,21 @@ export class TransaccionesAdquirenciaService {
     });
   }
 
-  // Catalogos
-  getOperaciones(): Observable<any> {
-    const headers = this.getCommonHeaders();
-    return this.http.get(`${this.baseUrl}/transacciones/getOperaciones`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }
+  /**
+     * Envía los datos del formulario al API
+     * @param formData Datos del formulario
+     */
+    enviarFormulario(formData: FormularioData): Observable<any> {
+      // Opcional: Puedes transformar los datos si es necesario
+      const datosTransformados = {
+        ...formData,
+        // Convertir fechas al formato deseado si es necesario
+        fechaInicio: formData.fechaVen ? new Date(formData.fechaVen).toISOString() : null
+      };
+  
+      //getOperations?type_operation='.$_GET['type_operation'].'&id_status='.$_GET['id_status'].'&sirioId='.$_GET['id_context'].'&amount='.$_GET['amount'].'&auth_number='.$_GET['auth_number'].'&num_cuenta='.$_GET['num_cuenta'].'&init_date='.$_GET['init_date'].'&end_date='.$_GET['end_date'].'&email='.$_GET['email'].'&telephoneNumber='.$_GET['telephoneNumber'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE;
+      return this.http.get(`${this.baseUrl}getOperations?type_operation=`);
+    }
+  
 
-  getEstadosTransaccion(): Observable<any> {
-    const headers = this.getCommonHeaders();
-    return this.http.get(`${this.baseUrl}/transacciones/getEstados`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }
-
-  getSubafiliados(): Observable<any> {
-    const headers = this.getCommonHeaders();
-    console.log('url = '+this.baseUrl+'subAffiliation/getAll');
-    return this.http.get<any>(
-      `${this.baseUrl}subAffiliation/getAll`, { 
-          headers: headers
-        }
-    );
-  }
-
-  getSubafiliadoById(id: number): Observable<any> {
-    const headers = this.getCommonHeaders();
-
-    return this.http.get<any>(
-      `${this.baseUrl}subAffiliation/getById?idSubAffiliation=${id}`, { 
-          headers: headers,
-          withCredentials: true
-        }
-    );
-  }
-
-  /*getSubafiliados(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/transacciones/getSubafiliados`);
-  }*/
-
-  getEntidades(subafiliadoId: number): Observable<any> {
-    const headers = this.getCommonHeaders();
-
-    return this.http.get(`${this.baseUrl}/transacciones/searchEntidad/${subafiliadoId}`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }
-
-  getSucursales(subafiliadoId: number, entidadId: number): Observable<any> {
-    const headers = this.getCommonHeaders();
-
-    return this.http.get(`${this.baseUrl}/transacciones/searchSucursal/${subafiliadoId}/${entidadId}`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }
-
-  getCajas(idTerminal: number): Observable<any> {
-    const headers = this.getCommonHeaders();
-
-    return this.http.get(`${this.baseUrl}/transacciones/searchCaja/${idTerminal}`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }
-
-  // Buscar transacciones
-  buscarTransacciones(filtros: FiltrosTransaccion): Observable<any> {
-    const headers = this.getCommonHeaders();
-    const formData = new FormData();
-    Object.keys(filtros).forEach(key => {
-      formData.append(key, filtros[key as keyof FiltrosTransaccion] || '');
-    });
-    return this.http.post(`${this.baseUrl}/transacciones/searchTransaccion`, formData);
-  }
-
-  // Ver ticket
-  verTicket(data: any): Observable<any> {
-    return this.http.post(`${this.baseUrlTicket}/transacciones/verTicket`, data);
-  }
 }
