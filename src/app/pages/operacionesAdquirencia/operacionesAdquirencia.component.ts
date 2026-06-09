@@ -16,6 +16,14 @@ export class OperacionesAdquirenciaComponent implements OnInit {
   tiposOperacion: any[] = [];
   estatus: any[] = [];
   operaciones: any[] = [];
+
+entidades:any[] = [];
+sucursales:any[] = [];
+cajas:any[] = [];
+clasificaciones:any[] = [];
+
+
+
   estatusOptions = [
     { label: 'Procesando', value: '5' },
     { label: 'Denegado', value: '6' },
@@ -54,18 +62,18 @@ export class OperacionesAdquirenciaComponent implements OnInit {
   constructor(
     private fb: FormBuilder
   ) {
-    this.formulario = this.fb.group({
-      cuenta: [''],
-      estatus: [''],
-      email: [''],
-      tel: [''],
-      numAuto: [''],
-      monto: [''],
-      entidad: [''],
-      tipoOperacion: [''],
-      fechaInicio: [''],
-      fechaFin: ['']
-    });
+   this.formulario = this.fb.group({
+  cuenta: [''],
+  entidad: [''],
+  sucursal: [''],
+  caja: [''],
+  clasificacion: [''],
+  tipoOperacion: [''],
+  estatus: [''],
+  fechaInicio: [''],
+  fechaFin: ['']
+});
+
   }
 
   ngOnInit(): void {
@@ -101,14 +109,78 @@ export class OperacionesAdquirenciaComponent implements OnInit {
     });
 
     // Cargar tipos de operación
-    this.opeAdquiService.obtenerTiposOperacion().subscribe({
-      next: (data) => {
-        this.tiposOperacion = data;
-      },
-      error: (error) => {
-        console.error('Error al cargar tipos de operación:', error);
+   this.cargarTiposOperacion();
+
+
+this.formulario.get('cuenta')?.valueChanges.subscribe(valor => {
+
+  console.log('SUBAFILIADO:', valor);
+
+  if (!valor) return;
+
+  this.opeAdquiService
+    .getEntidades(Number(valor))
+    .subscribe({
+
+     next: (resp:any) => {
+
+  console.log('ENTIDADES RESP:', resp);
+
+  this.entidades = resp.entitiesResponse || [];
+
+},
+
+      error: (err) => {
+
+        console.error('ERROR ENTIDADES:', err);
+
       }
+
     });
+
+});
+
+this.formulario.get('entidad')?.valueChanges.subscribe(entidad => {
+
+  const subafiliado =
+  this.formulario.get('cuenta')?.value;
+
+  if (!subafiliado || !entidad) return;
+
+  this.opeAdquiService
+    .getSucursales(subafiliado, entidad)
+    .subscribe({
+
+      next:(resp:any)=>{
+
+        this.sucursales =
+        resp.rows || [];
+
+      }
+
+    });
+
+});
+
+this.formulario.get('sucursal')?.valueChanges.subscribe(idTerminal => {
+
+  if (!idTerminal) return;
+
+  this.opeAdquiService
+    .getCajas(idTerminal)
+    .subscribe({
+
+      next:(resp:any)=>{
+
+        this.cajas =
+        resp.rows || [];
+
+      }
+
+    });
+
+});
+
 
     // Cargar estatus
     this.opeAdquiService.obtenerStatus().subscribe({
@@ -120,6 +192,7 @@ export class OperacionesAdquirenciaComponent implements OnInit {
       }
     });
   }
+mostrarResultados = false;
 
   onSubmit(): void {
     if (this.formulario.valid) {
@@ -129,6 +202,8 @@ export class OperacionesAdquirenciaComponent implements OnInit {
       // Aquí puedes llamar a otro servicio para enviar los datos
       this.opeAdquiService.enviarFormulario(formValues).subscribe({
         next: (response) => {
+          this.operaciones = response.operations || [];
+this.mostrarResultados = true;
           console.log('Formulario enviado exitosamente:', response);
           this.operaciones = response.operations || [];
 

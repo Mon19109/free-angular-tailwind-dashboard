@@ -1,119 +1,329 @@
-<div class="container-fluid px-4">
-  <h2>Formulario de Operaciones</h2>
-  
-  <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
-    <div class="row">
-      <!-- component.html -->
-      <select multiple 
-              (change)="onSelectionChange()"
+<div class="container-fluid page-container">
+
+  <!-- FILTROS -->
+  <div class="filter-card">
+
+    <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
+
+      <!-- FILA 1 -->
+      <div class="row">
+
+        <div class="col-md-6">
+          <div class="form-group">
+            <label class="form-label">SubAfiliado*</label>
+
+            <select formControlName="cuenta" class="form-select">
+
+              <option value="">
+                Seleccione un SubAfiliado
+              </option>
+
+              <option
+  *ngFor="let cuenta of cuentas"
+  [value]="cuenta.affiliationId">
+
+  {{ cuenta.bussinesName }}
+
+</option>
+
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="form-group">
+            <label class="form-label">Entidad*</label>
+
+           <select
+formControlName="entidad"
+class="form-select">
+
+<option value="">
+Seleccione una entidad
+</option>
+
+<option
+*ngFor="let entidad of entidades"
+[value]="entidad.idEntity">
+
+{{ entidad.businessName }}
+
+</option>
+
+</select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FILA 2 -->
+      <div class="row">
+
+        <div class="col-md-6">
+          <div class="form-group">
+            <label class="form-label">Sucursal</label>
+
+<select
+formControlName="sucursal"
+class="form-select">
+
+<option value="">
+Seleccione una sucursal
+</option>
+
+<option
+*ngFor="let sucursal of sucursales"
+[value]="sucursal.idTerminal">
+
+{{ sucursal.terminalDescription }}
+
+</option>
+
+</select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="form-group">
+            <label class="form-label">Caja</label>
+<select
+formControlName="caja"
+class="form-select">
+
+<option value="">
+Seleccione una caja
+</option>
+
+<option
+*ngFor="let caja of cajas"
+[value]="caja.idTerminalUser">
+
+{{ caja.name }}
+
+</option>
+
+</select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FILA 3 -->
+      <div class="row">
+
+        <div class="col-md-6">
+          <div class="form-group">
+            <label class="form-label">
+              Clasificación de Operación
+            </label>
+
+            <select
+              formControlName="clasificacion"
+              class="form-select">
+
+             <option
+*ngFor="let item of clasificaciones"
+[value]="item.id">
+
+{{ item.name }}
+
+</option>
+
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6"></div>
+
+      </div>
+
+      <!-- FILA 4 -->
+      <div class="row">
+
+        <div class="col-md-6">
+          <div class="form-group">
+
+            <label class="form-label">
+              Tipo de operación*
+            </label>
+
+            <select
+              multiple
+              formControlName="tipoOperacion"
+              class="form-select multi-select">
+
+              <option
+                *ngFor="let tipo of tiposOperacion"
+                [value]="tipo.idOperationType">
+
+                {{ tipo.descriptionApp || tipo.name }}
+
+              </option>
+
+            </select>
+
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="form-group">
+
+            <label class="form-label">
+              Estatus de Operación*
+            </label>
+
+            <select
+              multiple
+              formControlName="estatus"
+              class="form-select multi-select">
+
+              <option
+                *ngFor="let estatus of estatusOptions"
+                [value]="estatus.value">
+
+                {{ estatus.label }}
+
+              </option>
+
+            </select>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FILA 5 -->
+      <div class="row">
+
+        <div class="col-md-6">
+          <div class="form-group">
+
+            <label class="form-label">
+              Fecha Inicio*
+            </label>
+
+            <input
+              type="datetime-local"
+              formControlName="fechaInicio"
               class="form-control">
-        <option *ngFor="let opcion of opciones" [value]="opcion.id">
-          {{ opcion.nombre }}
-        </option>
-      </select>
-      <div class="col-md-4">
-        <div class="form-group">
-          <label for="cuenta">Cuenta:</label>
-          <select id="cuenta" formControlName="cuenta" class="form-control">
-            <option value="">Seleccione una cuenta</option>
-            <option *ngFor="let cuenta of cuentas" [value]="cuenta.id">
-              {{ cuenta.nombre }} - {{ cuenta.numero }}
-            </option>
-          </select>
+
+          </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="form-group">
-          <label for="estatus">Estatus:</label>
-          <select id="estatus" formControlName="estatus" class="form-control">
-            <option value="">Seleccione un estatus</option>
-            <option *ngFor="let estatus of estatusOptions" [value]="estatus.value">
-              {{ estatus.label }}
-            </option>
-          </select>
+
+        <div class="col-md-6">
+          <div class="form-group">
+
+            <label class="form-label">
+              Fecha Fin*
+            </label>
+
+            <input
+              type="datetime-local"
+              formControlName="fechaFin"
+              class="form-control">
+
+          </div>
         </div>
+
       </div>
-      <div class="col-md-4">
-        <div class="form-group">
-          <label for="tipoOperacion">Tipo de Operación:</label>
-          <select id="tipoOperacion" formControlName="tipoOperacion" class="form-control">
-            <option value="">Seleccione un tipo de operación</option>
-            <option *ngFor="let tipo of tiposOperacion" [value]="tipo.idOperationType">
-              {{ tipo.name }} 
-            </option>
-          </select>
-        </div>
+
+      <!-- BOTONES -->
+
+      <div class="botones-container">
+
+        <button
+          type="submit"
+          class="btn-buscar">
+
+          BUSCAR
+
+        </button>
+
+        <button
+          type="button"
+          class="btn-limpiar"
+          (click)="limpiarFormulario()">
+
+          LIMPIAR FILTROS
+
+        </button>
+
       </div>
-    </div>
-    <div class="row">
-      <div class="col-md-2"></div>
-      <div class="col-md-4">
-        <div class="form-group">
-          <label for="fechaInicio">Fecha Inicio:</label>
-          <input 
-            type="date" 
-            id="fechaInicio" 
-            formControlName="fechaInicio" 
-            class="form-control"
-            [max]="formulario.get('fechaFin')?.value">
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="form-group">
-          <label for="fechaFin">Fecha Fin:</label>
-          <input 
-            type="date" 
-            id="fechaFin" 
-            formControlName="fechaFin" 
-            class="form-control"
-            [min]="formulario.get('fechaInicio')?.value">
-        </div>
-      </div>
-      <div class="col-md-2"></div>
+
+    </form>
+
+  </div>
+
+ <!-- RESULTADOS -->
+
+<div class="transactions-card">
+
+  <!-- SIN RESULTADOS -->
+  <div
+    class="empty-message"
+    *ngIf="!operaciones || operaciones.length === 0">
+
+    <h3>No se encontraron datos.</h3>
+
+  </div>
+
+  <!-- CON RESULTADOS -->
+  <div
+    *ngIf="operaciones && operaciones.length > 0">
+
+    <div class="table-actions">
+
+      <button
+        type="button"
+        class="btn-export">
+
+        Exportar Excel
+
+      </button>
+
     </div>
 
-    <div class="form-buttons">
-      <button type="submit" class="btn btn-primary" [disabled]="formulario.invalid">
-        Enviar
-      </button>
-      <button type="button" class="btn btn-secondary" (click)="limpiarFormulario()">
-        Limpiar
-      </button>
-    </div>
-  </form>
+    <div class="transactions-wrapper">
 
-  <div class="form-value-preview">
-    <div class="table-responsive" style=" overflow: auto;">
-      <table id="" class="table table-bordered table-striped" cellspacing="0" width="100%">              
-        <thead class="bg-darkn">
+      <table class="transactions-table">
+
+        <thead>
+
           <tr>
-              <th class="va-m">Id</th>
-              <th class="va-m">Tipo</th>
-              <th class="va-m">Monto</th>
-              <th class="va-m">Estatus</th>
-              <th class="va-m">Descripción</th>
-              <th class="va-m">Fecha</th>
-              <th class="va-m">Codigo de Respuesta</th>
-              <th class="va-m">Referencia numerica</th>
-              <th class="va-m">Referencia Alfanumerica</th>
-              <th class="va-m">Nombre del Destinatario</th>
-              <th class="va-m">Id Destinatario</th>
-              <th class="va-m">targetIDCode</th>
-              <th class="va-m">targetEmail</th>
-              <th class="va-m">Referencia Interna</th>
-              <th class="va-m">Referencia Externa</th>
-              <th class="va-m">TransactionBundler</th>
-              <th class="va-m">Observación</th>
-              <th class="va-m">Usuario</th>
-              <th class="va-m">Detalle</th>
+
+            <th>Id</th>
+            <th>Tipo</th>
+            <th>Monto</th>
+            <th>Estatus</th>
+            <th>Descripción</th>
+            <th>Fecha</th>
+            <th>Código Respuesta</th>
+            <th>Referencia Numérica</th>
+            <th>Referencia Alfanumérica</th>
+            <th>Nombre Destinatario</th>
+            <th>Id Destinatario</th>
+            <th>targetIDCode</th>
+            <th>targetEmail</th>
+            <th>Referencia Interna</th>
+            <th>Referencia Externa</th>
+            <th>TransactionBundler</th>
+            <th>Observación</th>
+            <th>Usuario</th>
+            <th>Detalle</th>
+
           </tr>
+
         </thead>
+
         <tbody>
+
           <tr *ngFor="let operacion of operaciones">
+
             <td>{{ operacion.id }}</td>
             <td>{{ operacion.descriptionType }}</td>
             <td>{{ operacion.amount }}</td>
             <td>{{ operacion.description }}</td>
+            <td>{{ operacion.observation }}</td>
             <td>{{ operacion.createdAt }}</td>
             <td>{{ operacion.responseCode }}</td>
             <td>{{ operacion.numericReference }}</td>
@@ -126,13 +336,29 @@
             <td>{{ operacion.externalReference }}</td>
             <td>{{ operacion.transactionBundler }}</td>
             <td>{{ operacion.observation }}</td>
-            <td>{{ operacion.targetName }}</td>
-            <td>{{ operacion.amount }}</td>
-            
-            <td>{{ operacion.amount }}</td>
+            <td>{{ operacion.originalUsername }}</td>
+
+            <td>
+
+              <button
+                class="btn btn-primary btn-sm">
+
+                Ver
+
+              </button>
+
+            </td>
+
           </tr>
+
         </tbody>
+
       </table>
+
     </div>
+
   </div>
+
+</div>
+
 </div>
