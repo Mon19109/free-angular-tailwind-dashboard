@@ -2,11 +2,15 @@ import { Component, OnInit , inject} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { OperacionesAdquirenciaService } from '../../services/operacionesadquirencia.service';
+import { MultiSelectComponent, Option }
+from '../../shared/components/form/multi-select/multi-select.component';
+import { DatePickerComponent }
+from '../../shared/components/form/date-picker/date-picker.component';
 
 @Component({
   selector: 'app-operacionesAdqui',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule , MultiSelectComponent, DatePickerComponent],
   templateUrl: './operacionesAdquirencia.component.html',
   styleUrls: ['./operacionesAdquirencia.component.css']
 })
@@ -16,6 +20,12 @@ export class OperacionesAdquirenciaComponent implements OnInit {
   tiposOperacion: any[] = [];
   estatus: any[] = [];
   operaciones: any[] = [];
+
+tipoOperacionOptions: Option[] = [];
+estatusMultiOptions: Option[] = [];
+
+defaultEstatus: string[] = ['15', '27', '31'];
+defaultTipoOperacion: string[] = ['1', '2', '3'];
 
 entidades:any[] = [];
 sucursales:any[] = [];
@@ -56,6 +66,47 @@ clasificaciones:any[] = [];
     console.log('Seleccionados:', this.seleccionados);
   }
 
+  onTipoOperacionChange(selected: string[]) {
+
+  this.formulario.patchValue({
+    tipoOperacion: selected
+  });
+
+  console.log('Tipos:', selected);
+
+}
+
+onEstatusChange(selected: string[]) {
+
+  this.formulario.patchValue({
+    estatus: selected
+  });
+
+  console.log('Estatus:', selected);
+
+}
+onFechaInicioChange(event: any) {
+
+  this.formulario.patchValue({
+    fechaInicio: event.dateStr
+  });
+
+  console.log('Fecha Inicio:', event.dateStr);
+
+}
+
+onFechaFinChange(event: any) {
+
+  this.formulario.patchValue({
+    fechaFin: event.dateStr
+  });
+
+  console.log('Fecha Fin:', event.dateStr);
+
+}
+
+
+
   private  opeAdquiService = inject(OperacionesAdquirenciaService);
 
   
@@ -68,17 +119,28 @@ clasificaciones:any[] = [];
   sucursal: [''],
   caja: [''],
   clasificacion: [''],
-  tipoOperacion: [''],
-  estatus: [''],
+  tipoOperacion: [[]],
+estatus: [[]],
   fechaInicio: [''],
   fechaFin: ['']
 });
 
   }
 
-  ngOnInit(): void {
-    this.cargarDatosIniciales();
-  }
+ ngOnInit(): void {
+
+  this.estatusMultiOptions =
+  this.estatusOptions.map(item => ({
+    value: item.value,
+    text: item.label
+  }));
+
+  this.cargarDatosIniciales();
+
+  this.formulario.patchValue({
+  estatus: this.defaultEstatus
+});
+}
 
   /*onSubAfiliadoChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
@@ -218,18 +280,43 @@ this.mostrarResultados = true;
   }
 
   cargarTiposOperacion(): void {
-    this.opeAdquiService.obtenerTiposOperacion().subscribe({
-      next: (response: any) => {
-        // Acceder a catOperationTypes dentro de la respuesta
-        this.tiposOperacion = response.catOperationTypes || [];
-        console.log('Tipos de operación:', this.tiposOperacion);
-      },
-      error: (error) => {
-        console.error('Error:', error);
-        this.tiposOperacion = [];
-      }
-    });
-  }
+
+  this.opeAdquiService.obtenerTiposOperacion().subscribe({
+
+    next: (response: any) => {
+
+      this.tiposOperacion =
+      response.catOperationTypes || [];
+
+      this.tipoOperacionOptions =
+      this.tiposOperacion.map((tipo: any) => ({
+
+        value: String(tipo.idOperationType),
+
+        text:
+          tipo.descriptionApp ||
+          tipo.name
+
+      }));
+
+      this.defaultTipoOperacion =
+      this.tipoOperacionOptions
+        .slice(0, 3)
+        .map(x => x.value);
+
+    },
+
+    error: (error) => {
+
+      console.error('Error:', error);
+
+      this.tiposOperacion = [];
+
+    }
+
+  });
+
+}
 
   limpiarFormulario(): void {
     this.formulario.reset();
