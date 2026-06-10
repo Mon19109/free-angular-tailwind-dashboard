@@ -1,62 +1,127 @@
-<div class="container-fluid px-4">
-  <header id="topbar" class="alt">
-  
-    <div class="row mb-4">
-      <div class="col-md-12">
-        <nav id="topbar" aria-label="breadcrumb">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <a href="dashboard">
-                <span class="fa fa-home"></span> Panel Principal
-              </a>
-            </li>
-            <li class="breadcrumb-item">Reportes</li>
-            <li class="breadcrumb-item">Emisión</li>
-            <li class="breadcrumb-item active">Tarjeta</li>
-          </ol>
-        </nav>
+<div class="container-fluid page-container">
+
+  <!-- FILTROS -->
+  <div class="filter-card">
+
+    <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
+
+      <div class="row">
+
+        <!-- ENTIDAD -->
+        <div class="col-md-5">
+
+          <div class="form-group">
+
+            <label class="form-label">
+              Entidad
+            </label>
+
+        <select
+  formControlName="entidad"
+  class="form-select">
+
+  <option value="">
+    Seleccione una entidad
+  </option>
+
+  <option
+    *ngFor="let cuenta of cuentas"
+    [value]="cuenta.bundle">
+
+    {{ cuenta.bundle }} - {{ cuenta.bussinesName }}
+
+  </option>
+
+</select>
+
+          </div>
+
+        </div>
+
+        <!-- TARJETA -->
+        <div class="col-md-5">
+
+          <div class="form-group">
+
+            <label class="form-label">
+              Tarjeta / Teléfono / Correo Electrónico
+            </label>
+
+            @if(user?.commerceType == 'CARD'){
+
+              <input
+                class="form-control"
+                formControlName="tarjeta"
+                [value]="user?.mail">
+
+            }@else{
+
+              <input
+                class="form-control"
+                formControlName="tarjeta">
+
+            }
+
+          </div>
+
+        </div>
+
+        <!-- BOTON -->
+        <div class="col-md-2">
+
+          <button
+            type="submit"
+            class="btn-buscar">
+
+            <i class="fas fa-search"></i>
+            Buscar
+
+          </button>
+
+        </div>
+
       </div>
-    </div>
-  </header>
 
-  <div class="card">
-    <form class=" card-body allcp-form" [formGroup]="formulario" (ngSubmit)="onSubmit()">
-        <div class="row">
-            <div class="col-sm-12 col-lg-5 col-md-5">
-                <div class="form-group">
-                    <label for="exampleSelectRounded0">Entidad</label>
-                    <select class="searchFil form-control custom-select rounded-0" id="idContext" name="idContext">
-                    <option value=""></option>                
-                    </select>
-                </div>
-            </div>
-            <div class="col-sm-12 col-lg-5 col-md-5">
-                <div class="form-group">
-                    <label for="exampleSelectRounded0">Tarjeta/Telefóno/Correo Electrónico </label>
-                    @if(user?.commerceType == 'CARD'){
-                    <input class="form-control" value="{{user?.mail}}" type="text" name="tarjeta" id="tarjeta">
-                    }@else{
-                    <input class="form-control" value="" type="text" name="tarjeta" id="tarjeta">
-                    }
-                </div>
-            </div>
-            <div class="col-sm-12 col-lg-2 col-md-2">
-                <a id="searchCard" style="margin-top: 20px;" class="btn btn-block btn-azul"><i class="fas fa-search"></i> Buscar</a>
-            </div>
-        </div>
     </form>
+
   </div>
 
-  <div class="form-value-preview card">
-    <div class="table-responsive card-body" style=" overflow: auto;">
-        <div class="card-container">
-            <img src="../../../../public/tarjetakash.png" class="card-img">  
-            <div class="card-number" id="cardNumberDisplay">
-                #### #### #### ####
-            </div>
-            <div class="card-name" id="cardNameDisplay">
-            </div>
+  <!-- TARJETA -->
+
+  <div class="transactions-card">
+
+  @if(mostrarTarjeta){
+
+    <div class="card-preview-wrapper">
+
+      <div class="card-container">
+
+       <img
+  src="/tarjetakash.png"
+  class="card-img">
+
+        <div class="card-number">
+          {{ cardNumberDisplay }}
         </div>
+
+        <div class="card-name">
+          {{ cardNameDisplay }}
+        </div>
+
+      </div>
+
     </div>
-  </div>
+
+  }@else{
+
+    <div class="empty-message">
+
+      {{ mensaje || 'Datos no encontrados' }}
+
+    </div>
+
+  }
+
+</div>
+
 </div>
