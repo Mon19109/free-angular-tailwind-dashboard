@@ -1,0 +1,331 @@
+<div class="page-container">
+
+    <div class="header">
+        <button class="btn-status">
+            ESTATUS ENVÍO MASIVO
+        </button>
+
+    </div>
+
+    <form [formGroup]="formulario">
+
+        <div class="wizard">
+
+            <div class="step" [class.active]="pasoActual === 1">
+                Envío
+            </div>
+
+            <div class="step" [class.active]="pasoActual === 2">
+                Información
+            </div>
+
+            <div class="step" [class.active]="pasoActual === 3">
+                Confirmar
+            </div>
+
+        </div>
+
+        <!-- pasos -->
+
+        <!-- PASO 1 -->
+
+        <div *ngIf="pasoActual === 1">
+
+            <h3>Gestión de Pagos</h3>
+
+            <div class="radio-container">
+
+                <app-radio id="individual" name="tipoEnvio" value="INDIVIDUAL" label="Envío Individual"
+                    [checked]="tipoEnvio === 'INDIVIDUAL'" (valueChange)="cambiarTipoEnvio($event)">
+                </app-radio>
+
+                <app-radio id="masivo" name="tipoEnvio" value="MASIVO" label="Envío Masivo"
+                    [checked]="tipoEnvio === 'MASIVO'" [disabled]="true" (valueChange)="cambiarTipoEnvio($event)">
+                </app-radio>
+
+            </div>
+
+            <h4>
+                2. Selecciona la cuenta ordenante y la cuenta del beneficiario
+            </h4>
+
+            <div class="row">
+
+                <div class="col">
+
+                    <label>Cuenta Ordenante</label>
+
+                    <select formControlName="cuentaOr" (change)="obtenerSaldo()">
+
+                        <option value="">
+                            Seleccione una cuenta
+                        </option>
+
+                        <option *ngFor="let cuenta of cuentas" [value]="cuenta.idSirio">
+
+                            {{ cuenta.name }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="col">
+
+                    <label>Cuenta Beneficiario</label>
+
+                    <select formControlName="cuentaD">
+
+                        <option value="">
+                            Seleccione un beneficiario
+                        </option>
+
+                        <option *ngFor="let beneficiario of beneficiarios" [value]="beneficiario.idContact">
+
+                            {{ beneficiario.nameAlias }}
+                            ****
+                            {{ beneficiario.cardNumberMask?.slice(-4) }}
+                            {{ beneficiario.nameInstitution }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+            <p class="saldo">
+                Saldo de la cuenta ordenante:
+                ${{ saldo | number:'1.2-2' }}
+            </p>
+
+            <div class="buttons">
+
+                <button type="button" class="btn-next" (click)="siguiente()">
+
+                    Siguiente
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- PASO 2 -->
+
+        <div *ngIf="pasoActual === 2">
+
+            <h3 class="titulo-seccion">
+                Información del envío
+            </h3>
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    Importe del envío
+                </div>
+
+                <div class="info-input">
+
+                    <div *ngIf="mostrarErrorImporte" class="campo-requerido">
+
+                        Campo requerido.
+
+                    </div>
+                    <input type="text" formControlName="importe" (input)="formatearImporte($event)">
+                    <div class="aviso-comision">
+                        Recuerda contemplar la comisión por envío
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    Concepto del envío
+                </div>
+
+                <div class="info-input">
+
+                    <input type="text" formControlName="concepto">
+
+                </div>
+
+            </div>
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    Referencia del envío
+                </div>
+
+                <div class="info-input">
+
+                    <input type="text" formControlName="referencia">
+
+                </div>
+
+            </div>
+
+            <div class="buttons">
+
+                <button type="button" class="btn-back" (click)="atras()">
+
+                    Atrás
+
+                </button>
+
+                <button type="button" class="btn-next" (click)="siguiente()">
+
+                    Siguiente
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- PASO 3 -->
+
+        <div *ngIf="pasoActual === 3">
+
+            <h3 class="titulo-seccion">
+                Confirmar envío
+            </h3>
+
+            <div class="confirmacion">
+
+                <div class="confirm-row">
+
+                    <div class="confirm-label">
+                        Tipo de envío:
+                    </div>
+
+                    <div class="confirm-value">
+                        Orden de pago
+                    </div>
+
+                    <div class="confirm-label">
+                        Cuenta Ordenante
+                    </div>
+
+                    <div class="confirm-value">
+                        {{ formulario.value.cuentaOr }}
+                    </div>
+
+                </div>
+
+                <div class="confirm-row">
+
+                    <div class="confirm-label">
+                        Beneficiario:
+                    </div>
+
+                    <div class="confirm-value">
+                        {{ obtenerNombreBeneficiario() }}
+                    </div>
+
+                    <div class="confirm-label">
+                        Cuenta beneficiaria
+                    </div>
+
+                    <div class="confirm-value">
+                        {{ obtenerCuentaBeneficiario() }}
+                    </div>
+
+                </div>
+
+                <div class="confirm-row">
+
+                    <div class="confirm-label">
+                        Banco beneficiario
+                    </div>
+
+                    <div class="confirm-value">
+                        {{ obtenerBancoBeneficiario() }}
+                    </div>
+
+                    <div class="confirm-label">
+                        Importe del envío
+                    </div>
+
+                    <div class="confirm-value">
+
+                        <span class="aviso-comision">
+                            Recuerda contemplar la comisión por envío
+                        </span>
+
+                        &nbsp;
+
+                        ${{ formulario.value.importe }}
+
+                    </div>
+
+                </div>
+
+                <div class="confirm-row">
+
+                    <div class="confirm-label">
+                        Concepto del envío:
+                    </div>
+
+                    <div class="confirm-value">
+                        {{ formulario.value.concepto }}
+                    </div>
+
+                    <div class="confirm-label">
+                        Referencia del envío
+                    </div>
+
+                    <div class="confirm-value">
+                        {{ formulario.value.referencia }}
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="aviso-token">
+
+                <div class="aviso-titulo">
+                    Aviso
+                </div>
+
+                <div class="aviso-texto">
+
+                    Al dar clic en
+                    <strong>Finalizar</strong>
+                    se enviará un token al número de teléfono en sesión
+
+                    <span class="telefono">
+                        {{ sesion?.tel }}
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="buttons">
+
+                <button type="button" class="btn-back" (click)="atras()">
+
+                    Atrás
+
+                </button>
+
+                <button type="button" class="btn-finish" (click)="finalizar()">
+
+                    Finalizar
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>

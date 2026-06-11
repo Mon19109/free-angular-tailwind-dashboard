@@ -12,6 +12,7 @@ import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
+  standalone: true,
   imports: [
     CommonModule,
     RouterModule,
@@ -42,12 +43,13 @@ private readonly titulosPaginas: Record<string, string> = {
   operaciones_emision: 'Operaciones',
   tarjeta: 'Tarjeta',
   pago_distancia: 'Pago a Distancia',
-
+  orden_pago: 'Gestion de Pago',
   // futuros módulos
   reportes: 'Reportes',
   conciliacion: 'Conciliación',
   comercios: 'Comercios',
   cuentas: 'Cuentas'
+  
 };
 
 constructor(

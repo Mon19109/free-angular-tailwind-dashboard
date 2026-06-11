@@ -34,6 +34,7 @@ import { PagoDistanciaComponent } from '../app/pages/pagoDistancia/pagoDistancia
 import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component';
 import { SaldosComponent } from '../app/pages/saldos/saldos.component';
 import { PagarLinkPagoComponent } from '../app/pages/pagarLinkPago/pagarLinkPago.component';
+import { OrdenPagoComponent } from './pages/OrdenPagp/OrdenPago.component';
 
 export const routes: Routes = [
   { 
@@ -198,6 +199,17 @@ export const routes: Routes = [
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },
+
+{ 
+        path: 'orden_pago', 
+        component: OrdenPagoComponent, 
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+
+
+      
       // error pages
       {
         path:'**',
