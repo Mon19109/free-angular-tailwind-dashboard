@@ -64,11 +64,11 @@ export const routes: Routes = [
         component:CalenderComponent,
         title:'Angular Calender | TailAdmin - Angular Admin Dashboard Template'
       },
-      {
-        path:'profile',
+      /*{
+        path:'usuarios',
         component:ProfileComponent,
         title:'Angular Profile Dashboard | TailAdmin - Angular Admin Dashboard Template'
-      },
+      },*/
       {
         path:'form-elements',
         component:FormElementsComponent,

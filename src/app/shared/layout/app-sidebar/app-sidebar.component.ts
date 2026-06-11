@@ -78,10 +78,10 @@ export class AppSidebarComponent {
          subItems: [
             {
               name: 'Lista de Usuarios',
-               path: "/profile"
+               path: "/usuarios"
             }
           ]
-        
+         
         },
         {
           name: 'ESTADO DE CUENTA',
