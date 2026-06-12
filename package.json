@@ -34,6 +34,8 @@
     "dayjs": "^1.11.21",
     "file-saver": "^2.0.5",
     "flatpickr": "^4.6.13",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "ng-apexcharts": "^2.0.4",
     "ng-otp-input": "^2.0.9",
     "ngx-daterangepicker-material": "^6.0.4",

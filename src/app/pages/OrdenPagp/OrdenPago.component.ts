@@ -5,13 +5,14 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AuthService, UserSessionData } from '../../services/auth.service';
 import { OrdenPagoService } from '../../services/OrdenPago.service';
 import { RadioComponent } from '../../shared/components/form/input/radio.component';
+import { FormsModule } from '@angular/forms';
 
 @Component({
     selector: 'app-orden-pago',
     standalone: true,
     imports: [
         CommonModule,
-        ReactiveFormsModule, RadioComponent
+        ReactiveFormsModule, RadioComponent, FormsModule
 
     ],
     templateUrl: './OrdenPago.component.html',
@@ -25,6 +26,10 @@ export class OrdenPagoComponent implements OnInit {
     saldo = 0;
     tipoEnvio = 'INDIVIDUAL';
     mostrarErrorImporte = false;
+
+    mostrarModalToken = false;
+    token = '';
+    payloadPendiente: any = null;
 
     cuentas: any[] = [];
     beneficiarios: any[] = [];
@@ -41,7 +46,13 @@ export class OrdenPagoComponent implements OnInit {
 
         this.sesion = this.authService.getUser();
 
-       // console.log('Sesion', this.sesion);
+        console.log('SESION');
+        console.log(this.sesion);
+
+        console.log('ID USER');
+        console.log(this.sesion?.idUser);
+
+
 
         this.formulario = this.fb.group({
             //por si se requiere mandar
@@ -82,7 +93,7 @@ export class OrdenPagoComponent implements OnInit {
             .subscribe({
                 next: (resp) => {
 
-                   // console.log('Cuentas', resp);
+                    // console.log('Cuentas', resp);
 
                     this.cuentas = resp;
 
@@ -138,7 +149,7 @@ export class OrdenPagoComponent implements OnInit {
             .subscribe({
                 next: (resp) => {
 
-                   // console.log('SALDO RESP', resp);
+                    // console.log('SALDO RESP', resp);
 
                     this.saldo =
                         resp?.balance ??
@@ -185,18 +196,127 @@ export class OrdenPagoComponent implements OnInit {
 
     finalizar(): void {
 
-        console.log(this.formulario.value);
+        const beneficiario = this.beneficiarios.find(
+            x => x.idContact == this.formulario.value.cuentaD
+        );
 
-        this.ordenPagoService
-            .realizarSpei(this.formulario.value)
+        const payload = {
+
+            ...this.formulario.value,
+
+            masivaT: 0,
+
+            fecha: new Date(),
+
+            titular: beneficiario?.fullName,
+
+            nameIns: beneficiario?.nameInstitution,
+
+            saldoS: this.saldo,
+
+            idIns: beneficiario?.idInstitution,
+
+            accountNumber: beneficiario?.accountNumber,
+
+            tarjeta: beneficiario?.cardNumber,
+
+            mail: this.sesion?.mail
+
+        };
+
+        this.payloadPendiente = payload;
+
+       /* this.ordenPagoService
+            .enviarToken(
+                this.sesion!.idUser
+            )
             .subscribe({
                 next: (resp) => {
 
-                    console.log('SPEI enviado', resp);
+                    console.log('TOKEN SMS ENVIADO', resp);
+
+                    this.mostrarModalToken = true;
 
                 },
                 error: (err) => {
-                    console.error(err);
+
+                    console.error('ERROR SMS', err);
+
+                    this.mostrarModalToken = true;
+
+                }
+            });*/
+
+            // TEMPORALMENTE SIN TOKEN
+this.ordenPagoService
+    .realizarSpei(payload)
+    .subscribe({
+        next: (resp) => {
+
+            console.log(
+                'SPEI ENVIADO',
+                resp
+            );
+
+        },
+        error: (err) => {
+
+            console.error(
+                'ERROR SPEI',
+                err
+            );
+
+        }
+     });
+
+    }
+
+    validarToken(): void {
+
+       this.ordenPagoService.validarToken(
+  this.token,
+  this.sesion!.idUser
+)
+            .subscribe({
+                next: (resp) => {
+
+                    console.log(
+                        'VALIDACION TOKEN',
+                        resp
+                    );
+
+                    this.mostrarModalToken = false;
+
+                    this.ordenPagoService
+                        .realizarSpei(
+                            this.payloadPendiente
+                        )
+                        .subscribe({
+                            next: (r) => {
+
+                                console.log(
+                                    'SPEI ENVIADO',
+                                    r
+                                );
+
+                            },
+                            error: (e) => {
+
+                                console.error(
+                                    e
+                                );
+
+                            }
+                        });
+
+                },
+                error: (err) => {
+
+                    console.error(
+                        'TOKEN INVALIDO',
+                        err
+                    );
+
                 }
             });
 
