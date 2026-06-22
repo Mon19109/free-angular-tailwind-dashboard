@@ -16,6 +16,14 @@ export class TarjetaComponent implements OnInit {
   cuentas: any[] = [];
   tarjeta: string = '';
 
+mostrarTarjeta = false;
+mensaje = '';
+datosTarjeta: any = null;
+
+  cardNumberDisplay = '#### #### #### ####';
+cardNameDisplay = '';
+
+
   private  tarjetaService = inject(TarjetaService);
 
  // user: UserSessionData | null = null;  
@@ -28,10 +36,18 @@ export class TarjetaComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    this.cargarDatosIniciales();
+ ngOnInit(): void {
+
+  const userData =
+    localStorage.getItem('userData');
+
+  if (userData) {
+    this.user = JSON.parse(userData);
   }
 
+  this.cargarDatosIniciales();
+
+}
   cargarDatosIniciales(): void {
     // Cargar cuentas
     this.tarjetaService.obtenerCuentas().subscribe({
@@ -52,16 +68,46 @@ export class TarjetaComponent implements OnInit {
       
       // Aquí puedes llamar a otro servicio para enviar los datos
       this.tarjetaService.enviarFormulario(formValues).subscribe({
-        next: (response) => {
-          console.log('Formulario enviado exitosamente:', response);
-          this.tarjeta = response || [];
+       next: (response: any) => {
 
-          //console.log('tarjeta enviado exitosamente:', this.operaciones);
-          // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
-        },
+  console.log('Formulario enviado exitosamente:', response);
+
+  this.tarjeta = response;
+
+  if (response?.length > 0) {
+
+    this.mostrarTarjeta = true;
+    this.mensaje = '';
+
+    const card = response[0];
+
+    this.cardNumberDisplay =
+      card.cardNumber ||
+      card.pan ||
+      '#### #### #### ####';
+
+    this.cardNameDisplay =
+      card.name ||
+      card.cardHolderName ||
+      '';
+
+  } else {
+
+    this.mostrarTarjeta = false;
+    this.mensaje = 'Datos no encontrados';
+
+  }
+
+},
         error: (error) => {
-          console.error('Error al enviar formulario:', error);
-        }
+
+  console.error('Error al enviar formulario:', error);
+
+  this.mostrarTarjeta = false;
+
+  this.mensaje = 'Datos no encontrados';
+
+}
       });
     }
   }

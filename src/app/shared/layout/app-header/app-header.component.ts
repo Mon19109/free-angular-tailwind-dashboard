@@ -12,6 +12,7 @@ import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
+  standalone: true,
   imports: [
     CommonModule,
     RouterModule,
@@ -21,10 +22,6 @@ import { filter } from 'rxjs/operators';
   ],
   templateUrl: './app-header.component.html',
 })
-
-
-
-
 
 export class AppHeaderComponent {
 
@@ -36,6 +33,24 @@ export class AppHeaderComponent {
 
 
 tituloPagina = '';
+private readonly titulosPaginas: Record<string, string> = {
+  dashboard: 'Panel Principal',
+  saldos: 'Detalle de saldo',
+  usuarios: 'Usuarios',
+  transacciones_adquirencia: 'Transacciones',
+  operaciones_adquirencia: 'Operaciones',
+  transacciones_emision: 'Transacciones',
+  operaciones_emision: 'Operaciones',
+  tarjeta: 'Tarjeta',
+  pago_distancia: 'Pago a Distancia',
+  orden_pago: 'Gestion de Pago',
+  // futuros módulos
+  reportes: 'Reportes',
+  conciliacion: 'Conciliación',
+  comercios: 'Comercios',
+  cuentas: 'Cuentas'
+  
+};
 
 constructor(
   public sidebarService: SidebarService,
@@ -48,40 +63,21 @@ constructor(
     .pipe(
       filter(event => event instanceof NavigationEnd)
     )
-    .subscribe(() => {
+   .subscribe(() => {
 
-      const url = this.router.url;
+  const url = this.router.url;
 
-      if (url.includes('dashboard')) {
-        this.tituloPagina = 'Panel Principal';
-      }
-      else if (url.includes('saldos')) {
-        this.tituloPagina = 'Detalle de saldo';
-      }
-      else if (url.includes('usuarios')) {
-        this.tituloPagina = 'Usuarios';
-      }
-      else if (url.includes('transacciones_adquirencia')) {
-  this.tituloPagina = 'Transacciones';
+  const rutaEncontrada =
+    Object.keys(this.titulosPaginas)
+      .find(ruta => url.includes(ruta));
+
+  this.tituloPagina =
+    rutaEncontrada
+      ? this.titulosPaginas[rutaEncontrada]
+      : '';
+
+});
 }
-else if (url.includes('operaciones_adquirencia')) {
-  this.tituloPagina = 'Operaciones';
-}
-      else {
-        this.tituloPagina = '';
-      }
-      
-
-    });
-}
-
-
-
-
-
-
-
-
 
 
   handleToggle() {

@@ -6,7 +6,7 @@
     <div class="relative flex flex-col items-center">
       <div (click)="toggleDropdown()" class="w-full">
         <div class="mb-2 flex h-11 rounded-lg border border-gray-300 py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300">
-          <div class="flex flex-wrap flex-auto gap-2">
+          <div class="flex flex-nowrap overflow-x-auto flex-auto gap-2">
             @if (selectedValuesText.length > 0) {
               @for (text of selectedValuesText; track $index; let i = $index) {
               <div

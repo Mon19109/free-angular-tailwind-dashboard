@@ -8,8 +8,9 @@ export interface Option {
 
 @Component({
   selector: 'app-multi-select',
+  standalone: true,
   imports: [
-    CommonModule,
+    CommonModule, MultiSelectComponent,
   ],
   templateUrl: './multi-select.component.html',
   styles: ``

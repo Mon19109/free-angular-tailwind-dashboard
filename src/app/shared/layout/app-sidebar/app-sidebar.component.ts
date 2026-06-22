@@ -78,10 +78,10 @@ export class AppSidebarComponent {
          subItems: [
             {
               name: 'Lista de Usuarios',
-               path: "/profile"
+               path: "/usuarios"
             }
           ]
-        
+         
         },
         {
           name: 'ESTADO DE CUENTA',
@@ -118,7 +118,7 @@ export class AppSidebarComponent {
         {
           name: 'ENVIOS',
            icon: '<i class="fas fa-exchange-alt fa-lg"></i>',
-          path: '/envios'
+          path: '/orden_pago'
         }
       ]
     },

@@ -95,6 +95,8 @@ export class TransaccionesEmisionService {
     
   }
 
+
+  
   obtenerStatus(): Observable<Status[]> {
 
     return this.http.get<any>(`${this.apiAldebaran}catStatusOperations`);

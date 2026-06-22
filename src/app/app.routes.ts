@@ -34,7 +34,7 @@ import { PagoDistanciaComponent } from '../app/pages/pagoDistancia/pagoDistancia
 import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component';
 import { SaldosComponent } from '../app/pages/saldos/saldos.component';
 import { PagarLinkPagoComponent } from '../app/pages/pagarLinkPago/pagarLinkPago.component';
-import { PreRegistroComponent } from '../app/pages/preRegistro/preRegistro.component';
+import { OrdenPagoComponent } from './pages/OrdenPagp/OrdenPago.component';
 
 export const routes: Routes = [
   { 
@@ -42,16 +42,6 @@ export const routes: Routes = [
     component: LoginComponent,
     title:'KASHPAY' ,
     pathMatch: 'full'
-  },
-  { 
-    path: 'pagar_linkpago', 
-    component: PagarLinkPagoComponent, 
-    title:'KASHPAY'
-  },
-  { 
-    path: 'pre_registro', 
-    component: PreRegistroComponent, 
-    title:'KASHPAY'
   },
   {
     path:'',
@@ -75,11 +65,11 @@ export const routes: Routes = [
         component:CalenderComponent,
         title:'Angular Calender | TailAdmin - Angular Admin Dashboard Template'
       },
-      {
-        path:'profile',
+      /*{
+        path:'usuarios',
         component:ProfileComponent,
         title:'Angular Profile Dashboard | TailAdmin - Angular Admin Dashboard Template'
-      },
+      },*/
       {
         path:'form-elements',
         component:FormElementsComponent,
@@ -164,12 +154,12 @@ export const routes: Routes = [
         canActivate: [AuthGuard] ,
         title:'KASHPAY'
       },
-      { 
-        path: 'operacines_emision', 
-        component: OperacionesEmisionComponent, 
-        canActivate: [AuthGuard] ,
-        title:'KASHPAY'
-      },
+      {
+  path: 'operaciones_emision',
+  component: OperacionesEmisionComponent,
+  canActivate: [AuthGuard],
+  title:'KASHPAY'
+},
       { 
         path: 'operaciones_adquirencia', 
         component: OperacionesAdquirenciaComponent, 
@@ -203,6 +193,22 @@ export const routes: Routes = [
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },
+      { 
+        path: 'pagar_linkpago', 
+        component: PagarLinkPagoComponent, 
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+{ 
+        path: 'orden_pago', 
+        component: OrdenPagoComponent, 
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+
+
       
       // error pages
       {

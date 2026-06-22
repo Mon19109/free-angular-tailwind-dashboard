@@ -69,6 +69,7 @@ export interface FormularioData {
   fechaFin: string;
 }
 
+
 @Injectable({
   providedIn: 'root'
 })
@@ -91,17 +92,30 @@ export class OperacionesAdquirenciaService {
    * Obtiene la lista de cuentas del API
    */
 
-  obtenerCuentas(): Observable<Cuenta[]> {
+  /*obtenerCuentas(): Observable<Cuenta[]> {
     //const headers = this.getCommonHeaders();
     
     return this.http.get<any>(`${this.apiAldebaran}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
         
-  }
+  }*/
+
+
+
+
+  obtenerCuentas(): Observable<Cuenta[]> {
+
+  return this.http.get<any>(
+    `${this.apiAldebaran}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`
+  ).pipe(
+    tap(resp => console.log('CUENTAS API:', resp))
+  );
+
+}
 
   /**
    * Obtiene la lista de tipos de operación del API
    */
-  obtenerTiposOperacion(): Observable<TipoOperacion[]> {
+  /*obtenerTiposOperacion(): Observable<TipoOperacion[]> {
     const headers = this.getCommonHeaders();
     return this.http.post<any>(`${this.baseUrl}catOperationType/getAll`, { 
       headers: headers,
@@ -112,7 +126,20 @@ export class OperacionesAdquirenciaService {
     );
     
     
-  }
+  }*/
+
+    obtenerTiposOperacion(): Observable<any> {
+
+  const headers = this.getCommonHeaders();
+
+  return this.http.get<any>(
+    `${this.baseUrl}catOperationType/getAll`,
+    {
+      headers
+    }
+  );
+
+}
 
   getSubafiliados(): Observable<{ contextResponse: Subafiliado[] }> {
       return this.http.get<{ contextResponse: Subafiliado[] }>(
@@ -130,9 +157,19 @@ export class OperacionesAdquirenciaService {
       return this.http.get(`${this.baseUrl}/transacciones/getSubafiliados`);
     }*/
   
-    getEntidades(subafiliadoId: number): Observable<any> {
+    /*getEntidades(subafiliadoId: number): Observable<any> {
       return this.http.get(`${this.baseUrl}/transacciones/searchEntidad/${subafiliadoId}`);
+    }*/
+  getEntidades(subafiliadoId: number): Observable<any> {
+
+  return this.http.get(
+    `${this.baseUrl}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
+    {
+      headers: this.getCommonHeaders()
     }
+  );
+
+}
   
     getSucursales(subafiliadoId: number, entidadId: number): Observable<any> {
       return this.http.get(`${this.baseUrl}/transacciones/searchSucursal/${subafiliadoId}/${entidadId}`);
@@ -142,6 +179,26 @@ export class OperacionesAdquirenciaService {
       return this.http.get(`${this.baseUrl}/transacciones/searchCaja/${idTerminal}`);
     }
   
+//ESE SERVCIO ES DE PHP 
+/*getSucursales(subafiliadoId:number, entidadId:number) {
+  return this.http.get(
+    `${this.baseUrl}branchOffice/getBranchOfficeByAffiliationAndEntity?idSubAffiliation=${subafiliadoId}&idEntity=${entidadId}`,
+    { headers: this.getCommonHeaders() }
+  );
+}
+
+getCajas(idTerminal:number) {
+  return this.http.get(
+    `${this.baseUrl}collaborator/getCollaboratorByBranchOffice?idTerminal=${idTerminal}`,
+    { headers: this.getCommonHeaders() }
+  );
+}
+*/
+
+
+
+
+
   obtenerStatus(): Observable<Status[]> {
 
     return this.http.get<any>(`${this.apiAldebaran}catStatusOperations`);

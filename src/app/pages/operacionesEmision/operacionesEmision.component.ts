@@ -2,20 +2,31 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
+import { MultiSelectComponent, Option }
+from '../../shared/components/form/multi-select/multi-select.component';
+import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
+
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
 
 @Component({
   selector: 'app-operacionesEmi',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, MultiSelectComponent, DatePickerComponent],
   templateUrl: './operacionesEmision.component.html',
   styleUrls: ['./operacionesEmision.component.css']
 })
 export class OperacionesEmisionComponent implements OnInit {
   formulario: FormGroup;
-  cuentas: any[] = [];
+  //cuentas: any[] = [];
+  entidades: any[] = [];
   tiposOperacion: any[] = [];
   operaciones: any[] = [];
+
+  tipoOperacionOptions: Option[] = [];
+  estatusMultiOptions: Option[] = [];
+defaultEstatus: string[] = ['15', '31'];
+defaultTipoOperacion = ['11', '22', '24', '30'];
+
   estatusOptions = [
     { label: 'Procesando', value: '5' },
     { label: 'Denegado', value: '6' },
@@ -47,44 +58,96 @@ export class OperacionesEmisionComponent implements OnInit {
   onSelectionChange() {
     console.log('Seleccionados:', this.seleccionados);
   }
+onTipoOperacionChange(selected: string[]) {
+  this.formulario.patchValue({
+    tipoOperacion: selected
+  });
+
+  console.log('Tipos:', selected);
+}
+
+onEstatusChange(selected: string[]) {
+  this.formulario.patchValue({
+    estatus: selected
+  });
+
+  console.log('Estatus:', selected);
+}
+
+onFechaInicioChange(event: any) {
+
+  this.formulario.patchValue({
+    fechaInicio: event.dateStr
+  });
+
+  console.log('Fecha Inicio:', event.dateStr);
+
+}
+
+onFechaFinChange(event: any) {
+
+  this.formulario.patchValue({
+    fechaFin: event.dateStr
+  });
+
+  console.log('Fecha Fin:', event.dateStr);
+
+}
+
+
   private  operaEmiService = inject(OperacionesEmisionService);
   
   constructor(
     private fb: FormBuilder
   ) {
     this.formulario = this.fb.group({
-      cuenta: [''],
-      estatus: [''],
-      tipoOperacion: [''],
-      fechaInicio: [''],
-      fechaFin: ['']
-    });
+  cuenta: [''],
+  estatus: [[]],
+  tipoOperacion: [[]],
+  fechaInicio: [''],
+  fechaFin: ['']
+});
   }
 
   ngOnInit(): void {
-    this.cargarDatosIniciales();
-  }
+
+  this.estatusMultiOptions = this.estatusOptions.map(item => ({
+    value: item.value,
+    text: item.label
+  }));
+
+  this.cargarDatosIniciales();
+}
 
   cargarDatosIniciales(): void {
     // Cargar cuentas
-    this.operaEmiService.obtenerCuentas().subscribe({
-      next: (data) => {
-        this.cuentas = data;
-      },
-      error: (error) => {
-        console.error('Error al cargar cuentas:', error);
-      }
-    });
+   this.operaEmiService.obtenerCuentas().subscribe({
+  next: (data) => {
+    this.entidades = data;
+    console.log('Entidades:', data);
+  }
+});
 
-    // Cargar tipos de operación
-    this.operaEmiService.obtenerTiposOperacion().subscribe({
-      next: (data) => {
-        this.tiposOperacion = data;
-      },
-      error: (error) => {
-        console.error('Error al cargar tipos de operación:', error);
-      }
-    });
+   // Cargar tipos de operación
+this.operaEmiService.obtenerTiposOperacion().subscribe({
+  next: (data: any) => {
+
+    this.tiposOperacion = data;
+
+    this.tipoOperacionOptions = data.map((tipo: any) => ({
+      value: String(tipo.idOperationType),
+      text: tipo.name
+    }));
+    this.defaultTipoOperacion = this.tipoOperacionOptions
+  .slice(0, 3)
+  .map(x => x.value);
+  
+
+  },
+  error: (error) => {
+    console.error('Error al cargar tipos de operación:', error);
+  }
+});
   }
 
   onSubmit(): void {
@@ -123,8 +186,16 @@ export class OperacionesEmisionComponent implements OnInit {
   }
 
   limpiarFormulario(): void {
-    this.formulario.reset();
-  }
+
+  this.formulario.reset({
+    cuenta: '',
+    estatus: [],
+    tipoOperacion: [],
+    fechaInicio: '',
+    fechaFin: ''
+  });
+
+}
 
   
 }

@@ -3,6 +3,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { TransaccionesEmisionService } from '../../services/transaccionesemision.service';
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
+import { Validators } from '@angular/forms';
+
 
 @Component({
   selector: 'app-operacionesEmi',
@@ -15,9 +17,10 @@ export class TransaccionesEmisionComponent implements OnInit {
   formulario: FormGroup;
   cuentas: any[] = [];
   tiposOperacion: any[] = [];
-  estatus: any[] = [];
+  estatus: any[] = []; 
   operaciones: any[] = [];
-  estatusOptions = [
+  estatusOptions: any[] = [];
+  /*estatusOptions = [
     { label: 'Procesando', value: '5' },
     { label: 'Denegado', value: '6' },
     { label: 'Reversado', value: '7' },
@@ -34,7 +37,7 @@ export class TransaccionesEmisionComponent implements OnInit {
     { label: 'Liquidado', value: '31' },
     { label: 'Cerrado', value: '32' },
     { label: 'Tarifa dividida', value: '33' }
-  ];
+  ];*/
 
   opciones = [
     { id: 1, nombre: 'Opción 1' },
@@ -57,11 +60,16 @@ export class TransaccionesEmisionComponent implements OnInit {
     this.formulario = this.fb.group({
       cuenta: [''],
       estatus: [''],
-      email: [''],
-      tel: [''],
+     email: ['', Validators.email],
+      tel: [
+ '',
+ [
+   Validators.pattern(/^[0-9]{10}$/)
+ ]
+],
       numAuto: [''],
       monto: [''],
-      entidad: [''],
+      idEntidad: [''],
       tipoOperacion: [''],
       fechaInicio: [''],
       fechaFin: ['']
@@ -94,14 +102,19 @@ export class TransaccionesEmisionComponent implements OnInit {
     });
 
     // Cargar estatus
-    this.transEmiService.obtenerStatus().subscribe({
-      next: (data) => {
-        this.estatus = data;
-      },
-      error: (error) => {
-        console.error('Error al cargar estatus:', error);
-      }
-    });
+   this.transEmiService.obtenerStatus().subscribe({
+  next: (data: any) => {
+
+    this.estatusOptions = data.map((item: any) => ({
+      value: item.idStatus,
+      label: item.statusDescription
+    }));
+
+  },
+  error: (error) => {
+    console.error('Error al cargar estatus:', error);
+  }
+});
   }
 
   onSubmit(): void {
@@ -111,10 +124,12 @@ export class TransaccionesEmisionComponent implements OnInit {
       
       // Aquí puedes llamar a otro servicio para enviar los datos
       this.transEmiService.enviarFormulario(formValues).subscribe({
+      
+       
         next: (response) => {
           console.log('Formulario enviado exitosamente:', response);
-          this.operaciones = response.operations || [];
-
+         // this.operaciones = response.operations || [];
+this.operaciones = response.content || [];
           console.log('operaciones enviado exitosamente:', this.operaciones);
           // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
         },
@@ -124,7 +139,16 @@ export class TransaccionesEmisionComponent implements OnInit {
       });
     }
   }
+  
+soloNumeros(event: KeyboardEvent) {
 
+  const charCode = event.which || event.keyCode;
+
+  if (charCode < 48 || charCode > 57) {
+    event.preventDefault();
+  }
+
+}
   cargarTiposOperacion(): void {
     this.transEmiService.obtenerTiposOperacion().subscribe({
       next: (response: any) => {
@@ -140,9 +164,9 @@ export class TransaccionesEmisionComponent implements OnInit {
   }
 
   limpiarFormulario(): void {
-    this.formulario.reset();
-  }
-
+  this.formulario.reset();
+  this.operaciones = [];
+}
   
 }
 
