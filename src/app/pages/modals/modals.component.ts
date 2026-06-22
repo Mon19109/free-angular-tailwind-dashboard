@@ -1,7 +1,6 @@
 // src/app/modals/formulario-modal.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { NgxTailwindModalViewComponent } from '@dotted-labs/ngx-tailwind-modal';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -69,11 +68,12 @@ import { CommonModule } from '@angular/common';
     </div>
   `
 })
-export class FormularioModalComponent extends NgxTailwindModalViewComponent {
+export class FormularioModalComponent {
   private fb = inject(FormBuilder);
   
   // Datos que se reciben desde el componente que abre el modal
-  titulo: string = '';
+  @Input() titulo = '';
+  @Output() closed = new EventEmitter<void>();
   
   // Definir el formulario reactivo
   formulario: FormGroup = this.fb.group({
@@ -84,7 +84,7 @@ export class FormularioModalComponent extends NgxTailwindModalViewComponent {
 
   // Método para cerrar el modal sin enviar
   cerrar() {
-    this.modalInstance.close();
+    this.closed.emit();
   }
 
   // Método que se ejecuta al enviar el formulario
@@ -92,9 +92,7 @@ export class FormularioModalComponent extends NgxTailwindModalViewComponent {
     if (this.formulario.valid) {
       // Aquí puedes procesar los datos (enviar a API, guardar en servicio, etc.)
       console.log('Datos del formulario:', this.formulario.value);
-      
-      // Cerrar el modal y opcionalmente devolver los datos
-      //this.modalInstance.close(this.formulario.value);
+      this.closed.emit();
     }
   }
 }

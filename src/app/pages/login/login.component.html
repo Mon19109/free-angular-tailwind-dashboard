@@ -30,16 +30,16 @@
             [type]="showPassword ? 'text' : 'password'"
             id="password"
             formControlName="password"
-            [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('passwordLogin')?.touched"
+          [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
             placeholder="Ingrese su contraseña"
           />
           <button type="button" class="toggle-password" (click)="togglePasswordVisibility()">
             {{ showPassword ? '🙈' : '👁️' }}
           </button>
         </div>
-        <div class="error" *ngIf="loginForm.get('passwordLogin')?.invalid && loginForm.get('passwordLogin')?.touched">
-          <span *ngIf="loginForm.get('passwordLogin')?.errors?.['required']">Contraseña requerida</span>
-          <span *ngIf="loginForm.get('passwordLogin')?.errors?.['minlength']">Mínimo 6 caracteres</span>
+        <div class="error" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+          <span *ngIf="loginForm.get('password')?.errors?.['required']">Contraseña requerida</span>
+          <span *ngIf="loginForm.get('password')?.errors?.['minlength']">Mínimo 6 caracteres</span>
         </div>
       </div>
 
@@ -49,9 +49,9 @@
         </div>
       </div>
 
-      <button type="submit" class="btn-login" [disabled]="loading">
-        <span *ngIf="!loading">Iniciar Sesión</span>
-        <span *ngIf="loading" class="spinner"></span>
+      <button type="submit" class="btn-login" [disabled]="isLoading">
+        <span *ngIf="!isLoading">Iniciar Sesión</span>
+        <span *ngIf="isLoading" class="spinner"></span>
       </button>
 
       <div class="text-center position-relative my-4">
@@ -63,7 +63,7 @@
 
             <!-- Botones Sociales -->
             <div class="d-grid gap-2">
-              <button (click)="modalPreregistro()" class="btn-dorado inline-flex items-center justify-center gap-3 py-3 text-sm font-normal  transition-colors rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
+              <button type="button" (click)="modalPreregistro($event)" class="btn-dorado inline-flex items-center justify-center gap-3 py-3 text-sm font-normal  transition-colors rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
                 <i class="bi bi-google me-2"></i> Inicar Pre registro
               </button>
             </div>
@@ -80,3 +80,13 @@
     </form>
   </div>
 </div>
+@if (showPreregistroModal) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+      <app-formulario-modal
+        titulo="Formulario de contacto"
+        (closed)="showPreregistroModal = false"
+      />
+    </div>
+  </div>
+}

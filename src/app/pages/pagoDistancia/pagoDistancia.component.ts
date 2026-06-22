@@ -1,7 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AuthService, UserSessionData } from '../../services/auth.service';
 import { PagoDistanciaService,  } from '../../services/pagoDistancia.service';
 import { DefaultInputsComponent } from '../../shared/components/form/form-elements/default-inputs/default-inputs.component';
 import { LabelComponent } from '../../shared/components/form/label/label.component';
@@ -39,7 +38,7 @@ export class PagoDistanciaComponent implements OnInit {
 
   private  pagoDistanciaService = inject(PagoDistanciaService);
 
-  user: UserSessionData | null = null;
+  readonly sesionVar = localStorage;
   
   constructor(
     private fb: FormBuilder

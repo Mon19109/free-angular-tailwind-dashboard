@@ -6,6 +6,17 @@ import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { map, catchError, switchMap, tap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 
+export interface UserSessionData {
+  idUser: number;
+  idContext: number;
+  entitySonID: string;
+  mail: string;
+  tel?: string;
+  commerceType?: string;
+  token: string;
+  [key: string]: any;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -55,6 +66,10 @@ export class AuthService {
     return this.getSession();
   }
 
+  getUser(): UserSessionData | null {
+    return this.getSession();
+  }
+
   // ============================================
   // HEADERS
   // ============================================
@@ -63,8 +78,8 @@ export class AuthService {
     let headers = new HttpHeaders({
       'Entity-i': 'com.onsigna',
       'Content-Type': 'application/json',
-      'versionApp': '3',
-      'Cookie': 'JSESSIONID=7550148b68185496a3e8cead36dc'
+      'Accept': 'application/json',
+      'versionApp': '3'
     });
 
     if (customHeaders) {
@@ -141,7 +156,7 @@ export class AuthService {
   // ============================================
   
   loginKasPay(userLogin: string, passwordLogin: string, latitud: string, longitud: string, accessToken: string): Observable<any> {
-    const url = `${environment.api.kashpay}/api/v1/user/login`;
+    const url = `${environment.api.kashpay}api/v1/user/login`;
     
     const body = {
       email: userLogin,
@@ -154,8 +169,7 @@ export class AuthService {
     };
 
     const headers = {
-      'Authorization': `Bearer ${accessToken}`,
-      'Cookie': 'JSESSIONID=D85924E31F132B8C77D289A48F1EDFFB'
+      'Authorization': `Bearer ${accessToken}`
     };
 
     return this.http.post(url, body, { headers: this.getHeaders(headers) });
@@ -423,8 +437,7 @@ export class AuthService {
     const url = `${environment.api.kashpay}/api/v1/user/forgotPassword?email=${encodeURIComponent(email)}`;
     
     const headers = {
-      'Authorization': `Bearer ${session.token}`,
-      'Cookie': 'JSESSIONID=ccc03bb85d66a6037878f6eb8ad9'
+      'Authorization': `Bearer ${session.token}`
     };
 
     return this.http.post(url, {}, { headers: this.getHeaders(headers) });

@@ -19,6 +19,7 @@ export class TarjetaComponent implements OnInit {
 mostrarTarjeta = false;
 mensaje = '';
 datosTarjeta: any = null;
+user: any = null;
 
   cardNumberDisplay = '#### #### #### ####';
 cardNameDisplay = '';
@@ -38,8 +39,7 @@ cardNameDisplay = '';
 
  ngOnInit(): void {
 
-  const userData =
-    localStorage.getItem('userData');
+  const userData = localStorage.getItem('auth_session');
 
   if (userData) {
     this.user = JSON.parse(userData);

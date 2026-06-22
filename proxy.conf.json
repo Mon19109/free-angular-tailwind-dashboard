@@ -11,7 +11,7 @@
     "logLevel": "debug"
   },
   "/AuthenticationService": {
-    "target": "http://sdbx-polaris.kashplataforma.com",
+    "target": "https://sdbx-polaris.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
