@@ -1,18 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { FormularioModalComponent } from '../../pages/modals/modals.component';
 
 @Component({
   selector: 'app-login',
   imports: [
     CommonModule,      // Para ngIf, ngFor, etc.
     ReactiveFormsModule, // Para formGroup, formControlName
-    FormsModule,       // Para ngModel si lo usas
-    RouterModule,      // Para routerLink si lo necesitas
-    FormularioModalComponent
+    RouterModule       // Para routerLink
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
@@ -22,7 +19,6 @@ export class LoginComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
   showPassword = false;
-  showPreregistroModal = false;
   
 
   constructor(
@@ -94,11 +90,6 @@ export class LoginComponent implements OnInit {
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
-  modalPreregistro(event?: Event): void {
-    event?.preventDefault();
-    this.showPreregistroModal = true;
-  }
-
   /*togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }*/

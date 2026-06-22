@@ -1,66 +1,266 @@
-<div>
-  <div class="grid min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
-    <div style="border: 1px solid #dad8d8;padding: 39px;border-radius: 5px;" class="mx-auto w-full max-w-[630px]">
-      <h3 class="mb-4 font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl">
-        Pre registro de comercios
-      </h3>
-      <p>Bienvenido, para contunuar ingresa los datos solicitados</p>
-      <form  id="formulario" >
-        <div class="space-y-2">
-          <div *ngFor="let seccion of secciones; let i = index" class="border rounded-lg overflow-hidden">
-            <!-- Encabezado -->
-            <button 
-                (click)="toggleSeccion(i)"
-                class="btn-azul-acordion w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 font-medium text-left transition-colors">
-                {{ seccion.titulo }}
-                <svg [class.rotate-180]="seccion.activo" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </button>
-            <!-- Contenido -->
-            <div [class.hidden]="!seccion.activo" class="p-4 border-t bg-white">
-                @if (i == 0) {
-                  <div class=" grid grid-cols-1 gap-6 xl:grid-cols-1">  
-                    <div style="margin-top: 20px;" class="">
-                      <div class="grid grid-cols-1 gap-6 xl:grid-cols-1">  
-                        <div class="mt10">
-                          <app-label>Selecciona el nivel del comercio</app-label>
-                          <app-select
-                            name="filtros"
-                            id="filtros"
-                            [options]="niveles"
-                            placeholder=""
-                            (valueChange)="handleSelectChangeNivel($event)"
-                            className="dark:bg-dark-900"
-                            ></app-select>
-                        </div>
-                        <div class="mt10">
-                          <app-label>Selecciona el tipo de comercio</app-label>
-                          <app-select
-                            name="filtros"
-                            id="filtros"
-                            [options]="tComercio"
-                            placeholder=""
-                            (valueChange)="handleSelectChangeTComercio($event)"
-                            className="dark:bg-dark-900"
-                            ></app-select>
-                        </div>
-                        <div class="mt10">
-                          <app-label>Número de afiliación</app-label>
-                          <app-input-field id="concepto" type="text" name="concepto"></app-input-field>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                } @else if (i == 1) {
-                  index{{i}}
-                } @else if (i == 2) {
-                  index{{i}}
-                }
-            </div>
+<main class="preregistro-shell">
+  <header class="topbar">
+    <a routerLink="/" aria-label="Volver al inicio">
+      <img src="kashpay_dorado.png" alt="Kashpay" class="brand-logo" />
+    </a>
+    <a routerLink="/" class="back-link">Salir del preregistro</a>
+  </header>
+
+  <section class="page-content">
+    @if (!registroTerminado) {
+      <nav class="stepper" aria-label="Progreso del preregistro">
+        <div class="step" [class.active]="pasoActual >= 1">
+          <span>1</span><small>Validación</small>
+        </div>
+        <div class="step-line" [class.active]="pasoActual >= 2"></div>
+        <div class="step" [class.active]="pasoActual >= 2">
+          <span>2</span><small>Datos del comercio</small>
+        </div>
+        <div class="step-line" [class.active]="pasoActual >= 3"></div>
+        <div class="step" [class.active]="pasoActual >= 3">
+          <span>3</span><small>Documentos</small>
+        </div>
+      </nav>
+    }
+
+    @if (pasoActual === 1 && !registroTerminado) {
+      <div class="welcome-grid">
+        <article class="card welcome-card">
+          <span class="eyebrow">Bienvenido</span>
+          <h1>Pre registro de comercios</h1>
+          <p class="lead">
+            Estás a punto de formar parte de Kashpay. Ten a la mano tu número de
+            afiliación y los documentos de tu comercio.
+          </p>
+
+          <form [formGroup]="afiliacionForm" (ngSubmit)="continuarAfiliacion()">
+            <label for="afiliacion">Número de afiliación <b>*</b></label>
+            <input
+              id="afiliacion"
+              type="text"
+              inputmode="numeric"
+              maxlength="8"
+              formControlName="afiliacion"
+              placeholder="Ej. 33359863"
+              [class.invalid]="esInvalido('afiliacion', 'afiliacion')"
+            />
+            @if (esInvalido('afiliacion', 'afiliacion')) {
+              <p class="field-error">Ingresa un número de afiliación de 8 dígitos.</p>
+            }
+            <button class="button primary full" type="submit">Continuar</button>
+          </form>
+        </article>
+
+        <aside class="card requirements-card">
+          <div class="requirements-icon">✓</div>
+          <h2>Requisitos para el alta</h2>
+          <p>Antes de comenzar, verifica que cuentas con lo siguiente:</p>
+          <ul>
+            @for (requisito of requisitos; track requisito) {
+              <li>{{ requisito }}</li>
+            }
+          </ul>
+        </aside>
+      </div>
+    }
+
+    @if (pasoActual === 2 && !registroTerminado) {
+      <section class="form-page">
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">Nuevo comercio</span>
+            <h1>Cuéntanos sobre tu negocio</h1>
+            <p>Los campos marcados con <b>*</b> son obligatorios.</p>
           </div>
+          <div class="affiliation-chip">Afiliación {{ afiliacionForm.value.afiliacion }}</div>
+        </div>
+
+        <article class="accordion-card">
+          <button type="button" class="accordion-header" (click)="toggleSeccion('comercio')">
+            <span><b>01</b> Descripción del comercio</span>
+            <span>{{ seccionAbierta === 'comercio' ? '−' : '+' }}</span>
+          </button>
+          @if (seccionAbierta === 'comercio') {
+            <form class="accordion-body" [formGroup]="comercioForm">
+              <div class="form-grid cols-2">
+                <div class="field">
+                  <label for="nivel">Nivel del cliente <b>*</b></label>
+                  <select id="nivel" formControlName="nivel" [class.invalid]="esInvalido('comercio', 'nivel')">
+                    <option value="">Selecciona una opción</option>
+                    @for (nivel of niveles; track nivel) { <option [value]="nivel">{{ nivel }}</option> }
+                  </select>
+                  @if (esInvalido('comercio', 'nivel')) { <small>Selecciona un nivel.</small> }
+                </div>
+                <div class="field">
+                  <label for="tipoComercio">Tipo de comercio <b>*</b></label>
+                  <select id="tipoComercio" formControlName="tipoComercio" [class.invalid]="esInvalido('comercio', 'tipoComercio')">
+                    <option value="">Selecciona una opción</option>
+                    @for (tipo of tiposComercio; track tipo) { <option [value]="tipo">{{ tipo }}</option> }
+                  </select>
+                  @if (esInvalido('comercio', 'tipoComercio')) { <small>Selecciona el tipo de comercio.</small> }
+                </div>
+              </div>
+              <div class="commissioner-row">
+                <div>
+                  <span class="field-label">Comisionista</span>
+                  <p>{{ comercioForm.value.afiliacionComisionista || 'No se ha asociado un comisionista.' }}</p>
+                </div>
+                <button type="button" class="button secondary" (click)="mostrarComisionista = true">Agregar comisionista</button>
+              </div>
+            </form>
+          }
+        </article>
+
+        <article class="accordion-card">
+          <button type="button" class="accordion-header" (click)="toggleSeccion('generales')">
+            <span><b>02</b> Datos generales</span>
+            <span>{{ seccionAbierta === 'generales' ? '−' : '+' }}</span>
+          </button>
+          @if (seccionAbierta === 'generales') {
+            <form class="accordion-body" [formGroup]="datosForm">
+              <h2>Información fiscal y de contacto</h2>
+              <div class="form-grid cols-3">
+                <div class="field"><label for="correo">Correo electrónico <b>*</b></label><input id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('datos', 'correo')" /></div>
+                <div class="field"><label for="confirmarCorreo">Confirmar correo <b>*</b></label><input id="confirmarCorreo" type="email" formControlName="confirmarCorreo" [class.invalid]="datosForm.hasError('correosDistintos') && datosForm.get('confirmarCorreo')?.touched" />@if (datosForm.hasError('correosDistintos') && datosForm.get('confirmarCorreo')?.touched) { <small>Los correos no coinciden.</small> }</div>
+                <div class="field"><label for="telefono">Teléfono <b>*</b></label><input id="telefono" inputmode="numeric" maxlength="10" formControlName="telefono" [class.invalid]="esInvalido('datos', 'telefono')" /></div>
+                <div class="field"><label for="rfc">RFC <b>*</b></label><input id="rfc" formControlName="rfc" maxlength="13" [class.invalid]="esInvalido('datos', 'rfc')" /></div>
+                <div class="field"><label for="razonSocial">Razón social <b>*</b></label><input id="razonSocial" formControlName="razonSocial" [class.invalid]="esInvalido('datos', 'razonSocial')" /></div>
+                <div class="field"><label for="nombreComercial">Nombre comercial <b>*</b></label><input id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('datos', 'nombreComercial')" /></div>
+                <div class="field"><label for="regimenFiscal">Régimen fiscal <b>*</b></label><select id="regimenFiscal" formControlName="regimenFiscal" [class.invalid]="esInvalido('datos', 'regimenFiscal')"><option value="">Selecciona una opción</option>@for (regimen of regimenes; track regimen) { <option [value]="regimen">{{ regimen }}</option> }</select></div>
+              </div>
+
+              <div class="subheading-row">
+                <h2>Giro comercial</h2>
+                <button type="button" class="text-button" (click)="mostrarBusquedaGiro = true">Búsqueda avanzada</button>
+              </div>
+              <div class="form-grid cols-3">
+                <div class="field"><label for="familiaGiro">Familia del giro <b>*</b></label><input id="familiaGiro" formControlName="familiaGiro" [class.invalid]="esInvalido('datos', 'familiaGiro')" /></div>
+                <div class="field"><label for="descripcionGiro">Descripción del giro <b>*</b></label><input id="descripcionGiro" formControlName="descripcionGiro" [class.invalid]="esInvalido('datos', 'descripcionGiro')" /></div>
+                <div class="field"><label for="mcc">Clave MCC <b>*</b></label><input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('datos', 'mcc')" /></div>
+              </div>
+
+              <h2>Domicilio fiscal</h2>
+              <div class="form-grid cols-3">
+                <div class="field"><label for="codigoPostal">Código postal <b>*</b></label><input id="codigoPostal" maxlength="5" inputmode="numeric" formControlName="codigoPostal" [class.invalid]="esInvalido('datos', 'codigoPostal')" /></div>
+                <div class="field"><label for="tipoVialidad">Tipo de vialidad <b>*</b></label><input id="tipoVialidad" formControlName="tipoVialidad" [class.invalid]="esInvalido('datos', 'tipoVialidad')" placeholder="Calle, avenida..." /></div>
+                <div class="field"><label for="vialidad">Nombre de vialidad <b>*</b></label><input id="vialidad" formControlName="vialidad" [class.invalid]="esInvalido('datos', 'vialidad')" /></div>
+                <div class="field"><label for="numeroExterior">Número exterior <b>*</b></label><input id="numeroExterior" formControlName="numeroExterior" [class.invalid]="esInvalido('datos', 'numeroExterior')" /></div>
+                <div class="field"><label for="numeroInterior">Número interior</label><input id="numeroInterior" formControlName="numeroInterior" /></div>
+                <div class="field"><label for="colonia">Colonia <b>*</b></label><input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('datos', 'colonia')" /></div>
+                <div class="field"><label for="localidad">Localidad <b>*</b></label><input id="localidad" formControlName="localidad" [class.invalid]="esInvalido('datos', 'localidad')" /></div>
+                <div class="field"><label for="municipio">Municipio/Alcaldía <b>*</b></label><input id="municipio" formControlName="municipio" [class.invalid]="esInvalido('datos', 'municipio')" /></div>
+                <div class="field"><label for="estado">Entidad federativa <b>*</b></label><input id="estado" formControlName="estado" [class.invalid]="esInvalido('datos', 'estado')" /></div>
+                <div class="field"><label for="entreCalle">Entre calle <b>*</b></label><input id="entreCalle" formControlName="entreCalle" [class.invalid]="esInvalido('datos', 'entreCalle')" /></div>
+                <div class="field"><label for="yCalle">Y calle <b>*</b></label><input id="yCalle" formControlName="yCalle" [class.invalid]="esInvalido('datos', 'yCalle')" /></div>
+              </div>
+
+              <h2>Representante legal</h2>
+              <div class="form-grid cols-3">
+                <div class="field"><label for="representanteNombre">Nombre <b>*</b></label><input id="representanteNombre" formControlName="representanteNombre" [class.invalid]="esInvalido('datos', 'representanteNombre')" /></div>
+                <div class="field"><label for="representantePaterno">Apellido paterno <b>*</b></label><input id="representantePaterno" formControlName="representantePaterno" [class.invalid]="esInvalido('datos', 'representantePaterno')" /></div>
+                <div class="field"><label for="representanteMaterno">Apellido materno <b>*</b></label><input id="representanteMaterno" formControlName="representanteMaterno" [class.invalid]="esInvalido('datos', 'representanteMaterno')" /></div>
+                <div class="field"><label for="representanteCorreo">Correo electrónico <b>*</b></label><input id="representanteCorreo" type="email" formControlName="representanteCorreo" [class.invalid]="esInvalido('datos', 'representanteCorreo')" /></div>
+                <div class="field"><label for="representanteTelefono">Teléfono <b>*</b></label><input id="representanteTelefono" maxlength="10" inputmode="numeric" formControlName="representanteTelefono" [class.invalid]="esInvalido('datos', 'representanteTelefono')" /></div>
+                <div class="field"><label for="representanteTelefonoAdicional">Teléfono adicional</label><input id="representanteTelefonoAdicional" formControlName="representanteTelefonoAdicional" /></div>
+              </div>
+            </form>
+          }
+        </article>
+
+        <div class="actions">
+          <button type="button" class="button ghost" (click)="volver(1)">Anterior</button>
+          <button type="button" class="button primary" (click)="continuarDocumentos()">Continuar a documentos</button>
+        </div>
+      </section>
+    }
+
+    @if (pasoActual === 3 && !registroTerminado) {
+      <section class="form-page">
+        <div class="page-heading">
+          <div><span class="eyebrow">Último paso</span><h1>Documentación requerida</h1><p>Formatos permitidos: PDF, JPG o PNG. Máximo 10 MB por archivo.</p></div>
+        </div>
+        @if (archivosInvalidos) {
+          <div class="alert-error">Carga todos los documentos marcados como obligatorios.</div>
+        }
+        <div class="documents-card">
+          <div class="documents-header"><span>#</span><span>Tipo de documento</span><span>Archivo</span></div>
+          @for (documento of documentos; track documento.nombre; let i = $index) {
+            <div class="document-row">
+              <span class="document-number">{{ i + 1 }}</span>
+              <div><strong>{{ documento.nombre }}</strong>@if (documento.obligatorio) { <em>Obligatorio</em> }</div>
+              <label class="file-picker">
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="seleccionarArchivo($event, documento)" />
+                <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>
+              </label>
+              @if (documento.archivo) { <small class="file-name">{{ documento.archivo.name }}</small> }
+            </div>
+          }
+        </div>
+        <div class="consent"><span>🔒</span><p>Tu información se almacenará de forma segura y será utilizada únicamente para validar el alta del comercio.</p></div>
+        <div class="actions">
+          <button type="button" class="button ghost" (click)="volver(2)">Anterior</button>
+          <button type="button" class="button primary" (click)="finalizarRegistro()">Enviar preregistro</button>
+        </div>
+      </section>
+    }
+
+    @if (registroTerminado) {
+      <section class="card success-card">
+        <div class="success-icon">✓</div>
+        <span class="eyebrow">Solicitud recibida</span>
+        <h1>¡Gracias por completar tu preregistro!</h1>
+        <p>Guardamos la información del comercio <b>{{ datosForm.value.nombreComercial }}</b>. El equipo de Kashpay revisará tus documentos y se pondrá en contacto contigo.</p>
+        <div class="folio">Afiliación <strong>{{ afiliacionForm.value.afiliacion }}</strong></div>
+        <a routerLink="/" class="button primary">Volver al inicio</a>
+      </section>
+    }
+  </section>
+</main>
+
+@if (mostrarComisionista) {
+  <div class="modal-backdrop" (click)="mostrarComisionista = false">
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-comisionista" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" aria-label="Cerrar" (click)="mostrarComisionista = false">×</button>
+      <h2 id="titulo-comisionista">Agregar comisionista</h2>
+      <p>Selecciona si el comisionista ya existe o captura sus datos.</p>
+      <form [formGroup]="comisionistaForm">
+        <label class="radio-option"><input type="radio" value="existente" formControlName="tipo" /> Comisionista existente</label>
+        @if (comisionistaForm.value.tipo === 'existente') {
+          <div class="field"><label for="comisionistaAfiliacion">Número de afiliación</label><input id="comisionistaAfiliacion" formControlName="afiliacion" /></div>
+        }
+        <label class="radio-option"><input type="radio" value="nuevo" formControlName="tipo" /> Comisionista nuevo</label>
+        @if (comisionistaForm.value.tipo === 'nuevo') {
+          <div class="form-grid cols-2 modal-fields">
+            <div class="field"><label for="comisionistaCorreo">Correo</label><input id="comisionistaCorreo" type="email" formControlName="correo" /></div>
+            <div class="field"><label for="comisionistaConfirmar">Confirmar correo</label><input id="comisionistaConfirmar" type="email" formControlName="confirmarCorreo" /></div>
+            <div class="field"><label for="comisionistaTelefono">Teléfono</label><input id="comisionistaTelefono" formControlName="telefono" /></div>
+            <div class="field"><label for="comisionistaNombre">Nombre</label><input id="comisionistaNombre" formControlName="nombre" /></div>
+            <div class="field"><label for="comisionistaPaterno">Apellido paterno</label><input id="comisionistaPaterno" formControlName="paterno" /></div>
+            <div class="field"><label for="comisionistaMaterno">Apellido materno</label><input id="comisionistaMaterno" formControlName="materno" /></div>
+            <div class="field"><label for="comisionistaRfc">RFC</label><input id="comisionistaRfc" formControlName="rfc" /></div>
+          </div>
+        }
+      </form>
+      <div class="actions"><button type="button" class="button ghost" (click)="mostrarComisionista = false">Cancelar</button><button type="button" class="button primary" (click)="guardarComisionista()">Guardar</button></div>
+    </section>
+  </div>
+}
+
+@if (mostrarBusquedaGiro) {
+  <div class="modal-backdrop" (click)="mostrarBusquedaGiro = false">
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-giro" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" aria-label="Cerrar" (click)="mostrarBusquedaGiro = false">×</button>
+      <h2 id="titulo-giro">Buscar giro comercial</h2>
+      <p>Selecciona el giro que mejor describa la actividad registrada en tu constancia fiscal.</p>
+      <form [formGroup]="busquedaGiroForm">
+        <div class="field"><label for="terminoGiro">Palabras del giro comercial</label><input id="terminoGiro" formControlName="termino" placeholder="Ej. agencia, restaurante..." /></div>
+        <div class="results-list">
+          @for (giro of girosSugeridos; track giro.mcc; let i = $index) {
+            <button type="button" [class.selected]="busquedaGiroForm.value.resultado === i.toString()" (click)="seleccionarGiro(i)"><span>{{ giro.descripcion }}</span><small>{{ giro.familia }} · MCC {{ giro.mcc }}</small></button>
+          }
         </div>
       </form>
-    </div>
+      <div class="actions"><button type="button" class="button ghost" (click)="mostrarBusquedaGiro = false">Cancelar</button><button type="button" class="button primary" (click)="guardarGiro()">Usar selección</button></div>
+    </section>
   </div>
-</div>
+}

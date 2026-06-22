@@ -35,6 +35,7 @@ import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component'
 import { SaldosComponent } from '../app/pages/saldos/saldos.component';
 import { PagarLinkPagoComponent } from '../app/pages/pagarLinkPago/pagarLinkPago.component';
 import { OrdenPagoComponent } from './pages/OrdenPagp/OrdenPago.component';
+import { PreRegistroComponent } from './pages/preRegistro/preRegistro.component';
 
 export const routes: Routes = [
   { 
@@ -42,6 +43,11 @@ export const routes: Routes = [
     component: LoginComponent,
     title:'KASHPAY' ,
     pathMatch: 'full'
+  },
+  {
+    path: 'preregistro',
+    component: PreRegistroComponent,
+    title: 'Pre registro | KASHPAY'
   },
   {
     path:'',
