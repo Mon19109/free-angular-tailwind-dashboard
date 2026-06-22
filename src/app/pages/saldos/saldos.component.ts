@@ -2,8 +2,8 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SaldosService } from '../../services/saldos.service';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+//import * as XLSX from 'xlsx';
+//import { saveAs } from 'file-saver';
 
 @Component({
   selector: 'app-saldos',
@@ -163,7 +163,7 @@ exportarExcel(): void {
     SaldoTarjeta: item.saldoTarjeta
   }));
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
+ /* const worksheet = XLSX.utils.json_to_sheet(data);
 
   const workbook = XLSX.utils.book_new();
 
@@ -185,7 +185,7 @@ exportarExcel(): void {
       type:
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     }
-  );
+  );*/
 
   const fecha = new Date();
 
@@ -202,7 +202,7 @@ exportarExcel(): void {
       String(fecha.getSeconds()).padStart(2, '0')
     }.xlsx`;
 
-  saveAs(blob, nombreArchivo);
+  //saveAs(blob, nombreArchivo);
 
 }
 

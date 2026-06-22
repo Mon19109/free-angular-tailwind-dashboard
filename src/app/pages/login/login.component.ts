@@ -1,13 +1,13 @@
-// app/login/login.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewContainerRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { NgxTailwindModalService } from '@dotted-labs/ngx-tailwind-modal';
+import { FormularioModalComponent } from '../../pages/modals/modals.component';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
   imports: [
     CommonModule,      // Para ngIf, ngFor, etc.
     ReactiveFormsModule, // Para formGroup, formControlName
@@ -19,9 +19,14 @@ import { AuthService } from '../../services/auth.service';
 })
 export class LoginComponent implements OnInit {
   loginForm: FormGroup;
-  loading = false;
+  isLoading = false;
   errorMessage = '';
   showPassword = false;
+  loading = false;
+
+  private modalService = inject( NgxTailwindModalService);
+  private vcr = inject(ViewContainerRef);
+  
 
   constructor(
     private fb: FormBuilder,
@@ -34,65 +39,79 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    if (this.authService.hasValidSession()) {
+      this.router.navigate(['/dashboard']);
+    }
+  }
 
-  async onSubmit(): Promise<void> {
-    if (this.loginForm.invalid) {
+  onSubmit(): void {
+   /* if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }*/
+   if (this.loginForm.invalid) {
       Object.keys(this.loginForm.controls).forEach(key => {
         this.loginForm.get(key)?.markAsTouched();
       });
       return;
     }
 
-    this.loading = true;
+    this.isLoading = true;
     this.errorMessage = '';
 
-    try {
-      let latitud = '';
-      let longitud = '';
-      
-      try {
-        const coords = await this.authService.getCurrentLocation();
-        latitud = coords.latitud;
-        longitud = coords.longitud;
-      } catch (locationError) {
-        console.warn('No se pudo obtener ubicación:', locationError);
-      }
 
-      const credentials = {
-        email: this.loginForm.value.email,
-        password: this.loginForm.value.password,
-        latitud: latitud,
-        longitud: longitud
-      };
-      
-     // console.log('Coordenadas:', latitud, longitud);
+    const { userLogin, passwordLogin, latitud, longitud } = this.loginForm.value;
 
-      this.authService.login(credentials).subscribe({
-        next: (response: any) => {
-          this.loading = false;
-          
-          if (response.success && response.inSession === 'true') {
-            this.router.navigate(['/dashboard']);
-          } else {
-            this.errorMessage = response.message || 'Error al iniciar sesión';
-          }
-        },
-        error: (error) => {
-          this.loading = false;
-          this.errorMessage = error.message || 'Error en el servidor';
+    this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud).subscribe({
+      next: (result: any) => {
+        this.isLoading = false;
+        if (result.success) {
+          this.router.navigate(['/dashboard']);
+        } else {
+          this.errorMessage = this.getErrorMessage(result.idUser, result.message);
         }
-      });
-    } catch (error) {
-      this.loading = false;
-      this.errorMessage = 'Error al obtener la ubicación';
-    }
+      },
+      error: (error: any) => {
+        this.isLoading = false;
+        this.errorMessage = error.message || 'Error al iniciar sesión';
+        console.error('Login error:', error);
+      }
+    });
+  }
+
+  private getErrorMessage(idUser?: string, message?: string): string {
+    const errorMap: any = {
+      'B': 'Error al obtener el saldo de la cuenta',
+      'B-EAU': 'Error al obtener el saldo de la cuenta',
+      'L': 'Credenciales incorrectas',
+      'L-E-AU': 'Credenciales incorrectas',
+      'OA-R': 'Error en el registro del usuario',
+      'AU-AU': message || 'Error en autenticación',
+      'PROCESSING': 'Ya hay una petición en proceso'
+    };
+
+    return errorMap[idUser || ''] || message || 'Error al iniciar sesión';
   }
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
+  modalPreregistro() {
+    if (event) {
+        event.preventDefault();
+      }
+  this.modalService
+      .create('formulario-modal', FormularioModalComponent)
+      .setData({ titulo: 'Formulario de contacto' })
+      .open();
+}
 
-  get email() { return this.loginForm.get('email'); }
-  get password() { return this.loginForm.get('password'); }
+  /*togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }*/
+
+  goToForgotPassword(): void {
+    this.router.navigate(['/forgot-password']);
+  }
 }

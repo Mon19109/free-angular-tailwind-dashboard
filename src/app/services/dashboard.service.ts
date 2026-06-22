@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
-import { AuthService, UserSessionData } from '../services/auth.service';
+//import { AuthService, UserSessionData } from '../services/auth.service';
 
 
 
@@ -42,7 +42,7 @@ export class DashboardService {
   private apiUrl = environment.api.saldos; 
   private apiUrlAlde = environment.api.aldebaran; 
 
-  user: UserSessionData | null = null;
+  //user: UserSessionData | null = null;
 
   constructor(private http: HttpClient) { }
   

@@ -22,7 +22,7 @@
             @for (item of subafiliados(); track item.idContext) {
               <option
                 [value]="item.idContext"
-                [attr.selected]="item.idContext == user?.idContext ? true : null">
+                [attr.selected]="item.idContext == 00 ? true : null">
                 {{ item.contextDescription }}
               </option>
             }

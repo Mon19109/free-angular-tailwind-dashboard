@@ -3,7 +3,7 @@ import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
-import { AuthService, UserSessionData } from '../services/auth.service';
+//import { AuthService, UserSessionData } from '../services/auth.service';
 
 export interface Cuenta {
   id: number;

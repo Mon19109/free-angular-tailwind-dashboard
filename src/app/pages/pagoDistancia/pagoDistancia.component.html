@@ -12,7 +12,7 @@
               
             </div>
             <div>
-              <button class="inline-flex items-center justify-center gap-2 rounded-lg transition px-5 py-3.5 text-sm bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300 btn-azul">Ingresar</button>
+              <a href="add_linkpago" class="inline-flex items-center justify-center gap-2 rounded-lg transition px-5 py-3.5 text-sm bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300 btn-azul">Ingresar</a>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@
     <div>
       <hr>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 md:gap-6">
-        <h4 class="text-dorado">Buscar creados</h4>
+        <h4 class="text-dorado">Buscar creados  {{ sesionVar.getItem('idContext') }} </h4>
       </div>
     </div>
     <form id="form-filtro" name="form-filtro" method="post">

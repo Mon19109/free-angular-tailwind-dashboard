@@ -1,22 +1,24 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AuthService, UserSessionData } from '../../services/auth.service';
+//import { AuthService, UserSessionData } from '../../services/auth.service';
 import { PagoDistanciaService,  } from '../../services/pagoDistancia.service';
 import { DefaultInputsComponent } from '../../shared/components/form/form-elements/default-inputs/default-inputs.component';
 import { LabelComponent } from '../../shared/components/form/label/label.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import { SelectComponent } from '../../shared/components/form/select/select.component';
+import { InputFieldComponent } from "../../shared/components/form/input/input-field.component";
 
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule,LabelComponent,
-      DefaultInputsComponent,DatePickerComponent,SelectComponent],
+  imports: [CommonModule, ReactiveFormsModule, LabelComponent,
+    DefaultInputsComponent, DatePickerComponent, SelectComponent, InputFieldComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 })
 export class PagoDistanciaComponent implements OnInit {
+  sesionVar = localStorage;
   formulario: FormGroup;
   cuentas: any[] = [];
   tarjeta: string = '';
@@ -38,7 +40,7 @@ export class PagoDistanciaComponent implements OnInit {
 
   private  pagoDistanciaService = inject(PagoDistanciaService);
 
-  user: UserSessionData | null = null;
+  //user: UserSessionData | null = null;
   
   constructor(
     private fb: FormBuilder
@@ -54,6 +56,7 @@ export class PagoDistanciaComponent implements OnInit {
   }
 
   cargarDatosIniciales(): void {
+    console.log('sesionVar:', this.sesionVar);
     // Cargar cuentas
     this.pagoDistanciaService.obtenerCuentas().subscribe({
       next: (data) => {
@@ -68,7 +71,7 @@ export class PagoDistanciaComponent implements OnInit {
 
   handleSelectChangeFil(value: string) {
     this.selectedOptionFil = value;
-    console.log('Selected value:', value);
+    console.log('Selected value:', );
     //this.opcionSeleccionada = value
   }
   handleDateChange(event: any) {

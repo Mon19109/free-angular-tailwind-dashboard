@@ -1,0 +1,44 @@
+.tab {
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.tab-label {
+    @apply flex justify-between p-4 font-bold cursor-pointer bg-gray-100 rounded-lg;
+    /* Estilos adicionales */
+}
+
+.tab-label:hover {
+    @apply bg-gray-200;
+}
+
+.tab-label::after {
+    content: "❯";
+    @apply transition-transform duration-300;
+}
+
+.tab-content {
+    max-height: 0;
+    padding: 0 1rem;
+    @apply transition-all duration-300 overflow-hidden;
+}
+
+input:checked + .tab-label::after {
+    transform: rotate(90deg);
+}
+
+input:checked ~ .tab-content {
+    max-height: 100vh;
+    padding: 1rem;
+}
+.accordion-header {
+    @apply w-full text-left p-4 bg-gray-100 hover:bg-gray-200 font-semibold rounded-lg cursor-pointer;
+}
+
+.accordion-content {
+    @apply p-4 bg-white rounded-b-lg;
+}
+
+.accordion-content.hidden {
+    display: none;
+}

@@ -3,7 +3,7 @@ layer(base);
 
 @import "tailwindcss";
 @import "swiper/css/bundle";
-@import '@fortawesome/fontawesome-free/css/all.min.css';
+/*@import '@fortawesome/fontawesome-free/css/all.min.css';*/
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -1026,4 +1026,34 @@ pre[class*="language-"].line-numbers {
 }
 h4, .h4 {
   font-size: 22px;
+}
+hr {
+  display: inline-block;
+  height: 1px;
+  width: 100%;
+  background-color: #818181;
+  margin: 5px 0;
+}
+hr {
+  margin: 35px 0;
+  border-top: 1px solid #DDD;
+}
+.btn-azul-acordion {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient( 135deg, #333f50 0%, #333f50 100%);
+  color: white;
+  border: none;
+  border-radius: 0px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+/* src/styles.css */
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3B82F6;    /* Cambia el color primario */
+  --color-secondary: #10B981;   /* Cambia el color secundario */
 }

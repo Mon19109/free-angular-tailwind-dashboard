@@ -12,7 +12,7 @@ export class AuthGuard {
   ) {}
 
   canActivate(): boolean {
-    if (this.authService.isAuthenticated()) {
+    if (this.authService.hasValidSession()) {
       return true;
     }
     

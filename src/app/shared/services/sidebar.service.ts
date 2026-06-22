@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { AuthService, UserSessionData } from '../../services/auth.service';
+//import { AuthService, UserSessionData } from '../../services/auth.service';
 
 
 @Injectable({
@@ -15,7 +15,7 @@ export class SidebarService {
   isMobileOpen$ = this.isMobileOpenSubject.asObservable();
   isHovered$ = this.isHoveredSubject.asObservable();
 
-  user: UserSessionData | null = null;
+  //user: UserSessionData | null = null;
   
 
   setExpanded(val: boolean) {

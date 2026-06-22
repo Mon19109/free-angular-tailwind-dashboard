@@ -34,6 +34,7 @@ import { PagoDistanciaComponent } from '../app/pages/pagoDistancia/pagoDistancia
 import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component';
 import { SaldosComponent } from '../app/pages/saldos/saldos.component';
 import { PagarLinkPagoComponent } from '../app/pages/pagarLinkPago/pagarLinkPago.component';
+import { PreRegistroComponent } from '../app/pages/preRegistro/preRegistro.component';
 
 export const routes: Routes = [
   { 
@@ -41,6 +42,16 @@ export const routes: Routes = [
     component: LoginComponent,
     title:'KASHPAY' ,
     pathMatch: 'full'
+  },
+  { 
+    path: 'pagar_linkpago', 
+    component: PagarLinkPagoComponent, 
+    title:'KASHPAY'
+  },
+  { 
+    path: 'pre_registro', 
+    component: PreRegistroComponent, 
+    title:'KASHPAY'
   },
   {
     path:'',
@@ -192,12 +203,7 @@ export const routes: Routes = [
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },
-      { 
-        path: 'pagar_linkpago', 
-        component: PagarLinkPagoComponent, 
-        //canActivate: [AuthGuard],
-        title:'KASHPAY'
-      },
+      
       // error pages
       {
         path:'**',

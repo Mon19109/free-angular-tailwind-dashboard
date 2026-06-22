@@ -1,8 +1,8 @@
-import { Component, OnInit , inject, signal, ChangeDetectionStrategy} from '@angular/core';
+import { Component , inject, signal} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-//import { trigger, transition, style, animate } from '@angular/animations';
 import { AddLinkPagoService } from '../../services/addlinkpago.service';
+//import { AuthService, UserSessionData } from '../../services/auth.service';
 //import { TextAreaComponent } from '../../shared/components/form/input/text-area.component';
 import { InputFieldComponent } from '../../shared/components/form/input/input-field.component';
 import { DefaultInputsComponent } from '../../shared/components/form/form-elements/default-inputs/default-inputs.component';
@@ -11,11 +11,7 @@ import { DatePickerComponent } from '../../shared/components/form/date-picker/da
 import { SelectComponent } from '../../shared/components/form/select/select.component';
 import { CheckboxComponent } from '../../shared/components/form/input/checkbox.component';
 //import { CheckboxComponentsComponent } from '../../shared/components/form/form-elements/checkbox-components/checkbox-components.component';
-/*import {LiveAnnouncer} from '@angular/cdk/a11y';
-import {COMMA, ENTER} from '@angular/cdk/keycodes';
-import {MatChipEditedEvent, MatChipInputEvent, MatChipsModule} from '@angular/material/chips';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatIconModule} from '@angular/m';*/
+
 
 @Component({
   selector: 'app-addlinkpago',
@@ -42,17 +38,7 @@ export class AddLinkPagoComponent {
     msi: any[] = [];
     tPago: any[] = [];
     tNoti: any[] = [];
-    tipoNoti = [
-        { value: '1', label: 'URL (Página web)' },
-        { value: '2', label: 'SMS' },
-        { value: '3', label: 'Correo Electrónico' }
-    ];
-
-    tipoPago = [
-        { value: '2', label: 'Transferencia' },
-        { value: '3', label: 'E-Commerce' },
-        { value: '6', label: 'Mixto' }
-    ];
+    
     selectedOptionPago = '';
     selectedOptionNoti = '';
     dateValue: any;
@@ -60,11 +46,13 @@ export class AddLinkPagoComponent {
     cardNumber = '';
     seleccionados: number[] = [];
 
+    optionPago = signal<any[]>([]);
+    optionNoti = signal<any[]>([]);
+
     loading = signal<boolean>(false);
     mostrarDiv = false;
     mostrarForm = true;
     opcionSeleccionada = '';
-
   
   onSelectionChange() {
     console.log('Seleccionados:', this.seleccionados);
@@ -91,6 +79,7 @@ export class AddLinkPagoComponent {
       fechaVen: [''],
       propina: [''],
       msi: ['']
+
     });
   }
   
@@ -106,6 +95,47 @@ export class AddLinkPagoComponent {
   handleDateChange(event: any) {
     this.dateValue = event;
     console.log('Date changed:', event);
+  }
+
+  ngOnInit(): void {
+    this.cargarDatosIniciales();
+  }
+
+  cargarDatosIniciales(): void {
+    // Cargar cuentas
+    this.addlinkpagoService.obtenerTipoNoti().subscribe({
+      next: (data) => {
+        console.error('tNoti:', this.tNoti);
+
+        /*let datosNoti = data.map(item => ({
+          codigo: item.id,        
+          nombreCompleto: item.value 
+        }));*/
+
+        let datosNoti  = data.map((datos: unknown[]) => datos.map((item: any) => ({
+          value: item.paymentMethodID,
+          label: item.descripcion
+        })));
+
+        this.tNoti = datosNoti;
+
+
+      },
+      error: (error) => {
+        console.error('Error Not:', error);
+      }
+    });
+
+    this.addlinkpagoService.obtenerTipoPago().subscribe({
+      next: (data) => {
+        console.error('tPago:', data);
+        this.tPago = data;
+      },
+      error: (error) => {
+        console.error('Error :', error);
+      }
+    });
+
   }
 
   onSubmit(): void {

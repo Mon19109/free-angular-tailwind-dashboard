@@ -1,0 +1,66 @@
+<div>
+  <div class="grid min-h-screen rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
+    <div style="border: 1px solid #dad8d8;padding: 39px;border-radius: 5px;" class="mx-auto w-full max-w-[630px]">
+      <h3 class="mb-4 font-semibold text-gray-800 text-theme-xl dark:text-white/90 sm:text-2xl">
+        Pre registro de comercios
+      </h3>
+      <p>Bienvenido, para contunuar ingresa los datos solicitados</p>
+      <form  id="formulario" >
+        <div class="space-y-2">
+          <div *ngFor="let seccion of secciones; let i = index" class="border rounded-lg overflow-hidden">
+            <!-- Encabezado -->
+            <button 
+                (click)="toggleSeccion(i)"
+                class="btn-azul-acordion w-full flex justify-between items-center p-4 bg-gray-50 hover:bg-gray-100 font-medium text-left transition-colors">
+                {{ seccion.titulo }}
+                <svg [class.rotate-180]="seccion.activo" class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <!-- Contenido -->
+            <div [class.hidden]="!seccion.activo" class="p-4 border-t bg-white">
+                @if (i == 0) {
+                  <div class=" grid grid-cols-1 gap-6 xl:grid-cols-1">  
+                    <div style="margin-top: 20px;" class="">
+                      <div class="grid grid-cols-1 gap-6 xl:grid-cols-1">  
+                        <div class="mt10">
+                          <app-label>Selecciona el nivel del comercio</app-label>
+                          <app-select
+                            name="filtros"
+                            id="filtros"
+                            [options]="niveles"
+                            placeholder=""
+                            (valueChange)="handleSelectChangeNivel($event)"
+                            className="dark:bg-dark-900"
+                            ></app-select>
+                        </div>
+                        <div class="mt10">
+                          <app-label>Selecciona el tipo de comercio</app-label>
+                          <app-select
+                            name="filtros"
+                            id="filtros"
+                            [options]="tComercio"
+                            placeholder=""
+                            (valueChange)="handleSelectChangeTComercio($event)"
+                            className="dark:bg-dark-900"
+                            ></app-select>
+                        </div>
+                        <div class="mt10">
+                          <app-label>Número de afiliación</app-label>
+                          <app-input-field id="concepto" type="text" name="concepto"></app-input-field>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                } @else if (i == 1) {
+                  index{{i}}
+                } @else if (i == 2) {
+                  index{{i}}
+                }
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 import { Component,signal,inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { AuthService, UserSessionData } from '../../services/auth.service';
+//import { AuthService, UserSessionData } from '../../services/auth.service';
 import { DashboardService } from '../../services/dashboard.service';
 
 @Component({
@@ -17,7 +17,7 @@ export class DashboardComponent {
   balanceAhorro = signal<any[]>([]);
   reportes = signal<any[]>([]);
 
-  user: UserSessionData | null = null;
+  //user: UserSessionData | null = null;
   private  dashService = inject(DashboardService);
 
 
@@ -31,21 +31,10 @@ export class DashboardComponent {
 
   cargarDatosIniciales(): void {
     // Cargar balance sirio
-console.log('user?'+this.user?.userName);
+    //console.log('user?'+this.user?.userName);
     this.dashService.getBalanceSirio().subscribe({
       next:  (response: any) => {
-        // Acceder a catOperationTypes dentro de la respuesta
-        //this.balanceSirio = response;       
-        //this.balanceSirio = Array.isArray(response) ? response : [response];
-        //this.balanceSirio = response || [];
-        //this.balanceSirio = Array.isArray(response) ? response : [response];
-        //this.balanceSirio = this.balanceSirio || [];
 
-        /*this.balanceSirio = [
-        { id: 1, concepto: 'Balance Principal', monto: 15000.50, moneda: 'MXN', fecha: '2024-01-15' },
-        { id: 2, concepto: 'Balance Secundario', monto: 5000.00, moneda: 'MXN', fecha: '2024-01-15' },
-        { id: 3, concepto: 'Comisiones', monto: 250.75, moneda: 'MXN', fecha: '2024-01-15' }
-      ];*/
         let datos: any[] = [];
         
         if (Array.isArray(response)) {

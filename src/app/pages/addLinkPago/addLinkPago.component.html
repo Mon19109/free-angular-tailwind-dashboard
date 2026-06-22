@@ -35,14 +35,10 @@
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
           <div class="mt10">
             <app-label>Tipo de notificación* </app-label>
-            <app-select
-            name="tNoti"
-            id="tNoti"
-            [options]="tipoNoti"
-            placeholder=""
-            (valueChange)="handleSelectChangeNoti($event)"
-            className="dark:bg-dark-900"
-            ></app-select>
+            <select class="form-select ng-pristine ng-valid ng-touched">
+              
+
+            </select>
           </div>
           <div class="mt10">
             <app-label>Nombre* </app-label>
@@ -103,13 +99,14 @@
           <div class="mt10">
             <app-label>Forma de pago*</app-label>
             <app-select
-            name="tPago"
-            [id]="tPago"
-            [options]="tipoPago"
+            name="filtros"
+            id="filtros"
+            [options]="optionPago()"
             placeholder=""
             (valueChange)="handleSelectChangePago($event)"
             className="dark:bg-dark-900"
             ></app-select>
+
           </div>
           <div class="mt10">
             <app-label>Monto* </app-label>

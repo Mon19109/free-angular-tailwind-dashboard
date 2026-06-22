@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AuthService, UserSessionData } from '../../services/auth.service';
+//import { AuthService, UserSessionData } from '../../services/auth.service';
 import { TarjetaService,  } from '../../services/tarjeta.service';
 
 @Component({
@@ -18,8 +18,7 @@ export class TarjetaComponent implements OnInit {
 
   private  tarjetaService = inject(TarjetaService);
 
-  user: UserSessionData | null = null;
-  
+ // user: UserSessionData | null = null;  
   constructor(
     private fb: FormBuilder
   ) {

@@ -5,7 +5,6 @@
       <img src="https://portal-antares.kashplataforma.com/public/assets/img/kashpay_dorado.png" alt="Logo" class="logo">
       <!--h4>Bienvenido</h4>
       <p>Ingresa tus credenciales para continuar</p-->
-      <h2 class="fw-bold text-gradient">Bienvenido</h2>
       <p class="text-muted">Ingresa tus credenciales para continuar</p>
     </div>
 
@@ -16,12 +15,11 @@
           type="email"
           id="email"
           formControlName="email"
-          [class.is-invalid]="email?.invalid && email?.touched"
+          [class.is-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
           placeholder="usuario@ejemplo.com"
         />
-        <div class="invalid-feedback" *ngIf="email?.invalid && email?.touched">
-          <span *ngIf="email?.errors?.['required']">El correo es requerido</span>
-          <span *ngIf="email?.errors?.['email']">Ingrese un correo válido</span>
+        <div class="invalid-feedback" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+          Correo requerido
         </div>
       </div>
 
@@ -32,16 +30,16 @@
             [type]="showPassword ? 'text' : 'password'"
             id="password"
             formControlName="password"
-            [class.is-invalid]="password?.invalid && password?.touched"
+            [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('passwordLogin')?.touched"
             placeholder="Ingrese su contraseña"
           />
           <button type="button" class="toggle-password" (click)="togglePasswordVisibility()">
             {{ showPassword ? '🙈' : '👁️' }}
           </button>
         </div>
-        <div class="invalid-feedback" *ngIf="password?.invalid && password?.touched">
-          <span *ngIf="password?.errors?.['required']">La contraseña es requerida</span>
-          <span *ngIf="password?.errors?.['minlength']">Mínimo 6 caracteres</span>
+        <div class="error" *ngIf="loginForm.get('passwordLogin')?.invalid && loginForm.get('passwordLogin')?.touched">
+          <span *ngIf="loginForm.get('passwordLogin')?.errors?.['required']">Contraseña requerida</span>
+          <span *ngIf="loginForm.get('passwordLogin')?.errors?.['minlength']">Mínimo 6 caracteres</span>
         </div>
       </div>
 
@@ -59,23 +57,23 @@
       <div class="text-center position-relative my-4">
               <hr>
               <span class="px-3 bg-white position-relative text-muted" style="top: -12px;">
-                O continúa con
+                O se parte de Kashpay
               </span>
             </div>
 
             <!-- Botones Sociales -->
             <div class="d-grid gap-2">
-              <button type="button" class="btn btn-outline-secondary">
-                <i class="bi bi-google me-2"></i> Registrate
+              <button (click)="modalPreregistro()" class="btn-dorado inline-flex items-center justify-center gap-3 py-3 text-sm font-normal  transition-colors rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
+                <i class="bi bi-google me-2"></i> Inicar Pre registro
               </button>
             </div>
 
             <!-- Link Registro -->
             <div class="text-center mt-4">
               <p class="mb-0">
-                ¿No tienes cuenta? 
+                ¿Olvidaste tu contraseña? 
                 <a href="#" class="text-decoration-none fw-bold" >
-                  Regístrate aquí
+                  Recuperar cuenta
                 </a>
               </p>
             </div>

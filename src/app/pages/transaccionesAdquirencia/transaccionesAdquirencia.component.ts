@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal, ElementRef, ViewChild, AfterViewInit
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TransaccionesAdquirenciaService, FiltrosTransaccion, Transaccion } from '../../services/transaccionesadquirencia.service';
-import { AuthService, UserSessionData } from '../../services/auth.service';
+//import { AuthService, UserSessionData } from '../../services/auth.service';
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
 
 declare var bootbox: any;
@@ -59,7 +59,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     fechaFin: ''
   };
   
-  user: UserSessionData | null = null;
+  //user: UserSessionData | null = null;
   
   @ViewChild('map') mapElement!: ElementRef;
   
