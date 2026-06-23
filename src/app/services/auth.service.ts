@@ -113,7 +113,7 @@ export class AuthService {
       appInfo: {
         nameApp: 'Portal Web',
         versionApp: '3',
-        enviroment: 'PRODUCCION',
+        enviroment: 'SDBX',
         platform: 'ZDVAU'
       }
     };

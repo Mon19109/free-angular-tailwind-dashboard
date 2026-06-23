@@ -5,7 +5,7 @@ export const environment = {
     kashpay: '/api/v2/antares.kwt-v2.2.10/',
     linkpago: '/OrderReceiver/api/v1/',
     saldos: '/Entities/entities/',
-    auth: '/AuthenticationService/',
+    auth: '/OAuthServices/',
     entities: '/EntitiesServices/',
     aldebaran: '/AldebaranServices/',
     voucher: '/KashPay/v2/voucher', // Reemplazar con URL realOrderReceiver
