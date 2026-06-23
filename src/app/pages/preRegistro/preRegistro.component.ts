@@ -9,6 +9,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ThemeService } from '../../shared/services/theme.service';
+import { ThemeToggleButtonComponent } from '../../shared/components/common/theme-toggle/theme-toggle-button.component';
 
 interface DocumentoRequerido {
   nombre: string;
@@ -19,19 +21,22 @@ interface DocumentoRequerido {
 @Component({
   selector: 'app-preregistro',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ThemeToggleButtonComponent],
   templateUrl: './preRegistro.component.html',
   styleUrls: ['./preRegistro.component.css'],
 })
 export class PreRegistroComponent {
   private readonly fb = inject(FormBuilder);
+  readonly themeService = inject(ThemeService);
 
   pasoActual = 1;
-  seccionAbierta: 'comercio' | 'generales' | null = 'comercio';
+  seccionAbierta: 'comercio' | 'generales' | 'accesos' | 'liquidacion' | null = 'comercio';
   mostrarComisionista = false;
   mostrarBusquedaGiro = false;
   registroTerminado = false;
   archivosInvalidos = false;
+  tipoPersonaBeneficiario: 'fisica' | 'moral' = 'fisica';
+  datosBeneficiarioIgualComercio = false;
 
   readonly requisitos = [
     'Acta constitutiva para persona moral.',
@@ -43,28 +48,31 @@ export class PreRegistroComponent {
     'Correo electrónico y teléfono móvil activos.',
   ];
 
-  readonly niveles = ['Subafiliado', 'Pyme - Entidad', 'Sucursal'];
-  readonly tiposComercio = ['Empresa Grupo', 'Persona Física'];
+  readonly niveles = ['Sub Afiliado', 'Pyme - Entidad', 'Sucursal', 'Caja', 'Referenciador', 'Comisionista'];
+  readonly tiposComercio = ['Empresa Grupo', 'Persona Física', 'Empresa Agrupadora', 'Entidad Agrupadora'];
   readonly regimenes = [
     'General de Ley Personas Morales',
     'Régimen Simplificado de Confianza',
     'Personas Físicas con Actividades Empresariales',
   ];
+  readonly modoReserva = ['NINGUNO', 'MANUAL', 'TRANSACCIONAL', 'AUTOMÁTICO', 'COMPLETO'];
+  readonly tiposVialidad = ['Calle', 'Avenida', 'Carrera', 'Vía', 'Pasaje', 'Otro'];
 
   readonly documentos: DocumentoRequerido[] = [
     { nombre: 'Comprobante de domicilio', obligatorio: true },
     { nombre: 'Acta constitutiva', obligatorio: true },
     { nombre: 'Identificación oficial del propietario', obligatorio: true },
     { nombre: 'Contrato', obligatorio: false },
-    { nombre: 'Imagen frente del comercio', obligatorio: false },
-    { nombre: 'Imagen interior del comercio', obligatorio: false },
+    { nombre: 'Imagen frente del comercio', obligatorio: true },
+    { nombre: 'Imagen interior del comercio', obligatorio: true },
     { nombre: 'Imagen interior 2 del comercio', obligatorio: false },
     { nombre: 'Escrituras públicas', obligatorio: false },
     { nombre: 'Poder del representante', obligatorio: false },
-    { nombre: 'Constancia de situación fiscal', obligatorio: false },
+    { nombre: 'Constancia de situación fiscal', obligatorio: true },
     { nombre: 'E-Firma', obligatorio: false },
-    { nombre: 'Identificación oficial del representante legal', obligatorio: false },
+    { nombre: 'Identificación oficial del representante legal', obligatorio: true },
     { nombre: 'Identificación oficial de un tercero', obligatorio: false },
+    { nombre: 'Carátula de estado cuenta para liquidación', obligatorio: true },
   ];
 
   readonly afiliacionForm = this.fb.nonNullable.group({
