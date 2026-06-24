@@ -337,7 +337,7 @@ export class AuthService {
   }
 
   // ============================================
-  // PROCESAR RESPUESTA DE LOGIN
+  // PROCESAR RESPUESTA DE LOGINnnn
   // ============================================
   
   private processLoginResponse(loginResult: any, authResult: any, userLogin: string, latitud: string, longitud: string): Observable<any> {
