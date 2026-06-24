@@ -1,16 +1,17 @@
 {
   "/api/v2/antares.kwt-v2.2.10": {
-    "target": "http://sdbx-api-antares.kashplataforma.com",
+    "target": "https://sdbx-api-antares.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
-  },"/OrderReceiver": {
+  },
+  "/OrderReceiver": {
     "target": "http://sdbx-api-antares.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
-  "/AuthenticationService": {
+  "/OAuthServices": {
     "target": "http://sdbx-polaris.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
@@ -23,13 +24,13 @@
     "logLevel": "debug"
   },
   "/AldebaranServices": {
-"target": "https://api-aldebaran.kashplataforma.com",
+    "target": "https://api-aldebaran.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/EntitiesServices": {
-"target": "http://sdbx-sirio.kashplataforma.com",
+    "target": "http://sdbx-sirio.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"

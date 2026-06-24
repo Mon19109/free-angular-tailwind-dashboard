@@ -1,15 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewContainerRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { GeolocationService } from '../../services/geolocation.service';
+import { NgxTailwindModalService } from '@dotted-labs/ngx-tailwind-modal';
+import { FormularioModalComponent } from '../../pages/modals/modals.component';
 
 @Component({
   selector: 'app-login',
   imports: [
     CommonModule,      // Para ngIf, ngFor, etc.
     ReactiveFormsModule, // Para formGroup, formControlName
-    RouterModule       // Para routerLink
+    FormsModule,       // Para ngModel si lo usas
+    RouterModule       // Para routerLink si lo necesitas
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
@@ -18,23 +22,48 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
+  lat = '';
+  lon = '';
   showPassword = false;
+  loading = false;
+    userLocation: any;
+
+  private modalService = inject( NgxTailwindModalService);
+  private vcr = inject(ViewContainerRef);
   
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private geolocationService: GeolocationService
   ) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      userLogin: ['', [Validators.required, Validators.email]],
+      passwordLogin: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
 
-  ngOnInit(): void {
+  async ngOnInit() {
     if (this.authService.hasValidSession()) {
       this.router.navigate(['/dashboard']);
+    }
+    try {
+      this.userLocation = await this.geolocationService.getCurrentLocation();
+
+      console.log('Latitud:', this.userLocation.latitude);
+      console.log('Longitud:', this.userLocation.longitude);
+      this.lat = this.userLocation.latitude;
+      this.lon = this.userLocation.longitude;
+
+      // Guardar en localStorage si lo necesitas
+      localStorage.setItem(
+        'location',
+        JSON.stringify(this.userLocation)
+      );
+
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -54,21 +83,24 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
 
 
-    const { email, password } = this.loginForm.value;
+    const { userLogin, passwordLogin, latitud=this.lat, longitud=this.lon } = this.loginForm.value;
 
-    this.authService.searchAccount(email, password).subscribe({
+    this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud).subscribe({
       next: (result: any) => {
         this.isLoading = false;
         if (result.success) {
           this.router.navigate(['/dashboard']);
         } else {
           this.errorMessage = this.getErrorMessage(result.idUser, result.message);
+          console.error('Login error3:', this.errorMessage);
+
         }
       },
       error: (error: any) => {
         this.isLoading = false;
         this.errorMessage = error.message || 'Error al iniciar sesión';
         console.error('Login error:', error);
+        console.error('Login error2:', error.message);
       }
     });
   }
@@ -90,6 +122,16 @@ export class LoginComponent implements OnInit {
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
+  modalPreregistro() {
+    if (event) {
+        event.preventDefault();
+      }
+  this.modalService
+      .create('formulario-modal', FormularioModalComponent)
+      .setData({ titulo: 'Formulario de contacto' })
+      .open();
+}
+
   /*togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }*/

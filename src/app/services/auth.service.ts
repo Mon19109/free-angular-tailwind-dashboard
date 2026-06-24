@@ -6,17 +6,6 @@ import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { map, catchError, switchMap, tap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 
-export interface UserSessionData {
-  idUser: number;
-  idContext: number;
-  entitySonID: string;
-  mail: string;
-  tel?: string;
-  commerceType?: string;
-  token: string;
-  [key: string]: any;
-}
-
 @Injectable({
   providedIn: 'root'
 })
@@ -66,20 +55,58 @@ export class AuthService {
     return this.getSession();
   }
 
-  getUser(): UserSessionData | null {
-    return this.getSession();
-  }
-
   // ============================================
   // HEADERS
   // ============================================
 
   private getHeaders(customHeaders?: any): HttpHeaders {
     let headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'versionApp': '3'
+    });
+
+    if (customHeaders) {
+      Object.keys(customHeaders).forEach(key => {
+        headers = headers.set(key, customHeaders[key]);
+      });
+    }
+
+    return headers;
+  }
+
+  private getHeadersRe(customHeaders?: any): HttpHeaders {
+    let headers = new HttpHeaders({
       'Entity-i': 'com.onsigna',
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'versionApp': '3'
+    });
+
+    if (customHeaders) {
+      Object.keys(customHeaders).forEach(key => {
+        headers = headers.set(key, customHeaders[key]);
+      });
+    }
+
+    return headers;
+  }
+
+  private getHeadersLo(customHeaders?: any): HttpHeaders {
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    if (customHeaders) {
+      Object.keys(customHeaders).forEach(key => {
+        headers = headers.set(key, customHeaders[key]);
+      });
+    }
+
+    return headers;
+  }
+
+  private getHeadersB(customHeaders?: any): HttpHeaders {
+    let headers = new HttpHeaders({
+      'Entity-i': 'com.onsigna'
     });
 
     if (customHeaders) {
@@ -143,12 +170,12 @@ export class AuthService {
       appInfo: {
         nameApp: 'Portal Web',
         versionApp: '3',
-        enviroment: 'PRODUCCION',
+        enviroment: 'SDBX',
         platform: 'ZDVAU'
       }
     };
 
-    return this.http.post(url, body, { headers: this.getHeaders() });
+    return this.http.post(url, body, { headers: this.getHeadersRe() });
   }
 
   // ============================================
@@ -162,17 +189,20 @@ export class AuthService {
       email: userLogin,
       password: passwordLogin,
       device: {
-        os: 'WEB',
+        os: "WEB",
         latitude: latitud,
         longitude: longitud
       }
     };
 
     const headers = {
-      'Authorization': `Bearer ${accessToken}`
+      'Authorization': `Bearer ${accessToken}`,
     };
 
-    return this.http.post(url, body, { headers: this.getHeaders(headers) });
+    console.log('body: ',body);
+    console.log('headers: ',headers);
+
+    return this.http.post(url, body, { headers: this.getHeadersLo(headers) });
   }
 
   // ============================================
@@ -180,23 +210,34 @@ export class AuthService {
   // ============================================
   
   getBalance(accessToken: string, entS: string): Observable<any> {
-    const url = `${environment.api.entities}/getBalance`;
+    const url = `${environment.api.entities}getBalance`;
     
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
-      'Entity-i': 'com.onsigna',
-      'SonEntity-i': entS,
-      'versionApp': '3'
+      'SonEntity-i': entS
     };
 
-    return this.http.get(url, { headers: this.getHeaders(headers) });
+    const finalHeaders = this.getHeadersB(headers);
+
+    console.log('Headers:', finalHeaders.keys());
+
+    finalHeaders.keys().forEach(key => {
+      console.log(key, finalHeaders.get(key));
+    });
+
+    console.log('key: ', finalHeaders);
+
+
+    return this.http.get<any>(url, { headers: finalHeaders });
+
+    //return this.http.get(url, { headers: this.getHeadersB(headers) });
   }
 
   // ============================================
   // 5. SEARCH ACCOUNT - LOGIN COMPLETO
   // ============================================
   
-  searchAccount(userLogin: string, passwordLogin: string, latitud: string = '0', longitud: string = '0'): Observable<any> {
+  searchAccount(userLogin: string, passwordLogin: string, latitud: string, longitud: string): Observable<any> {
     if (this.isProcessing) {
       return throwError(() => new Error('Ya hay una petición en proceso'));
     }
@@ -205,6 +246,7 @@ export class AuthService {
 
     return this.authenticate(userLogin, passwordLogin, latitud, longitud).pipe(
       switchMap((authResult: any) => {
+        //console.log('authResult : ',authResult)
         // Usuario no existe - Registrar
         if (authResult.success === false && authResult.error?.code === 300) {
           return this.register(userLogin, passwordLogin, latitud, longitud).pipe(
@@ -376,7 +418,7 @@ export class AuthService {
           success: false,
           idUser: 'B-EAU',
           message: 'No se encontraron resultados.',
-          inSession: false
+          inSession: error
         }));
       })
     );
@@ -437,7 +479,8 @@ export class AuthService {
     const url = `${environment.api.kashpay}/api/v1/user/forgotPassword?email=${encodeURIComponent(email)}`;
     
     const headers = {
-      'Authorization': `Bearer ${session.token}`
+      'Authorization': `Bearer ${session.token}`,
+      'Cookie': 'JSESSIONID=ccc03bb85d66a6037878f6eb8ad9'
     };
 
     return this.http.post(url, {}, { headers: this.getHeaders(headers) });
