@@ -4,6 +4,22 @@
   align-items: center;
   min-height: 100vh;
   padding: 20px;
+  position: relative;
+  isolation: isolate;
+}
+
+.login-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.22), rgba(2, 6, 23, 0.45));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.login-container > * {
+  position: relative;
+  z-index: 1;
 }
 .text-gradient {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -12,12 +28,15 @@
   background-clip: text;
 }
 .login-card {
-  background: white;
+  background: rgba(17, 24, 39, 0.72);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   padding: 40px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
 }
 
 .login-header {
@@ -30,7 +49,7 @@
   }
 
   h2 {
-    color: #333;
+    color: #ffffff;
     margin: 0;
   }
 }
@@ -41,21 +60,23 @@
   label {
     display: block;
     margin-bottom: 5px;
-    color: #555;
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 500;
   }
 
   input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 5px;
     font-size: 16px;
     transition: border-color 0.3s;
+    background: rgba(255, 255, 255, 0.94);
+    color: #172033;
 
     &:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #25bfd4;
     }
 
     &.is-invalid {
@@ -80,6 +101,7 @@
     border: none;
     cursor: pointer;
     font-size: 18px;
+    color: rgba(255, 255, 255, 0.75);
   }
 }
 
@@ -127,6 +149,14 @@
   }
 }
 
+.divider-label {
+  position: relative;
+  top: -12px;
+  padding: 0 12px;
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(17, 24, 39, 0.72);
+}
+
 .spinner {
   display: inline-block;
   width: 20px;
@@ -139,4 +169,65 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+:host-context(html:not(.dark)) .login-container::before {
+  background: linear-gradient(180deg, rgba(245, 247, 250, 0.16), rgba(226, 232, 240, 0.34));
+}
+
+:host-context(html:not(.dark)) .text-gradient {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+:host-context(html:not(.dark)) .login-card {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--app-text);
+  border-color: var(--app-border);
+  box-shadow: var(--app-card-shadow);
+}
+
+:host-context(html:not(.dark)) .login-header h2 {
+  color: var(--app-text);
+}
+
+:host-context(html:not(.dark)) .form-group label {
+  color: var(--app-text-muted);
+}
+
+:host-context(html:not(.dark)) .form-group input {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+:host-context(html:not(.dark)) .form-group input::placeholder {
+  color: var(--app-text-muted);
+}
+
+:host-context(html:not(.dark)) .password-input-wrapper .toggle-password {
+  color: var(--app-text-muted);
+}
+
+:host-context(html:not(.dark)) .alert.alert-danger {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+:host-context(html:not(.dark)) .btn-login {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary) 100%);
+  color: var(--brand-contrast);
+  box-shadow: 0 14px 28px rgba(51, 63, 80, 0.18);
+}
+
+:host-context(html:not(.dark)) .divider-label {
+  color: var(--app-text-muted);
+  background: var(--app-surface);
+}
+
+:host-context(html:not(.dark)) .spinner {
+  border-color: rgba(51, 63, 80, 0.2);
+  border-top-color: var(--brand-primary);
 }

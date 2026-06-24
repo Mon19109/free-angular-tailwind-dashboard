@@ -10,8 +10,7 @@ export class ThemeService {
   theme$ = this.themeSubject.asObservable();
 
   constructor() {
-    const savedTheme = (localStorage.getItem('theme') as Theme) || 'light';
-    this.setTheme(savedTheme);
+    this.setTheme(this.resolveInitialTheme());
   }
 
   toggleTheme() {
@@ -21,13 +20,38 @@ export class ThemeService {
 
   setTheme(theme: Theme) {
     this.themeSubject.next(theme);
-    localStorage.setItem('theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark:bg-gray-900');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark:bg-gray-900');
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+      // Ignore persistence failures and keep the in-memory theme state.
     }
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.style.colorScheme = theme;
+    }
+  }
+
+  private resolveInitialTheme(): Theme {
+    let savedTheme: string | null = null;
+    try {
+      savedTheme = localStorage.getItem('theme');
+    } catch {
+      savedTheme = null;
+    }
+
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      return savedTheme;
+    }
+
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)')?.matches) {
+      return 'dark';
+    }
+
+    if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
+      return 'dark';
+    }
+
+    return 'light';
   }
 }

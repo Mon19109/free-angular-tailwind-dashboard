@@ -6,6 +6,42 @@ layer(base);
 /*@import '@fortawesome/fontawesome-free/css/all.min.css';*/
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  --app-bg: #f5f7fa;
+  --app-surface: #ffffff;
+  --app-surface-alt: #f8fafc;
+  --app-text: #172033;
+  --app-text-muted: #667085;
+  --app-border: #d0d5dd;
+  --app-input-bg: #ffffff;
+  --app-input-border: #d0d5dd;
+  --app-card-shadow: 0 10px 35px rgba(30, 45, 70, 0.06);
+  --app-modal-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  --app-overlay: rgba(15, 23, 42, 0.7);
+  --brand-primary: #333f50;
+  --brand-secondary: #c7924b;
+  --brand-contrast: #ffffff;
+  color-scheme: light;
+}
+
+html.dark {
+  --app-bg: #0f172a;
+  --app-surface: #111827;
+  --app-surface-alt: #1e293b;
+  --app-text: #e5e7eb;
+  --app-text-muted: #94a3b8;
+  --app-border: #334155;
+  --app-input-bg: #0b1120;
+  --app-input-border: #334155;
+  --app-card-shadow: 0 12px 35px rgba(0, 0, 0, 0.38);
+  --app-modal-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  --app-overlay: rgba(2, 6, 23, 0.82);
+  --brand-primary: #333f50;
+  --brand-secondary: #c7924b;
+  --brand-contrast: #ffffff;
+  color-scheme: dark;
+}
+
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;
@@ -187,7 +223,11 @@ layer(base);
     cursor: pointer;
   }
   body {
-    @apply relative font-normal font-outfit z-1 bg-gray-50;
+    @apply relative z-1 font-normal font-outfit;
+    min-height: 100vh;
+    background: var(--app-bg);
+    color: var(--app-text);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
@@ -867,43 +907,46 @@ pre[class*="language-"].line-numbers {
 }
 .bg-login{
   overflow: hidden;
+  background-color: var(--app-bg);
   background-image: url('https://portal-antares.kashplataforma.com/public/assets/img/fondos/kashpay.jpg');
   transition: 1s;
   background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .text-dorado {
-  color: #c7924b !important;
+  color: var(--brand-secondary) !important;
 }
 
 .allcp-form .btn-azul {
-  background-color: #333F50;
-  color: #fff;
+  background-color: var(--brand-primary);
+  color: var(--brand-contrast);
 }
 
 .allcp-form .btn-dorado {
-  background-color: #c7924b;
-  color: #fff;
+  background-color: var(--brand-secondary);
+  color: var(--brand-contrast);
 }
 @layer utilities {
   .bg-blue {
-    background-color: #333F50;
+    background-color: var(--brand-primary);
   }
 }
 @layer utilities {
   .border-blue-200 {
-    border-color:  #bacce5;
+    border-color: var(--app-border);
   }
 }
 @layer base {
   *, ::after, ::before, ::backdrop, ::file-selector-button {
-    border-color: #6b758a;
+    border-color: var(--app-border);
   }
 }
 
 @layer utilities {
   .menu-item-inactive {
-    color: #667085;
+    color: var(--app-text-muted);
   }
 }
 .sidebar-left-conten  {
@@ -915,8 +958,8 @@ pre[class*="language-"].line-numbers {
 .btn-azul {
   width: 100%;
   padding: 12px;
-  background: linear-gradient( 135deg, #333f50 0%, #333f50 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary) 100%);
+  color: var(--brand-contrast);
   border: none;
   border-radius: 5px;
   font-size: 16px;
@@ -927,8 +970,8 @@ pre[class*="language-"].line-numbers {
 .btn-dorado {
   width: 100%;
   padding: 12px;
-  background: linear-gradient( 135deg, #c7924b 0%, #c7924b 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-secondary) 100%);
+  color: var(--brand-contrast);
   border: none;
   border-radius: 5px;
   font-size: 16px;
@@ -945,15 +988,15 @@ pre[class*="language-"].line-numbers {
   border-radius: 5px;
   cursor: pointer;
   transition: transform 0.3s;
-  background-color: #fff;
-  color: #333F50;
-  border: 1px solid #333F50;
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
   font-size: 16px;
   font-weight: 600;
 }
 .btn-azul-degradado {
-  background: linear-gradient(to top, #333F50, #fff) !important;
-  color: #fff;
+  background: linear-gradient(to top, var(--brand-primary), var(--brand-contrast)) !important;
+  color: var(--brand-contrast);
   width: 100%;
   padding: 12px;
   border: none;
@@ -967,8 +1010,8 @@ pre[class*="language-"].line-numbers {
   float: right;
 }
 .btn-azul-redondo {
-  background-color: #333F50;
-  color: #fff;
+  background-color: var(--brand-primary);
+  color: var(--brand-contrast);
   border-radius: 20px;
   width: 100%;
   padding: 12px;
@@ -979,9 +1022,9 @@ pre[class*="language-"].line-numbers {
   transition: transform 0.3s;
 }
 .btn-blanco-redondo {
-  background-color: #fff;
-  color: #333F50;
-  border: 1px solid #333F50;
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
   border-radius: 20px;
   width: 100%;
   padding: 12px;
@@ -992,10 +1035,10 @@ pre[class*="language-"].line-numbers {
 }
 
 .btn-blanco-sombra {
-  background-color: #fff;
-  color: #333F50;
-  border: 1px solid #e5eaee;
-  box-shadow: 1px 2px 6px #e5eaee;
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  box-shadow: 1px 2px 6px rgba(15, 23, 42, 0.08);
   width: 100%;
   padding: 12px;
   border-radius: 5px;
@@ -1005,10 +1048,10 @@ pre[class*="language-"].line-numbers {
   transition: transform 0.3s;
 }
 .btn-blanco-sombra-redondo {
-  background-color: #fff;
-  color: #333F50;
-  border: 1px solid #e5eaee;
-  box-shadow: 0px 5px 3px #e5eaee;
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  box-shadow: 0px 5px 3px rgba(15, 23, 42, 0.08);
   border-radius: 20px;
   width: 100%;
   padding: 12px;
@@ -1031,18 +1074,18 @@ hr {
   display: inline-block;
   height: 1px;
   width: 100%;
-  background-color: #818181;
+  background-color: var(--app-border);
   margin: 5px 0;
 }
 hr {
   margin: 35px 0;
-  border-top: 1px solid #DDD;
+  border-top: 1px solid var(--app-border);
 }
 .btn-azul-acordion {
   width: 100%;
   padding: 12px;
-  background: linear-gradient( 135deg, #333f50 0%, #333f50 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary) 100%);
+  color: var(--brand-contrast);
   border: none;
   border-radius: 0px;
   font-size: 16px;
