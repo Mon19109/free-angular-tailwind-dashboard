@@ -228,9 +228,9 @@ export class AuthService {
     console.log('key: ', finalHeaders);
 
 
-    return this.http.get<any>(url, { headers: finalHeaders });
+    //return this.http.get<any>(url, { headers: finalHeaders });
 
-    //return this.http.get(url, { headers: this.getHeadersB(headers) });
+    return this.http.get(url, { headers: this.getHeadersB(headers) });
   }
 
   // ============================================
@@ -414,12 +414,24 @@ export class AuthService {
         };
       }),
       catchError(error => {
-        return throwError(() => ({
+        switch(error.status){
+          case 404:
+            return error.statusText;
+          case 500:
+            return error.statusText;
+          case 403:
+            return 'Acceso bloqueado';
+          case 401:
+            return error.statusText;
+          default:
+            return error.statusText;
+        }
+        /*return throwError(() => ({
           success: false,
           idUser: 'B-EAU',
           message: 'No se encontraron resultados.',
-          inSession: error
-        }));
+          inSession: error.status
+        }));*/
       })
     );
   }

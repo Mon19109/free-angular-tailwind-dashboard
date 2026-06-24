@@ -80,6 +80,7 @@ export class LoginComponent implements OnInit {
     }
 
     this.isLoading = true;
+    this.loading = true;
     this.errorMessage = '';
 
 
@@ -88,6 +89,8 @@ export class LoginComponent implements OnInit {
     this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud).subscribe({
       next: (result: any) => {
         this.isLoading = false;
+        this.loading = false;
+
         if (result.success) {
           this.router.navigate(['/dashboard']);
         } else {
@@ -98,7 +101,8 @@ export class LoginComponent implements OnInit {
       },
       error: (error: any) => {
         this.isLoading = false;
-        this.errorMessage = error.message || 'Error al iniciar sesión';
+        this.loading = false;
+        this.errorMessage = error.message || 'Error al iniciar sesión2';
         console.error('Login error:', error);
         console.error('Login error2:', error.message);
       }
@@ -116,7 +120,11 @@ export class LoginComponent implements OnInit {
       'PROCESSING': 'Ya hay una petición en proceso'
     };
 
-    return errorMap[idUser || ''] || message || 'Error al iniciar sesión';
+    console.log('idUser:',idUser);
+    console.log('message:',message);
+    console.log('errorMap:',errorMap);
+
+    return errorMap[idUser || ''] || message || 'Error al iniciar sesión1';
   }
 
   togglePasswordVisibility(): void {
