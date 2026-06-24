@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 
-import { AuthService, UserSessionData } from '../../services/auth.service';
+//import { AuthService, UserSessionData } from '../../services/auth.service';
 import { OrdenPagoService } from '../../services/OrdenPago.service';
 import { RadioComponent } from '../../shared/components/form/input/radio.component';
 import { FormsModule } from '@angular/forms';
@@ -34,19 +34,19 @@ export class OrdenPagoComponent implements OnInit {
     cuentas: any[] = [];
     beneficiarios: any[] = [];
 
-    sesion: UserSessionData | null = null;
+    //sesion: UserSessionData | null = null;
 
     constructor(
         private fb: FormBuilder,
-        private authService: AuthService,
+        //private authService: AuthService,
         private ordenPagoService: OrdenPagoService
     ) { }
 
     ngOnInit(): void {
 
-        this.sesion = this.authService.getUser();
+        //this.sesion = this.authService.getUser();
 
-        console.log('SESION');
+        /*console.log('SESION');
         console.log(this.sesion);
 
         console.log('ID USER');
@@ -65,7 +65,7 @@ export class OrdenPagoComponent implements OnInit {
         });
 
         this.cargarCuentas();
-        this.cargarBeneficiarios();
+        this.cargarBeneficiarios();*/
 
     }
 
@@ -84,7 +84,7 @@ export class OrdenPagoComponent implements OnInit {
 
     cargarCuentas(): void {
 
-        if (!this.sesion) {
+       /* if (!this.sesion) {
             return;
         }
 
@@ -101,12 +101,12 @@ export class OrdenPagoComponent implements OnInit {
                 error: (err) => {
                     console.error(err);
                 }
-            });
+            });*/
     }
 
     cargarBeneficiarios(): void {
 
-        if (!this.sesion) {
+        /*if (!this.sesion) {
             return;
         }
 
@@ -120,13 +120,13 @@ export class OrdenPagoComponent implements OnInit {
                          'Primer beneficiario',
                          this.beneficiarios[0]
                      );*/
-                    this.beneficiarios = resp ?? [];
+                    /*this.beneficiarios = resp ?? [];
 
                 },
                 error: (err) => {
                     console.error(err);
                 }
-            });
+            });*/
 
     }
 
@@ -218,9 +218,9 @@ export class OrdenPagoComponent implements OnInit {
 
             accountNumber: beneficiario?.accountNumber,
 
-            tarjeta: beneficiario?.cardNumber,
+            tarjeta: beneficiario?.cardNumber
 
-            mail: this.sesion?.mail
+            //mail: this.sesion?.mail
 
         };
 
@@ -273,10 +273,10 @@ this.ordenPagoService
 
     validarToken(): void {
 
-       this.ordenPagoService.validarToken(
-  this.token,
-  this.sesion!.idUser
-)
+       /*this.ordenPagoService.validarToken(
+         this.token,
+         this.sesion!.idUser
+        )
             .subscribe({
                 next: (resp) => {
 
@@ -318,7 +318,7 @@ this.ordenPagoService
                     );
 
                 }
-            });
+            });*/
 
     }
 
