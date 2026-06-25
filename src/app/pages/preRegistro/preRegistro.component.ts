@@ -81,17 +81,17 @@ export class PreRegistroComponent {
     {
       numero: 3,
       titulo: 'Accesos a la Plataforma y Terminales TPV',
-     // descripcion: 'Modo de reserva, administradores y cajas.',
+      // descripcion: 'Modo de reserva, administradores y cajas.',
     },
     {
       numero: 4,
       titulo: 'Cuenta para Liquidación',
-     // descripcion: 'Beneficiario y datos bancarios.',
+      // descripcion: 'Beneficiario y datos bancarios.',
     },
     {
       numero: 5,
       titulo: 'Documentos del Comercio',
-     // descripcion: 'Carga la documentación requerida.',
+      // descripcion: 'Carga la documentación requerida.',
     },
   ];
 
@@ -116,14 +116,196 @@ export class PreRegistroComponent {
     'Comisionista',
   ];
 
-  readonly tiposComercio = [
-    'Empresa Grupo',
-    'Persona Física',
-    'Empresa Agrupadora',
-    'Entidad Agrupadora',
-    'Sucursal',
-    'Caja',
-  ];
+  tiposComercio: string[] = [];
+  camposDatosGenerales: string[] = [];
+
+  regimenesFiscales: string[] = [];
+
+  girosComerciales: string[] = [];
+  readonly tiposComercioPorNivel: Record<string, string[]> = {
+    'Sub Afiliado': [
+      'Empresa Holding'
+    ],
+
+    'Entidad': [
+      'Empresa Grupo',
+      'Persona Física'
+    ],
+
+    'Sucursal': [
+      'Sucursales de Grupo',
+      'Sucursal Persona Física',
+      'Sucursales Únicas'
+    ],
+
+    'Caja': [
+      'Caja con Tarjeta sólo Fondeo ',
+      'Caja con Tarjeta SPEI',
+      'Caja Entidad',
+      'Cuenta Terminal',
+      'Cuenta Terminal Pin Rapido'
+    ],
+
+    'Referenciador': [],
+    'Promotor': [],
+    'Comisionista': []
+  };
+
+
+  readonly datosGeneralesPorTipo: Record<string, string[]> = {
+
+    'Empresa Grupo': [
+      'rfc',
+      'razonSocial',
+      'nombreComercial',
+      'regimenFiscal',
+      'giroComercial',
+      'descripcionGiro',
+      'mcc',
+
+      // Domicilio Fiscal
+      'codigoPostal',
+      'tipoVialidad',
+      'nombreVialidad',
+      'numeroExterior',
+      'numeroInterior',
+      'colonia',
+      'localidad',
+      'municipio',
+      'entidadFederativa',
+      'entreCalle',
+      'yCalle'
+    ],
+
+    'Persona Física': [
+      'nombre',
+      'apellidoPaterno',
+      'apellidoMaterno',
+      'curp',
+      'actividad',
+      'rfc',
+
+ // Domicilio Fiscal
+      'codigoPostal',
+      'tipoVialidad',
+      'nombreVialidad',
+      'numeroExterior',
+      'numeroInterior',
+      'colonia',
+      'localidad',
+      'municipio',
+      'entidadFederativa',
+      'entreCalle',
+      'yCalle'
+
+    ],
+
+    'Empresa Holding': [
+
+      'rfc',
+      'razonSocial',
+      'nombreComercial',
+      'regimenFiscal',
+      'giroComercial',
+      'descripcionGiro',
+      'mcc',
+
+      // Domicilio Fiscal
+      'codigoPostal',
+      'tipoVialidad',
+      'nombreVialidad',
+      'numeroExterior',
+      'numeroInterior',
+      'colonia',
+      'localidad',
+      'municipio',
+      'entidadFederativa',
+      'entreCalle',
+      'yCalle'
+      
+
+    ],
+
+    'Sucursales de Grupo': [
+      'rfc',
+      'razonSocial',
+      'nombreComercial',
+      'regimenFiscal',
+      'giroComercial',
+      'descripcionGiro',
+      'mcc',
+
+// Domicilio Fiscal
+      'codigoPostal',
+      'tipoVialidad',
+      'nombreVialidad',
+      'numeroExterior',
+      'numeroInterior',
+      'colonia',
+      'localidad',
+      'municipio',
+      'entidadFederativa',
+      'entreCalle',
+      'yCalle'
+    ],
+
+    'Sucursal Persona Física': [
+      'rfc',
+      'razonSocial',
+      'nombreComercial',
+      'regimenFiscal',
+      'giroComercial',
+      'descripcionGiro',
+      'mcc',
+
+      // Domicilio Fiscal
+      'codigoPostal',
+      'tipoVialidad',
+      'nombreVialidad',
+      'numeroExterior',
+      'numeroInterior',
+      'colonia',
+      'localidad',
+      'municipio',
+      'entidadFederativa',
+      'entreCalle',
+      'yCalle'
+    ],
+
+    'Sucursales Únicas': [
+      'rfc',
+      'razonSocial',
+      'nombreComercial',
+      'regimenFiscal',
+      'giroComercial',
+      'descripcionGiro',
+      'mcc',
+       // Domicilio Fiscal
+      'codigoPostal',
+      'tipoVialidad',
+      'nombreVialidad',
+      'numeroExterior',
+      'numeroInterior',
+      'colonia',
+      'localidad',
+      'municipio',
+      'entidadFederativa',
+      'entreCalle',
+      'yCalle'
+    ],
+
+    'Caja con Tarjeta sólo Fondeo': [],
+
+    'Caja con Tarjeta SPEI': [],
+
+    'Caja Entidad': [],
+
+    'Cuenta Terminal': [],
+
+    'Cuenta Terminal Pin Rapido': []
+
+  };
+
 
   readonly tiposPersona = ['Jurídica', 'Natural'];
   readonly departamentos = ['Antioquia', 'Bogotá D.C.', 'Valle del Cauca', 'Atlántico'];
@@ -165,19 +347,67 @@ export class PreRegistroComponent {
     afiliacionComisionista: [''],
   });
 
-  readonly datosForm = this.fb.nonNullable.group(
-    {
-      razonSocial: ['', Validators.required],
-      nit: ['', [Validators.required, Validators.pattern(/^[0-9.\-]{7,20}$/)]],
-      nombreComercial: ['', Validators.required],
-      tipoPersona: ['', Validators.required],
-      correo: ['', [Validators.required, Validators.email]],
-      telefono: ['', [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)]],
-      departamento: ['', Validators.required],
-      ciudad: ['', Validators.required],
-      direccionComercial: ['', Validators.required],
-    },
-  );
+  readonly datosForm = this.fb.nonNullable.group({
+    // Persona Moral
+    razonSocial: [''],
+    nombreComercial: [''],
+    rfc: [''],
+    regimenFiscal: [''],
+    giroComercial: [''],
+    descripcionGiro: [''],
+    mcc: [''],
+
+    // Persona Física
+    nombre: [''],
+    apellidoPaterno: [''],
+    apellidoMaterno: [''],
+    curp: [''],
+    actividad: [''],
+
+    // Comunes
+    tipoPersona: ['', Validators.required],
+    correo: ['', [Validators.required, Validators.email]],
+    telefono: ['', [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)]],
+    departamento: ['', Validators.required],
+    ciudad: ['', Validators.required],
+    direccionComercial: ['', Validators.required],
+
+
+    codigoPostal: [''],
+    tipoVialidad: [''],
+    nombreVialidad: [''],
+    numeroExterior: [''],
+    numeroInterior: [''],
+    colonia: [''],
+    localidad: [''],
+    municipio: [''],
+    entidadFederativa: [''],
+    entreCalle: [''],
+    yCalle: [''],
+
+
+    // Representante Legal
+nombreRepresentante: [''],
+apellidoPaternoRepresentante: [''],
+apellidoMaternoRepresentante: [''],
+
+// Dirección Representante
+calleRepresentante: [''],
+numeroExteriorRepresentante: [''],
+numeroInteriorRepresentante: [''],
+codigoPostalRepresentante: [''],
+coloniaRepresentante: [''],
+municipioRepresentante: [''],
+estadoRepresentante: [''],
+
+// Contacto Representante
+correoRepresentante: [''],
+telefonoRepresentante: [''],
+
+
+
+
+  });
 
   readonly accesosForm = this.fb.nonNullable.group({
     modoReserva: ['NINGUNO' as ModoReserva, Validators.required],
@@ -285,8 +515,47 @@ export class PreRegistroComponent {
         }
       });
 
+
+    this.comercioForm.controls.nivel.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((nivel) => {
+
+        this.tiposComercio =
+          this.tiposComercioPorNivel[nivel] ?? [];
+
+        this.comercioForm.patchValue(
+          { tipoComercio: '' },
+          { emitEvent: false }
+        );
+
+      });
+    this.comercioForm.controls.tipoComercio.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((tipo) => {
+
+        this.camposDatosGenerales =
+          this.datosGeneralesPorTipo[tipo] ?? [];
+
+      });
     this.cargarBorrador();
+    const nivel = this.comercioForm.controls.nivel.value;
+
+    this.tiposComercio =
+      this.tiposComercioPorNivel[nivel] ?? [];
+
+    const tipo = this.comercioForm.controls.tipoComercio.value;
+
+    this.camposDatosGenerales =
+      this.datosGeneralesPorTipo[tipo] ?? [];
   }
+
+
+
+
+
+
+
+
 
   get progresoWizard(): number {
     if (this.pasoActual === 0) return 0;
@@ -342,8 +611,8 @@ export class PreRegistroComponent {
           ? `${this.comercioForm.value.nivel || 'Nivel pendiente'} · ${this.comercioForm.value.tipoComercio || 'Tipo pendiente'}`
           : 'Descripción del comercio pendiente';
       case 2:
-        return this.datosForm.value.razonSocial || this.datosForm.value.nit
-          ? `${this.datosForm.value.razonSocial || 'Razón social pendiente'} · ${this.datosForm.value.nit || 'NIT pendiente'}`
+        return this.datosForm.value.razonSocial || this.datosForm.value.rfc
+          ? `${this.datosForm.value.razonSocial || 'Razón social pendiente'} · ${this.datosForm.value.rfc || 'NIT pendiente'}`
           : 'Datos generales pendientes';
       case 3:
         return `Modo ${this.accesosForm.value.modoReserva || 'sin definir'} · ${this.accesosForm.value.cajasTPV || '1'} caja(s)`;
@@ -503,13 +772,13 @@ export class PreRegistroComponent {
 
     this.liquidacionForm.patchValue(
       {
-        tipoPersonaBeneficiario: tipoPersona,
+        //tipoPersonaBeneficiario: tipoPersona,
         nombreBeneficiario: datos.razonSocial || datos.nombreComercial || '',
         apellidoPaternoBeneficiario: '',
         apellidoMaternoBeneficiario: '',
         correoBeneficiario: datos.correo || '',
         direccionBeneficiario: direccion,
-        rfcBeneficiario: datos.nit || '',
+        // rfcBeneficiario: datos.nit || '',
         actividadBeneficiario: '',
         giroBeneficiario: '',
       },
@@ -688,9 +957,9 @@ export class PreRegistroComponent {
     if (!giro) return;
 
     this.datosForm.patchValue({
-     // familiaGiro: giro.familia,
-     // descripcionGiro: giro.descripcion,
-     // mcc: giro.mcc,
+      //   familiaGiro: giro.familia,
+      descripcionGiro: giro.descripcion,
+      mcc: giro.mcc,
     });
     this.mostrarBusquedaGiro = false;
     this.guardarBorradorSilencioso(false);
@@ -766,8 +1035,19 @@ export class PreRegistroComponent {
     });
     this.datosForm.reset({
       razonSocial: '',
-      nit: '',
       nombreComercial: '',
+      rfc: '',
+      regimenFiscal: '',
+      giroComercial: '',
+      descripcionGiro: '',
+      mcc: '',
+
+      nombre: '',
+      apellidoPaterno: '',
+      apellidoMaterno: '',
+      curp: '',
+      actividad: '',
+
       tipoPersona: '',
       correo: '',
       telefono: '',
@@ -775,6 +1055,7 @@ export class PreRegistroComponent {
       ciudad: '',
       direccionComercial: '',
     });
+
     this.accesosForm.reset({
       modoReserva: 'NINGUNO',
       reservaSplit: '',

@@ -152,7 +152,7 @@
               </span>
               <div>
                 <h2>{{ paso.numero }}. {{ paso.titulo }}</h2>
-                
+
               </div>
             </div>
             <span class="step-status">
@@ -220,87 +220,476 @@
             @case (2) {
             <form class="step-form" [formGroup]="datosForm">
               <section class="step-section">
+
                 <div class="section-title">
                   <h3>Datos generales</h3>
                   <span>Campos obligatorios marcados con *</span>
                 </div>
 
                 <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('rfc')) {
+                  <div class="field">
+                    <label for="rfc">RFC <b>*</b></label>
+                    <input id="rfc" formControlName="rfc" [class.invalid]="esInvalido('datos','rfc')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('razonSocial')) {
                   <div class="field">
                     <label for="razonSocial">Razón social <b>*</b></label>
                     <input id="razonSocial" formControlName="razonSocial"
-                      [class.invalid]="esInvalido('datos', 'razonSocial')" />
+                      [class.invalid]="esInvalido('datos','razonSocial')" />
                   </div>
-                  <div class="field">
-                    <label for="nit">NIT <b>*</b></label>
-                    <input id="nit" maxlength="20" formControlName="nit" [class.invalid]="esInvalido('datos', 'nit')" />
-                  </div>
+                  }
+
                 </div>
 
                 <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('nombreComercial')) {
                   <div class="field">
                     <label for="nombreComercial">Nombre comercial <b>*</b></label>
                     <input id="nombreComercial" formControlName="nombreComercial"
-                      [class.invalid]="esInvalido('datos', 'nombreComercial')" />
+                      [class.invalid]="esInvalido('datos','nombreComercial')" />
                   </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('regimenFiscal')) {
+                  <div class="field">
+                    <label for="regimenFiscal">Régimen fiscal <b>*</b></label>
+                    <select id="regimenFiscal" formControlName="regimenFiscal"
+                      [class.invalid]="esInvalido('datos','regimenFiscal')">
+
+                      <option value="">Selecciona una opción</option>
+
+                      @for (regimen of regimenesFiscales; track regimen) {
+                      <option [value]="regimen">{{ regimen }}</option>
+                      }
+
+                    </select>
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('giroComercial')) {
+                  <div class="field">
+                    <label for="giroComercial">Giro comercial <b>*</b></label>
+                    <select id="giroComercial" formControlName="giroComercial"
+                      [class.invalid]="esInvalido('datos','giroComercial')">
+
+                      <option value="">Selecciona una opción</option>
+
+                      @for (giro of girosComerciales; track giro) {
+                      <option [value]="giro">{{ giro }}</option>
+                      }
+
+                    </select>
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('descripcionGiro')) {
+                  <div class="field">
+                    <label for="descripcionGiro">Descripción del giro <b>*</b></label>
+                    <input id="descripcionGiro" formControlName="descripcionGiro"
+                      [class.invalid]="esInvalido('datos','descripcionGiro')" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('mcc')) {
+                  <div class="field">
+                    <label for="mcc">MCC <b>*</b></label>
+                    <input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('datos','mcc')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('nombre')) {
+                  <div class="field">
+                    <label for="nombre">Nombre <b>*</b></label>
+                    <input id="nombre" formControlName="nombre" [class.invalid]="esInvalido('datos','nombre')" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('apellidoPaterno')) {
+                  <div class="field">
+                    <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
+                    <input id="apellidoPaterno" formControlName="apellidoPaterno"
+                      [class.invalid]="esInvalido('datos','apellidoPaterno')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('apellidoMaterno')) {
+                  <div class="field">
+                    <label for="apellidoMaterno">Apellido materno <b>*</b></label>
+                    <input id="apellidoMaterno" formControlName="apellidoMaterno"
+                      [class.invalid]="esInvalido('datos','apellidoMaterno')" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('curp')) {
+                  <div class="field">
+                    <label for="curp">CURP <b>*</b></label>
+                    <input id="curp" formControlName="curp" [class.invalid]="esInvalido('datos','curp')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('actividad')) {
+                  <div class="field">
+                    <label for="actividad">Actividad <b>*</b></label>
+                    <input id="actividad" formControlName="actividad"
+                      [class.invalid]="esInvalido('datos','actividad')" />
+                  </div>
+                  }
+
+                </div>
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('tipoPersona')) {
                   <div class="field">
                     <label for="tipoPersona">Tipo de persona <b>*</b></label>
                     <select id="tipoPersona" formControlName="tipoPersona"
-                      [class.invalid]="esInvalido('datos', 'tipoPersona')">
+                      [class.invalid]="esInvalido('datos','tipoPersona')">
+
                       <option value="">Selecciona una opción</option>
+
                       @for (tipo of tiposPersona; track tipo) {
                       <option [value]="tipo">{{ tipo }}</option>
                       }
+
                     </select>
                   </div>
-                </div>
-
-                <div class="form-grid cols-2">
+                  }
+                  @if (camposDatosGenerales.includes('correo')) {
                   <div class="field">
                     <label for="correo">Correo electrónico <b>*</b></label>
                     <input id="correo" type="email" formControlName="correo"
-                      [class.invalid]="esInvalido('datos', 'correo')" />
+                      [class.invalid]="esInvalido('datos','correo')" />
                   </div>
-                  <div class="field">
-                    <label for="telefono">Teléfono de contacto <b>*</b></label>
-                    <input id="telefono" type="tel" inputmode="tel" maxlength="20" formControlName="telefono"
-                      [class.invalid]="esInvalido('datos', 'telefono')" />
-                  </div>
+                  }
+
                 </div>
 
                 <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('telefono')) {
+                  <div class="field">
+                    <label for="telefono">Teléfono de contacto <b>*</b></label>
+                    <input id="telefono" formControlName="telefono" [class.invalid]="esInvalido('datos','telefono')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('departamento')) {
                   <div class="field">
                     <label for="departamento">Departamento <b>*</b></label>
-                    <select id="departamento" formControlName="departamento"
-                      [class.invalid]="esInvalido('datos', 'departamento')">
+
+                    <select id="departamento" formControlName="departamento">
+
                       <option value="">Selecciona una opción</option>
+
                       @for (departamento of departamentos; track departamento) {
-                      <option [value]="departamento">{{ departamento }}</option>
+                      <option [value]="departamento">
+                        {{ departamento }}
+                      </option>
                       }
+
                     </select>
                   </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('ciudad')) {
                   <div class="field">
                     <label for="ciudad">Ciudad <b>*</b></label>
-                    <select id="ciudad" formControlName="ciudad" [class.invalid]="esInvalido('datos', 'ciudad')">
+
+                    <select id="ciudad" formControlName="ciudad">
+
                       <option value="">Selecciona una opción</option>
+
                       @for (ciudad of ciudades; track ciudad) {
-                      <option [value]="ciudad">{{ ciudad }}</option>
+                      <option [value]="ciudad">
+                        {{ ciudad }}
+                      </option>
                       }
+
                     </select>
                   </div>
+                  }
+                  @if (camposDatosGenerales.includes('direccionComercial')) {
+                  <div class="field">
+                    <label for="direccionComercial">Dirección comercial <b>*</b></label>
+
+                    <input id="direccionComercial" formControlName="direccionComercial"
+                      [class.invalid]="esInvalido('datos','direccionComercial')" />
+                  </div>
+                  }
+
                 </div>
 
-                <div class="field">
-                  <label for="direccionComercial">Dirección comercial <b>*</b></label>
-                  <input id="direccionComercial" formControlName="direccionComercial"
-                    [class.invalid]="esInvalido('datos', 'direccionComercial')" />
-                </div>
               </section>
 
+              <section class="step-section">
+
+                <div class="section-title">
+                  <h3>Datos del Domicilio Fiscal</h3>
+                  <span>Campos obligatorios marcados con *</span>
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('codigoPostal')) {
+                  <div class="field">
+                    <label for="codigoPostal">Código Postal <b>*</b></label>
+                    <input id="codigoPostal" formControlName="codigoPostal"
+                      [class.invalid]="esInvalido('datos','codigoPostal')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('tipoVialidad')) {
+                  <div class="field">
+                    <label for="tipoVialidad">Tipo de Vialidad <b>*</b></label>
+                    <input id="tipoVialidad" formControlName="tipoVialidad"
+                      [class.invalid]="esInvalido('datos','tipoVialidad')" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('nombreVialidad')) {
+                  <div class="field">
+                    <label for="nombreVialidad">Nombre de la Vialidad <b>*</b></label>
+                    <input id="nombreVialidad" formControlName="nombreVialidad"
+                      [class.invalid]="esInvalido('datos','nombreVialidad')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('numeroExterior')) {
+                  <div class="field">
+                    <label for="numeroExterior">Número Exterior</label>
+                    <input id="numeroExterior" formControlName="numeroExterior" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('numeroInterior')) {
+                  <div class="field">
+                    <label for="numeroInterior">Número Interior</label>
+                    <input id="numeroInterior" formControlName="numeroInterior" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('colonia')) {
+                  <div class="field">
+                    <label for="colonia">Colonia <b>*</b></label>
+                    <input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('datos','colonia')" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('localidad')) {
+                  <div class="field">
+                    <label for="localidad">Localidad <b>*</b></label>
+                    <input id="localidad" formControlName="localidad"
+                      [class.invalid]="esInvalido('datos','localidad')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('municipio')) {
+                  <div class="field">
+                    <label for="municipio">Municipio / Alcaldía <b>*</b></label>
+                    <input id="municipio" formControlName="municipio"
+                      [class.invalid]="esInvalido('datos','municipio')" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('entidadFederativa')) {
+                  <div class="field">
+                    <label for="entidadFederativa">Entidad Federativa <b>*</b></label>
+                    <input id="entidadFederativa" formControlName="entidadFederativa"
+                      [class.invalid]="esInvalido('datos','entidadFederativa')" />
+                  </div>
+                  }
+
+                  @if (camposDatosGenerales.includes('entreCalle')) {
+                  <div class="field">
+                    <label for="entreCalle">Entre Calle</label>
+                    <input id="entreCalle" formControlName="entreCalle" />
+                  </div>
+                  }
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  @if (camposDatosGenerales.includes('yCalle')) {
+                  <div class="field">
+                    <label for="yCalle">Y Calle</label>
+                    <input id="yCalle" formControlName="yCalle" />
+                  </div>
+                  }
+
+                </div>
+
+              </section>
+              <section class="step-section">
+
+                <div class="section-title">
+                  <h3>Representante Legal</h3>
+                  <span>Campos obligatorios marcados con *</span>
+                </div>
+
+                <div class="form-grid cols-3">
+
+                  <div class="field">
+                    <label for="nombreRepresentante">Nombre <b>*</b></label>
+                    <input id="nombreRepresentante" formControlName="nombreRepresentante" />
+                  </div>
+
+                  <div class="field">
+                    <label for="apellidoPaternoRepresentante">Apellido Paterno <b>*</b></label>
+                    <input id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante" />
+                  </div>
+
+                  <div class="field">
+                    <label for="apellidoMaternoRepresentante">Apellido Materno <b>*</b></label>
+                    <input id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante" />
+                  </div>
+
+                </div>
+
+              </section>
+
+              <section class="step-section">
+
+                <div class="section-title">
+                  <h3>Dirección del Representante Legal</h3>
+                  <span>Campos obligatorios marcados con *</span>
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  <div class="field">
+                    <label for="calleRepresentante">Calle <b>*</b></label>
+                    <input id="calleRepresentante" formControlName="calleRepresentante" />
+                  </div>
+
+                  <div class="field">
+                    <label for="numeroExteriorRepresentante">Número Exterior</label>
+                    <input id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante" />
+                  </div>
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  <div class="field">
+                    <label for="numeroInteriorRepresentante">Número Interior</label>
+                    <input id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante" />
+                  </div>
+
+                  <div class="field">
+                    <label for="codigoPostalRepresentante">Código Postal <b>*</b></label>
+                    <input id="codigoPostalRepresentante" formControlName="codigoPostalRepresentante" />
+                  </div>
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  <div class="field">
+                    <label for="coloniaRepresentante">Colonia <b>*</b></label>
+                    <input id="coloniaRepresentante" formControlName="coloniaRepresentante" />
+                  </div>
+
+                  <div class="field">
+                    <label for="municipioRepresentante">Municipio / Alcaldía <b>*</b></label>
+                    <input id="municipioRepresentante" formControlName="municipioRepresentante" />
+                  </div>
+
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  <div class="field">
+                    <label for="estadoRepresentante">Estado <b>*</b></label>
+                    <input id="estadoRepresentante" formControlName="estadoRepresentante" />
+                  </div>
+
+                </div>
+
+              </section>
+
+              <section class="step-section">
+
+                <div class="section-title">
+                  <h3>Contacto del Representante Legal</h3>
+                  <span>Campos obligatorios marcados con *</span>
+                </div>
+
+                <div class="form-grid cols-2">
+
+                  <div class="field">
+                    <label for="correoRepresentante">Correo Electrónico <b>*</b></label>
+                    <input id="correoRepresentante" type="email" formControlName="correoRepresentante" />
+                  </div>
+
+                  <div class="field">
+                    <label for="telefonoRepresentante">Teléfono <b>*</b></label>
+                    <input id="telefonoRepresentante" formControlName="telefonoRepresentante" />
+                  </div>
+
+                </div>
+
+              </section>
+
+
+
+
+
+
+
+
+
+
               <div class="step-actions">
-                <button type="button" class="button ghost" (click)="volver(1)">Anterior</button>
-                <button type="button" class="button primary" (click)="continuarDatos()">Guardar y continuar</button>
+                <button type="button" class="button ghost" (click)="volver(1)">
+                  Anterior
+                </button>
+
+                <button type="button" class="button primary" (click)="continuarDatos()">
+                  Guardar y continuar
+                </button>
               </div>
+
             </form>
             }
 
@@ -309,7 +698,7 @@
               <section class="step-section">
                 <div class="section-title">
                   <h3>Accesos a la plataforma y terminales TPV</h3>
-                  
+
                 </div>
 
                 <div class="form-grid cols-2">
