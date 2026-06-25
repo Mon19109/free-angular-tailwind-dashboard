@@ -77,7 +77,6 @@ export class AuthService {
   private getHeadersRe(customHeaders?: any): HttpHeaders {
     let headers = new HttpHeaders({
       'Entity-i': 'com.onsigna',
-      'Content-Type': 'application/json',
       'versionApp': '3'
     });
 
@@ -175,7 +174,11 @@ export class AuthService {
       }
     };
 
-    return this.http.post(url, body, { headers: this.getHeadersRe() });
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    return this.http.post(url, body, { headers: this.getHeadersRe(headers) });
   }
 
   // ============================================
@@ -246,7 +249,7 @@ export class AuthService {
 
     return this.authenticate(userLogin, passwordLogin, latitud, longitud).pipe(
       switchMap((authResult: any) => {
-        //console.log('authResult : ',authResult)
+        console.log('authResult : ',authResult.success);
         // Usuario no existe - Registrar
         if (authResult.success === false && authResult.error?.code === 300) {
           return this.register(userLogin, passwordLogin, latitud, longitud).pipe(
@@ -331,7 +334,51 @@ export class AuthService {
       }),
       catchError(error => {
         this.isProcessing = false;
-        return throwError(() => error);
+        console.log('error+++',error);
+        if (error.status == 401) {
+          return this.register(userLogin, passwordLogin, latitud, longitud).pipe(
+            switchMap((registerResult: any) => {
+              return this.authenticate(userLogin, passwordLogin, latitud, longitud).pipe(
+                switchMap((authResult2: any) => {
+                  if (authResult2.authResponse?.accessToken) {
+                    return this.loginKasPay(
+                      userLogin,
+                      passwordLogin,
+                      latitud,
+                      longitud,
+                      authResult2.authResponse.accessToken
+                    ).pipe(
+                      switchMap((loginResult: any) => {
+                        this.isProcessing = false;
+                        if (loginResult.success) {
+                          return this.processLoginResponse(loginResult, authResult2, userLogin, latitud, longitud);
+                        } else {
+                          return throwError(() => ({
+                            success: false,
+                            idUser: 'L',
+                            message: 'No se encontraron resultados',
+                            inSession: false
+                          }));
+                        }
+                      })
+                    );
+                  } else {
+                    this.isProcessing = false;
+                    return throwError(() => ({
+                      success: false,
+                      idUser: 'OA-R',
+                      message: 'No se encontraron resultados',
+                      inSession: false
+                    }));
+                  }
+                })
+              );
+            })
+          );
+          
+        } else {
+          return throwError(() => error);
+        }
       })
     );
   }

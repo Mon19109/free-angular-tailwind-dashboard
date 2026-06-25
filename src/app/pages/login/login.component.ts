@@ -100,11 +100,21 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        this.isLoading = false;
-        this.loading = false;
-        this.errorMessage = error.message || 'Error al iniciar sesión2';
-        console.error('Login error:', error);
-        console.error('Login error2:', error.message);
+        if (error.status == 401) {
+          //this.router.navigate(['/dashboard']);
+          console.log('error---',error);
+
+        } else {
+          /*this.errorMessage = this.getErrorMessage(result.idUser, result.message);
+          console.error('Login error3:', this.errorMessage);*/
+          this.isLoading = false;
+          this.loading = false;
+          this.errorMessage = error.message || 'Error al iniciar sesión2';
+          console.error('Login error:', error);
+          console.error('Login error2:', error.message);
+
+        }
+        
       }
     });
   }
