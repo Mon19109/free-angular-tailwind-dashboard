@@ -1,18 +1,15 @@
 <main class="preregistro-shell">
+
   <header class="topbar">
     <a routerLink="/" class="brand-link" aria-label="Volver al inicio">
       <img src="kashpay_dorado.png" alt="Kashpay" class="brand-logo" />
-
     </a>
-
     <div class="topbar-actions">
       <button type="button" class="tool-button" (click)="abrirAyuda()">
-        <span class="tool-icon">?</span>
-        <span>Ayuda</span>
+        <span class="tool-icon">?</span><span>Ayuda</span>
       </button>
       <button type="button" class="tool-button accent" (click)="guardarBorrador()">
-        <span class="tool-icon">⤓</span>
-        <span>Guardar borrador</span>
+        <span class="tool-icon">⤓</span><span>Guardar borrador</span>
       </button>
       <app-theme-toggle-button />
       <a routerLink="/" class="back-link">Salir</a>
@@ -20,75 +17,33 @@
   </header>
 
   <section class="page-content">
+
+    <!-- Registro terminado -->
     @if (registroTerminado) {
     <section class="card success-card">
       <div class="success-icon">✓</div>
       <span class="eyebrow">Solicitud recibida</span>
       <h1>Tu preregistro quedó enviado</h1>
-      <p>
-        Guardamos la información del comercio <b>{{ datosForm.value.nombreComercial || 'sin nombre comercial' }}</b>.
-        Mesa Digital revisará la documentación y te dará seguimiento en aproximadamente 72 horas hábiles.
+      <p>Guardamos la información del comercio
+        <b>{{ datosForm.value.nombreComercial || 'sin nombre comercial' }}</b>.
+        Mesa Digital revisará la documentación en aproximadamente 72 horas hábiles.
       </p>
-
       <div class="success-metrics">
-        <article>
-          <strong>{{ afiliacionForm.value.afiliacion || 'N/D' }}</strong>
-          <span>Afiliación</span>
-        </article>
-        <article>
-          <strong>{{ documentosCargados }}</strong>
-          <span>Documentos cargados</span>
-        </article>
+        <article><strong>{{ afiliacionForm.value.afiliacion || 'N/D' }}</strong><span>Afiliación</span></article>
+        <article><strong>{{ documentosCargados }}</strong><span>Documentos cargados</span></article>
       </div>
-
       <div class="actions center">
         <button type="button" class="button primary" (click)="reiniciarFlujo()">Nuevo preregistro</button>
         <a routerLink="/" class="button ghost">Volver al inicio</a>
       </div>
     </section>
+
+    <!-- Paso 0: Afiliación -->
     } @else if (pasoActual === 0) {
-    <section class="intro-layout">
-      <article class="card hero-card">
-        <span class="eyebrow">Bienvenido</span>
-        <h1>Pre registro de clientes</h1>
-        <p class="lead">
-          Estas a punto de registrarte en kashpay y así poder hacer uso de todos nuestros productos, para continuar
-          por favor ingrese el Núm. De Afilación que te proporcionaron.
-        </p>
+    <app-step-afiliacion [form]="afiliacionForm" [requisitos]="datos.requisitos" (continuar)="continuarAfiliacion()"
+      (abrirAyuda)="abrirAyuda()" />
 
-        <form [formGroup]="afiliacionForm" (ngSubmit)="continuarAfiliacion()">
-          <div class="field">
-            <label for="afiliacion">Número de afiliación <b>*</b></label>
-            <input id="afiliacion" type="text" inputmode="numeric" maxlength="8" formControlName="afiliacion"
-              placeholder="Ej. 33359863" [class.invalid]="esInvalido('afiliacion', 'afiliacion')" />
-            @if (esInvalido('afiliacion', 'afiliacion')) {
-            <small>Ingresa un número de afiliación de 8 dígitos.</small>
-            }
-          </div>
-
-          <div class="intro-actions">
-            <button type="button" class="button ghost" (click)="abrirAyuda()">Ver ayuda</button>
-            <button type="submit" class="button primary">Validar y continuar</button>
-          </div>
-        </form>
-      </article>
-
-      <aside class="card prep-card">
-        <span class="eyebrow">Antes de empezar</span>
-        <h2>Requisitos para el alta</h2>
-        <ul class="check-list">
-          <p style="text-align: justify;">
-            A continuación, te compartimos el listado de documentos que debes
-            tener a la mano, el proceso tiene un tiempo estimado de 15 min. Por
-            favor considéralo para realizar con éxito el pre registro:
-          </p>
-          @for (requisito of requisitos; track requisito) {
-          <li>{{ requisito }}</li>
-          }
-        </ul>
-
-      </aside>
-    </section>
+    <!--  Wizard -->
     } @else {
     <section class="wizard-layout">
       <div class="wizard-header">
@@ -97,37 +52,24 @@
           <h1>Pre registro de clientes</h1>
           <p class="lead">Completa la información del comercio en los siguientes pasos.</p>
         </div>
-
         <div class="wizard-meta">
-          <article class="meta-card">
-            <strong>Paso actual</strong>
-            <span>{{ pasoActualLabel }}</span>
+          <article class="meta-card"><strong>Paso actual</strong><span>{{ pasoActualLabel }}</span></article>
+          <article class="meta-card"><strong>Avance</strong><span>{{ progresoWizard | number:'1.0-0' }}%</span>
           </article>
-          <article class="meta-card">
-            <strong>Avance</strong>
-            <span>{{ progresoWizard | number:'1.0-0' }}%</span>
-          </article>
-          @if (borradorGuardado) {
-          <article class="meta-pill">Borrador guardado</article>
-          }
+          @if (borradorGuardado) { <article class="meta-pill">Borrador guardado</article> }
         </div>
       </div>
 
+      <!-- Stepper -->
       <nav class="stepper" aria-label="Progreso del preregistro">
-        @for (paso of pasos; track paso.numero; let last = $last) {
+        @for (paso of datos.pasos; track paso.numero; let last = $last) {
         <div class="step-node" [class.completed]="esPasoCompletado(paso.numero)"
           [class.current]="pasoActual === paso.numero">
           <button type="button" class="step-badge"
             [disabled]="pasoActual !== paso.numero && !esPasoCompletado(paso.numero)" (click)="irAlPaso(paso.numero)">
-            @if (esPasoCompletado(paso.numero)) {
-            <span>✓</span>
-            } @else {
-            <span>{{ paso.numero }}</span>
-            }
+            @if (esPasoCompletado(paso.numero)) { <span>✓</span> } @else { <span>{{ paso.numero }}</span> }
           </button>
-          <div class="step-copy">
-            <strong>{{ paso.titulo }}</strong>
-          </div>
+          <div class="step-copy"><strong>{{ paso.titulo }}</strong></div>
         </div>
         @if (!last) {
         <div class="step-line" [class.completed]="pasoActual > paso.numero || esPasoCompletado(paso.numero)"></div>
@@ -135,34 +77,27 @@
         }
       </nav>
 
+      <!-- Cards de pasos -->
       <div class="wizard-stack">
-        @for (paso of pasos; track paso.numero) {
+        @for (paso of datos.pasos; track paso.numero) {
         <article class="step-card" [class.current]="pasoActual === paso.numero"
           [class.done]="esPasoCompletado(paso.numero)">
+
           <button type="button" class="step-card-header"
             [disabled]="pasoActual === paso.numero && !esPasoCompletado(paso.numero)" (click)="irAlPaso(paso.numero)">
             <div class="step-card-header-copy">
               <span class="step-circle" [class.done]="esPasoCompletado(paso.numero)"
                 [class.current]="pasoActual === paso.numero">
-                @if (esPasoCompletado(paso.numero)) {
-                ✓
-                } @else {
-                {{ paso.numero }}
-                }
+                @if (esPasoCompletado(paso.numero)) { ✓ } @else { {{ paso.numero }} }
               </span>
               <div>
                 <h2>{{ paso.numero }}. {{ paso.titulo }}</h2>
-
               </div>
             </div>
             <span class="step-status">
-              @if (pasoActual === paso.numero) {
-              En curso
-              } @else if (esPasoCompletado(paso.numero)) {
-              Completado
-              } @else {
-              Pendiente
-              }
+              @if (pasoActual === paso.numero) { En curso
+              } @else if (esPasoCompletado(paso.numero)) { Completado
+              } @else { Pendiente }
             </span>
           </button>
 
@@ -170,899 +105,35 @@
           <div class="step-card-body">
             @switch (paso.numero) {
             @case (1) {
-            <form class="step-form" [formGroup]="comercioForm">
-              <div class="form-grid cols-2">
-                <div class="field">
-                  <label for="nivel">Nivel del cliente <b>*</b></label>
-                  <select id="nivel" formControlName="nivel" [class.invalid]="esInvalido('comercio', 'nivel')">
-                    <option value="">Selecciona una opción</option>
-                    @for (nivel of niveles; track nivel) {
-                    <option [value]="nivel">{{ nivel }}</option>
-                    }
-                  </select>
-                  @if (esInvalido('comercio', 'nivel')) {
-                  <small>Selecciona un nivel.</small>
-                  }
-                </div>
-
-                <div class="field">
-                  <label for="tipoComercio">Tipo de comercio <b>*</b></label>
-                  <select id="tipoComercio" formControlName="tipoComercio"
-                    [class.invalid]="esInvalido('comercio', 'tipoComercio')">
-                    <option value="">Selecciona una opción</option>
-                    @for (tipo of tiposComercio; track tipo) {
-                    <option [value]="tipo">{{ tipo }}</option>
-                    }
-                  </select>
-                  @if (esInvalido('comercio', 'tipoComercio')) {
-                  <small>Selecciona el tipo de comercio.</small>
-                  }
-                </div>
-              </div>
-
-              <div class="callout">
-                <div>
-                  <span class="field-label">Comisionista</span>
-                  <p>{{ comercioForm.value.afiliacionComisionista || 'Todavía no hay comisionista asociado.' }}</p>
-                </div>
-                <button type="button" class="button secondary" (click)="mostrarComisionista = true">
-                  Agregar comisionista
-                </button>
-              </div>
-
-              <div class="step-actions">
-                <button type="button" class="button ghost" (click)="volver(0)">Atrás</button>
-                <button type="button" class="button primary" (click)="continuarComercio()">Guardar y continuar</button>
-              </div>
-            </form>
+            <app-step-comercio [form]="comercioForm" [niveles]="datos.niveles" [tiposComercio]="tiposComercio"
+              (continuar)="continuarComercio()" (volver)="volver(0)" (abrirComisionista)="mostrarComisionista = true" />
             }
-
             @case (2) {
-            <form class="step-form" [formGroup]="datosForm">
-              <section class="step-section">
-
-                <div class="section-title">
-                  <h3>Datos generales</h3>
-                  <span>Campos obligatorios marcados con *</span>
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('rfc')) {
-                  <div class="field">
-                    <label for="rfc">RFC <b>*</b></label>
-                    <input id="rfc" formControlName="rfc" [class.invalid]="esInvalido('datos','rfc')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('razonSocial')) {
-                  <div class="field">
-                    <label for="razonSocial">Razón social <b>*</b></label>
-                    <input id="razonSocial" formControlName="razonSocial"
-                      [class.invalid]="esInvalido('datos','razonSocial')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('nombreComercial')) {
-                  <div class="field">
-                    <label for="nombreComercial">Nombre comercial <b>*</b></label>
-                    <input id="nombreComercial" formControlName="nombreComercial"
-                      [class.invalid]="esInvalido('datos','nombreComercial')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('regimenFiscal')) {
-                  <div class="field">
-                    <label for="regimenFiscal">Régimen fiscal <b>*</b></label>
-                    <select id="regimenFiscal" formControlName="regimenFiscal"
-                      [class.invalid]="esInvalido('datos','regimenFiscal')">
-
-                      <option value="">Selecciona una opción</option>
-
-                      @for (regimen of regimenesFiscales; track regimen) {
-                      <option [value]="regimen">{{ regimen }}</option>
-                      }
-
-                    </select>
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('giroComercial')) {
-                  <div class="field">
-                    <label for="giroComercial">Giro comercial <b>*</b></label>
-                    <select id="giroComercial" formControlName="giroComercial"
-                      [class.invalid]="esInvalido('datos','giroComercial')">
-
-                      <option value="">Selecciona una opción</option>
-
-                      @for (giro of girosComerciales; track giro) {
-                      <option [value]="giro">{{ giro }}</option>
-                      }
-
-                    </select>
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('descripcionGiro')) {
-                  <div class="field">
-                    <label for="descripcionGiro">Descripción del giro <b>*</b></label>
-                    <input id="descripcionGiro" formControlName="descripcionGiro"
-                      [class.invalid]="esInvalido('datos','descripcionGiro')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('mcc')) {
-                  <div class="field">
-                    <label for="mcc">MCC <b>*</b></label>
-                    <input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('datos','mcc')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('nombre')) {
-                  <div class="field">
-                    <label for="nombre">Nombre <b>*</b></label>
-                    <input id="nombre" formControlName="nombre" [class.invalid]="esInvalido('datos','nombre')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('apellidoPaterno')) {
-                  <div class="field">
-                    <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
-                    <input id="apellidoPaterno" formControlName="apellidoPaterno"
-                      [class.invalid]="esInvalido('datos','apellidoPaterno')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('apellidoMaterno')) {
-                  <div class="field">
-                    <label for="apellidoMaterno">Apellido materno <b>*</b></label>
-                    <input id="apellidoMaterno" formControlName="apellidoMaterno"
-                      [class.invalid]="esInvalido('datos','apellidoMaterno')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('curp')) {
-                  <div class="field">
-                    <label for="curp">CURP <b>*</b></label>
-                    <input id="curp" formControlName="curp" [class.invalid]="esInvalido('datos','curp')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('actividad')) {
-                  <div class="field">
-                    <label for="actividad">Actividad <b>*</b></label>
-                    <input id="actividad" formControlName="actividad"
-                      [class.invalid]="esInvalido('datos','actividad')" />
-                  </div>
-                  }
-
-                </div>
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('tipoPersona')) {
-                  <div class="field">
-                    <label for="tipoPersona">Tipo de persona <b>*</b></label>
-                    <select id="tipoPersona" formControlName="tipoPersona"
-                      [class.invalid]="esInvalido('datos','tipoPersona')">
-
-                      <option value="">Selecciona una opción</option>
-
-                      @for (tipo of tiposPersona; track tipo) {
-                      <option [value]="tipo">{{ tipo }}</option>
-                      }
-
-                    </select>
-                  </div>
-                  }
-                  @if (camposDatosGenerales.includes('correo')) {
-                  <div class="field">
-                    <label for="correo">Correo electrónico <b>*</b></label>
-                    <input id="correo" type="email" formControlName="correo"
-                      [class.invalid]="esInvalido('datos','correo')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('telefono')) {
-                  <div class="field">
-                    <label for="telefono">Teléfono de contacto <b>*</b></label>
-                    <input id="telefono" formControlName="telefono" [class.invalid]="esInvalido('datos','telefono')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('departamento')) {
-                  <div class="field">
-                    <label for="departamento">Departamento <b>*</b></label>
-
-                    <select id="departamento" formControlName="departamento">
-
-                      <option value="">Selecciona una opción</option>
-
-                      @for (departamento of departamentos; track departamento) {
-                      <option [value]="departamento">
-                        {{ departamento }}
-                      </option>
-                      }
-
-                    </select>
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('ciudad')) {
-                  <div class="field">
-                    <label for="ciudad">Ciudad <b>*</b></label>
-
-                    <select id="ciudad" formControlName="ciudad">
-
-                      <option value="">Selecciona una opción</option>
-
-                      @for (ciudad of ciudades; track ciudad) {
-                      <option [value]="ciudad">
-                        {{ ciudad }}
-                      </option>
-                      }
-
-                    </select>
-                  </div>
-                  }
-                  @if (camposDatosGenerales.includes('direccionComercial')) {
-                  <div class="field">
-                    <label for="direccionComercial">Dirección comercial <b>*</b></label>
-
-                    <input id="direccionComercial" formControlName="direccionComercial"
-                      [class.invalid]="esInvalido('datos','direccionComercial')" />
-                  </div>
-                  }
-
-                </div>
-
-              </section>
-
-              <section class="step-section">
-
-                <div class="section-title">
-                  <h3>Datos del Domicilio Fiscal</h3>
-                  <span>Campos obligatorios marcados con *</span>
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('codigoPostal')) {
-                  <div class="field">
-                    <label for="codigoPostal">Código Postal <b>*</b></label>
-                    <input id="codigoPostal" formControlName="codigoPostal"
-                      [class.invalid]="esInvalido('datos','codigoPostal')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('tipoVialidad')) {
-                  <div class="field">
-                    <label for="tipoVialidad">Tipo de Vialidad <b>*</b></label>
-                    <input id="tipoVialidad" formControlName="tipoVialidad"
-                      [class.invalid]="esInvalido('datos','tipoVialidad')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('nombreVialidad')) {
-                  <div class="field">
-                    <label for="nombreVialidad">Nombre de la Vialidad <b>*</b></label>
-                    <input id="nombreVialidad" formControlName="nombreVialidad"
-                      [class.invalid]="esInvalido('datos','nombreVialidad')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('numeroExterior')) {
-                  <div class="field">
-                    <label for="numeroExterior">Número Exterior</label>
-                    <input id="numeroExterior" formControlName="numeroExterior" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('numeroInterior')) {
-                  <div class="field">
-                    <label for="numeroInterior">Número Interior</label>
-                    <input id="numeroInterior" formControlName="numeroInterior" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('colonia')) {
-                  <div class="field">
-                    <label for="colonia">Colonia <b>*</b></label>
-                    <input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('datos','colonia')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('localidad')) {
-                  <div class="field">
-                    <label for="localidad">Localidad <b>*</b></label>
-                    <input id="localidad" formControlName="localidad"
-                      [class.invalid]="esInvalido('datos','localidad')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('municipio')) {
-                  <div class="field">
-                    <label for="municipio">Municipio / Alcaldía <b>*</b></label>
-                    <input id="municipio" formControlName="municipio"
-                      [class.invalid]="esInvalido('datos','municipio')" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('entidadFederativa')) {
-                  <div class="field">
-                    <label for="entidadFederativa">Entidad Federativa <b>*</b></label>
-                    <input id="entidadFederativa" formControlName="entidadFederativa"
-                      [class.invalid]="esInvalido('datos','entidadFederativa')" />
-                  </div>
-                  }
-
-                  @if (camposDatosGenerales.includes('entreCalle')) {
-                  <div class="field">
-                    <label for="entreCalle">Entre Calle</label>
-                    <input id="entreCalle" formControlName="entreCalle" />
-                  </div>
-                  }
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  @if (camposDatosGenerales.includes('yCalle')) {
-                  <div class="field">
-                    <label for="yCalle">Y Calle</label>
-                    <input id="yCalle" formControlName="yCalle" />
-                  </div>
-                  }
-
-                </div>
-
-              </section>
-              <section class="step-section">
-
-                <div class="section-title">
-                  <h3>Representante Legal</h3>
-                  <span>Campos obligatorios marcados con *</span>
-                </div>
-
-                <div class="form-grid cols-3">
-
-                  <div class="field">
-                    <label for="nombreRepresentante">Nombre <b>*</b></label>
-                    <input id="nombreRepresentante" formControlName="nombreRepresentante" />
-                  </div>
-
-                  <div class="field">
-                    <label for="apellidoPaternoRepresentante">Apellido Paterno <b>*</b></label>
-                    <input id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante" />
-                  </div>
-
-                  <div class="field">
-                    <label for="apellidoMaternoRepresentante">Apellido Materno <b>*</b></label>
-                    <input id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante" />
-                  </div>
-
-                </div>
-
-              </section>
-
-              <section class="step-section">
-
-                <div class="section-title">
-                  <h3>Dirección del Representante Legal</h3>
-                  <span>Campos obligatorios marcados con *</span>
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  <div class="field">
-                    <label for="calleRepresentante">Calle <b>*</b></label>
-                    <input id="calleRepresentante" formControlName="calleRepresentante" />
-                  </div>
-
-                  <div class="field">
-                    <label for="numeroExteriorRepresentante">Número Exterior</label>
-                    <input id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante" />
-                  </div>
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  <div class="field">
-                    <label for="numeroInteriorRepresentante">Número Interior</label>
-                    <input id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante" />
-                  </div>
-
-                  <div class="field">
-                    <label for="codigoPostalRepresentante">Código Postal <b>*</b></label>
-                    <input id="codigoPostalRepresentante" formControlName="codigoPostalRepresentante" />
-                  </div>
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  <div class="field">
-                    <label for="coloniaRepresentante">Colonia <b>*</b></label>
-                    <input id="coloniaRepresentante" formControlName="coloniaRepresentante" />
-                  </div>
-
-                  <div class="field">
-                    <label for="municipioRepresentante">Municipio / Alcaldía <b>*</b></label>
-                    <input id="municipioRepresentante" formControlName="municipioRepresentante" />
-                  </div>
-
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  <div class="field">
-                    <label for="estadoRepresentante">Estado <b>*</b></label>
-                    <input id="estadoRepresentante" formControlName="estadoRepresentante" />
-                  </div>
-
-                </div>
-
-              </section>
-
-              <section class="step-section">
-
-                <div class="section-title">
-                  <h3>Contacto del Representante Legal</h3>
-                  <span>Campos obligatorios marcados con *</span>
-                </div>
-
-                <div class="form-grid cols-2">
-
-                  <div class="field">
-                    <label for="correoRepresentante">Correo Electrónico <b>*</b></label>
-                    <input id="correoRepresentante" type="email" formControlName="correoRepresentante" />
-                  </div>
-
-                  <div class="field">
-                    <label for="telefonoRepresentante">Teléfono <b>*</b></label>
-                    <input id="telefonoRepresentante" formControlName="telefonoRepresentante" />
-                  </div>
-
-                </div>
-
-              </section>
-
-
-
-
-
-
-
-
-
-
-              <div class="step-actions">
-                <button type="button" class="button ghost" (click)="volver(1)">
-                  Anterior
-                </button>
-
-                <button type="button" class="button primary" (click)="continuarDatos()">
-                  Guardar y continuar
-                </button>
-              </div>
-
-            </form>
+            <app-step-datos [form]="datosForm" [campos]="camposDatosGenerales"
+              [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' || 
+                comercioForm.getRawValue().nivel === 'Comisionista' 
+                ? comercioForm.getRawValue().nivel 
+                : comercioForm.getRawValue().tipoComercio"
+              [regimenesFiscales]="datos.regimenesFiscales ?? []" [girosComerciales]="datos.girosComerciales ?? []"
+              [tiposPersona]="datos.tiposPersona" [departamentos]="datos.departamentos" [ciudades]="datos.ciudades"
+              (continuar)="continuarDatos()" (volver)="volver(1)" />
             }
-
             @case (3) {
-            <form class="step-form" [formGroup]="accesosForm">
-              <section class="step-section">
-                <div class="section-title">
-                  <h3>Accesos a la plataforma y terminales TPV</h3>
-
-                </div>
-
-                <div class="form-grid cols-2">
-                  <div class="field">
-                    <label for="modoReserva">Modo de reserva <b>*</b></label>
-                    <select id="modoReserva" formControlName="modoReserva">
-                      @for (modo of modosReserva; track modo) {
-                      <option [value]="modo">{{ modo }}</option>
-                      }
-                    </select>
-                  </div>
-                  <div class="mode-help">
-                    <p>
-                      <strong>Ninguno</strong> y <strong>manual</strong> muestran solo el administrador total.
-                      <strong>Transaccional</strong> agrega el split, y <strong>completo</strong> oculta el bloque
-                      de administrador total.
-                    </p>
-                  </div>
-                </div>
-              </section>
-
-              @if (mostrarReservaSplit) {
-              <section class="step-section compact">
-                <div class="field">
-                  <label for="reservaSplit">Modo de reserva split <b>*</b></label>
-                  <input id="reservaSplit" type="number" min="1" max="99" formControlName="reservaSplit"
-                    [class.invalid]="accesosForm.hasError('rangoSplitInvalido') && accesosForm.get('reservaSplit')?.touched" />
-                  @if (accesosForm.hasError('rangoSplitInvalido') && accesosForm.get('reservaSplit')?.touched) {
-                  <small>El split debe estar entre 1 y 99.</small>
-                  }
-                </div>
-              </section>
-              }
-
-              @if (mostrarAdminTotal) {
-              <section class="step-section">
-                <h3>Administrador de la Plataforma con Acceso Total y Gestión de Pagos.</h3>
-                <div class="form-grid cols-3">
-                  <div class="field">
-                    <label for="adminNombre">Nombre <b>*</b></label>
-                    <input id="adminNombre" formControlName="adminNombre"
-                      [class.invalid]="esInvalido('accesos', 'adminNombre')" />
-                  </div>
-                  <div class="field">
-                    <label for="adminPaterno">Apellido paterno <b>*</b></label>
-                    <input id="adminPaterno" formControlName="adminPaterno"
-                      [class.invalid]="esInvalido('accesos', 'adminPaterno')" />
-                  </div>
-                  <div class="field">
-                    <label for="adminMaterno">Apellido materno <b>*</b></label>
-                    <input id="adminMaterno" formControlName="adminMaterno"
-                      [class.invalid]="esInvalido('accesos', 'adminMaterno')" />
-                  </div>
-                  <div class="field">
-                    <label for="adminCorreo">Correo electrónico <b>*</b></label>
-                    <input id="adminCorreo" type="email" formControlName="adminCorreo"
-                      [class.invalid]="esInvalido('accesos', 'adminCorreo')" />
-                  </div>
-                  <div class="field">
-                    <label for="adminConfirmarCorreo">Confirmar correo <b>*</b></label>
-                    <input id="adminConfirmarCorreo" type="email" formControlName="adminConfirmarCorreo"
-                      [class.invalid]="accesosForm.hasError('adminCorreosDistintos') && accesosForm.get('adminConfirmarCorreo')?.touched" />
-                    @if (accesosForm.hasError('adminCorreosDistintos') &&
-                    accesosForm.get('adminConfirmarCorreo')?.touched) {
-                    <small>Los correos no coinciden.</small>
-                    }
-                  </div>
-                  <div class="field">
-                    <label for="adminTelefono">Teléfono <b>*</b></label>
-                    <input id="adminTelefono" maxlength="10" inputmode="numeric" formControlName="adminTelefono"
-                      [class.invalid]="esInvalido('accesos', 'adminTelefono')" />
-                  </div>
-                </div>
-              </section>
-              }
-
-              @if (mostrarPerfilReserva) {
-              <section class="step-section">
-                <h3>Administrador de la Plataforma con Perfil de Reserva</h3>
-                <div class="form-grid cols-3">
-                  <div class="field">
-                    <label for="perfilReservaNombre">Nombre <b>*</b></label>
-                    <input id="perfilReservaNombre" formControlName="perfilReservaNombre" />
-                  </div>
-                  <div class="field">
-                    <label for="perfilReservaPaterno">Apellido paterno <b>*</b></label>
-                    <input id="perfilReservaPaterno" formControlName="perfilReservaPaterno" />
-                  </div>
-                  <div class="field">
-                    <label for="perfilReservaMaterno">Apellido materno <b>*</b></label>
-                    <input id="perfilReservaMaterno" formControlName="perfilReservaMaterno" />
-                  </div>
-                  <div class="field">
-                    <label for="perfilReservaCorreo">Correo electrónico <b>*</b></label>
-                    <input id="perfilReservaCorreo" type="email" formControlName="perfilReservaCorreo" />
-                  </div>
-                  <div class="field">
-                    <label for="perfilReservaConfirmarCorreo">Confirmar correo <b>*</b></label>
-                    <input id="perfilReservaConfirmarCorreo" type="email" formControlName="perfilReservaConfirmarCorreo"
-                      [class.invalid]="accesosForm.hasError('perfilCorreosDistintos') && accesosForm.get('perfilReservaConfirmarCorreo')?.touched" />
-                    @if (accesosForm.hasError('perfilCorreosDistintos') &&
-                    accesosForm.get('perfilReservaConfirmarCorreo')?.touched) {
-                    <small>Los correos no coinciden.</small>
-                    }
-                  </div>
-                  <div class="field">
-                    <label for="perfilReservaTelefono">Teléfono <b>*</b></label>
-                    <input id="perfilReservaTelefono" maxlength="10" inputmode="numeric"
-                      formControlName="perfilReservaTelefono" />
-                  </div>
-                </div>
-              </section>
-              }
-
-              <section class="step-section">
-                <h3>Operación de las Terminales para Cobrar (TPV)</h3>
-                <div class="form-grid cols-2">
-                  <div class="field">
-                    <label for="cajasTPV">Número de Cajas para operar la terminal TPV <b>*</b></label>
-                    <input id="cajasTPV" type="number" min="1" formControlName="cajasTPV" />
-                  </div>
-
-                  <div class="field">
-                    <label>PIN Administrador Terminales</label>
-                    <div class="radio-grid">
-                      <label class="radio-option">
-                        <input type="radio" value="si" formControlName="tieneSupervisor" />
-                        <span>Sí, requiere PIN</span>
-                      </label>
-                      <label class="radio-option">
-                        <input type="radio" value="no" formControlName="tieneSupervisor" />
-                        <span>No, solo acceso operativo</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              @if (mostrarPinSupervisor) {
-              <section class="step-section">
-                <h3>PIN de administrador para terminal</h3>
-                <div class="form-grid cols-3">
-                  <div class="field">
-                    <label for="pinAdministrador">PIN administrador <b>*</b></label>
-                    <input id="pinAdministrador" formControlName="pinAdministrador" />
-                  </div>
-                  <div class="field">
-                    <label for="pinCorreo">Correo de recuperación <b>*</b></label>
-                    <input id="pinCorreo" type="email" formControlName="pinCorreo"
-                      [class.invalid]="esInvalido('accesos', 'pinCorreo')" />
-                  </div>
-                  <div class="field">
-                    <label for="pinConfirmarCorreo">Confirmar correo <b>*</b></label>
-                    <input id="pinConfirmarCorreo" type="email" formControlName="pinConfirmarCorreo"
-                      [class.invalid]="accesosForm.hasError('pinCorreosDistintos') && accesosForm.get('pinConfirmarCorreo')?.touched" />
-                    @if (accesosForm.hasError('pinCorreosDistintos') && accesosForm.get('pinConfirmarCorreo')?.touched)
-                    {
-                    <small>Los correos no coinciden.</small>
-                    }
-                  </div>
-                  <div class="field">
-                    <label for="pinContrasena">Contraseña <b>*</b></label>
-                    <input id="pinContrasena" type="password" formControlName="pinContrasena" />
-                  </div>
-                </div>
-              </section>
-              }
-
-              <div class="step-actions">
-                <button type="button" class="button ghost" (click)="volver(2)">Anterior</button>
-                <button type="button" class="button primary" (click)="continuarAccesos()">Guardar y continuar</button>
-              </div>
-            </form>
+            <app-step-accesos [form]="accesosForm" [modosReserva]="datos.modosReserva"
+              [mostrarAdminTotal]="mostrarAdminTotal" [mostrarPerfilReserva]="mostrarPerfilReserva"
+              [mostrarReservaSplit]="mostrarReservaSplit" [mostrarPinSupervisor]="mostrarPinSupervisor"
+              (continuar)="continuarAccesos()" (volver)="volver(2)" />
             }
-
             @case (4) {
-            <form class="step-form" [formGroup]="liquidacionForm">
-              <section class="step-section">
-                <div class="section-title">
-                  <h3>Cuenta para liquidación</h3>
-                </div>
-
-                <label class="checkbox-option">
-                  <input type="checkbox" formControlName="beneficiarioIgualComercio" />
-                  <span>Los datos del beneficiario son los mismos del comercio</span>
-                </label>
-
-                <div class="form-grid cols-3">
-                  <div class="field">
-                    <label for="tipoPersonaBeneficiario">Tipo de persona <b>*</b></label>
-                    <select id="tipoPersonaBeneficiario" formControlName="tipoPersonaBeneficiario">
-                      <option value="fisica">Persona física</option>
-                      <option value="moral">Persona moral</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label for="tipoCuenta">Tipo de cuenta <b>*</b></label>
-                    <select id="tipoCuenta" formControlName="tipoCuenta"
-                      [class.invalid]="esInvalido('liquidacion', 'tipoCuenta')">
-                      <option value="">Selecciona una opción</option>
-                      @for (tipo of tiposCuenta; track tipo) {
-                      <option [value]="tipo">{{ tipo }}</option>
-                      }
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label for="cuentaClabe">CLABE / número de cuenta <b>*</b></label>
-                    <input id="cuentaClabe" maxlength="18" inputmode="numeric" formControlName="cuentaClabe"
-                      [class.invalid]="esInvalido('liquidacion', 'cuentaClabe')" />
-                  </div>
-                </div>
-              </section>
-
-              @if (!datosBeneficiarioIgualComercio) {
-              <section class="step-section">
-                <h3>Beneficiario</h3>
-                <div class="form-grid cols-3">
-                  <div class="field">
-                    <label for="nombreBeneficiario">Nombre <b>*</b></label>
-                    <input id="nombreBeneficiario" formControlName="nombreBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'nombreBeneficiario')" />
-                  </div>
-                  <div class="field">
-                    <label for="apellidoPaternoBeneficiario">Apellido paterno <b>*</b></label>
-                    <input id="apellidoPaternoBeneficiario" formControlName="apellidoPaternoBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'apellidoPaternoBeneficiario')" />
-                  </div>
-                  <div class="field">
-                    <label for="apellidoMaternoBeneficiario">Apellido materno <b>*</b></label>
-                    <input id="apellidoMaternoBeneficiario" formControlName="apellidoMaternoBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'apellidoMaternoBeneficiario')" />
-                  </div>
-                  <div class="field">
-                    <label for="correoBeneficiario">Correo electrónico <b>*</b></label>
-                    <input id="correoBeneficiario" type="email" formControlName="correoBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'correoBeneficiario')" />
-                  </div>
-                  <div class="field">
-                    <label for="direccionBeneficiario">Dirección completa <b>*</b></label>
-                    <input id="direccionBeneficiario" formControlName="direccionBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'direccionBeneficiario')" />
-                  </div>
-                  <div class="field">
-                    <label for="rfcBeneficiario">RFC <b>*</b></label>
-                    <input id="rfcBeneficiario" formControlName="rfcBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'rfcBeneficiario')" />
-                  </div>
-                  <div class="field">
-                    <label for="actividadBeneficiario">Actividad <b>*</b></label>
-                    <input id="actividadBeneficiario" formControlName="actividadBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'actividadBeneficiario')" />
-                  </div>
-                  <div class="field">
-                    <label for="giroBeneficiario">Giro <b>*</b></label>
-                    <input id="giroBeneficiario" formControlName="giroBeneficiario"
-                      [class.invalid]="esInvalido('liquidacion', 'giroBeneficiario')" />
-                  </div>
-                </div>
-              </section>
-              }
-
-              <section class="step-section">
-                <h3>Información bancaria</h3>
-                <div class="form-grid cols-3">
-                  <div class="field">
-                    <label for="nombreBanco">Nombre del banco <b>*</b></label>
-                    <input id="nombreBanco" formControlName="nombreBanco"
-                      [class.invalid]="esInvalido('liquidacion', 'nombreBanco')" />
-                  </div>
-                  <div class="field">
-                    <label for="direccionBanco">Dirección del banco <b>*</b></label>
-                    <input id="direccionBanco" formControlName="direccionBanco"
-                      [class.invalid]="esInvalido('liquidacion', 'direccionBanco')" />
-                  </div>
-                  <div class="field">
-                    <label for="telefonoBanco">Teléfono del banco <b>*</b></label>
-                    <input id="telefonoBanco" maxlength="10" inputmode="numeric" formControlName="telefonoBanco"
-                      [class.invalid]="esInvalido('liquidacion', 'telefonoBanco')" />
-                  </div>
-                  <div class="field">
-                    <label for="emailBanco">Correo del banco <b>*</b></label>
-                    <input id="emailBanco" type="email" formControlName="emailBanco"
-                      [class.invalid]="esInvalido('liquidacion', 'emailBanco')" />
-                  </div>
-                </div>
-              </section>
-
-              <div class="step-actions">
-                <button type="button" class="button ghost" (click)="volver(3)">Anterior</button>
-                <button type="button" class="button primary" (click)="continuarLiquidacion()">Guardar y
-                  continuar</button>
-              </div>
-            </form>
+            <app-step-liquidacion [form]="liquidacionForm" [tiposCuenta]="datos.tiposCuenta"
+              [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio" (continuar)="continuarLiquidacion()"
+              (volver)="volver(3)" />
             }
-
             @case (5) {
-            <form class="step-form">
-              <section class="step-section">
-                <div class="section-title">
-                  <h3>Documentos del comercio</h3>
-                  <span>Formatos permitidos: PDF, JPG o PNG. Máximo 10 MB por archivo.</span>
-                </div>
-                <div class="docs-summary">
-                  <article>
-                    <strong>{{ documentosCargados }}</strong>
-                    <span>Cargados</span>
-                  </article>
-                  <article>
-                    <strong>{{ documentosPendientes }}</strong>
-                    <span>Pendientes</span>
-                  </article>
-                </div>
-                <div class="callout subtle">
-                  <p>
-                    Si guardaste un borrador, los nombres de archivo se conservan como referencia, pero tendrás que
-                    volver a adjuntar el archivo antes de enviar el preregistro.
-                  </p>
-                </div>
-              </section>
-
-              @if (archivosInvalidos) {
-              <div class="alert-error">Carga todos los documentos marcados como obligatorios.</div>
-              }
-
-              <div class="documents-list">
-                @for (documento of documentosVisibles; track documento.numero; let i = $index) {
-                <div class="document-row" [class.uploaded]="documento.archivo || documento.archivoNombre">
-                  <div class="document-number">{{ i + 1 }}</div>
-                  <div class="document-copy">
-                    <strong>{{ documento.nombre }}</strong>
-                    @if (documento.obligatorio) {
-                    <span class="required-tag">Obligatorio</span>
-                    }
-                  </div>
-                  <label class="file-picker">
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="seleccionarArchivo($event, documento)" />
-                    <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>
-                  </label>
-                  <small class="file-name">
-                    @if (documento.archivo) {
-                    {{ documento.archivo.name }}
-                    } @else if (documento.archivoNombre) {
-                    {{ documento.archivoNombre }}
-                    } @else {
-                    Sin archivo
-                    }
-                  </small>
-                </div>
-                }
-              </div>
-            </form>
-
-            <div class="consent">
-              <span>🔒</span>
-              <p>
-                Tu información se almacenará de forma segura y será utilizada únicamente para validar el alta del
-                comercio.
-              </p>
-            </div>
-
-            <div class="step-actions">
-              <button type="button" class="button ghost" (click)="volver(4)">Anterior</button>
-              <button type="button" class="button primary" (click)="finalizarRegistro()">Enviar preregistro</button>
-            </div>
+            <app-step-documentos [documentos]="documentosVisibles" [documentosCargados]="documentosCargados"
+              [documentosPendientes]="documentosPendientes" [archivosInvalidos]="archivosInvalidos"
+              (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
+              (finalizar)="finalizarRegistro()" (volver)="volver(4)" />
             }
             }
           </div>
@@ -1071,14 +142,17 @@
             <p>{{ resumenPaso(paso.numero) }}</p>
           </div>
           }
+
         </article>
         }
       </div>
     </section>
     }
+
   </section>
 </main>
 
+<!-- Modal: Ayuda -->
 @if (mostrarAyuda) {
 <div class="modal-backdrop" (click)="cerrarAyuda()">
   <section class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="titulo-ayuda"
@@ -1087,7 +161,6 @@
     <span class="eyebrow">Ayuda</span>
     <h2 id="titulo-ayuda">Manual rápido del preregistro</h2>
     <p>Te dejamos el resumen de lo que pide el flujo para que no se te escape nada.</p>
-
     <div class="help-grid">
       <article class="help-card">
         <h3>Flujo</h3>
@@ -1099,7 +172,6 @@
           <li>Registra la cuenta para liquidación y adjunta documentos.</li>
         </ol>
       </article>
-
       <article class="help-card">
         <h3>Validaciones clave</h3>
         <ul>
@@ -1109,19 +181,16 @@
           <li>En un borrador solo se conservan nombres de archivo, no el archivo físico.</li>
         </ul>
       </article>
-
       <article class="help-card">
         <h3>Resultado final</h3>
-        <p>
-          Después de enviar, Mesa Digital revisa la documentación y normalmente confirma el alta en aproximadamente
-          72 horas hábiles.
-        </p>
+        <p>Mesa Digital revisa la documentación y confirma el alta en aproximadamente 72 horas hábiles.</p>
       </article>
     </div>
   </section>
 </div>
 }
 
+<!-- Modal: Comisionista -->
 @if (mostrarComisionista) {
 <div class="modal-backdrop" (click)="mostrarComisionista = false">
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-comisionista"
@@ -1129,20 +198,14 @@
     <button type="button" class="modal-close" aria-label="Cerrar" (click)="mostrarComisionista = false">×</button>
     <span class="eyebrow">Comisionista</span>
     <h2 id="titulo-comisionista">Agregar comisionista</h2>
-    <p>Selecciona si el comisionista ya existe o captura sus datos para dejarlo asociado al comercio.</p>
-
+    <p>Selecciona si el comisionista ya existe o captura sus datos.</p>
     <form [formGroup]="comisionistaForm">
       <div class="radio-grid">
-        <label class="radio-option">
-          <input type="radio" value="existente" formControlName="tipo" />
-          <span>Comisionista existente</span>
-        </label>
-        <label class="radio-option">
-          <input type="radio" value="nuevo" formControlName="tipo" />
-          <span>Comisionista nuevo</span>
-        </label>
+        <label class="radio-option"><input type="radio" value="existente" formControlName="tipo" /><span>Comisionista
+            existente</span></label>
+        <label class="radio-option"><input type="radio" value="nuevo" formControlName="tipo" /><span>Comisionista
+            nuevo</span></label>
       </div>
-
       @if (comisionistaForm.value.tipo === 'existente') {
       <div class="field">
         <label for="comisionistaAfiliacion">Número de afiliación</label>
@@ -1153,16 +216,13 @@
         }
       </div>
       }
-
       @if (comisionistaForm.value.tipo === 'nuevo') {
       <div class="form-grid cols-2 modal-fields">
-        <div class="field">
-          <label for="comisionistaCorreo">Correo</label>
+        <div class="field"><label for="comisionistaCorreo">Correo</label>
           <input id="comisionistaCorreo" type="email" formControlName="correo"
             [class.invalid]="esInvalido('comisionista', 'correo')" />
         </div>
-        <div class="field">
-          <label for="comisionistaConfirmar">Confirmar correo</label>
+        <div class="field"><label for="comisionistaConfirmar">Confirmar correo</label>
           <input id="comisionistaConfirmar" type="email" formControlName="confirmarCorreo"
             [class.invalid]="comisionistaForm.hasError('comisionistaCorreosDistintos') && comisionistaForm.get('confirmarCorreo')?.touched" />
           @if (comisionistaForm.hasError('comisionistaCorreosDistintos') &&
@@ -1170,30 +230,24 @@
           <small>Los correos no coinciden.</small>
           }
         </div>
-        <div class="field">
-          <label for="comisionistaTelefono">Teléfono</label>
+        <div class="field"><label for="comisionistaTelefono">Teléfono</label>
           <input id="comisionistaTelefono" formControlName="telefono" />
         </div>
-        <div class="field">
-          <label for="comisionistaNombre">Nombre</label>
+        <div class="field"><label for="comisionistaNombre">Nombre</label>
           <input id="comisionistaNombre" formControlName="nombre" />
         </div>
-        <div class="field">
-          <label for="comisionistaPaterno">Apellido paterno</label>
+        <div class="field"><label for="comisionistaPaterno">Apellido paterno</label>
           <input id="comisionistaPaterno" formControlName="paterno" />
         </div>
-        <div class="field">
-          <label for="comisionistaMaterno">Apellido materno</label>
+        <div class="field"><label for="comisionistaMaterno">Apellido materno</label>
           <input id="comisionistaMaterno" formControlName="materno" />
         </div>
-        <div class="field">
-          <label for="comisionistaRfc">RFC</label>
+        <div class="field"><label for="comisionistaRfc">RFC</label>
           <input id="comisionistaRfc" formControlName="rfc" />
         </div>
       </div>
       }
     </form>
-
     <div class="actions">
       <button type="button" class="button ghost" (click)="mostrarComisionista = false">Cancelar</button>
       <button type="button" class="button primary" (click)="guardarComisionista()">Guardar</button>
@@ -1202,6 +256,7 @@
 </div>
 }
 
+<!-- Modal: Búsqueda de giro -->
 @if (mostrarBusquedaGiro) {
 <div class="modal-backdrop" (click)="mostrarBusquedaGiro = false">
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-giro"
@@ -1210,13 +265,11 @@
     <span class="eyebrow">Búsqueda avanzada</span>
     <h2 id="titulo-giro">Buscar giro comercial</h2>
     <p>Selecciona el giro que mejor describa la actividad registrada en la constancia fiscal.</p>
-
     <form [formGroup]="busquedaGiroForm">
       <div class="field">
         <label for="terminoGiro">Palabras del giro comercial</label>
         <input id="terminoGiro" formControlName="termino" placeholder="Ej. agencia, restaurante..." />
       </div>
-
       <div class="results-list">
         @for (giro of girosFiltrados; track giro.mcc) {
         <button type="button" [class.selected]="busquedaGiroForm.value.resultado === giro.mcc"
@@ -1230,7 +283,6 @@
         }
       </div>
     </form>
-
     <div class="actions">
       <button type="button" class="button ghost" (click)="mostrarBusquedaGiro = false">Cancelar</button>
       <button type="button" class="button primary" (click)="guardarGiro()">Usar selección</button>

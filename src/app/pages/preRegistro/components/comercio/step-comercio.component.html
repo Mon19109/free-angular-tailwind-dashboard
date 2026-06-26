@@ -1,0 +1,42 @@
+<form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="form-grid cols-2">
+    <div class="field">
+      <label for="nivel">Nivel del cliente <b>*</b></label>
+      <select id="nivel" formControlName="nivel" [class.invalid]="esInvalido('nivel')">
+        <option value="">Selecciona una opción</option>
+        @for (nivel of niveles; track nivel) {
+          <option [value]="nivel">{{ nivel }}</option>
+        }
+      </select>
+      @if (esInvalido('nivel')) { <small>Selecciona un nivel.</small> }
+    </div>
+
+   @if (!esSinTipo) {
+  <div class="field">
+    <label for="tipoComercio">Tipo de comercio <b>*</b></label>
+    <select id="tipoComercio" formControlName="tipoComercio" [class.invalid]="esInvalido('tipoComercio')">
+      <option value="">Selecciona una opción</option>
+      @for (tipo of tiposComercio; track tipo) {
+        <option [value]="tipo">{{ tipo }}</option>
+      }
+    </select>
+    @if (esInvalido('tipoComercio')) { <small>Selecciona el tipo de comercio.</small> }
+  </div>
+}
+  </div>
+
+  <div class="callout">
+    <div>
+      <span class="field-label">Comisionista</span>
+      <p>{{ form.value.afiliacionComisionista || 'Todavía no hay comisionista asociado.' }}</p>
+    </div>
+    <button type="button" class="button secondary" (click)="abrirComisionista.emit()">
+      Agregar comisionista
+    </button>
+  </div>
+
+  <div class="step-actions">
+    <button type="button" class="button ghost" (click)="volver.emit()">Atrás</button>
+    <button type="submit" class="button primary">Guardar y continuar</button>
+  </div>
+</form>

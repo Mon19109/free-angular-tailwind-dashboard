@@ -528,9 +528,9 @@ small {
 
 .step-node.completed .step-badge,
 .step-circle.done {
-  border-color: rgba(34, 197, 94, 0.55);
-  color: #e8fff0;
-  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(12, 128, 55, 0.55);
+  color: #19b04e;
+  background: rgba(24, 162, 74, 0.2);
 }
 
 .step-node.current .step-badge,
@@ -1371,7 +1371,8 @@ small {
 :host-context(html:not(.dark)) .step-card.done .step-status {
   color: #166534;
   border-color: rgba(34, 197, 94, 0.24);
-  background: rgba(34, 197, 94, 0.12);
+  background: rgba(34, 228, 105, 0.12);
+  
 }
 
 :host-context(html:not(.dark)) .step-card.current .step-status {
@@ -1458,7 +1459,7 @@ small {
 :host-context(html:not(.dark)) .step-status {
   border-color: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.88);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(192, 39, 39, 0.08);
 }
 
 :host-context(html:not(.dark)) .button.primary {

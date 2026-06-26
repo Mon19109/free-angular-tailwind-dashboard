@@ -1,0 +1,39 @@
+<section class="intro-layout">
+  <article class="card hero-card">
+    <span class="eyebrow">Bienvenido</span>
+    <h1>Pre registro de clientes</h1>
+    <p class="lead">
+      Estás a punto de registrarte en Kashpay. Para continuar,
+      ingresa el Núm. de Afiliación que te proporcionaron.
+    </p>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="afiliacion">Número de afiliación <b>*</b></label>
+        <input id="afiliacion" type="text" inputmode="numeric" maxlength="8"
+          formControlName="afiliacion" placeholder="Ej. 33359863"
+          [class.invalid]="esInvalido('afiliacion')" />
+        @if (esInvalido('afiliacion')) {
+          <small>Ingresa un número de afiliación de 8 dígitos.</small>
+        }
+      </div>
+      <div class="intro-actions">
+        <button type="button" class="button ghost" (click)="abrirAyuda.emit()">Ver ayuda</button>
+        <button type="submit" class="button primary">Validar y continuar</button>
+      </div>
+    </form>
+  </article>
+
+  <aside class="card prep-card">
+    <span class="eyebrow">Antes de empezar</span>
+    <h2>Requisitos para el alta</h2>
+    <ul class="check-list">
+      <p style="text-align: justify;">
+        A continuación, te compartimos el listado de documentos que debes tener a la mano.
+        El proceso tiene un tiempo estimado de 15 min.
+      </p>
+      @for (requisito of requisitos; track requisito) {
+        <li>{{ requisito }}</li>
+      }
+    </ul>
+  </aside>
+</section>

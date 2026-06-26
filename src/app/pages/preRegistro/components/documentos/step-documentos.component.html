@@ -1,0 +1,50 @@
+<section class="step-section">
+  <div class="section-title">
+    <h3>Documentos del comercio</h3>
+    <span>Formatos permitidos: PDF, JPG o PNG. Máximo 10 MB por archivo.</span>
+  </div>
+  <div class="docs-summary">
+    <article><strong>{{ documentosCargados }}</strong><span>Cargados</span></article>
+    <article><strong>{{ documentosPendientes }}</strong><span>Pendientes</span></article>
+  </div>
+  <div class="callout subtle">
+    <p>Si guardaste un borrador, los nombres de archivo se conservan como referencia,
+      pero tendrás que volver a adjuntar el archivo antes de enviar el preregistro.</p>
+  </div>
+</section>
+
+@if (archivosInvalidos) {
+  <div class="alert-error">Carga todos los documentos marcados como obligatorios.</div>
+}
+
+<div class="documents-list">
+  @for (documento of documentos; track documento.numero; let i = $index) {
+    <div class="document-row" [class.uploaded]="documento.archivo || documento.archivoNombre">
+      <div class="document-number">{{ i + 1 }}</div>
+      <div class="document-copy">
+        <strong>{{ documento.nombre }}</strong>
+        @if (documento.obligatorio) { <span class="required-tag">Obligatorio</span> }
+      </div>
+      <label class="file-picker">
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+          (change)="seleccionarArchivo.emit({ event: $event, documento })" />
+        <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>
+      </label>
+      <small class="file-name">
+        @if (documento.archivo) { {{ documento.archivo.name }}
+        } @else if (documento.archivoNombre) { {{ documento.archivoNombre }}
+        } @else { Sin archivo }
+      </small>
+    </div>
+  }
+</div>
+
+<div class="consent">
+  <span>🔒</span>
+  <p>Tu información se almacenará de forma segura y será utilizada únicamente para validar el alta del comercio.</p>
+</div>
+
+<div class="step-actions">
+  <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
+  <button type="button" class="button primary" (click)="finalizar.emit()">Enviar preregistro</button>
+</div>

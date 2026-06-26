@@ -1,0 +1,346 @@
+<form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
+
+  <!-- Datos generales -->
+   @if (seccionesVisibles.datosGenerales) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Datos generales</h3>
+      <span>Campos obligatorios marcados con *</span>
+    </div>
+    <div class="form-grid cols-2">
+      @if (tiene('rfc')) {
+      <div class="field">
+        <label for="rfc">RFC <b>*</b></label>
+        <input id="rfc" formControlName="rfc" [class.invalid]="esInvalido('rfc')" />
+      </div>
+      }
+      @if (tiene('razonSocial')) {
+      <div class="field">
+        <label for="razonSocial">Razón social <b>*</b></label>
+        <input id="razonSocial" formControlName="razonSocial" [class.invalid]="esInvalido('razonSocial')" />
+      </div>
+      }
+      @if (tiene('nombreComercial')) {
+      <div class="field">
+        <label for="nombreComercial">Nombre comercial <b>*</b></label>
+        <input id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
+      </div>
+      }
+      @if (tiene('regimenFiscal')) {
+      <div class="field">
+        <label for="regimenFiscal">Régimen fiscal <b>*</b></label>
+        <select id="regimenFiscal" formControlName="regimenFiscal" [class.invalid]="esInvalido('regimenFiscal')">
+          <option value="">Selecciona una opción</option>
+          @for (r of regimenesFiscales; track r) { <option [value]="r">{{ r }}</option> }
+        </select>
+      </div>
+      }
+      @if (tiene('giroComercial')) {
+      <div class="field">
+        <label for="giroComercial">Giro comercial <b>*</b></label>
+        <select id="giroComercial" formControlName="giroComercial" [class.invalid]="esInvalido('giroComercial')">
+          <option value="">Selecciona una opción</option>
+          @for (g of girosComerciales; track g) { <option [value]="g">{{ g }}</option> }
+        </select>
+      </div>
+      }
+      @if (tiene('descripcionGiro')) {
+      <div class="field">
+        <label for="descripcionGiro">Descripción del giro <b>*</b></label>
+        <input id="descripcionGiro" formControlName="descripcionGiro" [class.invalid]="esInvalido('descripcionGiro')" />
+      </div>
+      }
+      @if (tiene('mcc')) {
+      <div class="field">
+        <label for="mcc">MCC <b>*</b></label>
+        <input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('mcc')" />
+      </div>
+      }
+      @if (tiene('nombre')) {
+      <div class="field">
+        <label for="nombre">Nombre <b>*</b></label>
+        <input id="nombre" formControlName="nombre" [class.invalid]="esInvalido('nombre')" />
+      </div>
+      }
+      @if (tiene('apellidoPaterno')) {
+      <div class="field">
+        <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
+        <input id="apellidoPaterno" formControlName="apellidoPaterno" [class.invalid]="esInvalido('apellidoPaterno')" />
+      </div>
+      }
+      @if (tiene('apellidoMaterno')) {
+      <div class="field">
+        <label for="apellidoMaterno">Apellido materno <b>*</b></label>
+        <input id="apellidoMaterno" formControlName="apellidoMaterno" [class.invalid]="esInvalido('apellidoMaterno')" />
+      </div>
+      }
+      @if (tiene('curp')) {
+      <div class="field">
+        <label for="curp">CURP <b>*</b></label>
+        <input id="curp" formControlName="curp" [class.invalid]="esInvalido('curp')" />
+      </div>
+      }
+      @if (tiene('actividad')) {
+      <div class="field">
+        <label for="actividad">Actividad <b>*</b></label>
+        <input id="actividad" formControlName="actividad" [class.invalid]="esInvalido('actividad')" />
+      </div>
+      }
+      @if (tiene('correo')) {
+      <div class="field">
+        <label for="correo">Correo electrónico <b>*</b></label>
+        <input id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('correo')" />
+      </div>
+      }
+      @if (tiene('telefono')) {
+      <div class="field">
+        <label for="telefono">Teléfono de contacto <b>*</b></label>
+        <input id="telefono" formControlName="telefono" [class.invalid]="esInvalido('telefono')" />
+      </div>
+      }
+    </div>
+  </section>
+}
+
+  <!-- Domicilio Fiscal -->
+   @if (seccionesVisibles.domicilioFiscal) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Domicilio Fiscal</h3>
+      <span>Campos obligatorios marcados con *</span>
+    </div>
+    <div class="form-grid cols-2">
+      @if (tiene('codigoPostal')) {
+      <div class="field"><label for="codigoPostal">Código Postal <b>*</b></label>
+        <input id="codigoPostal" formControlName="codigoPostal" [class.invalid]="esInvalido('codigoPostal')" />
+      </div>
+      }
+      @if (tiene('tipoVialidad')) {
+      <div class="field"><label for="tipoVialidad">Tipo de Vialidad <b>*</b></label>
+        <input id="tipoVialidad" formControlName="tipoVialidad" [class.invalid]="esInvalido('tipoVialidad')" />
+      </div>
+      }
+      @if (tiene('nombreVialidad')) {
+      <div class="field"><label for="nombreVialidad">Nombre de la Vialidad <b>*</b></label>
+        <input id="nombreVialidad" formControlName="nombreVialidad" [class.invalid]="esInvalido('nombreVialidad')" />
+      </div>
+      }
+      @if (tiene('numeroExterior')) {
+      <div class="field"><label for="numeroExterior">Número Exterior</label>
+        <input id="numeroExterior" formControlName="numeroExterior" />
+      </div>
+      }
+      @if (tiene('numeroInterior')) {
+      <div class="field"><label for="numeroInterior">Número Interior</label>
+        <input id="numeroInterior" formControlName="numeroInterior" />
+      </div>
+      }
+      @if (tiene('colonia')) {
+      <div class="field"><label for="colonia">Colonia <b>*</b></label>
+        <input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('colonia')" />
+      </div>
+      }
+      @if (tiene('localidad')) {
+      <div class="field"><label for="localidad">Localidad <b>*</b></label>
+        <input id="localidad" formControlName="localidad" [class.invalid]="esInvalido('localidad')" />
+      </div>
+      }
+      @if (tiene('municipio')) {
+      <div class="field"><label for="municipio">Municipio / Alcaldía <b>*</b></label>
+        <input id="municipio" formControlName="municipio" [class.invalid]="esInvalido('municipio')" />
+      </div>
+      }
+      @if (tiene('entidadFederativa')) {
+      <div class="field"><label for="entidadFederativa">Entidad Federativa <b>*</b></label>
+        <input id="entidadFederativa" formControlName="entidadFederativa"
+          [class.invalid]="esInvalido('entidadFederativa')" />
+      </div>
+      }
+      @if (tiene('entreCalle')) {
+      <div class="field"><label for="entreCalle">Entre Calle</label>
+        <input id="entreCalle" formControlName="entreCalle" />
+      </div>
+      }
+      @if (tiene('yCalle')) {
+      <div class="field"><label for="yCalle">Y Calle</label>
+        <input id="yCalle" formControlName="yCalle" />
+      </div>
+      }
+    </div>
+  </section>
+}
+
+  <!-- Representante Legal -->
+   @if (seccionesVisibles.representante)  {
+  <section class="step-section">
+
+    <div class="section-title">
+      <h3>Representante Legal</h3>
+    </div>
+    <div class="form-grid cols-3">
+      <div class="field"><label for="nombreRepresentante">Nombre <b>*</b></label>
+        <input id="nombreRepresentante" formControlName="nombreRepresentante" />
+      </div>
+      <div class="field"><label for="apellidoPaternoRepresentante">Apellido Paterno <b>*</b></label>
+        <input id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante" />
+      </div>
+      <div class="field"><label for="apellidoMaternoRepresentante">Apellido Materno <b>*</b></label>
+        <input id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante" />
+      </div>
+    </div>
+  </section>
+}
+
+  <!-- Dirección Representante -->
+   @if (seccionesVisibles.dirRepresentante) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Dirección del Representante Legal</h3>
+    </div>
+    <div class="form-grid cols-2">
+      <div class="field"><label for="calleRepresentante">Calle <b>*</b></label>
+        <input id="calleRepresentante" formControlName="calleRepresentante" />
+      </div>
+      <div class="field"><label for="numeroExteriorRepresentante">Número Exterior</label>
+        <input id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante" />
+      </div>
+      <div class="field"><label for="numeroInteriorRepresentante">Número Interior</label>
+        <input id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante" />
+      </div>
+      <div class="field"><label for="codigoPostalRepresentante">Código Postal <b>*</b></label>
+        <input id="codigoPostalRepresentante" formControlName="codigoPostalRepresentante" />
+      </div>
+      <div class="field"><label for="coloniaRepresentante">Colonia <b>*</b></label>
+        <input id="coloniaRepresentante" formControlName="coloniaRepresentante" />
+      </div>
+      <div class="field"><label for="municipioRepresentante">Municipio / Alcaldía <b>*</b></label>
+        <input id="municipioRepresentante" formControlName="municipioRepresentante" />
+      </div>
+      <div class="field"><label for="estadoRepresentante">Estado <b>*</b></label>
+        <input id="estadoRepresentante" formControlName="estadoRepresentante" />
+      </div>
+    </div>
+  </section>
+}
+
+  <!-- Contacto Representante -->
+   @if (seccionesVisibles.contactoRep) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Contacto del Representante Legal</h3>
+    </div>
+    <div class="form-grid cols-3">
+      <div class="field"><label for="correoRepresentante">Correo Electrónico <b>*</b></label>
+        <input id="correoRepresentante" type="email" formControlName="correoRepresentante" />
+      </div>
+      <div class="field"><label for="telefonoRepresentante">Teléfono <b>*</b></label>
+        <input id="telefonoRepresentante" formControlName="telefonoRepresentante" />
+      </div>
+
+      <div class="field"><label for="telefonoAdicionalRepresentante">Teléfono Adicional</label>
+        <input id="telefonoAdicionalRepresentante" formControlName="telefonoAdicionalRepresentante" />
+      </div>
+    </div>
+  </section>
+}
+
+  <!-- Domicilio Comercial -->
+  <section class="step-section">
+
+    <div class="section-title section-title-inline">
+      <h3>Domicilio Comercial</h3>
+
+      <label class="checkbox-inline">
+        <input type="checkbox" formControlName="mismoDomicilio" formControlName="mismoDomicilio">
+        Mismo domicilio
+      </label>
+    </div>
+
+    <div class="form-grid cols-2">
+
+      <div class="field">
+        <label for="codigoPostalComercial">Código Postal <b>*</b></label>
+        <input id="codigoPostalComercial" formControlName="codigoPostalComercial">
+      </div>
+
+      <div class="field">
+        <label for="tipoVialidadComercial">Tipo de Vialidad <b>*</b></label>
+        <input id="tipoVialidadComercial" formControlName="tipoVialidadComercial">
+      </div>
+
+      <div class="field">
+        <label for="nombreVialidadComercial">Nombre de la Vialidad <b>*</b></label>
+        <input id="nombreVialidadComercial" formControlName="nombreVialidadComercial">
+      </div>
+
+      <div class="field">
+        <label for="numeroExteriorComercial">Número Exterior</label>
+        <input id="numeroExteriorComercial" formControlName="numeroExteriorComercial">
+      </div>
+
+      <div class="field">
+        <label for="numeroInteriorComercial">Número Interior</label>
+        <input id="numeroInteriorComercial" formControlName="numeroInteriorComercial">
+      </div>
+
+      <div class="field">
+        <label for="coloniaComercial">Colonia <b>*</b></label>
+        <input id="coloniaComercial" formControlName="coloniaComercial">
+      </div>
+
+      <div class="field">
+        <label for="localidadComercial">Localidad <b>*</b></label>
+        <input id="localidadComercial" formControlName="localidadComercial">
+      </div>
+
+      <div class="field">
+        <label for="municipioComercial">Municipio / Alcaldía <b>*</b></label>
+        <input id="municipioComercial" formControlName="municipioComercial">
+      </div>
+
+      <div class="field">
+        <label for="entidadFederativaComercial">Entidad Federativa <b>*</b></label>
+        <input id="entidadFederativaComercial" formControlName="entidadFederativaComercial">
+      </div>
+
+      <div class="field">
+        <label for="entreCalleComercial">Entre Calle</label>
+        <input id="entreCalleComercial" formControlName="entreCalleComercial">
+      </div>
+
+      <div class="field">
+        <label for="yCalleComercial">Y Calle</label>
+        <input id="yCalleComercial" formControlName="yCalleComercial">
+      </div>
+
+    </div>
+
+  </section>
+
+ <!-- Contacto comercial -->
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Contacto Comercial</h3>
+    </div>
+    <div class="form-grid cols-3">
+      <div class="field"><label for="correoComercial">Correo Electrónico <b>*</b></label>
+        <input id="correoComercial" type="email" formControlName="correoComercial" />
+      </div>
+      <div class="field"><label for="telefonoRepresentante">Teléfono <b>*</b></label>
+        <input id="telefonoComercial" formControlName="telefonoComercial" />
+      </div>
+
+      <div class="field"><label for="telefonoAdicionalRepresentante">Teléfono Adicional</label>
+        <input id="telefonoAdicionalComercial" formControlName="telefonoAdicionalComercial" />
+      </div>
+    </div>
+  </section>
+
+
+  <div class="step-actions">
+    <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
+    <button type="submit" class="button primary">Guardar y continuar</button>
+  </div>
+
+
+</form>

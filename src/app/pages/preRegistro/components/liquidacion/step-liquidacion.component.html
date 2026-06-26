@@ -1,0 +1,74 @@
+<form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
+
+  <section class="step-section">
+    <div class="section-title"><h3>Cuenta para liquidación</h3></div>
+    <label class="checkbox-option">
+      <input type="checkbox" formControlName="beneficiarioIgualComercio" />
+      <span>Los datos del beneficiario son los mismos del comercio</span>
+    </label>
+    <div class="form-grid cols-3">
+      <div class="field">
+        <label for="tipoPersonaBeneficiario">Tipo de persona <b>*</b></label>
+        <select id="tipoPersonaBeneficiario" formControlName="tipoPersonaBeneficiario">
+          <option value="fisica">Persona física</option>
+          <option value="moral">Persona moral</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="tipoCuenta">Tipo de cuenta <b>*</b></label>
+        <select id="tipoCuenta" formControlName="tipoCuenta" [class.invalid]="esInvalido('tipoCuenta')">
+          <option value="">Selecciona una opción</option>
+          @for (tipo of tiposCuenta; track tipo) { <option [value]="tipo">{{ tipo }}</option> }
+        </select>
+      </div>
+      <div class="field">
+        <label for="cuentaClabe">CLABE / número de cuenta <b>*</b></label>
+        <input id="cuentaClabe" maxlength="18" inputmode="numeric" formControlName="cuentaClabe"
+          [class.invalid]="esInvalido('cuentaClabe')" />
+      </div>
+    </div>
+  </section>
+
+  @if (!beneficiarioIgualComercio) {
+    <section class="step-section">
+      <h3>Beneficiario</h3>
+      <div class="form-grid cols-3">
+        <div class="field"><label for="nombreBeneficiario">Nombre <b>*</b></label>
+          <input id="nombreBeneficiario" formControlName="nombreBeneficiario" [class.invalid]="esInvalido('nombreBeneficiario')" /></div>
+        <div class="field"><label for="apellidoPaternoBeneficiario">Apellido paterno <b>*</b></label>
+          <input id="apellidoPaternoBeneficiario" formControlName="apellidoPaternoBeneficiario" [class.invalid]="esInvalido('apellidoPaternoBeneficiario')" /></div>
+        <div class="field"><label for="apellidoMaternoBeneficiario">Apellido materno <b>*</b></label>
+          <input id="apellidoMaternoBeneficiario" formControlName="apellidoMaternoBeneficiario" [class.invalid]="esInvalido('apellidoMaternoBeneficiario')" /></div>
+        <div class="field"><label for="correoBeneficiario">Correo electrónico <b>*</b></label>
+          <input id="correoBeneficiario" type="email" formControlName="correoBeneficiario" [class.invalid]="esInvalido('correoBeneficiario')" /></div>
+        <div class="field"><label for="direccionBeneficiario">Dirección completa <b>*</b></label>
+          <input id="direccionBeneficiario" formControlName="direccionBeneficiario" [class.invalid]="esInvalido('direccionBeneficiario')" /></div>
+        <div class="field"><label for="rfcBeneficiario">RFC <b>*</b></label>
+          <input id="rfcBeneficiario" formControlName="rfcBeneficiario" [class.invalid]="esInvalido('rfcBeneficiario')" /></div>
+        <div class="field"><label for="actividadBeneficiario">Actividad <b>*</b></label>
+          <input id="actividadBeneficiario" formControlName="actividadBeneficiario" [class.invalid]="esInvalido('actividadBeneficiario')" /></div>
+        <div class="field"><label for="giroBeneficiario">Giro <b>*</b></label>
+          <input id="giroBeneficiario" formControlName="giroBeneficiario" [class.invalid]="esInvalido('giroBeneficiario')" /></div>
+      </div>
+    </section>
+  }
+
+  <section class="step-section">
+    <h3>Información bancaria</h3>
+    <div class="form-grid cols-3">
+      <div class="field"><label for="nombreBanco">Nombre del banco <b>*</b></label>
+        <input id="nombreBanco" formControlName="nombreBanco" [class.invalid]="esInvalido('nombreBanco')" /></div>
+      <div class="field"><label for="direccionBanco">Dirección del banco <b>*</b></label>
+        <input id="direccionBanco" formControlName="direccionBanco" [class.invalid]="esInvalido('direccionBanco')" /></div>
+      <div class="field"><label for="telefonoBanco">Teléfono del banco <b>*</b></label>
+        <input id="telefonoBanco" maxlength="10" inputmode="numeric" formControlName="telefonoBanco" [class.invalid]="esInvalido('telefonoBanco')" /></div>
+      <div class="field"><label for="emailBanco">Correo del banco <b>*</b></label>
+        <input id="emailBanco" type="email" formControlName="emailBanco" [class.invalid]="esInvalido('emailBanco')" /></div>
+    </div>
+  </section>
+
+  <div class="step-actions">
+    <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
+    <button type="submit" class="button primary">Guardar y continuar</button>
+  </div>
+</form>
