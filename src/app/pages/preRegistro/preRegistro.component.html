@@ -80,6 +80,7 @@
       <!-- Cards de pasos -->
       <div class="wizard-stack">
         @for (paso of datos.pasos; track paso.numero) {
+        @if (paso.numero !== 2 || !pasoGeneralesDebeSaltarse) {
         <article class="step-card" [class.current]="pasoActual === paso.numero"
           [class.done]="esPasoCompletado(paso.numero)">
 
@@ -109,20 +110,19 @@
               (continuar)="continuarComercio()" (volver)="volver(0)" (abrirComisionista)="mostrarComisionista = true" />
             }
             @case (2) {
-            <app-step-datos [form]="datosForm" [campos]="camposDatosGenerales"
-              [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' || 
+            <app-step-datos [form]="datosForm" [campos]="camposDatosGenerales" [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' || 
                 comercioForm.getRawValue().nivel === 'Comisionista' 
                 ? comercioForm.getRawValue().nivel 
-                : comercioForm.getRawValue().tipoComercio"
-              [regimenesFiscales]="datos.regimenesFiscales ?? []" [girosComerciales]="datos.girosComerciales ?? []"
-              [tiposPersona]="datos.tiposPersona" [departamentos]="datos.departamentos" [ciudades]="datos.ciudades"
-              (continuar)="continuarDatos()" (volver)="volver(1)" />
+                : comercioForm.getRawValue().tipoComercio" [regimenesFiscales]="datos.regimenesFiscales ?? []"
+              [girosComerciales]="datos.girosComerciales ?? []" [tiposPersona]="datos.tiposPersona"
+              [departamentos]="datos.departamentos" [ciudades]="datos.ciudades" (continuar)="continuarDatos()"
+              (volver)="volver(1)" />
             }
             @case (3) {
             <app-step-accesos [form]="accesosForm" [modosReserva]="datos.modosReserva"
               [mostrarAdminTotal]="mostrarAdminTotal" [mostrarPerfilReserva]="mostrarPerfilReserva"
               [mostrarReservaSplit]="mostrarReservaSplit" [mostrarPinSupervisor]="mostrarPinSupervisor"
-              (continuar)="continuarAccesos()" (volver)="volver(2)" />
+              (continuar)="continuarAccesos()" (volver)="volverDesdeAccesos()" />
             }
             @case (4) {
             <app-step-liquidacion [form]="liquidacionForm" [tiposCuenta]="datos.tiposCuenta"
@@ -144,6 +144,7 @@
           }
 
         </article>
+        }
         }
       </div>
     </section>

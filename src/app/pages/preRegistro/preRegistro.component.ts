@@ -324,7 +324,8 @@ export class PreRegistroComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(tipo => { });
 
-    this.cargarBorrador();
+    //this.cargarBorrador();
+    try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     this.tiposComercio = this.tiposComercioPorNivel[this.comercioForm.controls.nivel.value] ?? [];
   }
 
@@ -339,18 +340,17 @@ export class PreRegistroComponent {
       : this.documentos;
   }
 
- 
-get camposDatosGenerales(): string[] {
-  const tipo = this.comercioForm.getRawValue().tipoComercio;
-  const nivel = this.comercioForm.getRawValue().nivel;
-  const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel);
-  return this.datosGeneralesPorTipo[esSinTipo ? nivel : tipo] ?? [];
-}
 
+  get camposDatosGenerales(): string[] {
+    const tipo = this.comercioForm.getRawValue().tipoComercio;
+    const nivel = this.comercioForm.getRawValue().nivel;
+    const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel);
+    return this.datosGeneralesPorTipo[esSinTipo ? nivel : tipo] ?? [];
+  }
 
-
-
-
+  get pasoGeneralesDebeSaltarse(): boolean {
+    return this.camposDatosGenerales.length === 0;
+  }
 
   get mostrarAdminTotal(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
   get mostrarPerfilReserva(): boolean { return this.modoReservaActual !== 'NINGUNO'; }
@@ -385,15 +385,35 @@ get camposDatosGenerales(): string[] {
     this.guardarBorradorSilencioso(); this.irAlPaso(1);
   }
 
+  /* continuarComercio(): void {
+     if (this.comercioForm.invalid) { this.comercioForm.markAllAsTouched(); return; }
+     this.marcarPasoCompletado(1); this.guardarBorradorSilencioso(); this.irAlPaso(2);
+   }*/
+
   continuarComercio(): void {
     if (this.comercioForm.invalid) { this.comercioForm.markAllAsTouched(); return; }
-    this.marcarPasoCompletado(1); this.guardarBorradorSilencioso(); this.irAlPaso(2);
+    this.marcarPasoCompletado(1);
+    this.guardarBorradorSilencioso();
+    if (this.pasoGeneralesDebeSaltarse) {
+      this.marcarPasoCompletado(2); // paso 2 se auto-completa
+      this.irAlPaso(3);
+    } else {
+      this.irAlPaso(2);
+    }
   }
 
   continuarDatos(): void {
     if (this.datosForm.invalid) { this.datosForm.markAllAsTouched(); return; }
     this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
   }
+
+volverDesdeAccesos(): void {
+  if (this.pasoGeneralesDebeSaltarse) {
+    this.irAlPaso(1); // salta el paso 2 hacia atrás también
+  } else {
+    this.irAlPaso(2);
+  }
+}
 
   continuarAccesos(): void {
     this.accesosForm.markAllAsTouched();
