@@ -1508,3 +1508,149 @@ small {
   border-color: rgba(209, 219, 233, 0.92);
   background: rgba(248, 250, 253, 0.96);
 }
+
+/* ── Giro label row ──────────────────────────────────────────────────────── */
+.giro-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.giro-label-row label {
+  margin-bottom: 0;  /* el margin lo da el row */
+}
+/* ── Botón Búsqueda Avanzada ─────────────────────────────────────────────── */
+/* ── Botón Búsqueda Avanzada ─────────────────────────────────────────────── */
+.btn-busqueda-avanzada {
+  margin-top: 0px;
+  min-height: 36px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: fit-content;          /* ← ya no ocupa todo el ancho */
+  align-self: flex-end;        /* ← se pega a la derecha dentro del flex */
+
+  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  color: #140e02;
+  box-shadow: 0 8px 20px rgba(241, 178, 61, 0.28);
+}
+
+/* ── Celda del botón alineada con MCC ────────────────────────────────────── */
+.field-btn-avanzada {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;       /* ← empuja el botón a la derecha */
+}
+
+
+.btn-busqueda-avanzada:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(241, 178, 61, 0.38);
+}
+
+/* MODO CLARO → azul */
+:host-context(html:not(.dark)) .btn-busqueda-avanzada {
+  background: linear-gradient(135deg, #2fc0df 0%, #2696d0 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(38, 150, 208, 0.28);
+}
+
+
+:host-context(html:not(.dark)) .btn-busqueda-avanzada:hover {
+  box-shadow: 0 12px 26px rgba(38, 150, 208, 0.38);
+}
+/* ── Items del modal con MCC ─────────────────────────────────────────────── */
+.giro-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--pre-line);
+  transition: background 0.12s ease;
+}
+
+.giro-item:last-child { border-bottom: none; }
+
+.giro-item-desc {
+  font-size: 14px;
+  color: var(--pre-text);
+  font-weight: 500;
+}
+
+.giro-item-mcc {
+  font-size: 12px;
+  color: var(--pre-muted);
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--pre-border);
+  background: rgba(255,255,255,0.04);
+}
+
+.giro-item:hover {
+  background: rgba(241, 178, 61, 0.07);
+}
+
+.giro-item.selected {
+  background: rgba(241, 178, 61, 0.13);
+  border-left: 3px solid var(--pre-gold);
+}
+
+.giro-item.selected .giro-item-desc {
+  color: var(--pre-gold-strong);
+  font-weight: 700;
+}
+
+.giro-item.selected .giro-item-mcc {
+  border-color: rgba(241, 178, 61, 0.4);
+  color: var(--pre-gold);
+  background: rgba(241, 178, 61, 0.1);
+}
+
+:host-context(html:not(.dark)) .giro-item:hover {
+  background: rgba(38, 150, 208, 0.06);
+}
+
+:host-context(html:not(.dark)) .giro-item.selected {
+  background: rgba(38, 150, 208, 0.1);
+  border-left-color: #2696d0;
+}
+
+:host-context(html:not(.dark)) .giro-item.selected .giro-item-desc {
+  color: #1a5f8a;
+}
+
+:host-context(html:not(.dark)) .giro-item.selected .giro-item-mcc {
+  border-color: rgba(38, 150, 208, 0.4);
+  color: #2696d0;
+  background: rgba(38, 150, 208, 0.1);
+}
+
+
+/* ── Celda del botón alineada con MCC ────────────────────────────────────── */
+.field-btn-avanzada {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.label-spacer {
+  display: block;
+  height: 21px;   /* misma altura que label (13px font + 8px margin-bottom) */
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}

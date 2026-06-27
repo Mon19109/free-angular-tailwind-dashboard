@@ -1,7 +1,7 @@
 <form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
 
   <!-- Datos generales -->
-   @if (seccionesVisibles.datosGenerales) {
+  @if (seccionesVisibles.datosGenerales) {
   <section class="step-section">
     <div class="section-title">
       <h3>Datos generales</h3>
@@ -35,27 +35,38 @@
         </select>
       </div>
       }
+
       @if (tiene('giroComercial')) {
       <div class="field">
-        <label for="giroComercial">Giro comercial <b>*</b></label>
-        <select id="giroComercial" formControlName="giroComercial" [class.invalid]="esInvalido('giroComercial')">
-          <option value="">Selecciona una opción</option>
-          @for (g of girosComerciales; track g) { <option [value]="g">{{ g }}</option> }
-        </select>
+        <label for="giroComercial">Familia del giro <b>*</b></label>
+        <input id="giroComercial" formControlName="giroComercial" placeholder="Se llena con Búsqueda Avanzada"
+          [class.invalid]="esInvalido('giroComercial')" readonly />
       </div>
       }
+
       @if (tiene('descripcionGiro')) {
       <div class="field">
         <label for="descripcionGiro">Descripción del giro <b>*</b></label>
         <input id="descripcionGiro" formControlName="descripcionGiro" [class.invalid]="esInvalido('descripcionGiro')" />
       </div>
       }
+
       @if (tiene('mcc')) {
       <div class="field">
         <label for="mcc">MCC <b>*</b></label>
         <input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('mcc')" />
       </div>
       }
+
+      @if (tiene('descripcionGiro')) {
+      <div class="field field-btn-avanzada">
+        <span class="label-spacer"></span>
+        <button type="button" class="btn-busqueda-avanzada" (click)="abrirModalGiro()">
+          Búsqueda Avanzada
+        </button>
+      </div>
+      }
+
       @if (tiene('nombre')) {
       <div class="field">
         <label for="nombre">Nombre <b>*</b></label>
@@ -100,10 +111,10 @@
       }
     </div>
   </section>
-}
+  }
 
   <!-- Domicilio Fiscal -->
-   @if (seccionesVisibles.domicilioFiscal) {
+  @if (seccionesVisibles.domicilioFiscal) {
   <section class="step-section">
     <div class="section-title">
       <h3>Domicilio Fiscal</h3>
@@ -168,10 +179,10 @@
       }
     </div>
   </section>
-}
+  }
 
   <!-- Representante Legal -->
-   @if (seccionesVisibles.representante)  {
+  @if (seccionesVisibles.representante) {
   <section class="step-section">
 
     <div class="section-title">
@@ -189,10 +200,10 @@
       </div>
     </div>
   </section>
-}
+  }
 
   <!-- Dirección Representante -->
-   @if (seccionesVisibles.dirRepresentante) {
+  @if (seccionesVisibles.dirRepresentante) {
   <section class="step-section">
     <div class="section-title">
       <h3>Dirección del Representante Legal</h3>
@@ -221,10 +232,10 @@
       </div>
     </div>
   </section>
-}
+  }
 
   <!-- Contacto Representante -->
-   @if (seccionesVisibles.contactoRep) {
+  @if (seccionesVisibles.contactoRep) {
   <section class="step-section">
     <div class="section-title">
       <h3>Contacto del Representante Legal</h3>
@@ -242,7 +253,7 @@
       </div>
     </div>
   </section>
-}
+  }
 
   <!-- Domicilio Comercial -->
   <section class="step-section">
@@ -317,7 +328,7 @@
 
   </section>
 
- <!-- Contacto comercial -->
+  <!-- Contacto comercial -->
   <section class="step-section">
     <div class="section-title">
       <h3>Contacto Comercial</h3>
@@ -342,5 +353,50 @@
     <button type="submit" class="button primary">Guardar y continuar</button>
   </div>
 
+  @if (mostrarModalGiro) {
+  <div class="modal-backdrop giro-backdrop" (click)="cerrarModalGiro()">
+    <div class="modal-card giro-modal-card" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" (click)="cerrarModalGiro()">✕</button>
 
+      <p class="giro-modal-instruccion">
+        Ingresa palabras que contenga el Giro Comercial en tu Constancia fiscal:
+      </p>
+
+      <div class="giro-search-row">
+        <input type="text" class="giro-search-input" placeholder="Escribe para buscar..."
+          [formControl]="terminoBusqueda" />
+
+      </div>
+
+      <p class="giro-modal-sub">
+        Selecciona en el siguiente listado de coincidencias, el Giro Comercial:
+      </p>
+
+      <div class="giro-lista">
+        @for (giro of girosFiltrados; track giro.mcc) {
+        <div class="giro-item" [class.selected]="giroSeleccionado?.mcc === giro.mcc"
+          (click)="seleccionarGiroModal(giro)">
+          <span class="giro-item-desc">{{ giro.descripcion }}</span>
+          <span class="giro-item-mcc">MCC: {{ giro.mcc }}</span>
+        </div>
+        }
+        @if (girosFiltrados.length === 0 && terminoBusqueda.value) {
+        <div class="giro-item giro-item--empty">Sin coincidencias</div>
+        }
+        @if (!terminoBusqueda.value) {
+        <div class="giro-item giro-item--empty">Escribe al menos una letra para buscar</div>
+        }
+      </div>
+
+      <div class="step-actions">
+        <button type="button" class="button ghost" (click)="cerrarModalGiro()">
+          CANCELAR
+        </button>
+        <button type="button" class="button primary" [disabled]="!giroSeleccionado" (click)="guardarGiroModal()">
+          GUARDAR
+        </button>
+      </div>
+    </div>
+  </div>
+  }
 </form>
