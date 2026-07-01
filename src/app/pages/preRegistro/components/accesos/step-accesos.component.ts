@@ -19,6 +19,10 @@ export class StepAccesosComponent {
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 
+  get modoSeleccionado(): string {
+  return this.form.get('modoReserva')?.value ?? 'NINGUNO';
+}
+
   esInvalido(campo: string): boolean {
     const c = this.form.get(campo);
     return !!(c?.invalid && c.touched);

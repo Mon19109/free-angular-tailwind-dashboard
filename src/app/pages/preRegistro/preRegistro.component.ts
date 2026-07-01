@@ -407,13 +407,13 @@ export class PreRegistroComponent {
     this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
   }
 
-volverDesdeAccesos(): void {
-  if (this.pasoGeneralesDebeSaltarse) {
-    this.irAlPaso(1); // salta el paso 2 hacia atrás también
-  } else {
-    this.irAlPaso(2);
+  volverDesdeAccesos(): void {
+    if (this.pasoGeneralesDebeSaltarse) {
+      this.irAlPaso(1); // salta el paso 2 hacia atrás también
+    } else {
+      this.irAlPaso(2);
+    }
   }
-}
 
   continuarAccesos(): void {
     this.accesosForm.markAllAsTouched();
@@ -450,9 +450,14 @@ volverDesdeAccesos(): void {
   // ── Resumen ───────────────────────────────────────────────────────────────────
   resumenPaso(paso: number): string {
     switch (paso) {
-      case 1: return this.comercioForm.value.nivel || this.comercioForm.value.tipoComercio
-        ? `${this.comercioForm.value.nivel || 'Nivel pendiente'} · ${this.comercioForm.value.tipoComercio || 'Tipo pendiente'}`
-        : 'Descripción del comercio pendiente';
+      case 1: {
+        const nivel = this.comercioForm.value.nivel;
+        const tipo = this.comercioForm.value.tipoComercio;
+        const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel ?? '');
+
+        if (!nivel) return 'Descripción del comercio pendiente';
+        return esSinTipo ? nivel : `${nivel} · ${tipo || 'Tipo pendiente'}`;
+      }
       case 2: return this.datosForm.value.razonSocial || this.datosForm.value.rfc
         ? `${this.datosForm.value.razonSocial || 'Razón social pendiente'} · ${this.datosForm.value.rfc || 'NIT pendiente'}`
         : 'Datos generales pendientes';
