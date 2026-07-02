@@ -12,18 +12,21 @@
       <div class="field">
         <label for="rfc">RFC <b>*</b></label>
         <input id="rfc" formControlName="rfc" [class.invalid]="esInvalido('rfc')" />
+        @if (esInvalido('rfc')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('razonSocial')) {
       <div class="field">
         <label for="razonSocial">Razón social <b>*</b></label>
         <input id="razonSocial" formControlName="razonSocial" [class.invalid]="esInvalido('razonSocial')" />
+        @if (esInvalido('razonSocial')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('nombreComercial')) {
       <div class="field">
         <label for="nombreComercial">Nombre comercial <b>*</b></label>
         <input id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
+        @if (esInvalido('nombreComercial')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('regimenFiscal')) {
@@ -33,6 +36,7 @@
           <option value="">Selecciona una opción</option>
           @for (r of regimenesFiscales; track r) { <option [value]="r">{{ r }}</option> }
         </select>
+        @if (esInvalido('regimenFiscal')) { <small>Debes llenar este campo.</small> }
       </div>
       }
 
@@ -41,6 +45,7 @@
         <label for="giroComercial">Familia del giro <b>*</b></label>
         <input id="giroComercial" formControlName="giroComercial" placeholder="Se llena con Búsqueda Avanzada"
           [class.invalid]="esInvalido('giroComercial')" readonly />
+        @if (esInvalido('giroComercial')) { <small>Debes llenar este campo.</small> }
       </div>
       }
 
@@ -48,6 +53,7 @@
       <div class="field">
         <label for="descripcionGiro">Descripción del giro <b>*</b></label>
         <input id="descripcionGiro" formControlName="descripcionGiro" [class.invalid]="esInvalido('descripcionGiro')" />
+        @if (esInvalido('descripcionGiro')) { <small>Debes llenar este campo.</small> }
       </div>
       }
 
@@ -55,6 +61,7 @@
       <div class="field">
         <label for="mcc">MCC <b>*</b></label>
         <input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('mcc')" />
+        @if (esInvalido('mcc')) { <small>Debes llenar este campo.</small> }
       </div>
       }
 
@@ -71,42 +78,49 @@
       <div class="field">
         <label for="nombre">Nombre <b>*</b></label>
         <input id="nombre" formControlName="nombre" [class.invalid]="esInvalido('nombre')" />
+        @if (esInvalido('nombre')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('apellidoPaterno')) {
       <div class="field">
         <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
         <input id="apellidoPaterno" formControlName="apellidoPaterno" [class.invalid]="esInvalido('apellidoPaterno')" />
+        @if (esInvalido('apellidoPaterno')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('apellidoMaterno')) {
       <div class="field">
         <label for="apellidoMaterno">Apellido materno <b>*</b></label>
         <input id="apellidoMaterno" formControlName="apellidoMaterno" [class.invalid]="esInvalido('apellidoMaterno')" />
+        @if (esInvalido('apellidoMaterno')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('curp')) {
       <div class="field">
         <label for="curp">CURP <b>*</b></label>
         <input id="curp" formControlName="curp" [class.invalid]="esInvalido('curp')" />
+        @if (esInvalido('curp')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('actividad')) {
       <div class="field">
         <label for="actividad">Actividad <b>*</b></label>
         <input id="actividad" formControlName="actividad" [class.invalid]="esInvalido('actividad')" />
+        @if (esInvalido('actividad')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('correo')) {
       <div class="field">
         <label for="correo">Correo electrónico <b>*</b></label>
         <input id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('correo')" />
+        @if (esInvalido('correo')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('telefono')) {
       <div class="field">
         <label for="telefono">Teléfono de contacto <b>*</b></label>
         <input id="telefono" formControlName="telefono" [class.invalid]="esInvalido('telefono')" />
+        @if (esInvalido('telefono')) { <small>Debes llenar este campo.</small> }
       </div>
       }
     </div>
@@ -124,47 +138,57 @@
       @if (tiene('codigoPostal')) {
       <div class="field"><label for="codigoPostal">Código Postal <b>*</b></label>
         <input id="codigoPostal" formControlName="codigoPostal" [class.invalid]="esInvalido('codigoPostal')" />
+        @if (esInvalido('codigoPostal')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('tipoVialidad')) {
       <div class="field"><label for="tipoVialidad">Tipo de Vialidad <b>*</b></label>
         <input id="tipoVialidad" formControlName="tipoVialidad" [class.invalid]="esInvalido('tipoVialidad')" />
+        @if (esInvalido('tipoVialidad')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('nombreVialidad')) {
       <div class="field"><label for="nombreVialidad">Nombre de la Vialidad <b>*</b></label>
         <input id="nombreVialidad" formControlName="nombreVialidad" [class.invalid]="esInvalido('nombreVialidad')" />
+        @if (esInvalido('nombreVialidad')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('numeroExterior')) {
       <div class="field"><label for="numeroExterior">Número Exterior</label>
-        <input id="numeroExterior" formControlName="numeroExterior" />
+        <input id="numeroExterior" formControlName="numeroExterior" [class.invalid]="esInvalido('numeroExterior')" />
+        @if (esInvalido('numeroExterior')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('numeroInterior')) {
       <div class="field"><label for="numeroInterior">Número Interior</label>
-        <input id="numeroInterior" formControlName="numeroInterior" />
+        <input id="numeroInterior" formControlName="numeroInterior" [class.invalid]="esInvalido('numeroInterior')" />
+        @if (esInvalido('numeroInterior')) { <small>Debes llenar este campo.</small> }
       </div>
       }
+
       @if (tiene('colonia')) {
       <div class="field"><label for="colonia">Colonia <b>*</b></label>
         <input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('colonia')" />
+        @if (esInvalido('colonia')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('localidad')) {
       <div class="field"><label for="localidad">Localidad <b>*</b></label>
         <input id="localidad" formControlName="localidad" [class.invalid]="esInvalido('localidad')" />
+        @if (esInvalido('localidad')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('municipio')) {
       <div class="field"><label for="municipio">Municipio / Alcaldía <b>*</b></label>
         <input id="municipio" formControlName="municipio" [class.invalid]="esInvalido('municipio')" />
+        @if (esInvalido('municipio')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('entidadFederativa')) {
       <div class="field"><label for="entidadFederativa">Entidad Federativa <b>*</b></label>
         <input id="entidadFederativa" formControlName="entidadFederativa"
           [class.invalid]="esInvalido('entidadFederativa')" />
+        @if (esInvalido('entidadFederativa')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('entreCalle')) {
@@ -190,13 +214,19 @@
     </div>
     <div class="form-grid cols-3">
       <div class="field"><label for="nombreRepresentante">Nombre <b>*</b></label>
-        <input id="nombreRepresentante" formControlName="nombreRepresentante" />
+        <input id="nombreRepresentante" formControlName="nombreRepresentante"
+          [class.invalid]="esInvalido('nombreRepresentante')" />
+        @if (esInvalido('nombreRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="apellidoPaternoRepresentante">Apellido Paterno <b>*</b></label>
-        <input id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante" />
+        <input id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante"
+          [class.invalid]="esInvalido('apellidoPaternoRepresentante')" />
+        @if (esInvalido('apellidoPaternoRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="apellidoMaternoRepresentante">Apellido Materno <b>*</b></label>
-        <input id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante" />
+        <input id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante"
+          [class.invalid]="esInvalido('apellidoMaternoRepresentante')" />
+        @if (esInvalido('apellidoMaternoRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
     </div>
   </section>
@@ -210,25 +240,39 @@
     </div>
     <div class="form-grid cols-2">
       <div class="field"><label for="calleRepresentante">Calle <b>*</b></label>
-        <input id="calleRepresentante" formControlName="calleRepresentante" />
+        <input id="calleRepresentante" formControlName="calleRepresentante"
+          [class.invalid]="esInvalido('calleRepresentante')" />
+        @if (esInvalido('calleRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="numeroExteriorRepresentante">Número Exterior</label>
-        <input id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante" />
+        <input id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante"
+          [class.invalid]="esInvalido('numeroExteriorRepresentante')" />
+        @if (esInvalido('numeroExteriorRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="numeroInteriorRepresentante">Número Interior</label>
-        <input id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante" />
+        <input id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante"
+          [class.invalid]="esInvalido('numeroInteriorRepresentante')" />
+        @if (esInvalido('numeroInteriorRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="codigoPostalRepresentante">Código Postal <b>*</b></label>
-        <input id="codigoPostalRepresentante" formControlName="codigoPostalRepresentante" />
+        <input id="codigoPostalRepresentante" formControlName="codigoPostalRepresentante"
+          [class.invalid]="esInvalido('codigoPostalRepresentante')" />
+        @if (esInvalido('codigoPostalRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="coloniaRepresentante">Colonia <b>*</b></label>
-        <input id="coloniaRepresentante" formControlName="coloniaRepresentante" />
+        <input id="coloniaRepresentante" formControlName="coloniaRepresentante"
+          [class.invalid]="esInvalido('coloniaRepresentante')" />
+        @if (esInvalido('coloniaRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="municipioRepresentante">Municipio / Alcaldía <b>*</b></label>
-        <input id="municipioRepresentante" formControlName="municipioRepresentante" />
+        <input id="municipioRepresentante" formControlName="municipioRepresentante"
+          [class.invalid]="esInvalido('municipioRepresentante')" />
+        @if (esInvalido('municipioRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="estadoRepresentante">Estado <b>*</b></label>
-        <input id="estadoRepresentante" formControlName="estadoRepresentante" />
+        <input id="estadoRepresentante" formControlName="estadoRepresentante"
+          [class.invalid]="esInvalido('estadoRepresentante')" />
+        @if (esInvalido('estadoRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
     </div>
   </section>
@@ -242,10 +286,14 @@
     </div>
     <div class="form-grid cols-3">
       <div class="field"><label for="correoRepresentante">Correo Electrónico <b>*</b></label>
-        <input id="correoRepresentante" type="email" formControlName="correoRepresentante" />
+        <input id="correoRepresentante" type="email" formControlName="correoRepresentante"
+          [class.invalid]="esInvalido('correoRepresentante')" />
+        @if (esInvalido('correoRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="telefonoRepresentante">Teléfono <b>*</b></label>
-        <input id="telefonoRepresentante" formControlName="telefonoRepresentante" />
+        <input id="telefonoRepresentante" formControlName="telefonoRepresentante"
+          [class.invalid]="esInvalido('telefonoRepresentante')" />
+        @if (esInvalido('telefonoRepresentante')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field"><label for="telefonoAdicionalRepresentante">Teléfono Adicional</label>
@@ -271,22 +319,30 @@
 
       <div class="field">
         <label for="codigoPostalComercial">Código Postal <b>*</b></label>
-        <input id="codigoPostalComercial" formControlName="codigoPostalComercial">
+        <input id="codigoPostalComercial" formControlName="codigoPostalComercial"
+          [class.invalid]="esInvalido('codigoPostalComercial')">
+        @if (esInvalido('codigoPostalComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="tipoVialidadComercial">Tipo de Vialidad <b>*</b></label>
-        <input id="tipoVialidadComercial" formControlName="tipoVialidadComercial">
+        <input id="tipoVialidadComercial" formControlName="tipoVialidadComercial"
+          [class.invalid]="esInvalido('tipoVialidadComercial')">
+        @if (esInvalido('tipoVialidadComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="nombreVialidadComercial">Nombre de la Vialidad <b>*</b></label>
-        <input id="nombreVialidadComercial" formControlName="nombreVialidadComercial">
+        <input id="nombreVialidadComercial" formControlName="nombreVialidadComercial"
+          [class.invalid]="esInvalido('nombreVialidadComercial')">
+        @if (esInvalido('nombreVialidadComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="numeroExteriorComercial">Número Exterior</label>
-        <input id="numeroExteriorComercial" formControlName="numeroExteriorComercial">
+        <input id="numeroExteriorComercial" formControlName="numeroExteriorComercial"
+          [class.invalid]="esInvalido('numeroExteriorComercial')">
+        @if (esInvalido('numeroExteriorComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
@@ -296,22 +352,30 @@
 
       <div class="field">
         <label for="coloniaComercial">Colonia <b>*</b></label>
-        <input id="coloniaComercial" formControlName="coloniaComercial">
+        <input id="coloniaComercial" formControlName="coloniaComercial"
+          [class.invalid]="esInvalido('coloniaComercial')">
+        @if (esInvalido('coloniaComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="localidadComercial">Localidad <b>*</b></label>
-        <input id="localidadComercial" formControlName="localidadComercial">
+        <input id="localidadComercial" formControlName="localidadComercial"
+          [class.invalid]="esInvalido('localidadComercial')">
+        @if (esInvalido('localidadComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="municipioComercial">Municipio / Alcaldía <b>*</b></label>
-        <input id="municipioComercial" formControlName="municipioComercial">
+        <input id="municipioComercial" formControlName="municipioComercial"
+          [class.invalid]="esInvalido('municipioComercial')">
+        @if (esInvalido('municipioComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="entidadFederativaComercial">Entidad Federativa <b>*</b></label>
-        <input id="entidadFederativaComercial" formControlName="entidadFederativaComercial">
+        <input id="entidadFederativaComercial" formControlName="entidadFederativaComercial"
+          [class.invalid]="esInvalido('entidadFederativaComercial')">
+        @if (esInvalido('entidadFederativaComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
@@ -335,10 +399,14 @@
     </div>
     <div class="form-grid cols-3">
       <div class="field"><label for="correoComercial">Correo Electrónico <b>*</b></label>
-        <input id="correoComercial" type="email" formControlName="correoComercial" />
+        <input id="correoComercial" type="email" formControlName="correoComercial"
+          [class.invalid]="esInvalido('correoComercial')">
+        @if (esInvalido('correoComercial')) { <small>Debes llenar este campo.</small> }
       </div>
       <div class="field"><label for="telefonoRepresentante">Teléfono <b>*</b></label>
-        <input id="telefonoComercial" formControlName="telefonoComercial" />
+        <input id="telefonoComercial" formControlName="telefonoComercial"
+          [class.invalid]="esInvalido('telefonoComercial')">
+        @if (esInvalido('telefonoComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field"><label for="telefonoAdicionalRepresentante">Teléfono Adicional</label>

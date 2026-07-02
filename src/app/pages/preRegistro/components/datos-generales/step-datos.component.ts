@@ -119,8 +119,45 @@ export class StepDatosComponent {
     };
   }
 
-  submit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    this.continuar.emit();
+ submit(): void {
+
+  this.form.markAllAsTouched();
+
+  if (this.form.invalid) {
+
+    console.log('====== FORMULARIO INVÁLIDO ======');
+
+    Object.keys(this.form.controls).forEach(nombre => {
+
+      const control = this.form.get(nombre);
+
+      if (control?.invalid) {
+        console.log(
+          nombre,
+          control.errors,
+          control.value
+        );
+      }
+
+    });
+
+    this.irAlPrimerError();
+    return;
   }
+
+  console.log('Formulario válido');
+
+  this.continuar.emit();
+}
+
+private irAlPrimerError(): void {
+  setTimeout(() => {
+    const primerCampoInvalido = document.querySelector('.invalid, input.ng-invalid, select.ng-invalid');
+    if (primerCampoInvalido) {
+      primerCampoInvalido.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, 0);
+}
 }

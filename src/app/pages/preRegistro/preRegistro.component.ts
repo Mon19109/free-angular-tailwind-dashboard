@@ -123,7 +123,27 @@ export class PreRegistroComponent {
   readonly tiposPersona = ['Jurídica', 'Natural'];
   readonly departamentos = ['Antioquia', 'Bogotá D.C.', 'Valle del Cauca', 'Atlántico'];
   readonly ciudades = ['Medellín', 'Bogotá', 'Cali', 'Barranquilla'];
-  readonly regimenesFiscales: string[] = [];
+  readonly regimenesFiscales: string[] = [
+    '601 - General de Ley Personas Morales',
+    '603 - Personas Morales con Fines no Lucrativos',
+    '605 - Sueldos y Salarios e Ingresos Asimilados a Salarios',
+    '606 - Arrendamiento',
+    '607 - Régimen de Enajenación o Adquisición de Bienes',
+    '608 - Demás ingresos',
+    '610 - Residentes en el Extranjero sin Establecimiento Permanente en México',
+    '611 - Ingresos por Dividendos (socios y accionistas)',
+    '612 - Personas Físicas con Actividades Empresariales y Profesionales',
+    '614 - Ingresos por intereses',
+    '615 - Régimen de los ingresos por obtención de premios',
+    '616 - Sin obligaciones fiscales',
+    '620 - Sociedades Cooperativas de Producción que optan por diferir sus ingresos',
+    '621 - Incorporación Fiscal',
+    '622 - Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras',
+    '623 - Opcional para Grupos de Sociedades',
+    '624 - Coordinados',
+    '625 - Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas',
+    '626 - Régimen Simplificado de Confianza',
+  ];
   readonly girosComerciales: string[] = [];
 
   readonly girosSugeridos = [
@@ -205,24 +225,115 @@ export class PreRegistroComponent {
 
     mismoDomicilio: [false],
 
-    codigoPostalComercial: [''],
-    tipoVialidadComercial: [''],
-    nombreVialidadComercial: [''],
+
+
+
+    codigoPostalComercial: ['', Validators.required],
+    tipoVialidadComercial: ['', Validators.required],
+    nombreVialidadComercial: ['', Validators.required],
     numeroExteriorComercial: [''],
     numeroInteriorComercial: [''],
-    coloniaComercial: [''],
-    localidadComercial: [''],
-    municipioComercial: [''],
-    entidadFederativaComercial: [''],
+    coloniaComercial: ['', Validators.required],
+    localidadComercial: ['', Validators.required],
+    municipioComercial: ['', Validators.required],
+    entidadFederativaComercial: ['', Validators.required],
     entreCalleComercial: [''],
     yCalleComercial: [''],
 
-    correoComercial: [''],
-    telefonoComercial: [''],
+    correoComercial: ['', [Validators.required, Validators.email]],
+    telefonoComercial: ['', [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)]],
     telefonoAdicionalComercial: [''],
 
 
+
   });
+
+  private readonly camposDinamicosOpcionales = ['numeroExterior', 'numeroInterior', 'entreCalle', 'yCalle'];
+  private readonly todosCamposDinamicos: string[] = Array.from(
+    new Set(Object.values(this.datosGeneralesPorTipo).flat())
+  );
+
+
+
+  private readonly nivelesSinRepresentante = ['Persona Física', 'Sucursal Persona Física', 'Sucursales Únicas', 'Referenciador', 'Comisionista'];
+  private readonly tiposCaja = ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Caja Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'];
+  private readonly camposRepresentanteObligatorios = ['nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante', 'calleRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante'];
+
+  private get mostrarRepresentante(): boolean {
+    const nivel = this.comercioForm.getRawValue().nivel;
+    const tipo = this.comercioForm.getRawValue().tipoComercio;
+    const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel);
+    const tipoEfectivo = esSinTipo ? nivel : tipo;
+    const esCaja = this.tiposCaja.includes(tipoEfectivo);
+    return !esCaja && !this.nivelesSinRepresentante.includes(tipoEfectivo);
+  }
+
+  private actualizarValidadoresDatos(): void {
+    const activos = new Set(this.camposDatosGenerales);
+    this.todosCamposDinamicos.forEach(nombre => {
+      const control = this.datosForm.get(nombre);
+      if (!control) return;
+      const debeSerObligatorio = activos.has(nombre) && !this.camposDinamicosOpcionales.includes(nombre);
+      control.setValidators(debeSerObligatorio ? [Validators.required] : []);
+      control.updateValueAndValidity({ emitEvent: false });
+    });
+
+
+
+
+
+
+    const controlesCondicionales = [
+      'tipoPersona',
+      'correo',
+      'telefono',
+      'departamento',
+      'ciudad',
+      'direccionComercial'
+    ];
+
+    controlesCondicionales.forEach(nombre => {
+
+      const control = this.datosForm.get(nombre);
+
+      if (!control) return;
+
+      const obligatorio = this.camposDatosGenerales.includes(nombre);
+
+      control.setValidators(obligatorio ? [Validators.required] : []);
+
+      control.updateValueAndValidity({ emitEvent: false });
+
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+    const mostrarRep = this.mostrarRepresentante;
+    this.camposRepresentanteObligatorios.forEach(nombre => {
+      const control = this.datosForm.get(nombre);
+      if (!control) return;
+      control.setValidators(mostrarRep ? [Validators.required] : []);
+      control.updateValueAndValidity({ emitEvent: false });
+    });
+
+    const correoRep = this.datosForm.get('correoRepresentante');
+    correoRep?.setValidators(mostrarRep ? [Validators.required, Validators.email] : []);
+    correoRep?.updateValueAndValidity({ emitEvent: false });
+
+    const telRep = this.datosForm.get('telefonoRepresentante');
+    telRep?.setValidators(mostrarRep ? [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)] : []);
+    telRep?.updateValueAndValidity({ emitEvent: false });
+
+  }
 
   readonly accesosForm = this.fb.nonNullable.group({
     modoReserva: ['NINGUNO' as ModoReserva, Validators.required],
@@ -318,15 +429,19 @@ export class PreRegistroComponent {
           this.comercioForm.controls.tipoComercio.setValidators([Validators.required]);
         }
         this.comercioForm.controls.tipoComercio.updateValueAndValidity({ emitEvent: false });
+        this.actualizarValidadoresDatos();
       });
 
     this.comercioForm.controls.tipoComercio.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(tipo => { });
+      .subscribe(() => this.actualizarValidadoresDatos()); // 👈 antes no hacía nada
 
     //this.cargarBorrador();
     try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     this.tiposComercio = this.tiposComercioPorNivel[this.comercioForm.controls.nivel.value] ?? [];
+    this.actualizarValidadoresDatos();
+
+
   }
 
   // ── Getters ──────────────────────────────────────────────────────────────────
@@ -403,9 +518,10 @@ export class PreRegistroComponent {
   }
 
   continuarDatos(): void {
-    if (this.datosForm.invalid) { this.datosForm.markAllAsTouched(); return; }
-    this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
-  }
+     if (this.datosForm.invalid) { this.datosForm.markAllAsTouched(); return; }
+     this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
+   }
+
 
   volverDesdeAccesos(): void {
     if (this.pasoGeneralesDebeSaltarse) {
