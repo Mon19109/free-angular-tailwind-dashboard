@@ -14,6 +14,7 @@ export class StepLiquidacionComponent {
   @Input() tiposCuenta: string[] = [];
   @Input() beneficiarioIgualComercio = false;
   @Input() mostrarBeneficiarioIgualComercio = true;
+  @Input() textoContinuar = 'Guardar y continuar';
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 

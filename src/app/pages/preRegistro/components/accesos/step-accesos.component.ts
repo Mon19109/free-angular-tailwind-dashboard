@@ -16,6 +16,7 @@ export class StepAccesosComponent {
   @Input() mostrarPerfilReserva = false;
   @Input() mostrarReservaSplit = false;
   @Input() mostrarPinSupervisor = true;
+  @Input() textoContinuar = 'Guardar y continuar';
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 

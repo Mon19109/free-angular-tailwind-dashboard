@@ -121,6 +121,7 @@
             <app-step-accesos [form]="accesosForm" [modosReserva]="datos.modosReserva"
               [mostrarAdminTotal]="mostrarAdminTotal" [mostrarPerfilReserva]="mostrarPerfilReserva"
               [mostrarReservaSplit]="mostrarReservaSplit" [mostrarPinSupervisor]="mostrarPinSupervisor"
+              [textoContinuar]="mostrarCuentaLiquidacion || mostrarPasoDocumentos ? 'Guardar y continuar' : 'Finalizar preregistro'"
               (continuar)="continuarAccesos()" (volver)="volverDesdeAccesos()" />
             }
             @case (4) {
@@ -128,6 +129,7 @@
               <app-step-liquidacion [form]="liquidacionForm" [tiposCuenta]="datos.tiposCuenta"
                 [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio"
                 [mostrarBeneficiarioIgualComercio]="mostrarBeneficiarioIgualComercio"
+                [textoContinuar]="mostrarPasoDocumentos ? 'Guardar y continuar' : 'Finalizar preregistro'"
                 (continuar)="continuarLiquidacion()"
                 (volver)="volver(3)" />
               }

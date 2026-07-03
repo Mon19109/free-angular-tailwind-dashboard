@@ -106,7 +106,7 @@ export class StepDatosComponent {
     ];
     const esCaja = [
       'Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI',
-      'Caja Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
+      'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
     ].includes(tipo);
     return {
       datosGenerales:     !esCaja,

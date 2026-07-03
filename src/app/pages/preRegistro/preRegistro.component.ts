@@ -27,6 +27,7 @@ type PasoWizard = 0 | 1 | 2 | 3 | 4 | 5;
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
 type TipoComisionista = 'existente' | 'nuevo';
+type ReglaDocumento = Pick<DocumentoRequerido, 'numero' | 'obligatorio'>;
 
 interface BorradorPreRegistro {
   pasoActual: PasoWizard;
@@ -253,7 +254,7 @@ export class PreRegistroComponent {
     'Sub Afiliado': ['Empresa Holding'],
     'Entidad': ['Empresa Grupo', 'Persona Física'],
     'Sucursal': ['Sucursales de Grupo', 'Sucursal Persona Física', 'Sucursales Únicas'],
-    'Caja': ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Caja Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'],
+    'Caja': ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'],
     'Referenciador': [], 'Promotor': [], 'Comisionista': [],
   };
 
@@ -265,7 +266,7 @@ export class PreRegistroComponent {
     'Sucursal Persona Física': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Sucursales Únicas': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Caja con Tarjeta sólo Fondeo': [], 'Caja con Tarjeta SPEI': [],
-    'Caja Entidad': [], 'Cuenta Terminal': [], 'Cuenta Terminal Pin Rapido': [],
+    'Cuenta Entidad': [], 'Cuenta Terminal': [], 'Cuenta Terminal Pin Rapido': [],
     'Referenciador': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Comisionista': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
 
@@ -287,6 +288,107 @@ export class PreRegistroComponent {
     { numero: 13, nombre: 'Identificación Oficial de un tercero', obligatorio: false },
     { numero: 14, nombre: 'Carátula de Estado Cuenta para Liquidación', obligatorio: true },
   ];
+
+  readonly documentosPorTipoComercio: Record<string, ReglaDocumento[]> = {
+    'Empresa Holding': [
+      { numero: 1, obligatorio: true },
+      { numero: 2, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 8, obligatorio: false },
+      { numero: 9, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+      { numero: 12, obligatorio: false },
+      { numero: 13, obligatorio: false },
+    ],
+    'Empresa Grupo': [
+      { numero: 1, obligatorio: true },
+      { numero: 2, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 8, obligatorio: false },
+      { numero: 9, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+      { numero: 12, obligatorio: false },
+      { numero: 13, obligatorio: false },
+    ],
+    'Sucursales de Grupo': [
+      { numero: 1, obligatorio: true },
+      { numero: 2, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 8, obligatorio: false },
+      { numero: 9, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+      { numero: 12, obligatorio: false },
+      { numero: 13, obligatorio: false },
+    ],
+    'Persona Física': [
+      { numero: 1, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+    ],
+    'Sucursal Persona Física': [
+      { numero: 1, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+    ],
+    'Referenciador': [
+      { numero: 1, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+    ],
+    'Comisionista': [
+      { numero: 1, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+    ],
+    'Sucursales Únicas': [
+      { numero: 1, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+    ],
+    'Caja con Tarjeta sólo Fondeo': [],
+    'Caja con Tarjeta SPEI': [],
+    'Cuenta Entidad': [],
+    'Cuenta Terminal': [],
+    'Cuenta Terminal Pin Rapido': [],
+  };
 
   // ── Formularios ──────────────────────────────────────────────────────────────
   readonly afiliacionForm = this.fb.nonNullable.group({
@@ -352,7 +454,7 @@ export class PreRegistroComponent {
 
 
   private readonly nivelesSinRepresentante = ['Persona Física', 'Sucursal Persona Física', 'Sucursales Únicas', 'Referenciador', 'Comisionista'];
-  private readonly tiposCaja = ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Caja Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'];
+  private readonly tiposCaja = ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'];
   private readonly camposRepresentanteObligatorios = ['nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante', 'calleRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante'];
 
   private get mostrarRepresentante(): boolean {
@@ -561,9 +663,19 @@ export class PreRegistroComponent {
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
-    return this.modoReservaActual === 'COMPLETO'
-      ? this.documentos.filter(d => d.numero !== 14)
-      : this.documentos;
+    const nivel = this.comercioForm.getRawValue().nivel;
+    const tipo = this.comercioForm.getRawValue().tipoComercio;
+    const tipoEfectivo = ['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo;
+    const reglas = this.documentosPorTipoComercio[tipoEfectivo] ?? [];
+
+    return reglas
+      .map(regla => {
+        const documento = this.documentos.find(d => d.numero === regla.numero);
+        if (!documento) return undefined;
+        documento.obligatorio = regla.obligatorio;
+        return documento;
+      })
+      .filter((documento): documento is DocumentoRequerido => !!documento);
   }
 
 
@@ -581,7 +693,8 @@ export class PreRegistroComponent {
   get pasosVisibles() {
     return this.pasos.filter(paso =>
       (paso.numero !== 2 || !this.pasoGeneralesDebeSaltarse) &&
-      (paso.numero !== 4 || this.mostrarCuentaLiquidacion)
+      (paso.numero !== 4 || this.mostrarCuentaLiquidacion) &&
+      (paso.numero !== 5 || this.mostrarPasoDocumentos)
     );
   }
 
@@ -590,6 +703,7 @@ export class PreRegistroComponent {
   get mostrarReservaSplit(): boolean { return this.modoReservaActual === 'TRANSACCIONAL'; }
   get mostrarPinSupervisor(): boolean { return this.accesosForm.controls.tieneSupervisor.value === 'si'; }
   get mostrarCuentaLiquidacion(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
+  get mostrarPasoDocumentos(): boolean { return this.documentosVisibles.length > 0; }
   get mostrarBeneficiarioIgualComercio(): boolean { return !this.pasoGeneralesDebeSaltarse; }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
   get documentosCargados(): number { return this.documentosVisibles.filter(d => !!(d.archivo || d.archivoNombre)).length; }
@@ -669,15 +783,24 @@ export class PreRegistroComponent {
     this.guardarBorradorSilencioso();
     if (this.mostrarCuentaLiquidacion) {
       this.irAlPaso(4);
-    } else {
+    } else if (this.mostrarPasoDocumentos) {
       this.marcarPasoCompletado(4);
       this.irAlPaso(5);
+    } else {
+      this.marcarPasoCompletado(4);
+      this.finalizarRegistro();
     }
   }
 
   continuarLiquidacion(): void {
     if (this.liquidacionForm.invalid) { this.liquidacionForm.markAllAsTouched(); return; }
-    this.marcarPasoCompletado(4); this.guardarBorradorSilencioso(); this.irAlPaso(5);
+    this.marcarPasoCompletado(4);
+    this.guardarBorradorSilencioso();
+    if (this.mostrarPasoDocumentos) {
+      this.irAlPaso(5);
+    } else {
+      this.finalizarRegistro();
+    }
   }
 
   finalizarRegistro(): void {
@@ -695,9 +818,9 @@ export class PreRegistroComponent {
   private primerPasoInvalido(): PasoWizard | null {
     if (this.afiliacionForm.invalid) return 0;
     if (this.comercioForm.invalid) return 1;
-    if (this.datosForm.invalid) return 2;
+    if (!this.pasoGeneralesDebeSaltarse && this.datosForm.invalid) return 2;
     if (this.accesosForm.invalid) return 3;
-    if (this.liquidacionForm.invalid) return 4;
+    if (this.mostrarCuentaLiquidacion && this.liquidacionForm.invalid) return 4;
     return null;
   }
 
