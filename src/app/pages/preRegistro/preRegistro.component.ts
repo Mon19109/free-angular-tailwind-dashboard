@@ -121,6 +121,102 @@ export class PreRegistroComponent {
   readonly modosReserva: ModoReserva[] = ['NINGUNO', 'MANUAL', 'TRANSACCIONAL', 'AUTOMÁTICO', 'COMPLETO'];
   readonly tiposCuenta = ['CLABE', 'SPEI', 'Tarjeta'];
   readonly tiposPersona = ['Jurídica', 'Natural'];
+  private readonly bancosPorClaveClabe: Record<string, string> = {
+    '002': 'BANAMEX',
+    '006': 'BANCOMEXT',
+    '009': 'BANOBRAS',
+    '012': 'BBVA MEXICO',
+    '014': 'SANTANDER',
+    '019': 'BANJERCITO',
+    '021': 'HSBC',
+    '030': 'BAJIO',
+    '032': 'IXE',
+    '036': 'INBURSA',
+    '042': 'MIFEL',
+    '044': 'SCOTIABANK',
+    '058': 'BANREGIO',
+    '059': 'INVEX',
+    '060': 'BANSI',
+    '062': 'AFIRME',
+    '072': 'BANORTE',
+    '106': 'BANK OF AMERICA',
+    '108': 'MUFG',
+    '110': 'JP MORGAN',
+    '112': 'BMONEX',
+    '113': 'VE POR MAS',
+    '127': 'AZTECA',
+    '128': 'AUTOFIN',
+    '129': 'BARCLAYS',
+    '130': 'COMPARTAMOS',
+    '132': 'MULTIVA',
+    '133': 'ACTINVER',
+    '136': 'INTERCAM BANCO',
+    '137': 'BANCOPPEL',
+    '138': 'ABC CAPITAL',
+    '140': 'CONSUBANCO',
+    '141': 'VOLKSWAGEN',
+    '143': 'CIBANCO',
+    '145': 'BBASE',
+    '147': 'BANKAOOL',
+    '148': 'PAGATODO',
+    '150': 'INMOBILIARIO',
+    '152': 'BANCREA',
+    '154': 'BANCO COVALTO',
+    '156': 'SABADELL',
+    '157': 'SHINHAN',
+    '158': 'MIZUHO BANK',
+    '160': 'BANCO S3',
+    '166': 'BANCO FINTERRA',
+    '168': 'HIPOTECARIA FEDERAL',
+    '600': 'MONEXCB',
+    '601': 'GBM',
+    '602': 'MASARI',
+    '605': 'VALUE',
+    '606': 'ESTRUCTURADORES',
+    '608': 'VECTOR',
+    '610': 'B&B',
+    '614': 'ACCIVAL',
+    '616': 'FINAMEX',
+    '617': 'VALMEX',
+    '618': 'UNICA',
+    '619': 'MAPFRE',
+    '620': 'PROFUTURO',
+    '621': 'CB ACTINVER',
+    '622': 'OACTIN',
+    '623': 'SKANDIA',
+    '626': 'CBDEUTSCHE',
+    '627': 'ZURICH',
+    '628': 'ZURICHVI',
+    '629': 'SU CASITA',
+    '630': 'CB INTERCAM',
+    '631': 'CI BOLSA',
+    '632': 'BULLTICK CB',
+    '633': 'STERLING',
+    '634': 'FINCOMUN',
+    '636': 'HDI SEGUROS',
+    '637': 'ORDER',
+    '638': 'AKALA',
+    '640': 'CB JPMORGAN',
+    '642': 'REFORMA',
+    '646': 'STP',
+    '647': 'TELECOMM',
+    '648': 'EVERCORE',
+    '649': 'SKANDIA',
+    '651': 'SEGMTY',
+    '652': 'ASEA',
+    '653': 'KUSPIT',
+    '655': 'SOFIEXPRESS',
+    '656': 'UNAGRA',
+    '659': 'OPCIONES EMPRESARIALES DEL NOROESTE',
+    '670': 'LIBERTAD',
+    '677': 'CAJA POP MEXICA',
+    '680': 'CRISTOBAL COLON',
+    '683': 'CAJA TELEFONIST',
+    '684': 'TRANSFER',
+    '685': 'FONDO',
+    '686': 'INVERCAP',
+    '689': 'FOMPED',
+  };
   readonly departamentos = ['Antioquia', 'Bogotá D.C.', 'Valle del Cauca', 'Atlántico'];
   readonly ciudades = ['Medellín', 'Bogotá', 'Cali', 'Barranquilla'];
   readonly regimenesFiscales: string[] = [
@@ -333,6 +429,11 @@ export class PreRegistroComponent {
     telRep?.setValidators(mostrarRep ? [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)] : []);
     telRep?.updateValueAndValidity({ emitEvent: false });
 
+    if (this.pasoGeneralesDebeSaltarse && this.liquidacionForm.controls.beneficiarioIgualComercio.value) {
+      this.liquidacionForm.controls.beneficiarioIgualComercio.setValue(false, { emitEvent: false });
+      this.actualizarEstadoLiquidacion(false);
+    }
+
   }
 
   readonly accesosForm = this.fb.nonNullable.group({
@@ -365,7 +466,7 @@ export class PreRegistroComponent {
     direccionBeneficiario: ['', Validators.required], rfcBeneficiario: ['', Validators.required],
     actividadBeneficiario: ['', Validators.required], giroBeneficiario: ['', Validators.required],
     tipoCuenta: ['', Validators.required],
-    cuentaClabe: ['', [Validators.required, Validators.pattern(/^\d{18}$/)]],
+    cuentaClabe: ['', [Validators.required, this.clabeValidator()]],
     nombreBanco: ['', Validators.required], direccionBanco: ['', Validators.required],
     telefonoBanco: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
     emailBanco: ['', [Validators.required, Validators.email]],
@@ -400,7 +501,14 @@ export class PreRegistroComponent {
 
     this.liquidacionForm.controls.tipoPersonaBeneficiario.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(tipo => { this.tipoPersonaBeneficiario = tipo as TipoPersonaBeneficiario; });
+      .subscribe(tipo => {
+        this.tipoPersonaBeneficiario = tipo as TipoPersonaBeneficiario;
+        this.actualizarValidadoresBeneficiario(tipo as TipoPersonaBeneficiario);
+      });
+
+    this.liquidacionForm.controls.cuentaClabe.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(clabe => this.actualizarBancoDesdeClabe(clabe));
 
     const sincronizar = () => { if (this.datosBeneficiarioIgualComercio) this.sincronizarBeneficiarioDesdeComercio(); };
     this.comercioForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(sincronizar);
@@ -482,6 +590,7 @@ export class PreRegistroComponent {
   get mostrarReservaSplit(): boolean { return this.modoReservaActual === 'TRANSACCIONAL'; }
   get mostrarPinSupervisor(): boolean { return this.accesosForm.controls.tieneSupervisor.value === 'si'; }
   get mostrarCuentaLiquidacion(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
+  get mostrarBeneficiarioIgualComercio(): boolean { return !this.pasoGeneralesDebeSaltarse; }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
   get documentosCargados(): number { return this.documentosVisibles.filter(d => !!(d.archivo || d.archivoNombre)).length; }
   get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo).length; }
@@ -501,8 +610,19 @@ export class PreRegistroComponent {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  abrirPaso(paso: number): void {
+    if (!this.puedeAbrirPaso(paso)) return;
+    this.irAlPaso(paso);
+  }
+
   volver(paso: PasoWizard): void { this.irAlPaso(paso); }
-  esPasoCompletado(paso: number): boolean { return this.pasosCompletados.has(paso) || this.pasoActual > paso; }
+  esPasoCompletado(paso: number): boolean { return this.pasosCompletados.has(paso); }
+  puedeAbrirPaso(paso: number): boolean {
+    if (paso === this.pasoActual || this.esPasoCompletado(paso)) return true;
+    const actual = this.pasosVisibles.findIndex(p => p.numero === this.pasoActual);
+    const destino = this.pasosVisibles.findIndex(p => p.numero === paso);
+    return actual >= 0 && destino >= 0 && destino < actual;
+  }
   private marcarPasoCompletado(paso: number): void { this.pasosCompletados.add(paso); }
 
   // ── Continuar ─────────────────────────────────────────────────────────────────
@@ -781,6 +901,21 @@ export class PreRegistroComponent {
     };
   }
 
+  private clabeValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const valor = `${control.value ?? ''}`.trim();
+      if (!valor) return null;
+      if (!/^\d{18}$/.test(valor)) return { clabeInvalida: true };
+      const pesos = [3, 7, 1];
+      const suma = valor
+        .slice(0, 17)
+        .split('')
+        .reduce((total, digito, index) => total + (Number(digito) * pesos[index % 3]) % 10, 0);
+      const verificador = (10 - (suma % 10)) % 10;
+      return verificador === Number(valor[17]) ? null : { clabeInvalida: true };
+    };
+  }
+
   private setValidators(control: AbstractControl, validators: ValidatorFn[] = []): void {
     control.setValidators(validators);
     control.updateValueAndValidity({ emitEvent: false });
@@ -820,6 +955,7 @@ export class PreRegistroComponent {
 
   private actualizarEstadoLiquidacion(igualComercio: boolean): void {
     this.datosBeneficiarioIgualComercio = igualComercio;
+    this.actualizarValidadoresBeneficiario(this.liquidacionForm.controls.tipoPersonaBeneficiario.value as TipoPersonaBeneficiario);
     const controles = [
       this.liquidacionForm.controls.tipoPersonaBeneficiario,
       this.liquidacionForm.controls.nombreBeneficiario,
@@ -836,16 +972,50 @@ export class PreRegistroComponent {
     this.liquidacionForm.updateValueAndValidity({ emitEvent: false });
   }
 
+  private actualizarValidadoresBeneficiario(tipo: TipoPersonaBeneficiario): void {
+    const apellidosRequeridos = tipo === 'fisica' && !this.datosBeneficiarioIgualComercio;
+    this.setValidators(this.liquidacionForm.controls.nombreBeneficiario, [Validators.required]);
+    this.setValidators(this.liquidacionForm.controls.apellidoPaternoBeneficiario, apellidosRequeridos ? [Validators.required] : []);
+    this.setValidators(this.liquidacionForm.controls.apellidoMaternoBeneficiario, apellidosRequeridos ? [Validators.required] : []);
+    if (!apellidosRequeridos) {
+      this.liquidacionForm.patchValue({
+        apellidoPaternoBeneficiario: '',
+        apellidoMaternoBeneficiario: '',
+      }, { emitEvent: false });
+    }
+  }
+
+  private actualizarBancoDesdeClabe(clabe: string): void {
+    const banco = this.bancosPorClaveClabe[`${clabe ?? ''}`.slice(0, 3)];
+    if (!banco) return;
+    this.liquidacionForm.patchValue({ nombreBanco: banco }, { emitEvent: false });
+  }
+
   private sincronizarBeneficiarioDesdeComercio(): void {
     const d = this.datosForm.getRawValue();
-    this.tipoPersonaBeneficiario = d.tipoPersona === 'Natural' ? 'fisica' : 'moral';
-    const direccion = d.direccionComercial || [d.ciudad, d.departamento].filter(Boolean).join(', ');
+    const tipo = d.tipoPersona === 'Natural' ? 'fisica' : 'moral';
+    this.tipoPersonaBeneficiario = tipo;
+    const direccion = d.direccionComercial || [
+      d.tipoVialidadComercial,
+      d.nombreVialidadComercial,
+      d.numeroExteriorComercial,
+      d.numeroInteriorComercial,
+      d.coloniaComercial,
+      d.localidadComercial,
+      d.municipioComercial,
+      d.entidadFederativaComercial,
+    ].filter(Boolean).join(', ') || [d.ciudad, d.departamento].filter(Boolean).join(', ');
     this.liquidacionForm.patchValue({
-      nombreBeneficiario: d.razonSocial || d.nombreComercial || '',
-      apellidoPaternoBeneficiario: '', apellidoMaternoBeneficiario: '',
-      correoBeneficiario: d.correo || '',
+      tipoPersonaBeneficiario: tipo,
+      nombreBeneficiario: tipo === 'fisica' ? d.nombre || '' : d.razonSocial || d.nombreComercial || '',
+      apellidoPaternoBeneficiario: tipo === 'fisica' ? d.apellidoPaterno || '' : '',
+      apellidoMaternoBeneficiario: tipo === 'fisica' ? d.apellidoMaterno || '' : '',
+      correoBeneficiario: d.correoComercial || d.correo || '',
       direccionBeneficiario: direccion,
-      actividadBeneficiario: '', giroBeneficiario: '',
+      rfcBeneficiario: d.rfc || '',
+      actividadBeneficiario: d.actividad || d.descripcionGiro || '',
+      giroBeneficiario: d.giroComercial || d.descripcionGiro || '',
     }, { emitEvent: false });
+    this.actualizarValidadoresBeneficiario(tipo);
   }
 }

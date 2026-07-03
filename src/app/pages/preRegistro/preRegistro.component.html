@@ -66,13 +66,13 @@
         <div class="step-node" [class.completed]="esPasoCompletado(paso.numero)"
           [class.current]="pasoActual === paso.numero">
           <button type="button" class="step-badge"
-            [disabled]="pasoActual !== paso.numero && !esPasoCompletado(paso.numero)" (click)="irAlPaso(paso.numero)">
+            [disabled]="!puedeAbrirPaso(paso.numero)" (click)="abrirPaso(paso.numero)">
             @if (esPasoCompletado(paso.numero)) { <span>✓</span> } @else { <span>{{ i + 1 }}</span> }
           </button>
           <div class="step-copy"><strong>{{ paso.titulo }}</strong></div>
         </div>
         @if (!last) {
-        <div class="step-line" [class.completed]="pasoActual > paso.numero || esPasoCompletado(paso.numero)"></div>
+        <div class="step-line" [class.completed]="esPasoCompletado(paso.numero)"></div>
         }
         }
       </nav>
@@ -84,7 +84,7 @@
           [class.done]="esPasoCompletado(paso.numero)">
 
           <button type="button" class="step-card-header"
-            [disabled]="pasoActual === paso.numero && !esPasoCompletado(paso.numero)" (click)="irAlPaso(paso.numero)">
+            [disabled]="!puedeAbrirPaso(paso.numero)" (click)="abrirPaso(paso.numero)">
             <div class="step-card-header-copy">
               <span class="step-circle" [class.done]="esPasoCompletado(paso.numero)"
                 [class.current]="pasoActual === paso.numero">
@@ -126,7 +126,9 @@
             @case (4) {
               @if (mostrarCuentaLiquidacion) {
               <app-step-liquidacion [form]="liquidacionForm" [tiposCuenta]="datos.tiposCuenta"
-                [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio" (continuar)="continuarLiquidacion()"
+                [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio"
+                [mostrarBeneficiarioIgualComercio]="mostrarBeneficiarioIgualComercio"
+                (continuar)="continuarLiquidacion()"
                 (volver)="volver(3)" />
               }
             }

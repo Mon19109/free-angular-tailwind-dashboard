@@ -13,12 +13,26 @@ export class StepLiquidacionComponent {
   @Input() form!: FormGroup;
   @Input() tiposCuenta: string[] = [];
   @Input() beneficiarioIgualComercio = false;
+  @Input() mostrarBeneficiarioIgualComercio = true;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
+
+  get tipoPersonaBeneficiario(): 'fisica' | 'moral' {
+    return this.form.get('tipoPersonaBeneficiario')?.value ?? 'fisica';
+  }
 
   esInvalido(campo: string): boolean {
     const c = this.form.get(campo);
     return !!(c?.invalid && c.touched);
+  }
+
+  mensajeCampo(campo: string): string {
+    const control = this.form.get(campo);
+    if (control?.hasError('required')) return 'Debes llenar este campo.';
+    if (control?.hasError('email')) return 'Ingresa un correo válido.';
+    if (control?.hasError('clabeInvalida')) return 'Ingresa una CLABE válida de 18 dígitos.';
+    if (control?.hasError('pattern')) return 'El formato no es válido.';
+    return 'Debes llenar este campo.';
   }
 
   submit(): void {
