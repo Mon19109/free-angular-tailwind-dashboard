@@ -1654,3 +1654,34 @@ small {
   margin-bottom: 8px;
   flex-shrink: 0;
 }
+
+/* ── Contraste de estados ───────────────────────────────────────────────── */
+:host-context(html:not(.dark)) .step-card.done .step-status {
+  color: #ffffff;
+  border-color: rgba(22, 101, 52, 0.42);
+  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 10px 22px rgba(22, 101, 52, 0.18);
+}
+
+:host-context(html:not(.dark)) .step-node.completed .step-badge,
+:host-context(html:not(.dark)) .step-circle.done {
+  color: #ffffff;
+  border-color: rgba(22, 101, 52, 0.45);
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+}
+
+:host-context(html:not(.dark)) small {
+  color: #b91c1c;
+  font-weight: 800;
+}
+
+:host-context(html:not(.dark)) input.invalid,
+:host-context(html:not(.dark)) select.invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.16);
+}
+
+:host-context(html.dark) small {
+  color: #fecaca;
+  font-weight: 800;
+}
