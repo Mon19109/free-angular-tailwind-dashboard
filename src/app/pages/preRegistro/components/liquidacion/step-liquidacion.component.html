@@ -27,16 +27,15 @@
         @if (esInvalido('tipoCuenta')) { <small>{{ mensajeCampo('tipoCuenta') }}</small> }
       </div>
       <div class="field">
-        <label for="cuentaClabe">CLABE / número de cuenta <b>*</b></label>
-        <input id="cuentaClabe" maxlength="18" inputmode="numeric" formControlName="cuentaClabe"
+        <label for="cuentaClabe">{{ etiquetaCuenta }} <b>*</b></label>
+        <input id="cuentaClabe" [attr.maxlength]="longitudCuenta" inputmode="numeric" formControlName="cuentaClabe"
           [class.invalid]="esInvalido('cuentaClabe')" />
         @if (esInvalido('cuentaClabe')) { <small>{{ mensajeCampo('cuentaClabe') }}</small> }
       </div>
     </div>
   </section>
 
-  @if (!beneficiarioIgualComercio) {
-    <section class="step-section">
+  <section class="step-section">
       <h3>Beneficiario</h3>
       <div class="form-grid cols-3">
         <div class="field">
@@ -71,8 +70,7 @@
           <input id="giroBeneficiario" formControlName="giroBeneficiario" [class.invalid]="esInvalido('giroBeneficiario')" />
           @if (esInvalido('giroBeneficiario')) { <small>{{ mensajeCampo('giroBeneficiario') }}</small> }</div>
       </div>
-    </section>
-  }
+  </section>
 
   <section class="step-section">
     <h3>Información bancaria</h3>

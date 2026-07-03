@@ -22,6 +22,18 @@ export class StepLiquidacionComponent {
     return this.form.get('tipoPersonaBeneficiario')?.value ?? 'fisica';
   }
 
+  get tipoCuenta(): string {
+    return this.form.get('tipoCuenta')?.value ?? '';
+  }
+
+  get etiquetaCuenta(): string {
+    return this.tipoCuenta === 'Tarjeta' ? 'Número de tarjeta' : 'CLABE / número de cuenta';
+  }
+
+  get longitudCuenta(): number {
+    return this.tipoCuenta === 'Tarjeta' ? 16 : 18;
+  }
+
   esInvalido(campo: string): boolean {
     const c = this.form.get(campo);
     return !!(c?.invalid && c.touched);
@@ -32,6 +44,7 @@ export class StepLiquidacionComponent {
     if (control?.hasError('required')) return 'Debes llenar este campo.';
     if (control?.hasError('email')) return 'Ingresa un correo válido.';
     if (control?.hasError('clabeInvalida')) return 'Ingresa una CLABE válida de 18 dígitos.';
+    if (control?.hasError('tarjetaInvalida')) return 'Ingresa un número de tarjeta de 16 dígitos.';
     if (control?.hasError('pattern')) return 'El formato no es válido.';
     return 'Debes llenar este campo.';
   }

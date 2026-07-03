@@ -568,7 +568,7 @@ export class PreRegistroComponent {
     direccionBeneficiario: ['', Validators.required], rfcBeneficiario: ['', Validators.required],
     actividadBeneficiario: ['', Validators.required], giroBeneficiario: ['', Validators.required],
     tipoCuenta: ['', Validators.required],
-    cuentaClabe: ['', [Validators.required, this.clabeValidator()]],
+    cuentaClabe: ['', Validators.required],
     nombreBanco: ['', Validators.required], direccionBanco: ['', Validators.required],
     telefonoBanco: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
     emailBanco: ['', [Validators.required, Validators.email]],
@@ -607,6 +607,10 @@ export class PreRegistroComponent {
         this.tipoPersonaBeneficiario = tipo as TipoPersonaBeneficiario;
         this.actualizarValidadoresBeneficiario(tipo as TipoPersonaBeneficiario);
       });
+
+    this.liquidacionForm.controls.tipoCuenta.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(tipo => this.actualizarValidadorCuentaLiquidacion(tipo));
 
     this.liquidacionForm.controls.cuentaClabe.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -650,6 +654,7 @@ export class PreRegistroComponent {
     try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     this.tiposComercio = this.tiposComercioPorNivel[this.comercioForm.controls.nivel.value] ?? [];
     this.actualizarValidadoresDatos();
+    this.actualizarValidadorCuentaLiquidacion(this.liquidacionForm.controls.tipoCuenta.value);
 
 
   }
@@ -1039,6 +1044,30 @@ export class PreRegistroComponent {
     };
   }
 
+  private numeroCuentaValidator(longitud: number, errorKey: string): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const valor = `${control.value ?? ''}`.trim();
+      if (!valor) return null;
+      return new RegExp(`^\\d{${longitud}}$`).test(valor) ? null : { [errorKey]: true };
+    };
+  }
+
+  private actualizarValidadorCuentaLiquidacion(tipoCuenta: string): void {
+    const cuenta = this.liquidacionForm.controls.cuentaClabe;
+    const longitudEsperada = tipoCuenta === 'Tarjeta' ? 16 : 18;
+    const validadores = tipoCuenta === 'Tarjeta'
+      ? [Validators.required, this.numeroCuentaValidator(16, 'tarjetaInvalida')]
+      : [Validators.required, this.numeroCuentaValidator(18, 'clabeInvalida')];
+    const valor = `${cuenta.value ?? ''}`.trim();
+
+    if (valor && valor.length > longitudEsperada) {
+      cuenta.setValue(valor.slice(0, longitudEsperada), { emitEvent: false });
+    }
+
+    cuenta.setValidators(validadores);
+    cuenta.updateValueAndValidity({ emitEvent: false });
+  }
+
   private setValidators(control: AbstractControl, validators: ValidatorFn[] = []): void {
     control.setValidators(validators);
     control.updateValueAndValidity({ emitEvent: false });
@@ -1078,8 +1107,21 @@ export class PreRegistroComponent {
 
   private actualizarEstadoLiquidacion(igualComercio: boolean): void {
     this.datosBeneficiarioIgualComercio = igualComercio;
+
+    if (igualComercio) {
+      this.sincronizarBeneficiarioDesdeComercio();
+      this.controlesBeneficiario().forEach(control => control.disable({ emitEvent: false }));
+    } else {
+      this.controlesBeneficiario().forEach(control => control.enable({ emitEvent: false }));
+      this.limpiarBeneficiario();
+    }
+
     this.actualizarValidadoresBeneficiario(this.liquidacionForm.controls.tipoPersonaBeneficiario.value as TipoPersonaBeneficiario);
-    const controles = [
+    this.liquidacionForm.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private controlesBeneficiario(): AbstractControl[] {
+    return [
       this.liquidacionForm.controls.tipoPersonaBeneficiario,
       this.liquidacionForm.controls.nombreBeneficiario,
       this.liquidacionForm.controls.apellidoPaternoBeneficiario,
@@ -1090,9 +1132,21 @@ export class PreRegistroComponent {
       this.liquidacionForm.controls.actividadBeneficiario,
       this.liquidacionForm.controls.giroBeneficiario,
     ];
-    controles.forEach(c => igualComercio ? c.disable({ emitEvent: false }) : c.enable({ emitEvent: false }));
-    if (igualComercio) this.sincronizarBeneficiarioDesdeComercio();
-    this.liquidacionForm.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private limpiarBeneficiario(): void {
+    this.tipoPersonaBeneficiario = 'fisica';
+    this.liquidacionForm.patchValue({
+      tipoPersonaBeneficiario: 'fisica',
+      nombreBeneficiario: '',
+      apellidoPaternoBeneficiario: '',
+      apellidoMaternoBeneficiario: '',
+      correoBeneficiario: '',
+      direccionBeneficiario: '',
+      rfcBeneficiario: '',
+      actividadBeneficiario: '',
+      giroBeneficiario: '',
+    }, { emitEvent: false });
   }
 
   private actualizarValidadoresBeneficiario(tipo: TipoPersonaBeneficiario): void {
@@ -1100,7 +1154,7 @@ export class PreRegistroComponent {
     this.setValidators(this.liquidacionForm.controls.nombreBeneficiario, [Validators.required]);
     this.setValidators(this.liquidacionForm.controls.apellidoPaternoBeneficiario, apellidosRequeridos ? [Validators.required] : []);
     this.setValidators(this.liquidacionForm.controls.apellidoMaternoBeneficiario, apellidosRequeridos ? [Validators.required] : []);
-    if (!apellidosRequeridos) {
+    if (tipo !== 'fisica' && !this.datosBeneficiarioIgualComercio) {
       this.liquidacionForm.patchValue({
         apellidoPaternoBeneficiario: '',
         apellidoMaternoBeneficiario: '',
@@ -1109,14 +1163,17 @@ export class PreRegistroComponent {
   }
 
   private actualizarBancoDesdeClabe(clabe: string): void {
-    const banco = this.bancosPorClaveClabe[`${clabe ?? ''}`.slice(0, 3)];
+    if (this.liquidacionForm.controls.tipoCuenta.value === 'Tarjeta') return;
+    const valor = `${clabe ?? ''}`.trim();
+    if (!/^\d{18}$/.test(valor)) return;
+    const banco = this.bancosPorClaveClabe[valor.slice(0, 3)];
     if (!banco) return;
     this.liquidacionForm.patchValue({ nombreBanco: banco }, { emitEvent: false });
   }
 
   private sincronizarBeneficiarioDesdeComercio(): void {
     const d = this.datosForm.getRawValue();
-    const tipo = d.tipoPersona === 'Natural' ? 'fisica' : 'moral';
+    const tipo = this.tipoPersonaBeneficiarioDesdeRol();
     this.tipoPersonaBeneficiario = tipo;
     const direccion = d.direccionComercial || [
       d.tipoVialidadComercial,
@@ -1140,5 +1197,12 @@ export class PreRegistroComponent {
       giroBeneficiario: d.giroComercial || d.descripcionGiro || '',
     }, { emitEvent: false });
     this.actualizarValidadoresBeneficiario(tipo);
+  }
+
+  private tipoPersonaBeneficiarioDesdeRol(): TipoPersonaBeneficiario {
+    const { nivel, tipoComercio } = this.comercioForm.getRawValue();
+    const rol = ['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipoComercio;
+    const rolesPersonaFisica = ['Persona Física', 'Sucursal Persona Física', 'Referenciador', 'Comisionista'];
+    return rolesPersonaFisica.includes(rol) ? 'fisica' : 'moral';
   }
 }
