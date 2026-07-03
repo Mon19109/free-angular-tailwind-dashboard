@@ -62,12 +62,12 @@
 
       <!-- Stepper -->
       <nav class="stepper" aria-label="Progreso del preregistro">
-        @for (paso of datos.pasos; track paso.numero; let last = $last) {
+        @for (paso of pasosVisibles; track paso.numero; let i = $index; let last = $last) {
         <div class="step-node" [class.completed]="esPasoCompletado(paso.numero)"
           [class.current]="pasoActual === paso.numero">
           <button type="button" class="step-badge"
             [disabled]="pasoActual !== paso.numero && !esPasoCompletado(paso.numero)" (click)="irAlPaso(paso.numero)">
-            @if (esPasoCompletado(paso.numero)) { <span>✓</span> } @else { <span>{{ paso.numero }}</span> }
+            @if (esPasoCompletado(paso.numero)) { <span>✓</span> } @else { <span>{{ i + 1 }}</span> }
           </button>
           <div class="step-copy"><strong>{{ paso.titulo }}</strong></div>
         </div>
@@ -79,8 +79,7 @@
 
       <!-- Cards de pasos -->
       <div class="wizard-stack">
-        @for (paso of datos.pasos; track paso.numero) {
-        @if (paso.numero !== 2 || !pasoGeneralesDebeSaltarse) {
+        @for (paso of pasosVisibles; track paso.numero; let i = $index) {
         <article class="step-card" [class.current]="pasoActual === paso.numero"
           [class.done]="esPasoCompletado(paso.numero)">
 
@@ -89,10 +88,10 @@
             <div class="step-card-header-copy">
               <span class="step-circle" [class.done]="esPasoCompletado(paso.numero)"
                 [class.current]="pasoActual === paso.numero">
-                @if (esPasoCompletado(paso.numero)) { ✓ } @else { {{ paso.numero }} }
+                @if (esPasoCompletado(paso.numero)) { ✓ } @else { {{ i + 1 }} }
               </span>
               <div>
-                <h2>{{ paso.numero }}. {{ paso.titulo }}</h2>
+                <h2>{{ i + 1 }}. {{ paso.titulo }}</h2>
               </div>
             </div>
             <span class="step-status">
@@ -125,15 +124,17 @@
               (continuar)="continuarAccesos()" (volver)="volverDesdeAccesos()" />
             }
             @case (4) {
-            <app-step-liquidacion [form]="liquidacionForm" [tiposCuenta]="datos.tiposCuenta"
-              [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio" (continuar)="continuarLiquidacion()"
-              (volver)="volver(3)" />
+              @if (mostrarCuentaLiquidacion) {
+              <app-step-liquidacion [form]="liquidacionForm" [tiposCuenta]="datos.tiposCuenta"
+                [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio" (continuar)="continuarLiquidacion()"
+                (volver)="volver(3)" />
+              }
             }
             @case (5) {
             <app-step-documentos [documentos]="documentosVisibles" [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes" [archivosInvalidos]="archivosInvalidos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
-              (finalizar)="finalizarRegistro()" (volver)="volver(4)" />
+              (finalizar)="finalizarRegistro()" (volver)="volver(mostrarCuentaLiquidacion ? 4 : 3)" />
             }
             }
           </div>
@@ -144,7 +145,6 @@
           }
 
         </article>
-        }
         }
       </div>
     </section>

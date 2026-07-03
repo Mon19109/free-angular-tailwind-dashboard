@@ -446,7 +446,10 @@ export class PreRegistroComponent {
 
   // ── Getters ──────────────────────────────────────────────────────────────────
   get progresoWizard(): number {
-    return this.pasoActual === 0 ? 0 : ((this.pasoActual - 1) / (this.pasos.length - 1)) * 100;
+    if (this.pasoActual === 0) return 0;
+    const indiceActual = this.pasosVisibles.findIndex(paso => paso.numero === this.pasoActual);
+    const indice = indiceActual >= 0 ? indiceActual : this.pasosVisibles.length - 1;
+    return (indice / Math.max(this.pasosVisibles.length - 1, 1)) * 100;
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
@@ -467,10 +470,18 @@ export class PreRegistroComponent {
     return this.camposDatosGenerales.length === 0;
   }
 
+  get pasosVisibles() {
+    return this.pasos.filter(paso =>
+      (paso.numero !== 2 || !this.pasoGeneralesDebeSaltarse) &&
+      (paso.numero !== 4 || this.mostrarCuentaLiquidacion)
+    );
+  }
+
   get mostrarAdminTotal(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
   get mostrarPerfilReserva(): boolean { return this.modoReservaActual !== 'NINGUNO'; }
   get mostrarReservaSplit(): boolean { return this.modoReservaActual === 'TRANSACCIONAL'; }
   get mostrarPinSupervisor(): boolean { return this.accesosForm.controls.tieneSupervisor.value === 'si'; }
+  get mostrarCuentaLiquidacion(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
   get documentosCargados(): number { return this.documentosVisibles.filter(d => !!(d.archivo || d.archivoNombre)).length; }
   get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo).length; }
@@ -534,7 +545,14 @@ export class PreRegistroComponent {
   continuarAccesos(): void {
     this.accesosForm.markAllAsTouched();
     if (this.accesosForm.invalid) return;
-    this.marcarPasoCompletado(3); this.guardarBorradorSilencioso(); this.irAlPaso(4);
+    this.marcarPasoCompletado(3);
+    this.guardarBorradorSilencioso();
+    if (this.mostrarCuentaLiquidacion) {
+      this.irAlPaso(4);
+    } else {
+      this.marcarPasoCompletado(4);
+      this.irAlPaso(5);
+    }
   }
 
   continuarLiquidacion(): void {
