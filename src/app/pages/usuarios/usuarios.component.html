@@ -1,14 +1,29 @@
-<div class="page-container">
-
+<div class="users-shell page-container">
   <!-- FILTROS -->
-  <div class="filter-card">
+  <article class="user-step-card filter-card">
+
+    <header class="user-step-header">
+      <div class="user-step-title">
+        <div>
+          <span class="eyebrow">Filtros</span>
+          <h2>Busqueda de usuarios</h2>
+        </div>
+      </div>
+    </header>
+
+    <div class="user-step-body">
+      <section class="user-section">
+        <div class="section-heading">
+          <h3>Datos de busqueda</h3>
+          <p>Define los criterios para consultar usuarios.</p>
+        </div>
 
     <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
 
-      <div class="row">
+      <div class="users-form-grid row">
 
         <!-- Tipo búsqueda -->
-        <div class="col-md-3">
+        <div class="users-field col-md-3">
 
           <label class="form-label">
             Tipo de Busqueda
@@ -29,21 +44,23 @@
         </div>
 
         <!-- Fecha Inicio -->
-        <div class="col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
+        <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
 
-          <app-date-picker id="fechaInicio" label="Fecha Inicio" (dateChange)="onFechaInicioChange($event)">
+          <app-date-picker id="fechaInicio" label="Fecha Inicio" placeholder="Selecciona fecha"
+            (dateChange)="onFechaInicioChange($event)">
           </app-date-picker>
 
         </div>
 
-        <div class="col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
+        <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
 
-          <app-date-picker id="fechaFin" label="Fecha Fin" (dateChange)="onFechaFinChange($event)">
+          <app-date-picker id="fechaFin" label="Fecha Fin" placeholder="Selecciona fecha"
+            (dateChange)="onFechaFinChange($event)">
           </app-date-picker>
 
         </div>
 
-        <div class="col-md-3" *ngIf="tipoBusquedaSeleccionado === '1'">
+        <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '1'">
 
           <label class="form-label">
             Correo Electrónico
@@ -52,7 +69,7 @@
           <input type="email" class="form-control" formControlName="value1F">
 
         </div>
-        <div class="col-md-3" *ngIf="tipoBusquedaSeleccionado === '2'">
+        <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '2'">
 
           <label class="form-label">
             Teléfono
@@ -61,7 +78,7 @@
           <input type="text" class="form-control" formControlName="value1F">
 
         </div>
-        <div class="col-md-3" *ngIf="tipoBusquedaSeleccionado === '3'">
+        <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '3'">
 
           <label class="form-label">
             Estatus
@@ -80,7 +97,7 @@
         </div>
 
         <!-- Entidad -->
-        <div class="col-md-3">
+        <div class="users-field col-md-3">
 
           <label class="form-label">
             Entidad
@@ -102,15 +119,15 @@
 
       </div>
 
-      <div class="botones-container">
+      <div class="users-actions botones-container">
 
-        <button type="submit" class="btn-buscar">
+        <button type="submit" class="button primary btn-buscar">
 
           BUSCAR
 
         </button>
 
-        <button type="button" class="btn-limpiar" (click)="limpiarFormulario()">
+        <button type="button" class="button danger btn-limpiar" (click)="limpiarFormulario()">
 
           LIMPIAR
 
@@ -120,7 +137,10 @@
 
     </form>
 
-  </div>
+      </section>
+    </div>
+
+  </article>
 
   <!-- MENSAJES -->
 
@@ -134,29 +154,40 @@
 
   <!-- TABLA -->
 
-  <div class="transactions-card">
+  <article class="user-step-card transactions-card">
 
-    <div class="table-actions">
+    <header class="user-step-header">
+      <div class="user-step-title">
+        <div>
+          <span class="eyebrow">Resultados</span>
+          <h2>Listado de usuarios</h2>
+        </div>
+      </div>
+      <div class="table-actions header-actions">
 
-      <button class="btn-export" (click)="exportarExcel()">
+      <button class="button ghost btn-export" (click)="exportarExcel()">
 
         EXCEL
 
       </button>
 
-      <button class="btn-export" (click)="exportarPDF()">
+      <button class="button ghost btn-export" (click)="exportarPDF()">
 
         PDF
 
       </button>
 
-      <button class="btn-export" (click)="imprimir()">
+      <button class="button ghost btn-export" (click)="imprimir()">
 
         PRINT
 
       </button>
 
-    </div>
+      </div>
+    </header>
+
+    <div class="user-step-body">
+      <section class="user-section results-section">
 
     <div *ngIf="mostrarTabla" class="transactions-wrapper">
 
@@ -257,6 +288,9 @@
 
     </div>
 
-  </div>
+      </section>
+    </div>
+
+  </article>
 
 </div>
