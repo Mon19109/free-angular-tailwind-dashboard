@@ -1,13 +1,26 @@
-<div class="container-fluid page-container">
+<div class="operations-shell page-container">
 
-  <div class="filter-card">
+  <article class="operation-card filter-card">
+
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Filtros</span>
+        <h2>Busqueda de operaciones</h2>
+      </div>
+    </header>
+
+    <div class="operation-card-body">
+      <section class="operation-section">
+        <div class="section-heading">
+          <h3>Datos de busqueda</h3>
+          <p>Define los criterios para consultar operaciones de emision.</p>
+        </div>
 
     <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
 
-      <!-- FILA 1 -->
-      <div class="row">
+      <div class="operations-form-grid row">
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
 
            <app-multi-select
@@ -20,7 +33,7 @@
           </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
 
          <app-multi-select
@@ -33,12 +46,7 @@
           </div>
         </div>
 
-      </div>
-
-      <!-- FILA 2 -->
-      <div class="row">
-
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
 
             <label class="form-label">
@@ -66,14 +74,7 @@
           </div>
         </div>
 
-        <div class="col-md-6"></div>
-
-      </div>
-
-      <!-- FILA 3 -->
-      <div class="row">
-
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
 
           <div class="form-group">
 
@@ -88,7 +89,7 @@
 
         </div>
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
 
           <div class="form-group">
 
@@ -107,11 +108,11 @@
 
       <!-- BOTONES -->
 
-      <div class="botones-container">
+      <div class="operation-actions botones-container">
 
         <button
           type="submit"
-          class="btn-buscar">
+          class="button primary btn-buscar">
 
           BUSCAR
 
@@ -119,7 +120,7 @@
 
         <button
           type="button"
-          class="btn-limpiar"
+          class="button danger btn-limpiar"
           (click)="limpiarFormulario()">
 
           LIMPIAR FILTROS
@@ -130,11 +131,36 @@
 
     </form>
 
-  </div>
+      </section>
+    </div>
+
+  </article>
 
   <!-- RESULTADOS -->
 
-  <div class="transactions-card">
+  <article class="operation-card transactions-card">
+
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Resultados</span>
+        <h2>Listado de operaciones</h2>
+      </div>
+
+      <div class="table-actions header-actions" *ngIf="operaciones && operaciones.length > 0">
+
+        <button
+          type="button"
+          class="button ghost btn-export">
+
+          Exportar Excel
+
+        </button>
+
+      </div>
+    </header>
+
+    <div class="operation-card-body">
+      <section class="operation-section results-section">
 
     <div
       class="empty-message"
@@ -146,18 +172,6 @@
 
     <div
       *ngIf="operaciones && operaciones.length > 0">
-
-      <div class="table-actions">
-
-        <button
-          type="button"
-          class="btn-export">
-
-          Exportar Excel
-
-        </button>
-
-      </div>
 
       <div class="transactions-wrapper">
 
@@ -229,6 +243,9 @@
 
     </div>
 
-  </div>
+      </section>
+    </div>
+
+  </article>
 
 </div>
