@@ -1,12 +1,26 @@
-<div class="container-fluid mt-4 page-container">
+<div class="operations-shell page-container">
 
-<div class="filter-card">
+  <article class="operation-card filter-card">
+
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Filtros</span>
+        <h2>Busqueda de transacciones</h2>
+      </div>
+    </header>
+
+    <div class="operation-card-body">
+      <section class="operation-section">
+        <div class="section-heading">
+          <h3>Datos de busqueda</h3>
+          <p>Define los criterios para consultar transacciones de emision.</p>
+        </div>
+
   <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
 
-  <!-- FILA 1 -->
-  <div class="row g-4">
+  <div class="transactions-form-grid row g-4">
 
-     <div class="col-md-4">
+     <div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">Tipo de Operación</label>
         <select formControlName="tipoOperacion" class="form-select">
@@ -18,7 +32,7 @@
       </div>
     </div>
 
-<div class="col-md-4">
+<div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">Número de Cuenta</label>
         <input
@@ -28,38 +42,30 @@
       </div>
     </div>
 
-<div class="col-md-4">
+<div class="transaction-field col-md-4">
   <div class="form-group">
-    <label class="form-label">Fecha Inicio</label>
-    <input
-      type="date"
-      formControlName="fechaInicio"
-      class="form-control">
+    <app-date-picker
+      id="fechaInicioTransaccionesEmision"
+      label="Fecha Inicio"
+      placeholder="YYYY-MM-DD HH:mm"
+      (dateChange)="onFechaInicioChange($event)">
+    </app-date-picker>
   </div>
 </div>
 
-<div class="col-md-4">
+<div class="transaction-field col-md-4">
   <div class="form-group">
-    <label class="form-label">Fecha Fin</label>
-    <input
-      type="date"
-      formControlName="fechaFin"
-      class="form-control">
+    <app-date-picker
+      id="fechaFinTransaccionesEmision"
+      label="Fecha Fin"
+      placeholder="YYYY-MM-DD HH:mm"
+      position="above"
+      (dateChange)="onFechaFinChange($event)">
+    </app-date-picker>
   </div>
 </div>
 
-
-
-    
-  
-  </div>
-
-  <!-- FILA 2 -->
-  <div class="row g-4">
-
-    
-
-    <div class="col-md-4">
+    <div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">Monto</label>
         <input
@@ -69,7 +75,7 @@
       </div>
     </div>
 
-     <div class="col-md-4">
+     <div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">Estatus de la operación</label>
         <select formControlName="estatus" class="form-select">
@@ -81,7 +87,7 @@
       </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">Número de Autorización</label>
         <input
@@ -91,13 +97,7 @@
       </div>
     </div>
 
-      
-  </div>
-
-  <!-- FILA 3 -->
-  <div class="row g-4">
-
-<div class="col-md-4">
+<div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">Entidad</label>
        <select formControlName="idEntidad" class="form-select">
@@ -109,7 +109,7 @@
       </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">Email</label>
         <input
@@ -120,7 +120,7 @@
     </div>
 
 
-    <div class="col-md-4">
+    <div class="transaction-field col-md-4">
       <div class="form-group">
         <label class="form-label">teléfono</label>
         <input
@@ -134,15 +134,15 @@
 
   </div>
 
-  <div class="col-12 botones-container">
+  <div class="transaction-actions botones-container">
 
-    <button type="submit" class="btn-buscar">
+    <button type="submit" class="button primary btn-buscar">
       BUSCAR
     </button>
 
     <button
       type="button"
-      class="btn-limpiar"
+      class="button danger btn-limpiar"
       (click)="limpiarFormulario()">
       LIMPIAR FILTROS
     </button>
@@ -150,9 +150,23 @@
   </div>
 
 </form>
-</div>
 
- <div class="transactions-card">
+      </section>
+    </div>
+
+  </article>
+
+ <article class="operation-card transactions-card">
+
+  <header class="operation-card-header">
+    <div>
+      <span class="eyebrow">Resultados</span>
+      <h2>Listado de transacciones</h2>
+    </div>
+  </header>
+
+  <div class="operation-card-body">
+    <section class="operation-section results-section">
 
   <!-- TABLA -->
   <div
@@ -209,5 +223,8 @@
 
   </div>
 
-</div>
+    </section>
+  </div>
+
+</article>
 </div>

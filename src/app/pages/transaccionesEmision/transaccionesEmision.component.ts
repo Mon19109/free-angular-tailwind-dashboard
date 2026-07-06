@@ -4,12 +4,13 @@ import { CommonModule } from '@angular/common';
 import { TransaccionesEmisionService } from '../../services/transaccionesemision.service';
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
 import { Validators } from '@angular/forms';
+import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 
 
 @Component({
   selector: 'app-operacionesEmi',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent],
   templateUrl: './transaccionesEmision.component.html',
   styleUrls: ['./transaccionesEmision.component.css']
 })
@@ -78,6 +79,18 @@ export class TransaccionesEmisionComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarDatosIniciales();
+  }
+
+  onFechaInicioChange(event: any) {
+    this.formulario.patchValue({
+      fechaInicio: event.dateStr
+    });
+  }
+
+  onFechaFinChange(event: any) {
+    this.formulario.patchValue({
+      fechaFin: event.dateStr
+    });
   }
 
   cargarDatosIniciales(): void {
