@@ -1,141 +1,130 @@
-<div class="grid grid-cols-12 gap-4 md:gap-6">
-  <div class="col-span-12 space-y-6 xl:col-span-4">
-    <div>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 md:gap-6">
-        <!-- Metric Item Start -->
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <div style="background: url(/pagosDistancia/enlace.png);transition: 1s;background-size: cover;" class="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-          </div>
-          <div class="flex items-end justify-between mt-5">
-            <div>
-              <h4 style="font-size: 20px;color: #807b7b;" class="mt-2  dark:text-white/90"><span class="text-dorado">Link</span> de pago</h4>
-              
-            </div>
-            <div>
-              <a href="add_linkpago" class="inline-flex items-center justify-center gap-2 rounded-lg transition px-5 py-3.5 text-sm bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300 btn-azul">Ingresar</a>
-            </div>
-          </div>
-        </div>
-        <!-- Metric Item End -->
+<div class="operations-shell page-container">
+  <article class="operation-card access-card">
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Pago a distancia</span>
+        <h2>Canales de cobro</h2>
       </div>
-    </div>
+    </header>
 
-  </div>
-  <div class="col-span-12 space-y-6 xl:col-span-4">
-    <div>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 md:gap-6">
-        <!-- Metric Item Start -->
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <div style="background: url(/pagosDistancia/boton_pago.png);transition: 1s;background-size: cover;" class="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-          </div>
-          <div class="flex items-end justify-between mt-5">
-            <div>
-              <h4 style="font-size: 20px;color: #807b7b;" class="mt-2  dark:text-white/90"><span class="text-dorado">Botón</span> de pago</h4>
-              
-            </div>
-            <div>
-              <button class="inline-flex items-center justify-center gap-2 rounded-lg transition px-5 py-3.5 text-sm bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300 btn-azul">Ingresar</button>
-            </div>
+    <div class="operation-card-body">
+      <section class="payment-access-grid">
+        <div class="payment-access-item">
+          <div class="payment-icon link-icon" aria-hidden="true"></div>
+          <div class="payment-access-content">
+            <h3><span>Link</span> de pago</h3>
+            <a href="add_linkpago" class="button primary">Ingresar</a>
           </div>
         </div>
-        <!-- Metric Item End -->
+
+        <div class="payment-access-item">
+          <div class="payment-icon button-icon" aria-hidden="true"></div>
+          <div class="payment-access-content">
+            <h3><span>Botón</span> de pago</h3>
+            <button type="button" class="button primary">Ingresar</button>
+          </div>
+        </div>
+
+        <div class="payment-access-item">
+          <div class="payment-icon api-icon" aria-hidden="true"></div>
+          <div class="payment-access-content">
+            <h3><span>API</span> de integración</h3>
+            <button type="button" class="button primary">Ingresar</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </article>
+
+  <article class="operation-card filter-card">
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Filtros</span>
+        <h2>Buscar creados</h2>
       </div>
-    </div>
-  </div>
+    </header>
 
-  <div class="col-span-12 space-y-6 xl:col-span-4">
-    <div>
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <div style="background: url(/pagosDistancia/api_azul.png);transition: 1s;background-size: cover;" class="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-          </div>
-          <div class="flex items-end justify-between mt-5">
-            <div>
-              <h4 style="font-size: 20px;color: #807b7b;" class="mt-2  dark:text-white/90"><span class="text-dorado">API</span> de integración</h4>
-              
+    <div class="operation-card-body">
+      <section class="operation-section">
+        <div class="section-heading">
+          <h3>Datos de búsqueda</h3>
+          <p>Define los criterios para consultar links de pago creados.</p>
+        </div>
+
+        <form id="form-filtro" name="form-filtro" method="post">
+          <div class="transactions-form-grid">
+            <div class="transaction-field">
+              <app-date-picker
+                id="fechaCreacionPagoDistancia"
+                label="Fecha de creación"
+                placeholder="YYYY-MM-DD HH:mm"
+                (dateChange)="handleDateChange($event)">
+              </app-date-picker>
             </div>
-            <div>
-              <button class="inline-flex items-center justify-center gap-2 rounded-lg transition px-5 py-3.5 text-sm bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300 btn-azul">Ingresar</button>
+
+            <div class="transaction-field">
+              <app-label>Filtro</app-label>
+              <div class="select-wrap">
+                <app-select
+                  name="filtros"
+                  id="filtros"
+                  [options]="filtros"
+                  placeholder="Selecciona un filtro"
+                  (valueChange)="handleSelectChangeFil($event)"
+                  className="form-select"
+                ></app-select>
+                <span class="select-chevron" aria-hidden="true">⌄</span>
+              </div>
+            </div>
+
+            <div class="transaction-field">
+              <app-label>Ingresar busqueda</app-label>
+              <app-input-field id="concepto" type="text" name="concepto"></app-input-field>
+            </div>
+
+            <div class="transaction-actions">
+              <button type="submit" class="button primary">Buscar</button>
             </div>
           </div>
-        </div>
+        </form>
+      </section>
     </div>
+  </article>
 
-  </div>
-
-
-  <div class="col-span-12">
-    <div>
-      <hr>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-1 md:gap-6">
-        <h4 class="text-dorado">Buscar creados   </h4>
+  <article class="operation-card transactions-card">
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Resultados</span>
+        <h2>Listado de links</h2>
       </div>
-    </div>
-    <form id="form-filtro" name="form-filtro" method="post">
-      <div class="grid grid-cols-4 gap-4 sm:grid-cols-4 md:gap-6">
-        <div class="mt10">
-          <app-label>Fecha de creacion</app-label>
-          <div class="relative">
-            <input
-              #dateInput
-              [id]=""
-              class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3  dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30  bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700  dark:focus:border-brand-800"
-              autocomplete="off"
-            />
-            <span class="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="size-6"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 2C8.41421 2 8.75 2.33579 8.75 2.75V3.75H15.25V2.75C15.25 2.33579 15.5858 2 16 2C16.4142 2 16.75 2.33579 16.75 2.75V3.75H18.5C19.7426 3.75 20.75 4.75736 20.75 6V9V19C20.75 20.2426 19.7426 21.25 18.5 21.25H5.5C4.25736 21.25 3.25 20.2426 3.25 19V9V6C3.25 4.75736 4.25736 3.75 5.5 3.75H7.25V2.75C7.25 2.33579 7.58579 2 8 2ZM8 5.25H5.5C5.08579 5.25 4.75 5.58579 4.75 6V8.25H19.25V6C19.25 5.58579 18.9142 5.25 18.5 5.25H16H8ZM19.25 9.75H4.75V19C4.75 19.4142 5.08579 19.75 5.5 19.75H18.5C18.9142 19.75 19.25 19.4142 19.25 19V9.75Z" fill="currentColor"></path></svg>
-            </span>
+    </header>
+
+    <div class="operation-card-body">
+      <section class="operation-section results-section">
+        <div id="adquirenciaTab" class="tab-content active">
+          <div class="transactions-wrapper">
+            <table class="transactions-table">
+              <thead>
+                <tr>
+                  <th>Fecha de creación</th>
+                  <th>Estatus</th>
+                  <th>Correo Electrónico</th>
+                  <th>Teléfono</th>
+                  <th>Producto</th>
+                  <th>Monto</th>
+                  <th>Ver Detalle</th>
+                  <th>Editar Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="8" class="empty-row">No hay elementos disponibles.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="mt10">
-          <app-label>Filtro</app-label>
-          <app-select
-            name="filtros"
-            id="filtros"
-            [options]="filtros"
-            placeholder=""
-            (valueChange)="handleSelectChangeFil($event)"
-            className="dark:bg-dark-900"
-            ></app-select>
-        </div>
-        <div class="mt10">
-          <app-label>Ingresar busqueda</app-label>
-        <app-input-field id="concepto" type="text" name="concepto"></app-input-field>
-        </div>
-        <div class="mt10">
-          <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg transition px-5 py-3.5 text-sm bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300 btn-azul">Buscar</button>
-        </div>
-      </div>
-    </form>
-  </div>
-
-  <div class="col-span-12">
-    <div id="adquirenciaTab" class="tab-content active">
-      <div class="max-w-full overflow-x-auto">
-        <table class="w-full">
-          <thead class="border-gray-100 border-y dark:border-white/[0.05]">
-            <tr>
-              <td>Fecha de creación</td>
-              <td>Estatus</td>
-              <td>Correo Electrónico</td>
-              <td>Teléfono</td>
-              <td>Producto</td>
-              <td>Monto</td>
-              <td>
-                Ver Detalle   
-              </td>
-              <td>
-                Editar Link
-              </td>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              <tr>
-                <p>No hay elementos disponibles.</p>
-              </tr>
-          </tbody>
-        </table>
-      </div>
+      </section>
     </div>
-  </div>
-
+  </article>
 </div>
