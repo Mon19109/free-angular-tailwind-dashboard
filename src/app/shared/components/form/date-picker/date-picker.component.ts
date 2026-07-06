@@ -14,6 +14,7 @@ export class DatePickerComponent {
 
   @Input() id!: string;
   @Input() mode: 'single' | 'multiple' | 'range' | 'time' = 'single';
+  @Input() position: 'auto' | 'above' | 'below' | 'auto left' | 'auto center' | 'auto right' = 'auto';
   @Input() defaultDate?: string | Date | string[] | Date[];
   @Input() label?: string;
   @Input() placeholder?: string;
@@ -26,7 +27,9 @@ export class DatePickerComponent {
   ngAfterViewInit() {
   this.flatpickrInstance = flatpickr(this.dateInput.nativeElement, {
     mode: this.mode,
-    static: true,
+    appendTo: document.body,
+    position: this.position,
+    positionElement: this.dateInput.nativeElement,
     monthSelectorType: 'static',
 
     enableTime: true,

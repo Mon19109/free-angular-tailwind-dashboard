@@ -1,14 +1,27 @@
-<div class="container-fluid page-container">
+<div class="admin-page operations-shell page-container">
 
   <!-- FILTROS -->
-  <div class="filter-card">
+  <article class="admin-card operation-card filter-card">
+
+    <header class="admin-card-header operation-card-header">
+      <div>
+        <span class="eyebrow">Filtros</span>
+        <h2>Busqueda de operaciones</h2>
+      </div>
+    </header>
+
+    <div class="admin-card-body operation-card-body">
+      <section class="admin-section operation-section">
+        <div class="section-heading">
+          <h3>Datos de busqueda</h3>
+          <p>Define los criterios para consultar operaciones de adquirencia.</p>
+        </div>
 
     <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
 
-      <!-- FILA 1 -->
-      <div class="row">
+      <div class="admin-form-grid operations-form-grid row">
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
             <label class="form-label">SubAfiliado*</label>
 
@@ -30,7 +43,7 @@
           </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
             <label class="form-label">Entidad*</label>
 
@@ -54,12 +67,7 @@ Seleccione una entidad
           </div>
         </div>
 
-      </div>
-
-      <!-- FILA 2 -->
-      <div class="row">
-
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
             <label class="form-label">Sucursal</label>
 
@@ -83,7 +91,7 @@ Seleccione una sucursal
           </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
             <label class="form-label">Caja</label>
 <select
@@ -106,12 +114,7 @@ Seleccione una caja
           </div>
         </div>
 
-      </div>
-
-      <!-- FILA 3 -->
-      <div class="row">
-
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
             <label class="form-label">
               Clasificación de Operación
@@ -133,14 +136,7 @@ Seleccione una caja
           </div>
         </div>
 
-        <div class="col-md-6"></div>
-
-      </div>
-
-      <!-- FILA 4 -->
-      <div class="row">
-
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
 
            <app-multi-select
@@ -153,7 +149,7 @@ Seleccione una caja
           </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
 
            <app-multi-select
@@ -166,12 +162,7 @@ Seleccione una caja
           </div>
         </div>
 
-      </div>
-
-      <!-- FILA 5 -->
-      <div class="row">
-
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
 
           <app-date-picker
@@ -184,13 +175,14 @@ Seleccione una caja
           </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="operation-field col-md-6">
           <div class="form-group">
 
             <app-date-picker
   id="fechaFin"
   label="Fecha Fin*"
   placeholder="YYYY-MM-DD HH:mm"
+  position="above"
   (dateChange)="onFechaFinChange($event)">
 </app-date-picker>
 
@@ -201,11 +193,11 @@ Seleccione una caja
 
       <!-- BOTONES -->
 
-      <div class="botones-container">
+      <div class="admin-actions operation-actions botones-container">
 
         <button
           type="submit"
-          class="btn-buscar">
+          class="button primary btn-buscar">
 
           BUSCAR
 
@@ -213,7 +205,7 @@ Seleccione una caja
 
         <button
           type="button"
-          class="btn-limpiar"
+          class="button danger btn-limpiar"
           (click)="limpiarFormulario()">
 
           LIMPIAR FILTROS
@@ -224,11 +216,34 @@ Seleccione una caja
 
     </form>
 
-  </div>
+      </section>
+    </div>
+
+  </article>
 
  <!-- RESULTADOS -->
 
-<div class="transactions-card">
+<article class="admin-card operation-card transactions-card">
+
+  <header class="admin-card-header operation-card-header">
+    <div>
+      <span class="eyebrow">Resultados</span>
+      <h2>Listado de operaciones</h2>
+    </div>
+
+    <div class="table-actions header-actions" *ngIf="operaciones && operaciones.length > 0">
+      <button
+        type="button"
+        class="button ghost btn-export">
+
+        Exportar Excel
+
+      </button>
+    </div>
+  </header>
+
+  <div class="admin-card-body operation-card-body">
+    <section class="admin-section operation-section results-section">
 
   <!-- SIN RESULTADOS -->
   <div
@@ -242,18 +257,6 @@ Seleccione una caja
   <!-- CON RESULTADOS -->
   <div
     *ngIf="operaciones && operaciones.length > 0">
-
-    <div class="table-actions">
-
-      <button
-        type="button"
-        class="btn-export">
-
-        Exportar Excel
-
-      </button>
-
-    </div>
 
     <div class="transactions-wrapper">
 
@@ -313,7 +316,7 @@ Seleccione una caja
             <td>
 
               <button
-                class="btn btn-primary btn-sm">
+                class="button ghost btn-detail">
 
                 Ver
 
@@ -331,6 +334,9 @@ Seleccione una caja
 
   </div>
 
-</div>
+    </section>
+  </div>
+
+</article>
 
 </div>
