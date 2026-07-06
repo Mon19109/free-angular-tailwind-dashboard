@@ -112,12 +112,16 @@ export class AddLinkPagoComponent {
           nombreCompleto: item.value 
         }));*/
 
-        let datosNoti  = data.map((datos: unknown[]) => datos.map((item: any) => ({
-          value: item.paymentMethodID,
-          label: item.descripcion
-        })));
+        const registrosNoti = Array.isArray(data)
+          ? data.flatMap((datos: any) => Array.isArray(datos) ? datos : [datos])
+          : [];
+        let datosNoti = registrosNoti.map((item: any) => ({
+          value: item.notificationTypeID ?? item.id ?? item.paymentMethodID,
+          label: item.descripcion ?? item.description ?? item.value
+        }));
 
         this.tNoti = datosNoti;
+        this.optionNoti.set(datosNoti);
 
 
       },
@@ -130,6 +134,13 @@ export class AddLinkPagoComponent {
       next: (data) => {
         console.error('tPago:', data);
         this.tPago = data;
+        const datosPago = Array.isArray(data)
+          ? data.flatMap((datos: any) => Array.isArray(datos) ? datos : [datos]).map((item: any) => ({
+              value: item.paymentMethodID ?? item.id,
+              label: item.descripcion ?? item.description ?? item.value
+            }))
+          : [];
+        this.optionPago.set(datosPago);
       },
       error: (error) => {
         console.error('Error :', error);
