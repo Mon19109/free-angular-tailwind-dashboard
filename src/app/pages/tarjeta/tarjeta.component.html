@@ -1,14 +1,28 @@
-<div class="container-fluid page-container">
+<div class="operations-shell page-container">
 
   <!-- FILTROS -->
-  <div class="filter-card">
+  <article class="operation-card filter-card">
+
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Filtros</span>
+        <h2>Busqueda de tarjeta</h2>
+      </div>
+    </header>
+
+    <div class="operation-card-body">
+      <section class="operation-section">
+        <div class="section-heading">
+          <h3>Datos de busqueda</h3>
+          <p>Define la entidad y el dato de consulta para localizar una tarjeta.</p>
+        </div>
 
     <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
 
-      <div class="row">
+      <div class="card-form-grid row">
 
         <!-- ENTIDAD -->
-        <div class="col-md-5">
+        <div class="card-field col-md-5">
 
           <div class="form-group">
 
@@ -39,7 +53,7 @@
         </div>
 
         <!-- TARJETA -->
-        <div class="col-md-5">
+        <div class="card-field col-md-5">
 
           <div class="form-group">
 
@@ -67,13 +81,12 @@
         </div>
 
         <!-- BOTON -->
-        <div class="col-md-2">
+        <div class="card-actions col-md-2">
 
           <button
             type="submit"
-            class="btn-buscar">
+            class="button primary btn-buscar">
 
-            <i class="fas fa-search"></i>
             Buscar
 
           </button>
@@ -84,11 +97,24 @@
 
     </form>
 
-  </div>
+      </section>
+    </div>
+
+  </article>
 
   <!-- TARJETA -->
 
-  <div class="transactions-card">
+  <article class="operation-card transactions-card">
+
+  <header class="operation-card-header">
+    <div>
+      <span class="eyebrow">Resultado</span>
+      <h2>Tarjeta</h2>
+    </div>
+  </header>
+
+  <div class="operation-card-body">
+    <section class="operation-section results-section">
 
   @if(mostrarTarjeta){
 
@@ -122,6 +148,9 @@
 
   }
 
-</div>
+    </section>
+  </div>
+
+</article>
 
 </div>
