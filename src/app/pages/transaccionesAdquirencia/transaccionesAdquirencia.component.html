@@ -1,4 +1,4 @@
-<div class="container-fluid mt-4 page-container">
+<div class="operations-shell page-container">
  
 
   @if (errorMessage()) {
@@ -8,10 +8,25 @@
     </div>
   }
 
-  <div class="filter-card">
+  <article class="operation-card filter-card">
+
+    <header class="operation-card-header">
+      <div>
+        <span class="eyebrow">Filtros</span>
+        <h2>Busqueda de transacciones</h2>
+      </div>
+    </header>
+
+    <div class="operation-card-body">
+      <section class="operation-section">
+        <div class="section-heading">
+          <h3>Datos de busqueda</h3>
+          <p>Define los criterios para consultar transacciones de adquirencia.</p>
+        </div>
+
     <form>
-      <div class="row g-4">
-        <div class="col-md-4">
+      <div class="transactions-form-grid row g-4">
+        <div class="transaction-field col-md-4">
           <label class="form-label">SubAfiliado</label>
           <select
             class="form-select"
@@ -29,7 +44,7 @@
           </select>
         </div>
 
-        <div class="col-md-4">
+        <div class="transaction-field col-md-4">
           <label class="form-label">Entidad</label>
           <select
             class="form-select"
@@ -45,7 +60,7 @@
           </select>
         </div>
 
-        <div class="col-md-4">
+        <div class="transaction-field col-md-4">
           <label class="form-label">Sucursal</label>
           <select
             class="form-select"
@@ -61,7 +76,7 @@
           </select>
         </div>
 
-        <div class="col-md-4">
+        <div class="transaction-field col-md-4">
   <label class="form-label">Caja</label>
   <select
     class="form-select"
@@ -76,11 +91,11 @@
   </select>
 </div>
 
-<div class="col-md-4"></div>
+<div class="transaction-field col-md-4"></div>
 
-<div class="col-md-4"></div>
+<div class="transaction-field col-md-4"></div>
 
-<div class="col-md-4">
+<div class="transaction-field col-md-4">
   <label class="form-label">Operación</label>
  <select
   class="form-select"
@@ -98,7 +113,7 @@
 </select>
 </div>
 
-<div class="col-md-4">
+<div class="transaction-field col-md-4">
   <label class="form-label">Estado de la Transacción</label>
   <select
   class="form-select"
@@ -116,7 +131,7 @@
 </select>
 </div>
 
-<div class="col-md-4">
+<div class="transaction-field col-md-4">
   <label class="form-label">Monto</label>
   <input
     type="text"
@@ -125,7 +140,7 @@
     name="monto">
 </div>
 
-        <div class="col-md-4">
+        <div class="transaction-field col-md-4">
           <label class="form-label">Nm. Referencia</label>
           <input
             type="text"
@@ -134,7 +149,7 @@
             name="referencia">
         </div>
 
-        <div class="col-md-4">
+        <div class="transaction-field col-md-4">
           <label class="form-label">Nm. Autorización</label>
           <input
             type="text"
@@ -143,7 +158,7 @@
             name="autorizacion">
         </div>
 
-        <div class="col-md-4">
+        <div class="transaction-field col-md-4">
           <label class="form-label">Nm. Tarjeta</label>
           <input
             type="text"
@@ -153,7 +168,7 @@
             name="numTarjeta">
         </div>
 
-        <div class="col-md-4">
+        <div class="transaction-field col-md-4">
           <label class="form-label">Bin</label>
           <input
             type="text"
@@ -162,28 +177,29 @@
             name="bin">
         </div>
 
-        <div class="col-md-4">
-          <label class="form-label">Fecha Inicio</label>
-          <input
-            type="datetime-local"
-            class="form-control"
-            [(ngModel)]="filtros.fechaInicio"
-            name="fechaInicio">
+        <div class="transaction-field col-md-4">
+          <app-date-picker
+            id="fechaInicioTransaccionesAdquirencia"
+            label="Fecha Inicio"
+            placeholder="YYYY-MM-DD HH:mm"
+            (dateChange)="onFechaInicioChange($event)">
+          </app-date-picker>
         </div>
 
-        <div class="col-md-4">
-          <label class="form-label">Fecha Fin</label>
-          <input
-            type="datetime-local"
-            class="form-control"
-            [(ngModel)]="filtros.fechaFin"
-            name="fechaFin">
+        <div class="transaction-field col-md-4">
+          <app-date-picker
+            id="fechaFinTransaccionesAdquirencia"
+            label="Fecha Fin"
+            placeholder="YYYY-MM-DD HH:mm"
+            position="above"
+            (dateChange)="onFechaFinChange($event)">
+          </app-date-picker>
         </div>
 
-       <div class="col-12 botones-container">
+       <div class="transaction-actions botones-container">
   <button
     type="button"
-    class="btn-buscar"
+    class="button primary btn-buscar"
     (click)="buscarTransacciones()"
     [disabled]="loading()">
 
@@ -196,24 +212,36 @@
 
   <button
     type="button"
-    class="btn-limpiar"
+    class="button danger btn-limpiar"
     (click)="limpiarFiltros()">
     LIMPIAR FILTROS
   </button>
 </div>
       </div>
     </form>
-  </div>
 
-  <div class="transactions-card mt-5">
+      </section>
+    </div>
 
-  <div class="table-actions">
-    <button type="button" class="btn-export">EXCEL</button>
-    <button type="button" class="btn-export">PDF</button>
-    <button type="button" class="btn-export">PRINT</button>
-  </div>
+  </article>
 
-  <div class="transactions-wrapper">
+  <article class="operation-card transactions-card">
+
+  <header class="operation-card-header">
+    <div>
+      <span class="eyebrow">Resultados</span>
+      <h2>Listado de transacciones</h2>
+    </div>
+
+    <div class="table-actions header-actions">
+      <button type="button" class="button ghost btn-export">EXCEL</button>
+      <button type="button" class="button ghost btn-export">PDF</button>
+      <button type="button" class="button ghost btn-export">PRINT</button>
+    </div>
+  </header>
+
+  <div class="operation-card-body">
+    <section class="operation-section results-section">
 
     @if (showTable()) {
 
@@ -284,5 +312,8 @@
 
 }
 
-</div>
+    </section>
+  </div>
+
+</article>
 </div>

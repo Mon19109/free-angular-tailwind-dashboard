@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, ElementRef, ViewChild, AfterViewInit
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TransaccionesAdquirenciaService, FiltrosTransaccion, Transaccion } from '../../services/transaccionesadquirencia.service';
+import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
 
@@ -11,7 +12,7 @@ declare var moment: any;
 @Component({
   selector: 'app-transacciones',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePickerComponent],
   templateUrl: './transaccionesAdquirencia.component.html',
   styleUrls: ['./transaccionesAdquirencia.component.css']
 })
@@ -72,6 +73,14 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   
   ngAfterViewInit() {
     this.cargarDependenciasIniciales();
+  }
+
+  onFechaInicioChange(event: any) {
+    this.filtros.fechaInicio = event.dateStr;
+  }
+
+  onFechaFinChange(event: any) {
+    this.filtros.fechaFin = event.dateStr;
   }
   
   inicializarFechas() {
