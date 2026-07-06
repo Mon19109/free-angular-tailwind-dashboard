@@ -46,6 +46,14 @@ export class OrdenPagoComponent implements OnInit {
 
         //this.sesion = this.authService.getUser();
 
+        this.formulario = this.fb.group({
+            cuentaOr: [''],
+            cuentaD: [''],
+            importe: [''],
+            concepto: [''],
+            referencia: ['']
+        });
+
         /*console.log('SESION');
         console.log(this.sesion);
 
