@@ -11,12 +11,52 @@ import { environment } from '../environments/environments';
 })
 export class AuthService {
   private readonly SESSION_KEY = 'auth_session';
+  private readonly LEGACY_SESSION_KEYS = [
+    'idUser',
+    'idContext',
+    'idEntity',
+    'idTerminal',
+    'idTerminalUser',
+    'idRol',
+    'idPerfil',
+    'mail',
+    'oft',
+    'tel',
+    'userName',
+    'direccion',
+    'cp',
+    'city',
+    'spei',
+    'commerceType',
+    'country',
+    'validate',
+    'entitySonID',
+    'issueId',
+    'acquiringId',
+    'reserveId',
+    'cuenta',
+    'inSession',
+    'success',
+    'message',
+    'idBusinessModel',
+    'idTypeAffiliation',
+    'idStatus',
+    'latitud',
+    'longitud',
+    'commerceDetailID',
+    'nodeID'
+  ];
   private isProcessing = false;
   
   private authStatusSubject = new BehaviorSubject<boolean>(this.hasValidSession());
   authStatus$ = this.authStatusSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    const session = this.getSession();
+    if (session) {
+      this.syncLegacySessionValues(session);
+    }
+  }
 
   // ============================================
   // MANEJO DE SESIÓN
@@ -24,7 +64,23 @@ export class AuthService {
 
   private saveSession(data: any): void {
     localStorage.setItem(this.SESSION_KEY, JSON.stringify(data));
+    this.syncLegacySessionValues(data);
     this.authStatusSubject.next(true);
+  }
+
+  private syncLegacySessionValues(data: any): void {
+    if (data?.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('auth_token', data.token);
+    }
+    this.LEGACY_SESSION_KEYS.forEach(key => {
+      const value = data?.[key];
+      if (value !== undefined && value !== null) {
+        localStorage.setItem(key, String(value));
+      } else {
+        localStorage.removeItem(key);
+      }
+    });
   }
 
   private getSession(): any {
@@ -39,6 +95,9 @@ export class AuthService {
 
   clearSession(): void {
     localStorage.removeItem(this.SESSION_KEY);
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth_token');
+    this.LEGACY_SESSION_KEYS.forEach(key => localStorage.removeItem(key));
     this.authStatusSubject.next(false);
   }
 
@@ -535,7 +594,7 @@ export class AuthService {
       return throwError(() => new Error('No hay sesión activa'));
     }
 
-    const url = `${environment.api.kashpay}/api/v1/user/forgotPassword?email=${encodeURIComponent(email)}`;
+    const url = `${environment.api.kashpay}api/v1/user/forgotPassword?email=${encodeURIComponent(email)}`;
     
     const headers = {
       'Authorization': `Bearer ${session.token}`,
@@ -553,7 +612,7 @@ export class AuthService {
       return throwError(() => new Error('No hay sesión activa'));
     }
 
-    const url = `${environment.api.kashpay}/api/v1/px83/vr12/meridian.k42`;
+    const url = `${environment.api.kashpay}api/v1/px83/vr12/meridian.k42`;
     
     const body = {
       guid: session.validate,
@@ -576,7 +635,7 @@ export class AuthService {
       return throwError(() => new Error('No hay sesión activa'));
     }
 
-    const url = `${environment.api.kashpay}/api/v1/c8m4-r7k-/v2/f3a917`;
+    const url = `${environment.api.kashpay}api/v1/c8m4-r7k-/v2/f3a917`;
     
     const body = {
       userGuid: session.validate,

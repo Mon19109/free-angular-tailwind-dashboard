@@ -114,7 +114,7 @@ export class AuthService {
   private tokenKey = 'auth_token';
   private userKey = 'user_data';
 
-  private url = 'https://sdbx-api-antares.kashplataforma.com/api/v2/antares.kwt-v2.2.10/api/v1/user/login';
+  private url = `${environment.api.kashpay}api/v1/user/login`;
 
 
 

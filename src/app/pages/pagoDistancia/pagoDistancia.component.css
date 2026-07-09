@@ -228,6 +228,7 @@
 }
 
 .form-control,
+.form-select,
 :host ::ng-deep app-select select,
 :host ::ng-deep app-input-field input,
 :host ::ng-deep app-date-picker input {
@@ -246,6 +247,7 @@
 }
 
 :host-context(html:not(.dark)) .form-control,
+:host-context(html:not(.dark)) .form-select,
 :host-context(html:not(.dark)) ::ng-deep app-select select,
 :host-context(html:not(.dark)) ::ng-deep app-input-field input,
 :host-context(html:not(.dark)) ::ng-deep app-date-picker input {
@@ -255,6 +257,7 @@
 }
 
 .form-control:focus,
+.form-select:focus,
 :host ::ng-deep app-select select:focus,
 :host ::ng-deep app-input-field input:focus,
 :host ::ng-deep app-date-picker input:focus {
@@ -271,7 +274,8 @@
   display: block;
 }
 
-:host ::ng-deep .select-wrap app-select select {
+:host ::ng-deep .select-wrap app-select select,
+.select-wrap .form-select {
   padding-right: 48px;
   cursor: pointer;
   appearance: none;

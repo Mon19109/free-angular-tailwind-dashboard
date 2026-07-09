@@ -2,17 +2,15 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { PagoDistanciaService,  } from '../../services/pagoDistancia.service';
-import { DefaultInputsComponent } from '../../shared/components/form/form-elements/default-inputs/default-inputs.component';
 import { LabelComponent } from '../../shared/components/form/label/label.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import { SelectComponent } from '../../shared/components/form/select/select.component';
 
-import { InputFieldComponent } from '../../shared/components/form/input/input-field.component';
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule,LabelComponent,
-      DefaultInputsComponent,DatePickerComponent,SelectComponent,InputFieldComponent],
+      DatePickerComponent,SelectComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 }) 
@@ -57,13 +55,22 @@ export class PagoDistanciaComponent implements OnInit {
     // Cargar cuentas
     this.pagoDistanciaService.obtenerCuentas().subscribe({
       next: (data) => {
-        this.cuentas = data;
+        this.cuentas = this.normalizarCuentas(data);
+        console.log('Cuentas pago distancia:', this.cuentas);
       },
       error: (error) => {
         console.error('Error al cargar cuentas:', error);
       }
     });
 
+  }
+
+  private normalizarCuentas(response: any): any[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    return response?.data || response?.entities || [];
   }
 
   handleSelectChangeFil(value: string) {

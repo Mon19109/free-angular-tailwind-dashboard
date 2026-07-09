@@ -33,8 +33,10 @@ export class OrdenPagoComponent implements OnInit {
 
     cuentas: any[] = [];
     beneficiarios: any[] = [];
+    beneficiariosCargados = false;
 
     //sesion: UserSessionData | null = null;
+    private sesion: any = null;
 
     constructor(
         private fb: FormBuilder,
@@ -44,7 +46,7 @@ export class OrdenPagoComponent implements OnInit {
 
     ngOnInit(): void {
 
-        //this.sesion = this.authService.getUser();
+        this.sesion = this.obtenerSesion();
 
         this.formulario = this.fb.group({
             cuentaOr: [''],
@@ -53,6 +55,9 @@ export class OrdenPagoComponent implements OnInit {
             concepto: [''],
             referencia: ['']
         });
+
+        this.cargarCuentas();
+        this.cargarBeneficiarios();
 
         /*console.log('SESION');
         console.log(this.sesion);
@@ -92,50 +97,140 @@ export class OrdenPagoComponent implements OnInit {
 
     cargarCuentas(): void {
 
-       /* if (!this.sesion) {
+        const entitySonID = this.sesion?.entitySonID || localStorage.getItem('entitySonID');
+
+        if (!entitySonID) {
+            console.warn('No hay entitySonID para cargar cuentas ordenantes');
             return;
         }
 
         this.ordenPagoService
-            .obtenerCuentas(this.sesion.entitySonID)
+            .obtenerCuentas(entitySonID)
             .subscribe({
                 next: (resp) => {
 
-                    // console.log('Cuentas', resp);
+                    console.log('Cuentas ordenantes', resp);
 
-                    this.cuentas = resp;
+                    this.cuentas = this.normalizarLista(resp, [
+                        'data',
+                        'accounts',
+                        'concentratorAccounts',
+                        'accountList'
+                    ]);
 
                 },
                 error: (err) => {
-                    console.error(err);
+                    console.error('Error al cargar cuentas ordenantes', err);
                 }
-            });*/
+            });
     }
 
     cargarBeneficiarios(): void {
 
-        /*if (!this.sesion) {
+        const idUser = this.sesion?.idUser || localStorage.getItem('idUser');
+
+        if (!idUser) {
+            console.warn('No hay idUser para cargar beneficiarios');
             return;
         }
 
+        console.log('Cargando beneficiarios con idUser:', idUser);
+
         this.ordenPagoService
-            .obtenerContactos(this.sesion.idUser)
+            .obtenerContactos(Number(idUser))
             .subscribe({
                 next: (resp) => {
 
-                    //  console.log('Beneficiarios', resp);
-                    /* console.log(
-                         'Primer beneficiario',
-                         this.beneficiarios[0]
-                     );*/
-                    /*this.beneficiarios = resp ?? [];
+                    console.log('Beneficiarios', resp);
+                    this.beneficiariosCargados = true;
+                    this.beneficiarios = this.normalizarLista(resp, [
+                        'data',
+                        'contacts',
+                        'contactList',
+                        'contactResponse',
+                        'contactsResponse',
+                        'beneficiaries',
+                        'beneficiarios'
+                    ]);
 
                 },
                 error: (err) => {
-                    console.error(err);
+                    this.beneficiariosCargados = true;
+                    console.error('Error al cargar beneficiarios', err);
                 }
-            });*/
+            });
 
+    }
+
+    private obtenerSesion(): any {
+        const rawSession = localStorage.getItem('auth_session');
+
+        if (rawSession) {
+            try {
+                return JSON.parse(rawSession);
+            } catch {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private normalizarLista(response: any, keys: string[]): any[] {
+        if (Array.isArray(response)) {
+            return response;
+        }
+
+        for (const key of keys) {
+            if (Array.isArray(response?.[key])) {
+                return response[key];
+            }
+        }
+
+        return this.encontrarPrimerArreglo(response);
+    }
+
+    private encontrarPrimerArreglo(value: any): any[] {
+        if (!value || typeof value !== 'object') {
+            return [];
+        }
+
+        for (const item of Object.values(value)) {
+            if (Array.isArray(item)) {
+                return item;
+            }
+
+            const nested = this.encontrarPrimerArreglo(item);
+            if (nested.length) {
+                return nested;
+            }
+        }
+
+        return [];
+    }
+
+    obtenerValorCuenta(cuenta: any): string {
+        return cuenta?.idSirio || cuenta?.bundle || cuenta?.sirioId || cuenta?.id || '';
+    }
+
+    obtenerTextoCuenta(cuenta: any): string {
+        const id = this.obtenerValorCuenta(cuenta);
+        const nombre = cuenta?.name || cuenta?.bussinesName || cuenta?.businessName || cuenta?.alias || '';
+
+        return [id, nombre].filter(Boolean).join(' - ');
+    }
+
+    obtenerValorBeneficiario(beneficiario: any): string {
+        return beneficiario?.idContact || beneficiario?.id || beneficiario?.contactId || '';
+    }
+
+    obtenerTextoBeneficiario(beneficiario: any): string {
+        const alias = beneficiario?.nameAlias || beneficiario?.alias || beneficiario?.fullName || beneficiario?.name || '';
+        const cuenta = beneficiario?.cardNumberMask || beneficiario?.accountNumberMask || beneficiario?.accountNumber || beneficiario?.cardNumber || '';
+        const banco = beneficiario?.nameInstitution || beneficiario?.institutionName || beneficiario?.bankName || '';
+        const terminacion = cuenta ? ` **** ${String(cuenta).slice(-4)}` : '';
+
+        return `${alias}${terminacion} ${banco}`.trim();
     }
 
     obtenerSaldo(): void {
@@ -205,7 +300,7 @@ export class OrdenPagoComponent implements OnInit {
     finalizar(): void {
 
         const beneficiario = this.beneficiarios.find(
-            x => x.idContact == this.formulario.value.cuentaD
+            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
         );
 
         const payload = {
@@ -362,7 +457,7 @@ this.ordenPagoService
     obtenerNombreBeneficiario(): string {
 
         const beneficiario = this.beneficiarios.find(
-            x => x.idContact == this.formulario.value.cuentaD
+            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
         );
 
         return beneficiario?.fullName || '';
@@ -372,7 +467,7 @@ this.ordenPagoService
     obtenerBancoBeneficiario(): string {
 
         const beneficiario = this.beneficiarios.find(
-            x => x.idContact == this.formulario.value.cuentaD
+            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
         );
 
         return beneficiario?.nameInstitution || '';
@@ -382,7 +477,7 @@ this.ordenPagoService
     obtenerCuentaBeneficiario(): string {
 
         const beneficiario = this.beneficiarios.find(
-            x => x.idContact == this.formulario.value.cuentaD
+            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
         );
 
         return beneficiario?.cardNumberMask || '';

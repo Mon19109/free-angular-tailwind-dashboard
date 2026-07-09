@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from '../environments/environments';
 
 @Injectable({
     providedIn: 'root'
 })
 export class OrdenPagoService {
+    private baseUrl = environment.api.kashpay;
 
     constructor(
         private http: HttpClient
@@ -24,9 +26,11 @@ export class OrdenPagoService {
 
 
     obtenerContactos(idUser: number): Observable<any> {
+        const url = `/api-antaresv2.kashplataforma.com/api/v2/antares.kwt-v2.2.10/api/v1/contact/getContacts?idUser=${idUser}&type=TR`;
+        console.log('GET beneficiarios:', url);
 
         return this.http.get(
-            `/portalKashPayServices/api/v1/contact/getContacts?idUser=${idUser}&type=TR`,
+            url,
             {
                 headers: this.getCommonHeaders()
             }
@@ -37,7 +41,7 @@ export class OrdenPagoService {
     obtenerCuentas(entitySonID: string): Observable<any> {
 
         return this.http.get(
-            `/portalKashPayServices/api/v1/account/getConcentratorAccounts?sirioId=${entitySonID}`,
+            `${this.baseUrl}api/v1/account/getConcentratorAccounts?sirioId=${entitySonID}`,
             {
                 headers: this.getCommonHeaders()
             }
@@ -47,7 +51,7 @@ export class OrdenPagoService {
     buscarInstitucion(cuenta: string): Observable<any> {
 
         return this.http.get(
-            `/AldebaranServices/getInstitutions?value=${cuenta}`,
+            `/kwt-a7f2-v1.3.2/getInstitutions?value=${cuenta}`,
             {
                 headers: this.getCommonHeaders()
             }
@@ -77,7 +81,7 @@ export class OrdenPagoService {
     agregarContacto(data: any): Observable<any> {
 
         return this.http.post(
-            `/portalKashPayServices/api/v1/contact`,
+            `${this.baseUrl}api/v1/contact`,
             data,
             {
                 headers: this.getCommonHeaders()
@@ -170,7 +174,7 @@ export class OrdenPagoService {
   };
 
   return this.http.post(
-    '/portalKashPayServices/api/v1/user/sendOperationTokenBySMS',
+    `${this.baseUrl}api/v1/user/sendOperationTokenBySMS`,
     body,
     {
       headers: this.getCommonHeaders()
@@ -184,7 +188,7 @@ export class OrdenPagoService {
 ): Observable<any> {
 
   return this.http.get(
-    `/portalKashPayServices/api/v1/user/validateOperationWithSMSToken?idUser=${idUser}&idOperationType=1&token=${token}`
+    `${this.baseUrl}api/v1/user/validateOperationWithSMSToken?idUser=${idUser}&idOperationType=1&token=${token}`
   );
 
 }

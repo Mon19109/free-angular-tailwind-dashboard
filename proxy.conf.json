@@ -1,4 +1,13 @@
 {
+  "/api-antaresv2.kashplataforma.com": {
+    "target": "http://api-antaresv2.kashplataforma.com",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api-antaresv2.kashplataforma.com": ""
+    },
+    "logLevel": "debug"
+  },
   "/api/v2/antares.kwt-v2.2.10": {
     "target": "https://sdbx-api-antares.kashplataforma.com",
     "secure": false,
@@ -26,7 +35,7 @@
     "changeOrigin": true,
     "logLevel": "debug"
   },
-  "/AldebaranServices": {
+  "/kwt-a7f2-v1.3.2": {
     "target": "https://api-aldebaran.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,

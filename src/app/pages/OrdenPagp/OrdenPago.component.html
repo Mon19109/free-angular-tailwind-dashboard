@@ -66,8 +66,8 @@
               <div class="select-wrap">
                 <select formControlName="cuentaOr" (change)="obtenerSaldo()">
                   <option value="">Seleccione una cuenta</option>
-                  <option *ngFor="let cuenta of cuentas" [value]="cuenta.idSirio">
-                    {{ cuenta.name }}
+                  <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
+                    {{ obtenerTextoCuenta(cuenta) }}
                   </option>
                 </select>
                 <span class="select-chevron" aria-hidden="true">⌄</span>
@@ -79,8 +79,11 @@
               <div class="select-wrap">
                 <select formControlName="cuentaD">
                   <option value="">Seleccione un beneficiario</option>
-                  <option *ngFor="let beneficiario of beneficiarios" [value]="beneficiario.idContact">
-                    {{ beneficiario.nameAlias }} **** {{ beneficiario.cardNumberMask?.slice(-4) }} {{ beneficiario.nameInstitution }}
+                  <option *ngIf="beneficiariosCargados && beneficiarios.length === 0" value="" disabled>
+                    Sin beneficiarios disponibles
+                  </option>
+                  <option *ngFor="let beneficiario of beneficiarios" [value]="obtenerValorBeneficiario(beneficiario)">
+                    {{ obtenerTextoBeneficiario(beneficiario) }}
                   </option>
                 </select>
                 <span class="select-chevron" aria-hidden="true">⌄</span>

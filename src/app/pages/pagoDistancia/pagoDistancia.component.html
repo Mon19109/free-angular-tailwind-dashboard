@@ -51,8 +51,21 @@
           <p>Define los criterios para consultar links de pago creados.</p>
         </div>
 
-        <form id="form-filtro" name="form-filtro" method="post">
+        <form id="form-filtro" name="form-filtro" [formGroup]="formulario" (ngSubmit)="onSubmit()">
           <div class="transactions-form-grid">
+            <div class="transaction-field">
+              <app-label>Cuenta</app-label>
+              <div class="select-wrap">
+                <select formControlName="entidad" class="form-select">
+                  <option value="">Selecciona una cuenta</option>
+                  <option *ngFor="let cuenta of cuentas" [value]="cuenta.bundle">
+                    {{ cuenta.bundle }} - {{ cuenta.bussinesName }}
+                  </option>
+                </select>
+                <span class="select-chevron" aria-hidden="true">⌄</span>
+              </div>
+            </div>
+
             <div class="transaction-field">
               <app-date-picker
                 id="fechaCreacionPagoDistancia"
@@ -79,7 +92,7 @@
 
             <div class="transaction-field">
               <app-label>Ingresar busqueda</app-label>
-              <app-input-field id="concepto" type="text" name="concepto"></app-input-field>
+              <input id="concepto" type="text" class="form-control" formControlName="tarjeta" />
             </div>
 
             <div class="transaction-actions">
