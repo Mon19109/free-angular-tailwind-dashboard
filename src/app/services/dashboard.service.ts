@@ -45,6 +45,26 @@ export class DashboardService {
   //user: UserSessionData | null = null;
 
   constructor(private http: HttpClient) { }
+
+  private getSession(): any {
+    const rawSession = localStorage.getItem('auth_session');
+    return rawSession ? JSON.parse(rawSession) : {};
+  }
+
+  private getEntityId(): string {
+    const session = this.getSession();
+    const idBusinessModel = Number(session.idBusinessModel || 0);
+
+    if (idBusinessModel === 1) {
+      return session.issueId;
+    }
+
+    if (idBusinessModel === 2 || idBusinessModel === 3) {
+      return session.acquiringId;
+    }
+
+    return session.issueId || session.acquiringId;
+  }
   
   private getCommonHeaders(): HttpHeaders {
     return new HttpHeaders({
@@ -56,15 +76,8 @@ export class DashboardService {
 
   getBalanceSirio(): Observable<any>{
     
-    var entS;
-
-    if (localStorage.getItem('idBusinessModel') == '1') {
-      entS = localStorage.getItem('issueId');
-    }else  if (localStorage.getItem('idBusinessModel') == '3') {
-      entS = localStorage.getItem('acquiringId');
-    }else if (localStorage.getItem('idBusinessModel') == '2') {
-      entS = localStorage.getItem('acquiringId');
-    }
+    const session = this.getSession();
+    const entS = this.getEntityId();
     /*
     return this.http.get<BalanceResponse>(
           `${this.wsSaldos}getBalance/${entS}`,
@@ -74,12 +87,9 @@ export class DashboardService {
         );
     */
 
-        
-      console.log('kk='+localStorage.getItem('reserveId'));
-   
     const headers = new HttpHeaders()
       .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-    if(localStorage.getItem('reserveId') != ''){ 
+    if(session.reserveId){ 
       return this.http.get<any>(`${this.apiUrl}getBalance/${entS}?includeSB=true`,{ headers });
     }else{
       return this.http.get<any>(`${this.apiUrl}getBalance/${entS}`,{ headers });
@@ -87,25 +97,15 @@ export class DashboardService {
   }
 
   getBalanceAhorro(): Observable<any>{
-    
-    var entS;
-
-    if (localStorage.getItem('idBusinessModel') == '1') {
-      entS = localStorage.getItem('issueId');
-    }else  if (localStorage.getItem('idBusinessModel') == '3') {
-      entS = localStorage.getItem('acquiringId');
-    }else if (localStorage.getItem('idBusinessModel') == '2') {
-      entS = localStorage.getItem('acquiringId');
-    }
-  
-    console.log('aaaa='+localStorage.getItem('idBusinessModel'));
+    const session = this.getSession();
+    const entS = this.getEntityId();
    
     const headers = new HttpHeaders()
       .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-    if(localStorage.getItem('reserveId') != ''){ 
+    if(session.reserveId){ 
       return this.http.get<any>(`${this.apiUrl}getBalance/${entS}?includeSB=true`,{ headers });
     }else{
-      return this.http.get<any>('');
+      return of([]);
     }
   }
 
@@ -114,7 +114,7 @@ export class DashboardService {
     
     const headers = new HttpHeaders()
       .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-    return this.http.get<any>(`${this.apiUrlAlde}getBalance/${localStorage.getItem('issueId')}`);
+    return this.http.get<any>(`${this.apiUrlAlde}getBalance/${this.getSession().issueId}`);
   }
 
   getReport(): Observable<any>{
@@ -122,15 +122,7 @@ export class DashboardService {
     const headers = new HttpHeaders()
       .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
 
-    var entS;
-
-    if (localStorage.getItem('idBusinessModel') == '1') {
-      entS = localStorage.getItem('issueId');
-    }else  if (localStorage.getItem('idBusinessModel') == '3') {
-      entS = localStorage.getItem('acquiringId');
-    }else if (localStorage.getItem('idBusinessModel') == '2') {
-      entS = localStorage.getItem('acquiringId');
-     }
+    const entS = this.getEntityId();
 
     return this.http.get<any>(`${this.apiUrl}${entS}/getTotalsReport`);
   }

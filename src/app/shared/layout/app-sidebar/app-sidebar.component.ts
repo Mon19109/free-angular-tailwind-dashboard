@@ -29,7 +29,7 @@ export class AppSidebarComponent {
  panelPrincipalItems: NavItem[] = [
     {
       name: 'PANEL PRINCIPAL',
-       icon: '',
+      icon: '<i class="fas fa-home fa-lg"></i>',
       path: '/dashboard'
     }
   ];

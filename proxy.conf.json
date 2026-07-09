@@ -15,6 +15,9 @@
     "target": "http://sdbx-polaris.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
+    "headers": {
+      "User-Agent": "PostmanRuntime/7.54.0"
+    },
     "logLevel": "debug"
   },
   "/Entities": {

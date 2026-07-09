@@ -84,7 +84,9 @@ export class LoginComponent implements OnInit {
     this.errorMessage = '';
 
 
-    const { userLogin, passwordLogin, latitud=this.lat, longitud=this.lon } = this.loginForm.value;
+    const { userLogin, passwordLogin } = this.loginForm.value;
+    const latitud = this.lat || '0';
+    const longitud = this.lon || '0';
 
     this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud).subscribe({
       next: (result: any) => {

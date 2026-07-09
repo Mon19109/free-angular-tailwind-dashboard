@@ -16,6 +16,7 @@ export class DashboardComponent {
   balanceSirio = signal<any[]>([]);
   balanceAhorro = signal<any[]>([]);
   reportes = signal<any[]>([]);
+  session: any = {};
 
   //user: UserSessionData | null = null;
   private  dashService = inject(DashboardService);
@@ -26,7 +27,41 @@ export class DashboardComponent {
   ){}
   
   ngOnInit(): void {
+    this.session = this.getSession();
     this.cargarDatosIniciales();
+  }
+
+  private getSession(): any {
+    const rawSession = localStorage.getItem('auth_session');
+    return rawSession ? JSON.parse(rawSession) : {};
+  }
+
+  get idBusinessModel(): number {
+    return Number(this.session?.idBusinessModel || 0);
+  }
+
+  get hasReserve(): boolean {
+    return !!this.session?.reserveId;
+  }
+
+  get showEmision(): boolean {
+    return this.idBusinessModel !== 2;
+  }
+
+  get showAdquirencia(): boolean {
+    return this.idBusinessModel !== 1;
+  }
+
+  get showReserve(): boolean {
+    return this.hasReserve;
+  }
+
+  money(value: any): string {
+    const amount = Number(value || 0);
+    return amount.toLocaleString('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    });
   }
 
   cargarDatosIniciales(): void {
@@ -154,5 +189,4 @@ export class DashboardComponent {
 
   
 }
-
 

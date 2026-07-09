@@ -213,7 +213,7 @@ export class AuthService {
   // ============================================
   
   getBalance(accessToken: string, entS: string): Observable<any> {
-    const url = `${environment.api.entities}getBalance`;
+    const url = `${environment.api.saldos}getBalance/${entS}`;
     
     const headers = {
       'Authorization': `Bearer ${accessToken}`,

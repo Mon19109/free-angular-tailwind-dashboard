@@ -1,147 +1,98 @@
 <div class="grid grid-cols-12 gap-4 md:gap-6">
-
-  <div class="col-span-12 space-y-6 xl:col-span-12">
+  <div class="col-span-12 space-y-6">
     <div class="card account-info">
-      <div class="text-dorado">Información de la Cuenta Concentradora  - idBusinessModel</div>
+      <div class="text-dorado">Informacion de la Cuenta Concentradora</div>
       <div class="max-w-full overflow-x-auto">
         <table class="w-full">
           <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
             <tr>
               <td>Propietario</td>
-              <td class="highlight">{{balanceSirio()[0].name}}</td>
+              <td class="highlight">{{ balanceSirio()[0]?.name || session.userName || '-' }}</td>
             </tr>
             <tr>
               <td>CLABE Interbancaria</td>
-              <td class="highlight">{{balanceSirio()[0].clabeAccount}} <span style="font-size: 10px;" class="inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-sm bg-gray-700 text-white dark:text-white">Para uso de orden de pago referenciado </span></td>
+              <td class="highlight">
+                {{ balanceSirio()[0]?.clabeAccount || balanceSirio()[0]?.virtualAccount || '-' }}
+                <span class="inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-sm bg-gray-700 text-white dark:text-white">
+                  Para uso de orden de pago referenciado
+                </span>
+              </td>
             </tr>
           </tbody>
         </table>
-      </div>      
+      </div>
     </div>
   </div>
-  
-  reserveId === null || reserveId === undefined
-    idBusinessModel != 2 
-      <div class="col-span-12 space-y-6 xl:col-span-6">
-        <div>
-          <div class="rounded-2xl business-card emision-card" style="background: linear-gradient(#333f50  40%, #617384) !important;color:#fff !important;">
-            <h4 class="text-dorado">Emisión</h4>
-            <p>Saldo Disponible: <span class="positive">$0.00</span></p>
-            <div class="inline-chart-container">
-              <canvas id="emisionSummaryChart" style="display: block; box-sizing: border-box; height: 120px; width: 120px;" width="96" height="96"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    
-    idBusinessModel != 1
-      <div class="col-span-12 space-y-6 xl:col-span-6">
-        <div>
-          <div class="rounded-2xl business-card adquirencia-card" style="background: linear-gradient(#c7924b  40%, #d5b281) !important;color:#fff !important;">
-            <h4>Adquirencia</h4>
-            <p>Saldo Disponible: <span class="positive">${{balanceSirio()[0].balance}}</span></p>
-            <p>Saldo Pendiente: <span class="highlight">${{balanceSirio()[0].customerNetworkBalance}}</span></p>
-            <div class="inline-chart-container">
-              <canvas id="adquirenciaSummaryChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    idBusinessModel != 2
-      <div class="col-span-12 space-y-6 xl:col-span-4">
-        <div>
-          <div class="rounded-2xl business-card emision-card" style="background: linear-gradient(#333f50  40%, #617384) !important;color:#fff !important;">
-            <h4 class="text-dorado">Emisión</h4>
-            <p>Saldo Disponible: <span class="positive">$0.00</span></p>
-            <div class="inline-chart-container">
-              <canvas id="emisionSummaryChart" style="display: block; box-sizing: border-box; height: 120px; width: 120px;" width="96" height="96"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    
-     idBusinessModel != 1
-      <div class="col-span-12 space-y-6 xl:col-span-4">
-        <div>
-          <div class="rounded-2xl business-card adquirencia-card" style="background: linear-gradient(#c7924b  40%, #d5b281) !important;color:#fff !important;">
-            <h4>Adquirencia</h4>
-            <p>Saldo Disponible: <span class="positive">${{balanceSirio()[0].balance}}</span></p>
-            <p>Saldo Pendiente: <span class="highlight">${{balanceSirio()[0].customerNetworkBalance}}</span></p>
-            <div class="inline-chart-container">
-              <canvas id="adquirenciaSummaryChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    
-    <div class="col-span-12 space-y-6 xl:col-span-4">
-      <div>
-        <div class="rounded-2xl business-card  adquirencia-card" style="background: linear-gradient(#6a6a69 40%, #a6a6a6) !important;color:#fff !important;  border-left: 4px solid #8f8f8d;">
-          <h4 style="color:#fff">Reserva</h4>
-          <p>Saldo Disponible: <span class="positive">${{balanceAhorro()[0].balance}}</span></p>
-          <p>Saldo Pendiente: <span class="highlight">$${{balanceAhorro()[0].customerNetworkBalance}}</span></p>
-          <div class="inline-chart-container">
-            <canvas id="ahorroSummaryChart"></canvas>
-          </div>
-        </div>
+
+  <div *ngIf="showEmision" class="col-span-12 space-y-6" [ngClass]="showReserve ? 'xl:col-span-4' : 'xl:col-span-6'">
+    <div class="rounded-2xl business-card emision-card" style="background: linear-gradient(#333f50 40%, #617384) !important; color: #fff !important;">
+      <h4 class="text-dorado">Emision</h4>
+      <p>Saldo Disponible: <span class="positive">$0.00</span></p>
+      <div class="inline-chart-container">
+        <canvas id="emisionSummaryChart"></canvas>
       </div>
     </div>
-  
+  </div>
+
+  <div *ngIf="showAdquirencia" class="col-span-12 space-y-6" [ngClass]="showReserve ? 'xl:col-span-4' : 'xl:col-span-6'">
+    <div class="rounded-2xl business-card adquirencia-card" style="background: linear-gradient(#c7924b 40%, #d5b281) !important; color: #fff !important;">
+      <h4>Adquirencia</h4>
+      <p>Saldo Disponible: <span class="positive">{{ money(balanceSirio()[0]?.balance) }}</span></p>
+      <p>Saldo Pendiente: <span class="highlight">{{ money(balanceSirio()[0]?.customerNetworkBalance) }}</span></p>
+      <div class="inline-chart-container">
+        <canvas id="adquirenciaSummaryChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showReserve" class="col-span-12 space-y-6 xl:col-span-4">
+    <div class="rounded-2xl business-card adquirencia-card" style="background: linear-gradient(#6a6a69 40%, #a6a6a6) !important; color: #fff !important; border-left: 4px solid #8f8f8d;">
+      <h4 style="color: #fff;">Reserva</h4>
+      <p>Saldo Disponible: <span class="positive">{{ money(balanceAhorro()[0]?.balance) }}</span></p>
+      <p>Saldo Pendiente: <span class="highlight">{{ money(balanceAhorro()[0]?.customerNetworkBalance) }}</span></p>
+      <div class="inline-chart-container">
+        <canvas id="ahorroSummaryChart"></canvas>
+      </div>
+    </div>
+  </div>
 </div>
-<!-- Contenido Principal -->
-<div class="grid grid-cols-12">
 
-  <div class="col-md-12 col-span-12 xl:col-span-12">
-    if idBusinessModel != 1
-        <!-- Pestañas principales de Negocio -->
-        <div class="tabs">
-            <!--div class="tab " onclick="openMainTab(event, 'emisionTab')">Saldo de Emisión</div-->
-            <div class="tab active" onclick="openMainTab(event, 'adquirenciaTab')">Saldo de Adquirencia</div>
-        </div>
-                
-        <!-- Contenido de pestaña de Adquirencia -->
-        <div id="adquirenciaTab" class="tab-content active">
-            <div class="row">
-              <div class="max-w-full overflow-x-auto">
-                <table class="w-full">
-                  <thead class="border-gray-100 border-y dark:border-white/[0.05]">
-                    <tr>
-                      <th>Marca</th>
-                      <th>No. transacciones</th>                                       
-                      <th>Costo total</th>
-                      <th>Total de comisiones</th>
-                      <th>Total IVA comisiones</th>
-                      <th>Total transaccionado</th>
-                      <th>Total neto</th> 
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                    reporte of reportes(); track reporte.brandName
-                      <tr>
-                          <td>brandName</td>
-                          <td class="highlight">numTrs</td>
-                          <td class="highlight">$totalCost</td>
-                          <td class="highlight">$totalFee</td>
-                          <td class="highlight">$totalFeeTax</td>
-                          <td class="highlight">$totalAmount</td>
-                          <td class="highlight">$totalNetAmount</td>
-                      </tr>
-                    
-                      <tr>
-                        <p>No hay elementos disponibles.</p>
-                      </tr>
-                    
-                    <tr class="total-row">
-                        <td colspan="6"><strong>Total</strong></td>
-                        <td class="highlight"><strong></strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+<div *ngIf="showAdquirencia" class="grid grid-cols-12 mt-6">
+  <div class="col-span-12">
+    <div class="tabs">
+      <div class="tab active">Saldo de Adquirencia</div>
+    </div>
 
-            </div>
-          </div>
-        
+    <div id="adquirenciaTab" class="tab-content active">
+      <div class="max-w-full overflow-x-auto">
+        <table class="w-full">
+          <thead class="border-gray-100 border-y dark:border-white/[0.05]">
+            <tr>
+              <th>Marca</th>
+              <th>No. transacciones</th>
+              <th>Costo total</th>
+              <th>Total de comisiones</th>
+              <th>Total IVA comisiones</th>
+              <th>Total transaccionado</th>
+              <th>Total neto</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+            <tr *ngFor="let reporte of reportes()">
+              <td>{{ reporte.brandName || '-' }}</td>
+              <td class="highlight">{{ reporte.numTrs || 0 }}</td>
+              <td class="highlight">{{ money(reporte.totalCost) }}</td>
+              <td class="highlight">{{ money(reporte.totalFee) }}</td>
+              <td class="highlight">{{ money(reporte.totalFeeTax) }}</td>
+              <td class="highlight">{{ money(reporte.totalAmount) }}</td>
+              <td class="highlight">{{ money(reporte.totalNetAmount) }}</td>
+            </tr>
+            <tr *ngIf="reportes().length === 0">
+              <td colspan="7">No hay elementos disponibles.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  
 </div>
