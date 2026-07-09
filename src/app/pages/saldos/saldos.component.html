@@ -1,109 +1,80 @@
-
-<div class="page-container">
-
-  <div class="panel">
+<div class="saldos-shell page-container">
+  <article class="panel filter-panel">
+    <header class="panel-header">
+      <div>
+        <span class="eyebrow">Filtros</span>
+        <h2>Consulta de saldos</h2>
+      </div>
+    </header>
 
     <div class="filters-row">
-
       <div class="filter-group">
         <label>Selecciona cuenta</label>
 
-       <select
-  class="form-control"
-  (change)="onCuentaChange($event)"
->
+        <select class="form-control" (change)="onCuentaChange($event)">
+          <option value="">Selecciona cuenta</option>
 
-  <option value="">
-    Selecciona cuenta
-  </option>
-
-  @for (cuenta of cuentas; track cuenta.idSirio) {
-
-    <option [value]="cuenta.idSirio">
-      {{ cuenta.name }}
-    </option>
-
-  }
-
-</select>
+          @for (cuenta of cuentas; track cuenta.idSirio) {
+            <option [value]="cuenta.idSirio">
+              {{ cuenta.name }}
+            </option>
+          }
+        </select>
       </div>
 
-  <div class="filter-group">
+      <div class="filter-group">
+        <label>Entidad</label>
 
-    <label>Entidad</label>
+        <select class="form-control" (change)="onEntidadChange($event)">
+          <option value="">Selecciona entidad</option>
 
-    <select
-      class="form-control"
-      (change)="onEntidadChange($event)"
-    >
-
-      <option value="">
-        Selecciona entidad
-      </option>
-
-      @for (entidad of entidades; track entidad.bundle) {
-
-        <option [value]="entidad.bundle">
-          {{ entidad.bundle }} - {{ entidad.bussinesName }}
-        </option>
-
-      }
-
-    </select>
-
-  </div>
-
-
-
+          @for (entidad of entidades; track entidad.bundle) {
+            <option [value]="entidad.bundle">
+              {{ entidad.bundle }} - {{ entidad.bussinesName }}
+            </option>
+          }
+        </select>
+      </div>
     </div>
+  </article>
 
-  </div>
-
-  <div class="panel">
-
-    <div class="actions">
-
-      <div class="total-rows">
-        num_total_rows = {{ saldos.length }}
+  <article class="panel results-panel">
+    <header class="panel-header actions">
+      <div>
+        <span class="eyebrow">Resultados</span>
+        <h2>Detalle de saldos</h2>
+        <div class="total-rows">
+          num_total_rows = {{ saldos.length }}
+        </div>
       </div>
 
       <div class="export-buttons">
-       <button
-  class="export-btn"
-  (click)="exportarExcel()"
->
-  EXPORTAR A EXCEL
-</button>
+        <button class="export-btn" (click)="exportarExcel()">
+          EXPORTAR A EXCEL
+        </button>
 
-        <button
-  class="export-btn"
-  (click)="exportarPDF()"
->
-  EXPORTAR A PDF
-</button>
+        <button class="export-btn" (click)="exportarPDF()">
+          EXPORTAR A PDF
+        </button>
       </div>
-
-    </div>
+    </header>
 
     <div class="table-container">
-
       <table>
-
         <thead>
           <tr>
             <th>ID</th>
             <th>NOMBRE</th>
             <th>EMAIL</th>
-            <th>TELÉFONO</th>
+            <th>TELEFONO</th>
             <th>SALDO PRINCIPAL</th>
-            <th>SALDO GARANTÍA</th>
+            <th>SALDO GARANTIA</th>
             <th>SALDO PENDIENTE</th>
             <th>SALDO TARJETA</th>
           </tr>
         </thead>
 
         <tbody>
-
           @for (saldo of saldos; track saldo.id) {
             <tr>
               <td>{{ saldo.id }}</td>
@@ -116,13 +87,8 @@
               <td>{{ saldo.saldoTarjeta }}</td>
             </tr>
           }
-
         </tbody>
-
       </table>
-
     </div>
-
-  </div>
-
-</div> 
+  </article>
+</div>

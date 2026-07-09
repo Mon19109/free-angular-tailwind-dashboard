@@ -1,167 +1,275 @@
-
-
-.page-header{
-  display:flex;
-  align-items:center;
-  gap:18px;
-  margin-bottom:20px;
-}
-.title-section{
-  display:flex;
-  align-items:center;
-  gap:35px;
-}
-.breadcrumb{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:14px;
-}
-.breadcrumb-link{
-  color:#999;
-  text-decoration:none;
-  transition:.2s;
-}
-.breadcrumb-link:hover{
-  color:#0d6efd;
+:host {
+  --saldos-bg: #05070b;
+  --saldos-bg-alt: #0b111a;
+  --saldos-card: rgba(9, 13, 20, 0.94);
+  --saldos-card-2: rgba(13, 18, 27, 0.96);
+  --saldos-panel: rgba(255, 255, 255, 0.03);
+  --saldos-border: rgba(241, 178, 61, 0.16);
+  --saldos-line: rgba(255, 255, 255, 0.08);
+  --saldos-text: #f6f7fb;
+  --saldos-muted: rgba(246, 247, 251, 0.68);
+  --saldos-gold: #f1b23d;
+  --saldos-gold-strong: #f8d877;
+  --saldos-shadow: 0 30px 72px rgba(0, 0, 0, 0.45);
+  --saldos-shadow-soft: 0 18px 34px rgba(0, 0, 0, 0.24);
+  display: block;
+  margin: -1rem;
+  color: var(--saldos-text);
 }
 
-.home-btn{
-  width:42px;
-  height:42px;
-  border:none;
-  border-radius:4px;
-  background:#334155;
-  color:white;
-  cursor:pointer;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
+:host-context(html:not(.dark)) {
+  --saldos-bg: #f4f7fb;
+  --saldos-bg-alt: #edf3fa;
+  --saldos-card: rgba(255, 255, 255, 0.98);
+  --saldos-card-2: rgba(246, 250, 255, 0.96);
+  --saldos-panel: rgba(248, 250, 253, 0.96);
+  --saldos-border: rgba(209, 219, 233, 0.95);
+  --saldos-line: rgba(148, 163, 184, 0.22);
+  --saldos-text: #172033;
+  --saldos-muted: #667085;
+  --saldos-shadow: 0 24px 50px rgba(35, 50, 77, 0.08);
+  --saldos-shadow-soft: 0 12px 28px rgba(35, 50, 77, 0.06);
 }
 
-
-.page-header h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
+* {
+  box-sizing: border-box;
 }
 
-.page-header span{
-  color:#999;
+.saldos-shell {
+  min-height: calc(100vh - 104px);
+  width: 100%;
+  padding: clamp(28px, 4vw, 54px);
+  overflow-x: hidden;
+  color: var(--saldos-text);
+  background:
+    radial-gradient(circle at top left, rgba(241, 178, 61, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 24%),
+    linear-gradient(180deg, var(--saldos-bg) 0%, var(--saldos-bg-alt) 52%, var(--saldos-bg) 100%);
 }
 
-.page-container {
-  padding: 15px;
-  background: #edf1f5;
-  min-height: 100vh;
+:host-context(html:not(.dark)) .saldos-shell {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(241, 178, 61, 0.08), transparent 24%),
+    linear-gradient(180deg, #f7f9fc 0%, var(--saldos-bg-alt) 52%, #f7f9fc 100%);
+}
+
+@media (min-width: 768px) {
+  :host {
+    margin: -1.5rem;
+  }
 }
 
 .panel {
-  background: #fff;
-  border: 1px solid #d7dde4;
-  border-radius: 6px;
-  padding: 20px;
-  margin-bottom: 20px;
+  max-width: 1200px;
+  margin: 0 auto 28px;
+  overflow: hidden;
+  border: 1px solid var(--saldos-border);
+  border-radius: 22px;
+  color: var(--saldos-text);
+  background: linear-gradient(180deg, var(--saldos-card), var(--saldos-card-2));
+  box-shadow: var(--saldos-shadow);
+}
+
+.panel-header {
+  min-height: 88px;
+  padding: 22px clamp(22px, 3vw, 34px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--saldos-line);
+  background: linear-gradient(90deg, rgba(8, 12, 19, 0.96), rgba(14, 20, 31, 0.96));
+}
+
+:host-context(html:not(.dark)) .panel-header {
+  color: #ffffff;
+  background: linear-gradient(90deg, #243247 0%, #344c68 100%);
+}
+
+.panel-header h2 {
+  margin: 0;
+  color: inherit;
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.15;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 4px;
+  color: var(--saldos-gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .filters-row {
-  display: flex;
-  gap: 60px;
+  padding: clamp(22px, 3vw, 34px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 24px;
 }
 
 .filter-group {
-  flex: 1;
+  min-width: 0;
 }
 
 .filter-group label {
   display: block;
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 6px;
+  margin-bottom: 9px;
+  color: var(--saldos-text);
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .form-control {
   width: 100%;
-  height: 42px;
-  border: 1px solid #d3d8df;
-  border-radius: 4px;
-  padding: 0 12px;
-  font-size: 14px;
-  background: white;
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 0 14px;
+  outline: none;
+  color: var(--saldos-text);
+  background: rgba(2, 4, 7, 0.72);
+  font-size: 15px;
+  font-weight: 650;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+:host-context(html:not(.dark)) .form-control {
+  border-color: rgba(208, 213, 221, 0.92);
+  color: #172033;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.form-control:focus {
+  border-color: rgba(241, 178, 61, 0.42);
+  box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12);
+}
+
+.form-control option {
+  color: #172033;
+  background: #ffffff;
+}
+
+html.dark .form-control option {
+  color: #f6f7fb;
+  background: #0b111a;
 }
 
 .actions {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 25px;
+  align-items: center;
 }
 
 .total-rows {
-  font-size: 16px;
-  color: #666;
+  margin-top: 10px;
+  color: var(--saldos-muted);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .export-buttons {
   display: flex;
-  gap: 20px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .export-btn {
-  background: #eef2f6;
-  border: 1px solid #dde3ea;
-  color: #8d96a5;
-  padding: 10px 16px;
-  border-radius: 4px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  font-weight: 600;
   font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
 .export-btn:hover {
-  background: #e5eaf0;
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .table-container {
+  margin: clamp(22px, 3vw, 34px);
   overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--saldos-line);
+  border-radius: 16px;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
-}
-
-thead tr {
-  background: #344154;
+  min-width: 1040px;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 thead th {
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 14px 12px;
+  white-space: nowrap;
+  color: #ffffff;
+  background: linear-gradient(90deg, rgba(8, 12, 19, 0.96), rgba(14, 20, 31, 0.96));
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
   text-align: left;
-  padding: 12px;
-  border-right: 1px solid #556273;
+}
+
+:host-context(html:not(.dark)) thead th {
+  background: linear-gradient(90deg, #243247 0%, #344c68 100%);
 }
 
 tbody td {
-  padding: 10px 12px;
-  color: #555;
-  border: 1px solid #dfe3e8;
+  border-top: 1px solid var(--saldos-line);
+  padding: 13px 12px;
+  white-space: nowrap;
+  color: var(--saldos-text);
+  background: var(--saldos-card);
   font-size: 13px;
+  vertical-align: middle;
 }
 
-tbody tr:nth-child(odd) {
-  background: #d8dde3;
+tbody tr:nth-child(odd) td {
+  background: var(--saldos-panel);
 }
 
-tbody tr:nth-child(even) {
-  background: #f6f6f6;
+tbody tr:hover td {
+  background: rgba(241, 178, 61, 0.08);
 }
 
-.page-title {
-  color: #333f50;
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 25px;
+@media (max-width: 900px) {
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .saldos-shell {
+    padding: 18px;
+  }
+
+  .panel {
+    max-width: none;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .export-buttons {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .export-btn {
+    width: 100%;
+  }
 }
