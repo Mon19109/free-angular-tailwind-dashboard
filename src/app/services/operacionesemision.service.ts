@@ -32,6 +32,7 @@ export interface FormularioData {
 })
 export class OperacionesEmisionService {
   private apiUrl = environment.api.kashpay; // Reemplazar con tu URL base
+  private apiV1Url = `${this.apiUrl}api/v1/`;
   private apiUrlCuentas = environment.api.aldebaran;
   private apiUrlOpe = environment.api.saldos; // Reemplazar con tu URL base
   //private cuen = localStorage.getItem('issueId');
@@ -66,7 +67,7 @@ obtenerConcentratorAccounts(): Observable<any> {
   });
 
   return this.http.get<any>(
-    `${this.apiUrl}account/getConcentratorAccounts?sirioId=${localStorage.getItem('entitySonID')}`,
+    `${this.apiV1Url}account/getConcentratorAccounts?sirioId=${localStorage.getItem('entitySonID')}`,
     { headers }
   );
 }
@@ -102,7 +103,7 @@ obtenerEntidades(cuenta: string): Observable<any> {
       .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
 
 
-    return this.http.get<any>(`${this.apiUrl}catOperationType/getAll`, 
+    return this.http.get<any>(`${this.apiV1Url}catOperationType/getAll`, 
       {headers})
      .pipe(
         map(response => response.catOperationTypes) 

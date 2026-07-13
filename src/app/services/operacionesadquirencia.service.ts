@@ -54,19 +54,23 @@ export interface Status {
   codigo: string;
 }
 export interface FormularioData {
-  cuenta: string;
-  idEntidad: string;
-  idSucursal: string;
-  idSubafiliado: string;
-  idCaja: string;
-  monto: number;
-  numAuto: string;
-  email: string;
-  tel: string;
-  estatus: string;
-  tipoOperacion: string;
-  fechaInicio: string;
-  fechaFin: string;
+  cuenta?: string;
+  entidad?: string;
+  sucursal?: string;
+  caja?: string;
+  clasificacion?: string;
+  idEntidad?: string;
+  idSucursal?: string;
+  idSubafiliado?: string;
+  idCaja?: string;
+  monto?: number | string;
+  numAuto?: string;
+  email?: string;
+  tel?: string;
+  estatus?: string | string[];
+  tipoOperacion?: string | string[];
+  fechaInicio?: string;
+  fechaFin?: string;
 }
 
 
@@ -76,6 +80,7 @@ export interface FormularioData {
 export class OperacionesAdquirenciaService {
   private apiAldebaran = environment.api.aldebaran;
   private baseUrl = environment.api.kashpay;
+  private apiV1Url = `${this.baseUrl}api/v1/`;
   //private cuen = localStorage.getItem('issueId');
 
   
@@ -133,7 +138,7 @@ export class OperacionesAdquirenciaService {
   const headers = this.getCommonHeaders();
 
   return this.http.get<any>(
-    `${this.baseUrl}catOperationType/getAll`,
+    `${this.apiV1Url}catOperationType/getAll`,
     {
       headers
     }
@@ -143,13 +148,13 @@ export class OperacionesAdquirenciaService {
 
   getSubafiliados(): Observable<{ contextResponse: Subafiliado[] }> {
       return this.http.get<{ contextResponse: Subafiliado[] }>(
-        `${this.baseUrl}subAffiliation/getAll`
+        `${this.apiV1Url}subAffiliation/getAll`
       );
     }
   
     getSubafiliadoById(id: number): Observable<{ contextResponse: Subafiliado }> {
       return this.http.get<{ contextResponse: Subafiliado }>(
-        `${this.baseUrl}subAffiliation/getById?idSubAffiliation=${id}`
+        `${this.apiV1Url}subAffiliation/getById?idSubAffiliation=${id}`
       );
     }
   
@@ -163,7 +168,7 @@ export class OperacionesAdquirenciaService {
   getEntidades(subafiliadoId: number): Observable<any> {
 
   return this.http.get(
-    `${this.baseUrl}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
+    `${this.apiV1Url}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
     {
       headers: this.getCommonHeaders()
     }
@@ -172,11 +177,17 @@ export class OperacionesAdquirenciaService {
 }
   
     getSucursales(subafiliadoId: number, entidadId: number): Observable<any> {
-      return this.http.get(`${this.baseUrl}/transacciones/searchSucursal/${subafiliadoId}/${entidadId}`);
+      return this.http.get(
+        `${this.apiV1Url}branchOffice/getBranchOfficeByAffiliationAndEntity?idSubAffiliation=${subafiliadoId}&idEntity=${entidadId}`,
+        { headers: this.getCommonHeaders() }
+      );
     }
   
     getCajas(idTerminal: number): Observable<any> {
-      return this.http.get(`${this.baseUrl}/transacciones/searchCaja/${idTerminal}`);
+      return this.http.get(
+        `${this.apiV1Url}collaborator/getCollaboratorByBranchOffice?idTerminal=${idTerminal}`,
+        { headers: this.getCommonHeaders() }
+      );
     }
   
 //ESE SERVCIO ES DE PHP 
@@ -211,16 +222,23 @@ getCajas(idTerminal:number) {
    * @param formData Datos del formulario
    */
   enviarFormulario(formData: FormularioData): Observable<any> {
-    // Opcional: Puedes transformar los datos si es necesario
-    const datosTransformados = {
-      ...formData,
-      // Convertir fechas al formato deseado si es necesario
-      fechaInicio: formData.fechaInicio ? new Date(formData.fechaInicio).toISOString() : null,
-      fechaFin: formData.fechaFin ? new Date(formData.fechaFin).toISOString() : null
-    };
+    const sirioId = formData.caja || formData.sucursal || formData.entidad || formData.idEntidad || formData.cuenta;
 
-    //getOperations?type_operation='.$_GET['type_operation'].'&id_status='.$_GET['id_status'].'&sirioId='.$_GET['id_context'].'&amount='.$_GET['amount'].'&auth_number='.$_GET['auth_number'].'&num_cuenta='.$_GET['num_cuenta'].'&init_date='.$_GET['init_date'].'&end_date='.$_GET['end_date'].'&email='.$_GET['email'].'&telephoneNumber='.$_GET['telephoneNumber'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE;
-    return this.http.get(`${this.apiAldebaran}getOperations?type_operation=${formData.tipoOperacion}&id_status=${formData.estatus}&sirioId=${formData.idEntidad}&amount=${formData.monto}&auth_number=${formData.numAuto}&num_cuenta=${formData.cuenta}&init_date=${formData.fechaInicio}&end_date=${formData.fechaFin}&email=${formData.email}&telephoneNumber=${formData.tel}&page=0&size=10`);
+    const params = new HttpParams()
+      .set('type_operation', this.emptyParam(formData.tipoOperacion))
+      .set('id_status', this.emptyParam(formData.estatus))
+      .set('sirioId', this.emptyParam(sirioId))
+      .set('amount', this.emptyParam(formData.monto))
+      .set('auth_number', this.emptyParam(formData.numAuto))
+      .set('num_cuenta', this.emptyParam(formData.cuenta))
+      .set('init_date', this.emptyParam(formData.fechaInicio))
+      .set('end_date', this.emptyParam(formData.fechaFin))
+      .set('email', this.emptyParam(formData.email))
+      .set('telephoneNumber', this.emptyParam(formData.tel))
+      .set('page', '0')
+      .set('size', '10');
+
+    return this.http.get(`${this.apiAldebaran}getOperations`, { params });
   }
 
   /**
@@ -231,11 +249,17 @@ getCajas(idTerminal:number) {
     let params = new HttpParams();
     
     if (formData.cuenta) params = params.set('cuenta', formData.cuenta);
-    if (formData.estatus) params = params.set('estatus', formData.estatus);
-    if (formData.tipoOperacion) params = params.set('tipoOperacion', formData.tipoOperacion);
+    if (formData.estatus) params = params.set('estatus', this.emptyParam(formData.estatus));
+    if (formData.tipoOperacion) params = params.set('tipoOperacion', this.emptyParam(formData.tipoOperacion));
     if (formData.fechaInicio) params = params.set('fechaInicio', formData.fechaInicio);
     if (formData.fechaFin) params = params.set('fechaFin', formData.fechaFin);
     
     return this.http.get(`${this.apiAldebaran}/consultas`, { params });
+  }
+
+  private emptyParam(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (Array.isArray(value)) return value.join(',');
+    return String(value);
   }
 }

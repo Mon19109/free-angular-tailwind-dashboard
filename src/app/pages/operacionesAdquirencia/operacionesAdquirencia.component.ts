@@ -178,6 +178,11 @@ this.formulario.get('cuenta')?.valueChanges.subscribe(valor => {
 
   console.log('SUBAFILIADO:', valor);
 
+  this.formulario.patchValue({ entidad: '', sucursal: '', caja: '' }, { emitEvent: false });
+  this.entidades = [];
+  this.sucursales = [];
+  this.cajas = [];
+
   if (!valor) return;
 
   this.opeAdquiService
@@ -188,7 +193,7 @@ this.formulario.get('cuenta')?.valueChanges.subscribe(valor => {
 
   console.log('ENTIDADES RESP:', resp);
 
-  this.entidades = resp.entitiesResponse || [];
+  this.entidades = resp.entitiesResponse || resp.rows?.entitiesResponse || resp.rows || [];
 
 },
 
@@ -207,6 +212,10 @@ this.formulario.get('entidad')?.valueChanges.subscribe(entidad => {
   const subafiliado =
   this.formulario.get('cuenta')?.value;
 
+  this.formulario.patchValue({ sucursal: '', caja: '' }, { emitEvent: false });
+  this.sucursales = [];
+  this.cajas = [];
+
   if (!subafiliado || !entidad) return;
 
   this.opeAdquiService
@@ -216,7 +225,7 @@ this.formulario.get('entidad')?.valueChanges.subscribe(entidad => {
       next:(resp:any)=>{
 
         this.sucursales =
-        resp.rows || [];
+        resp.branchOfficeResponse || resp.rows?.branchOfficeResponse || resp.rows || [];
 
       }
 
@@ -225,6 +234,9 @@ this.formulario.get('entidad')?.valueChanges.subscribe(entidad => {
 });
 
 this.formulario.get('sucursal')?.valueChanges.subscribe(idTerminal => {
+
+  this.formulario.patchValue({ caja: '' }, { emitEvent: false });
+  this.cajas = [];
 
   if (!idTerminal) return;
 
@@ -235,7 +247,7 @@ this.formulario.get('sucursal')?.valueChanges.subscribe(idTerminal => {
       next:(resp:any)=>{
 
         this.cajas =
-        resp.rows || [];
+        resp.collaborators || resp.rows?.collaborators || resp.rows || [];
 
       }
 
@@ -264,10 +276,9 @@ mostrarResultados = false;
       // Aquí puedes llamar a otro servicio para enviar los datos
       this.opeAdquiService.enviarFormulario(formValues).subscribe({
         next: (response) => {
-          this.operaciones = response.operations || [];
-this.mostrarResultados = true;
+          this.operaciones = response.operations || response.content || response.rows?.content || response.rows || [];
+          this.mostrarResultados = true;
           console.log('Formulario enviado exitosamente:', response);
-          this.operaciones = response.operations || [];
 
           console.log('operaciones enviado exitosamente:', this.operaciones);
           // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito

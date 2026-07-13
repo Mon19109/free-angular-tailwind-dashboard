@@ -141,8 +141,7 @@ export class TransaccionesEmisionComponent implements OnInit {
        
         next: (response) => {
           console.log('Formulario enviado exitosamente:', response);
-         // this.operaciones = response.operations || [];
-this.operaciones = response.content || [];
+          this.operaciones = response.content || response.rows?.content || response.rows || [];
           console.log('operaciones enviado exitosamente:', this.operaciones);
           // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
         },

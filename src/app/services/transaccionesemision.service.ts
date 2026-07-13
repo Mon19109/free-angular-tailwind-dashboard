@@ -26,16 +26,16 @@ export interface Status {
   codigo: string;
 }
 export interface FormularioData {
-  cuenta: string;
-  idEntidad: string;
-  monto: number;
-  numAuto: string;
-  email: string;
-  tel: string;
-  estatus: string;
-  tipoOperacion: string;
-  fechaInicio: string;
-  fechaFin: string;
+  cuenta?: string;
+  idEntidad?: string;
+  monto?: number | string;
+  numAuto?: string;
+  email?: string;
+  tel?: string;
+  estatus?: string;
+  tipoOperacion?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
 }
 
 @Injectable({
@@ -109,16 +109,18 @@ export class TransaccionesEmisionService {
    * @param formData Datos del formulario
    */
   enviarFormulario(formData: FormularioData): Observable<any> {
-    // Opcional: Puedes transformar los datos si es necesario
-    const datosTransformados = {
-      ...formData,
-      // Convertir fechas al formato deseado si es necesario
-      fechaInicio: formData.fechaInicio ? new Date(formData.fechaInicio).toISOString() : null,
-      fechaFin: formData.fechaFin ? new Date(formData.fechaFin).toISOString() : null
-    };
+    const params = new HttpParams()
+      .set('type_operation', this.emptyParam(formData.tipoOperacion))
+      .set('id_status', this.emptyParam(formData.estatus))
+      .set('amount', this.emptyParam(formData.monto))
+      .set('auth_number', this.emptyParam(formData.numAuto))
+      .set('num_cuenta', this.emptyParam(formData.cuenta))
+      .set('init_date', this.emptyParam(formData.fechaInicio))
+      .set('end_date', this.emptyParam(formData.fechaFin))
+      .set('page', '0')
+      .set('size', '10');
 
-    //getOperations?type_operation='.$_GET['type_operation'].'&id_status='.$_GET['id_status'].'&sirioId='.$_GET['id_context'].'&amount='.$_GET['amount'].'&auth_number='.$_GET['auth_number'].'&num_cuenta='.$_GET['num_cuenta'].'&init_date='.$_GET['init_date'].'&end_date='.$_GET['end_date'].'&email='.$_GET['email'].'&telephoneNumber='.$_GET['telephoneNumber'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE;
-    return this.http.get(`${this.apiAldebaran}getOperations?type_operation=${formData.tipoOperacion}&id_status=${formData.estatus}&sirioId=${formData.idEntidad}&amount=${formData.monto}&auth_number=${formData.numAuto}&num_cuenta=${formData.cuenta}&init_date=${formData.fechaInicio}&end_date=${formData.fechaFin}&email=${formData.email}&telephoneNumber=${formData.tel}&page=0&size=10`);
+    return this.http.get(`${this.apiAldebaran}getOperations`, { params });
   }
 
   /**
@@ -135,5 +137,10 @@ export class TransaccionesEmisionService {
     if (formData.fechaFin) params = params.set('fechaFin', formData.fechaFin);
     
     return this.http.get(`${this.apiAldebaran}/consultas`, { params });
+  }
+
+  private emptyParam(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    return String(value);
   }
 }

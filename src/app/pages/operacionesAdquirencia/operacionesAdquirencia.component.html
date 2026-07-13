@@ -59,7 +59,7 @@ Seleccione una entidad
 *ngFor="let entidad of entidades"
 [value]="entidad.idEntity">
 
-{{ entidad.businessName }}
+{{ entidad.entityDescription || entidad.businessName }}
 
 </option>
 
@@ -83,7 +83,7 @@ Seleccione una sucursal
 *ngFor="let sucursal of sucursales"
 [value]="sucursal.idTerminal">
 
-{{ sucursal.terminalDescription }}
+{{ sucursal.businessName || sucursal.terminalDescription }}
 
 </option>
 
@@ -106,7 +106,7 @@ Seleccione una caja
 *ngFor="let caja of cajas"
 [value]="caja.idTerminalUser">
 
-{{ caja.name }}
+{{ caja.tuName || caja.name }}
 
 </option>
 
