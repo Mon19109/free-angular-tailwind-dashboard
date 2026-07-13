@@ -33,10 +33,9 @@
             [(ngModel)]="filtros.subafiliado"
             name="subafiliado"
             (change)="onSubafiliadoChange()">
-            <option value="">SubAfiliadoMonyTest</option>
             @for (item of subafiliados(); track item.idContext) {
               <option
-                [value]="item.idContext"
+                [value]="getOptionValue(item.idContext, item.nodeID)"
                 [attr.selected]="item.idContext == 00 ? true : null">
                 {{ item.contextDescription }}
               </option>
@@ -53,7 +52,7 @@
             (change)="onEntidadChange()">
             <option value=""></option>
             @for (item of entidades(); track item.idEntity) {
-              <option [value]="item.idEntity">
+              <option [value]="getOptionValue(item.idEntity, item.nodeID)">
                 {{ item.entityDescription }}
               </option>
             }
@@ -69,7 +68,7 @@
             (change)="onSucursalChange()">
             <option value=""></option>
             @for (item of sucursales(); track item.idTerminal) {
-              <option [value]="item.idTerminal">
+              <option [value]="getOptionValue(item.idTerminal, item.nodeID)">
                 {{ item.businessName }}
               </option>
             }
@@ -84,7 +83,7 @@
     name="caja">
     <option value=""></option>
     @for (item of cajas(); track item.idTerminalUser) {
-      <option [value]="item.idTerminalUser">
+      <option [value]="getOptionValue(item.idTerminalUser, item.nodeID)">
         {{ item.tuName }}
       </option>
     }

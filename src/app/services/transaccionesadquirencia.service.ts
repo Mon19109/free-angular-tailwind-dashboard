@@ -61,21 +61,25 @@ export interface Transaccion {
 export interface Subafiliado {
   idContext: number;
   contextDescription: string;
+  nodeID?: string;
 }
 
 export interface Entidad {
   idEntity: number;
   entityDescription: string;
+  nodeID?: string;
 }
 
 export interface Sucursal {
   idTerminal: number;
   businessName: string;
+  nodeID?: string;
 }
 
 export interface Caja {
   idTerminalUser: number;
   tuName: string;
+  nodeID?: string;
 }
 export interface Operacion {
   idTransactionType: number;
@@ -93,6 +97,7 @@ export interface EstadoTransaccion {
 export class TransaccionesAdquirenciaService {
   private http = inject(HttpClient);
   private baseUrl = environment.api.kashpay; // Tu base URLAdquirenciaAdquirencia
+  private apiV1Url = `${this.baseUrl}api/v1/`;
   //private wsKashPayServices = environment.api.kashpay;
   private baseUrlTicket = environment.api.voucher; // Tu base URLAdquirenciaAdquirencia
 
@@ -119,7 +124,7 @@ getOperaciones(): Observable<any> {
   const headers = this.getCommonHeaders();
 
   return this.http.get(
-    `${this.baseUrl}catTransactionType/getAll`,
+    `${this.apiV1Url}catTransactionType/getAll`,
     {
       headers
     }
@@ -133,16 +138,16 @@ getOperaciones(): Observable<any> {
   const headers = this.getCommonHeaders();
 
   return this.http.get(
-    `${this.baseUrl}catResponseCode/getAll`,
+    `${this.apiV1Url}catResponseCode/getAll`,
     { headers }
   );
 }
 
   getSubafiliados(): Observable<any> {
     const headers = this.getCommonHeaders();
-    console.log('url = '+this.baseUrl+'subAffiliation/getAll');
+    console.log('url = '+this.apiV1Url+'subAffiliation/getAll');
     return this.http.get<any>(
-      `${this.baseUrl}subAffiliation/getAll`, { 
+      `${this.apiV1Url}subAffiliation/getAll`, { 
           headers: headers
         }
     );
@@ -152,7 +157,7 @@ getOperaciones(): Observable<any> {
     const headers = this.getCommonHeaders();
 
     return this.http.get<any>(
-      `${this.baseUrl}subAffiliation/getById?idSubAffiliation=${id}`, { 
+      `${this.apiV1Url}subAffiliation/getById?idSubAffiliation=${id}`, { 
           headers: headers,
           withCredentials: true
         }
@@ -167,7 +172,7 @@ getOperaciones(): Observable<any> {
   const headers = this.getCommonHeaders();
 
   return this.http.get(
-    `${this.baseUrl}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
+    `${this.apiV1Url}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
     { headers }
   );
 }
@@ -175,33 +180,69 @@ getOperaciones(): Observable<any> {
   getSucursales(subafiliadoId: number, entidadId: number): Observable<any> {
     const headers = this.getCommonHeaders();
 
-    return this.http.get(`${this.baseUrl}/transacciones/searchSucursal/${subafiliadoId}/${entidadId}`, { 
-          headers: headers,
-          withCredentials: true
-        });
+    return this.http.get(
+      `${this.apiV1Url}branchOffice/getBranchOfficeByAffiliationAndEntity?idSubAffiliation=${subafiliadoId}&idEntity=${entidadId}`,
+      { headers }
+    );
   }
 
   getCajas(idTerminal: number): Observable<any> {
     const headers = this.getCommonHeaders();
 
-    return this.http.get(`${this.baseUrl}/transacciones/searchCaja/${idTerminal}`, { 
-          headers: headers,
-          withCredentials: true
-        });
+    return this.http.get(
+      `${this.apiV1Url}collaborator/getCollaboratorByBranchOffice?idTerminal=${idTerminal}`,
+      { headers }
+    );
   }
 
   // Buscar transacciones
   buscarTransacciones(filtros: FiltrosTransaccion): Observable<any> {
     const headers = this.getCommonHeaders();
-    const formData = new FormData();
-    Object.keys(filtros).forEach(key => {
-      formData.append(key, filtros[key as keyof FiltrosTransaccion] || '');
-    });
-    return this.http.post(`${this.baseUrl}/transacciones/searchTransaccion`, formData);
+    const rootNodeID = this.getRootNodeID(filtros);
+    const params = new HttpParams()
+      .set('userID', localStorage.getItem('idUser') || '')
+      .set('typeOperation', filtros.operacion || '')
+      .set('amount', (filtros.monto || '').replace(/,/g, ''))
+      .set('responseCode', filtros.edoTransaccion || '')
+      .set('referenceNumber', filtros.referencia || '')
+      .set('authorizationNumber', filtros.autorizacion || '')
+      .set('bin', filtros.bin || '')
+      .set('card', filtros.numTarjeta || '')
+      .set('startDate', filtros.fechaInicio || '')
+      .set('endDate', filtros.fechaFin || '')
+      .set('liquidationID', '')
+      .set('page', '')
+      .set('status', '')
+      .set('searchBy', '')
+      .set('rootNodeID', rootNodeID);
+
+    return this.http.get(`${this.apiV1Url}operations/searchOperations`, { headers, params });
   }
 
   // Ver ticket
   verTicket(data: any): Observable<any> {
     return this.http.post(`${this.baseUrlTicket}/transacciones/verTicket`, data);
+  }
+
+  private getRootNodeID(filtros: FiltrosTransaccion): string {
+    const selectedValues = [
+      filtros.caja,
+      filtros.sucursal,
+      filtros.entidad,
+      filtros.subafiliado
+    ];
+
+    for (const value of selectedValues) {
+      const nodeID = this.getNodeID(value);
+      if (nodeID) return nodeID;
+    }
+
+    return localStorage.getItem('nodeID') || '';
+  }
+
+  private getNodeID(value?: string): string {
+    if (!value) return '';
+    const [, nodeID] = value.split('|');
+    return nodeID || '';
   }
 }

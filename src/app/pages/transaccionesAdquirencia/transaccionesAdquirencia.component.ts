@@ -65,6 +65,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   @ViewChild('map') mapElement!: ElementRef;
   
   ngOnInit() {
+    this.cargarDatosSesion();
     this.inicializarFechas();
     this.cargarCatalogos();
     this.cargarDependenciasIniciales();
@@ -72,7 +73,20 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   ngAfterViewInit() {
-    this.cargarDependenciasIniciales();
+  }
+
+  private cargarDatosSesion() {
+    this.rolId = localStorage.getItem('idRol') || this.rolId;
+    this.contId = localStorage.getItem('idContext') || this.contId;
+    this.entiId = localStorage.getItem('idEntity') || this.entiId;
+
+    if (this.contId && this.contId !== '0') {
+      this.subAfSelect = this.getOptionValue(this.contId, localStorage.getItem('nodeID') || undefined);
+    }
+
+    if (this.entiId && this.entiId !== '0') {
+      this.entidadSelect = this.entiId;
+    }
   }
 
   onFechaInicioChange(event: any) {
@@ -126,19 +140,19 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   cargarDependenciasIniciales() {
     this.cargarSubafiliados();
     if (this.subAfSelect !== '0') {
-      this.cargarEntidades(Number(this.subAfSelect));
+      this.cargarEntidades(this.getSelectedId(this.subAfSelect));
     }
     if (this.entidadSelect !== '0') {
-      this.cargarSucursales(Number(this.subAfSelect), Number(this.entidadSelect));
+      this.cargarSucursales(this.getSelectedId(this.subAfSelect), this.getSelectedId(this.entidadSelect));
     }
     if (this.sucursalSelect !== '0') {
-      this.cargarCajas(Number(this.sucursalSelect));
+      this.cargarCajas(this.getSelectedId(this.sucursalSelect));
     }
   }
   
   onSubafiliadoChange() {
     if (this.filtros.subafiliado) {
-      this.cargarEntidades(Number(this.filtros.subafiliado));
+      this.cargarEntidades(this.getSelectedId(this.filtros.subafiliado));
       this.filtros.entidad = '';
       this.filtros.sucursal = '';
       this.filtros.caja = '';
@@ -149,6 +163,13 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   cargarSubafiliados() {
+    const idContextSesion = localStorage.getItem('idContext') || this.contId;
+
+    if (this.rolId !== '2' || (idContextSesion && idContextSesion !== '0')) {
+      this.cargarSubafiliadoSesion();
+      return;
+    }
+
     this.transaccionesAdquirenciaService.getSubafiliados().subscribe({
       next: (res) => {
         if (res.contextResponse) {
@@ -162,6 +183,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
         }
       },
       error: () => {
+        this.cargarSubafiliadoSesion();
         /*bootbox.alert({
           message: "Error al cargar entidades.",
           locale: 'mx'
@@ -169,12 +191,43 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       }
     });
   }
+
+  private cargarSubafiliadoSesion() {
+    const idContext = Number(localStorage.getItem('idContext') || this.contId || 0);
+    if (!idContext) {
+      this.subafiliados.set([]);
+      return;
+    }
+
+    this.transaccionesAdquirenciaService.getSubafiliadoById(idContext).subscribe({
+      next: (res) => {
+        const contextResponse = res.contextResponse;
+        const subafiliadoList = Array.isArray(contextResponse)
+          ? contextResponse
+          : contextResponse
+            ? [contextResponse]
+            : [];
+
+        this.subafiliados.set(subafiliadoList);
+
+        if (subafiliadoList.length > 0) {
+          const subafiliado = subafiliadoList[0];
+          this.filtros.subafiliado = this.getOptionValue(
+            subafiliado.idContext,
+            subafiliado.nodeID || localStorage.getItem('nodeID') || undefined
+          );
+          this.cargarEntidades(subafiliado.idContext);
+        }
+      },
+      error: (err) => console.error('Error al cargar subafiliado por sesión:', err)
+    });
+  }
   
   cargarEntidades(subafiliadoId: number) {
     this.transaccionesAdquirenciaService.getEntidades(subafiliadoId).subscribe({
       next: (res) => {
-        if (res.rows?.success === true || res.rows?.entitiesResponse) {
-          const entidadesList = res.rows.entitiesResponse || res.rows;
+        const entidadesList = res.entitiesResponse || res.rows?.entitiesResponse || res.rows || [];
+        if (Array.isArray(entidadesList) && entidadesList.length > 0) {
           this.entidades.set(entidadesList);
         } else {
           /*bootbox.alert({
@@ -194,7 +247,10 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   
   onEntidadChange() {
     if (this.filtros.entidad && this.filtros.subafiliado) {
-      this.cargarSucursales(Number(this.filtros.subafiliado), Number(this.filtros.entidad));
+      this.cargarSucursales(
+        this.getSelectedId(this.filtros.subafiliado),
+        this.getSelectedId(this.filtros.entidad)
+      );
       this.filtros.sucursal = '';
       this.filtros.caja = '';
       this.sucursales.set([]);
@@ -205,8 +261,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   cargarSucursales(subafiliadoId: number, entidadId: number) {
     this.transaccionesAdquirenciaService.getSucursales(subafiliadoId, entidadId).subscribe({
       next: (res) => {
-        if (res.rows?.success === true || res.rows?.branchOfficeResponse) {
-          const sucursalesList = res.rows.branchOfficeResponse || res.rows;
+        const sucursalesList = res.branchOfficeResponse || res.rows?.branchOfficeResponse || res.rows || [];
+        if (Array.isArray(sucursalesList) && sucursalesList.length > 0) {
           this.sucursales.set(sucursalesList);
         } else {
           /*bootbox.alert({
@@ -226,7 +282,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   
   onSucursalChange() {
     if (this.filtros.sucursal) {
-      this.cargarCajas(Number(this.filtros.sucursal));
+      this.cargarCajas(this.getSelectedId(this.filtros.sucursal));
       this.filtros.caja = '';
       this.cajas.set([]);
     }
@@ -235,8 +291,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   cargarCajas(idTerminal: number) {
     this.transaccionesAdquirenciaService.getCajas(idTerminal).subscribe({
       next: (res) => {
-        if (res.rows?.success === true || res.rows?.collaborators) {
-          const cajasList = res.rows.collaborators || res.rows;
+        const cajasList = res.collaborators || res.rows?.collaborators || res.rows || [];
+        if (Array.isArray(cajasList) && cajasList.length > 0) {
           this.cajas.set(cajasList);
         } else {
           /*bootbox.alert({
@@ -323,6 +379,14 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
         locale: 'mx'
       });*/
     }
+  }
+
+  getOptionValue(id: string | number, nodeID?: string | number): string {
+    return nodeID ? `${id}|${nodeID}` : String(id);
+  }
+
+  private getSelectedId(value?: string): number {
+    return Number((value || '').split('|')[0] || 0);
   }
   
   limpiarFiltros() {
