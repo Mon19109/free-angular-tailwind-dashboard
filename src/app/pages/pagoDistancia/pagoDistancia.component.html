@@ -55,15 +55,12 @@
           <div class="transactions-form-grid">
             <div class="transaction-field">
               <app-label>Cuenta</app-label>
-              <div class="select-wrap">
-                <select formControlName="entidad" class="form-select">
-                  <option value="">Selecciona una cuenta</option>
-                  <option *ngFor="let cuenta of cuentas" [value]="cuenta.bundle">
-                    {{ cuenta.bundle }} - {{ cuenta.bussinesName }}
-                  </option>
-                </select>
-                <span class="select-chevron" aria-hidden="true">⌄</span>
-              </div>
+              <select formControlName="entidad" class="form-control">
+                <option value="">Selecciona una cuenta</option>
+                <option *ngFor="let cuenta of cuentas" [value]="cuenta.bundle">
+                  {{ cuenta.bundle }} - {{ cuenta.bussinesName }}
+                </option>
+              </select>
             </div>
 
             <div class="transaction-field">
@@ -77,17 +74,17 @@
 
             <div class="transaction-field">
               <app-label>Filtro</app-label>
-              <div class="select-wrap">
-                <app-select
-                  name="filtros"
-                  id="filtros"
-                  [options]="filtros"
-                  placeholder="Selecciona un filtro"
-                  (valueChange)="handleSelectChangeFil($event)"
-                  className="form-select"
-                ></app-select>
-                <span class="select-chevron" aria-hidden="true">⌄</span>
-              </div>
+              <select
+                id="filtros"
+                name="filtros"
+                class="form-control"
+                (change)="handleSelectChangeFil($event)"
+              >
+                <option value="">Selecciona un filtro</option>
+                <option *ngFor="let filtro of filtros" [value]="filtro.value">
+                  {{ filtro.label }}
+                </option>
+              </select>
             </div>
 
             <div class="transaction-field">

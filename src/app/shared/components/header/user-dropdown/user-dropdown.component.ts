@@ -3,12 +3,11 @@ import { DropdownComponent } from '../../ui/dropdown/dropdown.component';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../../services/auth.service';
-import { DropdownItemTwoComponent } from '../../ui/dropdown/dropdown-item/dropdown-item.component-two';
 
 @Component({
   selector: 'app-user-dropdown',
   templateUrl: './user-dropdown.component.html',
-  imports:[CommonModule,RouterModule,DropdownComponent,DropdownItemTwoComponent]
+  imports:[CommonModule,RouterModule,DropdownComponent]
 })
 
 export class UserDropdownComponent {

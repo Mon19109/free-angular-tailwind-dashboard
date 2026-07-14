@@ -185,21 +185,10 @@ export class AppSidebarComponent {
       title: 'OTROS',
       items: [
         {
-          name: 'NOTIFICACIONES',
-           icon: '<i class="fas fa-bell fa-lg"></i>',
-          path: '/notificaciones'
-        },
-        {
           name: 'MANUALES',
            icon: '<i class="fas fa-book fa-lg"></i>',
           path: '/manuales'
-        },
-        {
-          name: 'INVITAR COMERCIOS',
-         icon: '<i class="fas fa-paper-plane fa-lg"></i>',
-          path: '/comercios_invitados'
         }
-        
       ]
     }
   ];

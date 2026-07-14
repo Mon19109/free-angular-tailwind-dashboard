@@ -4,13 +4,12 @@ import { CommonModule } from '@angular/common';
 import { PagoDistanciaService,  } from '../../services/pagoDistancia.service';
 import { LabelComponent } from '../../shared/components/form/label/label.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
-import { SelectComponent } from '../../shared/components/form/select/select.component';
 
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule,LabelComponent,
-      DatePickerComponent,SelectComponent],
+      DatePickerComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 }) 
@@ -73,7 +72,8 @@ export class PagoDistanciaComponent implements OnInit {
     return response?.data || response?.entities || [];
   }
 
-  handleSelectChangeFil(value: string) {
+  handleSelectChangeFil(event: Event) {
+    const value = (event.target as HTMLSelectElement).value;
     this.selectedOptionFil = value;
     console.log('Selected value:', value);
     //this.opcionSeleccionada = value

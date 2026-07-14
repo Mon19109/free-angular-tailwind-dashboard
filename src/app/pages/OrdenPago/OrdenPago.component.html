@@ -63,31 +63,25 @@
           <div class="form-grid">
             <div class="form-field">
               <label>Cuenta Ordenante</label>
-              <div class="select-wrap">
-                <select formControlName="cuentaOr" (change)="obtenerSaldo()">
-                  <option value="">Seleccione una cuenta</option>
-                  <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
-                    {{ obtenerTextoCuenta(cuenta) }}
-                  </option>
-                </select>
-                <span class="select-chevron" aria-hidden="true">⌄</span>
-              </div>
+              <select formControlName="cuentaOr" (change)="obtenerSaldo()">
+                <option value="">Seleccione una cuenta</option>
+                <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
+                  {{ obtenerTextoCuenta(cuenta) }}
+                </option>
+              </select>
             </div>
 
             <div class="form-field">
               <label>Cuenta Beneficiario</label>
-              <div class="select-wrap">
-                <select formControlName="cuentaD">
-                  <option value="">Seleccione un beneficiario</option>
-                  <option *ngIf="beneficiariosCargados && beneficiarios.length === 0" value="" disabled>
-                    Sin beneficiarios disponibles
-                  </option>
-                  <option *ngFor="let beneficiario of beneficiarios" [value]="obtenerValorBeneficiario(beneficiario)">
-                    {{ obtenerTextoBeneficiario(beneficiario) }}
-                  </option>
-                </select>
-                <span class="select-chevron" aria-hidden="true">⌄</span>
-              </div>
+              <select formControlName="cuentaD">
+                <option value="">Seleccione un beneficiario</option>
+                <option *ngIf="beneficiariosCargados && beneficiarios.length === 0" value="" disabled>
+                  Sin beneficiarios disponibles
+                </option>
+                <option *ngFor="let beneficiario of beneficiarios" [value]="obtenerValorBeneficiario(beneficiario)">
+                  {{ obtenerTextoBeneficiario(beneficiario) }}
+                </option>
+              </select>
             </div>
           </div>
 

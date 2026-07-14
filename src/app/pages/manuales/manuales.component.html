@@ -1,0 +1,32 @@
+<div class="manuales-shell page-container">
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <span class="eyebrow">WebHook</span>
+       
+      </div>
+    </header>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>URL</th>
+            <th>Protocolo</th>
+            <th>Tipo SSL</th>
+            <th>Fecha Alta</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>{{ webhook.url }}</td>
+            <td>{{ webhook.protocolo }}</td>
+            <td>{{ webhook.tipoSsl }}</td>
+            <td>{{ webhook.fechaAlta }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</div>
