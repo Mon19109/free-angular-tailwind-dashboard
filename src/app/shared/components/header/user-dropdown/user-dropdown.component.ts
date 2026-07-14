@@ -16,6 +16,7 @@ export class UserDropdownComponent {
   //user: UserSessionData | null = null;
 
   isOpen = false;
+  readonly userEmail = this.getUserEmail();
 
   constructor(
     private authService: AuthService,
@@ -43,5 +44,20 @@ export class UserDropdownComponent {
     localStorage.clear();
     sessionStorage.clear();
     this.router.navigate(['/']);
+  }
+
+  private getUserEmail(): string {
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        return session?.mail || session?.email || localStorage.getItem('mail') || 'USUARIO';
+      } catch {
+        return localStorage.getItem('mail') || 'USUARIO';
+      }
+    }
+
+    return localStorage.getItem('mail') || 'USUARIO';
   }
 }

@@ -34,7 +34,7 @@ import { PagoDistanciaComponent } from '../app/pages/pagoDistancia/pagoDistancia
 import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component';
 import { SaldosComponent } from '../app/pages/saldos/saldos.component';
 import { PagarLinkPagoComponent } from '../app/pages/pagarLinkPago/pagarLinkPago.component';
-import { OrdenPagoComponent } from './pages/OrdenPagp/OrdenPago.component';
+import { OrdenPagoComponent } from './pages/OrdenPago/OrdenPago.component';
 import { PreRegistroComponent } from './pages/preRegistro/preRegistro.component';
 
 export const routes: Routes = [

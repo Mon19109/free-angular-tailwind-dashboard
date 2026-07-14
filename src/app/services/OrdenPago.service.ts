@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../environments/environments';
 
 @Injectable({
@@ -26,13 +26,18 @@ export class OrdenPagoService {
 
 
     obtenerContactos(idUser: number): Observable<any> {
-        const url = `/api-antaresv2.kashplataforma.com/api/v2/antares.kwt-v2.2.10/api/v1/contact/getContacts?idUser=${idUser}&type=TR`;
+        const url = `${this.baseUrl}api/v1/contact/getContacts`;
+        const params = new HttpParams()
+            .set('idUser', String(idUser))
+            .set('type', 'TR');
+
         console.log('GET beneficiarios:', url);
 
         return this.http.get(
             url,
             {
-                headers: this.getCommonHeaders()
+                headers: this.getCommonHeaders(),
+                params
             }
         );
 
