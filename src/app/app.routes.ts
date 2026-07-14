@@ -37,6 +37,7 @@ import { PagarLinkPagoComponent } from '../app/pages/pagarLinkPago/pagarLinkPago
 import { OrdenPagoComponent } from './pages/OrdenPago/OrdenPago.component';
 import { PreRegistroComponent } from './pages/preRegistro/preRegistro.component';
 import { ManualesComponent } from './pages/manuales/manuales.component';
+import { InformacionCuentaComponent } from './pages/informacionCuenta/informacionCuenta.component';
 
 export const routes: Routes = [
   { 
@@ -217,6 +218,13 @@ export const routes: Routes = [
       {
         path: 'manuales',
         component: ManualesComponent,
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+      {
+        path: 'informacion_cuenta',
+        component: InformacionCuentaComponent,
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },

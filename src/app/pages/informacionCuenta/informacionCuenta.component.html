@@ -1,0 +1,91 @@
+<div class="cuenta-shell page-container">
+  <article class="panel filter-panel">
+    <header class="panel-header">
+      <div>
+        <span class="eyebrow">Gestión de negocio</span>
+        <h2>Información de cuenta</h2>
+      </div>
+    </header>
+
+    <div class="filters-row">
+      <div class="filter-group">
+        <label>Selecciona cuenta</label>
+
+        <select class="form-control" (change)="onCuentaChange($event)">
+          <option value="">Selecciona cuenta</option>
+
+          <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
+            {{ obtenerTextoCuenta(cuenta) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Entidad</label>
+
+        <select class="form-control" (change)="onEntidadChange($event)">
+          <option value="">Selecciona entidad</option>
+
+          <option *ngFor="let entidad of entidades" [value]="obtenerValorEntidad(entidad)">
+            {{ obtenerTextoEntidad(entidad) }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </article>
+
+  <article class="panel info-panel">
+    <header class="panel-header">
+      <div>
+        <span class="eyebrow">SPEI</span>
+        <h2>Datos para recibir pagos</h2>
+      </div>
+    </header>
+
+    <div class="info-body">
+      <p class="intro">Puedes recibir pagos por transferencia electrónica desde ahora.</p>
+
+      <section class="account-card">
+        <div class="info-row">
+          <div>
+            <span>Cuenta CLABE</span>
+            <strong>{{ infoCuenta.clabe || 'ND' }}</strong>
+          </div>
+          <span class="tag">Para uso de orden de pago referenciado</span>
+        </div>
+
+        <div class="info-row">
+          <div>
+            <span>Saldo</span>
+            <strong>{{ infoCuenta.saldo | currency:'MXN':'symbol':'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div>
+            <span>Banco</span>
+            <strong>{{ infoCuenta.banco }}</strong>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div>
+            <span>Titular</span>
+            <strong>{{ infoCuenta.titular || 'ND' }}</strong>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div>
+            <span>Número de afiliación</span>
+            <strong class="gold">{{ infoCuenta.afiliacion || 'ND' }}</strong>
+          </div>
+        </div>
+
+        <p class="note">
+          Proporciona a tus clientes el número de afiliación para que lo ingresen en su registro en la app Mi Kash y puedas consultar su información en el portal.
+        </p>
+      </section>
+    </div>
+  </article>
+</div>

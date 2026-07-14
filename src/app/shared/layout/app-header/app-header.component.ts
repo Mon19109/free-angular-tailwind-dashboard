@@ -45,6 +45,7 @@ private readonly titulosPaginas: Record<string, string> = {
   pago_distancia: 'Pago a Distancia',
   orden_pago: 'Gestion de Pago',
   manuales: 'Manuales',
+  informacion_cuenta: 'Información de cuenta',
   // futuros módulos
   reportes: 'Reportes',
   conciliacion: 'Conciliación',
