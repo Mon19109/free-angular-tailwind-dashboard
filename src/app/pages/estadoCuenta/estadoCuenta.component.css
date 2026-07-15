@@ -1,0 +1,184 @@
+:host {
+  --estado-bg: #05070b;
+  --estado-card: rgba(11, 16, 24, 0.96);
+  --estado-border: rgba(241, 178, 61, 0.18);
+  --estado-input-border: rgba(255, 255, 255, 0.12);
+  --estado-text: #f6f7fb;
+  --estado-muted: rgba(246, 247, 251, 0.72);
+  --estado-gold: #f1b23d;
+  --estado-button-bg: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  --estado-button-hover: linear-gradient(180deg, #ffe49b 0%, #f5bf50 100%);
+  --estado-button-text: #16120b;
+  --estado-button-border: rgba(241, 178, 61, 0.42);
+  --estado-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+  display: block;
+  margin: -1rem;
+  color: var(--estado-text);
+}
+
+:host-context(html:not(.dark)) {
+  --estado-bg: #f3f5f8;
+  --estado-card: #ffffff;
+  --estado-border: #d9dde3;
+  --estado-input-border: #d8dce2;
+  --estado-text: #172033;
+  --estado-muted: #667085;
+  --estado-button-bg: linear-gradient(180deg, #344861 0%, #2d3b50 100%);
+  --estado-button-hover: linear-gradient(180deg, #4b6380 0%, #3a4e68 100%);
+  --estado-button-text: #ffffff;
+  --estado-button-border: rgba(35, 50, 77, 0.18);
+  --estado-shadow: 0 2px 4px rgba(16, 24, 40, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.estado-shell {
+  min-height: calc(100vh - 104px);
+  width: 100%;
+  padding: clamp(46px, 7vw, 86px) clamp(20px, 3vw, 36px);
+  overflow-x: hidden;
+  color: var(--estado-text);
+  background: var(--estado-bg);
+}
+
+@media (min-width: 768px) {
+  :host {
+    margin: -1.5rem;
+  }
+}
+
+.estado-card {
+  width: 100%;
+  margin: 0 auto;
+  border: 1px solid var(--estado-border);
+  border-radius: 5px;
+  background: var(--estado-card);
+  box-shadow: var(--estado-shadow);
+}
+
+.estado-body {
+  padding: clamp(24px, 3vw, 40px);
+}
+
+.estado-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.25fr) minmax(260px, 1.25fr) minmax(120px, 0.35fr) minmax(140px, 0.45fr);
+  gap: clamp(28px, 4vw, 70px);
+  align-items: center;
+}
+
+.estado-field {
+  min-width: 0;
+}
+
+.estado-field label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--estado-muted);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.form-control {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--estado-input-border);
+  border-radius: 4px;
+  padding: 0 16px;
+  outline: none;
+  color: var(--estado-text);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 18px;
+  font-weight: 400;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+:host-context(html:not(.dark)) .form-control {
+  color: #172033;
+  background: #ffffff;
+}
+
+.form-control option {
+  color: #172033;
+  background: #ffffff;
+}
+
+html.dark .form-control option {
+  color: #f6f7fb;
+  background: #0b111a;
+}
+
+.estado-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.estado-button {
+  min-height: 44px;
+  min-width: 104px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--estado-button-border);
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--estado-button-text);
+  background: var(--estado-button-bg);
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.14);
+  transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.estado-button:hover:not(:disabled) {
+  background: var(--estado-button-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.18);
+}
+
+.estado-button i {
+  font-size: 16px;
+}
+
+.estado-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.estado-message {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--estado-border);
+  border-radius: 5px;
+  color: var(--estado-muted);
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .estado-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 22px;
+  }
+}
+
+@media (max-width: 640px) {
+  .estado-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .estado-actions {
+    justify-content: stretch;
+  }
+
+  .estado-button {
+    width: 100%;
+  }
+}

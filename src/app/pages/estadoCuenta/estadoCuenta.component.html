@@ -1,0 +1,45 @@
+<div class="estado-shell page-container">
+  <article class="estado-card">
+    <div class="estado-body">
+      <form class="estado-grid">
+        <div class="estado-field">
+          <label>Selecciona Cuenta</label>
+          <select class="form-control" [(ngModel)]="cuentaSeleccionada" name="cuenta" (change)="onCuentaChange()">
+            <option value="">Selecciona cuenta</option>
+            <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
+              {{ obtenerTextoCuenta(cuenta) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="estado-field">
+          <label>Periodo</label>
+          <select class="form-control" [(ngModel)]="periodoSeleccionado" name="periodo">
+            <option value="">Selecciona periodo</option>
+            <option *ngFor="let periodo of periodos" [value]="periodo">
+              {{ periodo }}
+            </option>
+          </select>
+        </div>
+
+        <div class="estado-actions">
+          <button type="button" class="button ghost btn-export estado-button" (click)="descargarPDF()" [disabled]="cargando">
+            <i class="far fa-file-pdf"></i>
+            PDF
+          </button>
+        </div>
+
+        <div class="estado-actions">
+          <button type="button" class="button ghost btn-export estado-button" (click)="descargarExcel()" [disabled]="cargando">
+            <i class="far fa-file-excel"></i>
+            EXCEL
+          </button>
+        </div>
+      </form>
+
+      <div *ngIf="mensaje" class="estado-message">
+        {{ mensaje }}
+      </div>
+    </div>
+  </article>
+</div>
