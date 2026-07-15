@@ -41,6 +41,7 @@ import { InformacionCuentaComponent } from './pages/informacionCuenta/informacio
 import { CajasComponent } from './pages/cajas/cajas.component';
 import { EstadoCuentaComponent } from './pages/estadoCuenta/estadoCuenta.component';
 import { SucursalesComponent } from './pages/sucursales/sucursales.component';
+import { ListarComerciosComponent } from './pages/listarComercios/listarComercios.component';
 
 export const routes: Routes = [
   { 
@@ -228,6 +229,13 @@ export const routes: Routes = [
       {
         path: 'informacion_cuenta',
         component: InformacionCuentaComponent,
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+      {
+        path: 'entidades',
+        component: ListarComerciosComponent,
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },

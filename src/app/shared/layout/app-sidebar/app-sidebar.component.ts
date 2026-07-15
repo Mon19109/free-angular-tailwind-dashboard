@@ -138,10 +138,6 @@ export class AppSidebarComponent {
             {
               name: 'Lista Entidades',
               path: '/entidades'
-            },
-            {
-              name: 'Agregar Entidad',
-              path: '/entidades_add'
             }
           ]
         },
