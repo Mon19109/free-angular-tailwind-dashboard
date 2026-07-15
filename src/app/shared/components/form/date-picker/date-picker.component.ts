@@ -41,6 +41,14 @@ export class DatePickerComponent {
 
     onChange: (selectedDates, dateStr, instance) => {
       this.dateChange.emit({ selectedDates, dateStr, instance });
+
+      if (this.mode === 'single' || this.mode === 'time') {
+        instance.close();
+      }
+
+      if (this.mode === 'range' && selectedDates.length === 2) {
+        instance.close();
+      }
     }
   });
 }

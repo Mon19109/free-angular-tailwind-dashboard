@@ -46,6 +46,7 @@ private readonly titulosPaginas: Record<string, string> = {
   orden_pago: 'Gestion de Pago',
   manuales: 'Manuales',
   informacion_cuenta: 'Información de cuenta',
+  cajas: 'Lista Cajas',
   // futuros módulos
   reportes: 'Reportes',
   conciliacion: 'Conciliación',

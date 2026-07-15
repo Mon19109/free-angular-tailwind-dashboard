@@ -166,10 +166,6 @@ export class AppSidebarComponent {
             {
               name: 'Lista Cajas',
               path: '/cajas'
-            },
-            {
-              name: 'Agregar Caja',
-              path: '/cajas_add'
             }
           ]
         },

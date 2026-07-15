@@ -73,7 +73,6 @@ export interface FormularioData {
   fechaFin?: string;
 }
 
-
 @Injectable({
   providedIn: 'root'
 })
@@ -189,7 +188,6 @@ export class OperacionesAdquirenciaService {
         { headers: this.getCommonHeaders() }
       );
     }
-  
 //ESE SERVCIO ES DE PHP 
 /*getSucursales(subafiliadoId:number, entidadId:number) {
   return this.http.get(
