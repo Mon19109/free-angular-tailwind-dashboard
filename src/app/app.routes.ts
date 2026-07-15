@@ -40,6 +40,7 @@ import { ManualesComponent } from './pages/manuales/manuales.component';
 import { InformacionCuentaComponent } from './pages/informacionCuenta/informacionCuenta.component';
 import { CajasComponent } from './pages/cajas/cajas.component';
 import { EstadoCuentaComponent } from './pages/estadoCuenta/estadoCuenta.component';
+import { SucursalesComponent } from './pages/sucursales/sucursales.component';
 
 export const routes: Routes = [
   { 
@@ -227,6 +228,13 @@ export const routes: Routes = [
       {
         path: 'informacion_cuenta',
         component: InformacionCuentaComponent,
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+      {
+        path: 'sucursales',
+        component: SucursalesComponent,
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },

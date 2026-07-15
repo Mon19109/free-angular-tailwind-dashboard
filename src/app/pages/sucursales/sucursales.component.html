@@ -1,0 +1,154 @@
+<div class="cajas-shell page-container">
+  <article class="caja-step-card filter-card">
+    <header class="caja-step-header">
+      <div class="caja-step-title">
+        <span class="eyebrow">Sucursal</span>
+        <h2>Lista Sucursales</h2>
+      </div>
+    </header>
+
+    <div class="caja-step-body">
+      <section class="caja-section">
+        <form class="filters-grid" (ngSubmit)="buscar()">
+          <div class="filter-group">
+            <label>SubAfiliado</label>
+            <select class="form-control" [(ngModel)]="filtros.subafiliado" name="subafiliado" (change)="cargarEntidades()">
+              <option value="">Selecciona subafiliado</option>
+              <option *ngFor="let item of subafiliados" [value]="obtenerSubafiliadoId(item)">
+                {{ obtenerSubafiliadoTexto(item) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Entidad</label>
+            <select class="form-control" [(ngModel)]="filtros.entidad" name="entidad">
+              <option value="">Selecciona entidad</option>
+              <option *ngFor="let item of entidades" [value]="obtenerEntidadId(item)">
+                {{ obtenerEntidadTexto(item) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label>Nombre del Comercio</label>
+            <input class="form-control" type="text" [(ngModel)]="filtros.nameComerce" name="nameComerce">
+          </div>
+
+          <div class="filter-group">
+            <label>RFC</label>
+            <input class="form-control" type="text" [(ngModel)]="filtros.rfc" name="rfc">
+          </div>
+
+          <div class="filter-group">
+            <label>Núm. Teléfono</label>
+            <input class="form-control" maxlength="10" type="tel" [(ngModel)]="filtros.tel" name="tel">
+          </div>
+
+          <div class="filter-group">
+            <label>Correo Electrónico</label>
+            <input class="form-control" type="email" [(ngModel)]="filtros.email" name="email">
+          </div>
+
+          <div class="filter-group">
+            <app-date-picker
+              id="fechaInicioSucursales"
+              label="Fecha Inicio"
+              placeholder="Selecciona fecha"
+              (dateChange)="onFechaInicioChange($event)">
+            </app-date-picker>
+          </div>
+
+          <div class="filter-group">
+            <app-date-picker
+              id="fechaFinSucursales"
+              label="Fecha Fin"
+              placeholder="Selecciona fecha"
+              (dateChange)="onFechaFinChange($event)">
+            </app-date-picker>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="button primary btn-buscar" [disabled]="cargando">BUSCAR</button>
+            <button type="button" class="button danger btn-limpiar" (click)="limpiar()">LIMPIAR Filtros</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </article>
+
+  <div *ngIf="mensajeError" class="empty-message">
+    {{ mensajeError }}
+  </div>
+
+  <article class="caja-step-card results-panel">
+    <header class="caja-step-header">
+      <div class="caja-step-title">
+        <span class="eyebrow">Resultados</span>
+        <h2>Sucursales encontradas</h2>
+      </div>
+      <div class="table-actions header-actions">
+        <button class="button ghost btn-export" type="button" (click)="exportarExcel()">EXCEL</button>
+        <button class="button ghost btn-export" type="button" (click)="exportarPDF()">PDF</button>
+        <button class="button ghost btn-export" type="button" (click)="imprimir()">PRINT</button>
+      </div>
+    </header>
+
+    <div class="caja-step-body">
+      <section class="caja-section results-section">
+        <div *ngIf="!mostrarTabla" class="empty-row">
+          {{ mensaje }}
+        </div>
+
+        <div *ngIf="mostrarTabla" class="transactions-wrapper">
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th>Nombre del Comercio</th>
+                <th>Razón Social</th>
+                <th>RFC</th>
+                <th>Email</th>
+                <th>Modelo de Negocio</th>
+                <th>Regimen Fiscal</th>
+                <th>Teléfono</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let sucursal of sucursalesPaginadas">
+                <td>{{ obtenerNombreComercio(sucursal) }}</td>
+                <td>{{ obtenerRazonSocial(sucursal) }}</td>
+                <td>{{ obtenerRfc(sucursal) }}</td>
+                <td>{{ obtenerEmail(sucursal) }}</td>
+                <td>{{ obtenerModeloNegocio(sucursal) }}</td>
+                <td>{{ obtenerRegimenFiscal(sucursal) }}</td>
+                <td>{{ obtenerTelefono(sucursal) }}</td>
+                <td>{{ obtenerFecha(sucursal) }}</td>
+                <td>
+                  <select class="form-control acciones-select" (change)="onAccionChange($any($event.target).value, sucursal)">
+                    <option value="">ACCIONES</option>
+                    <option value="editar">Editar Información</option>
+                    <option value="segmento">Segmento</option>
+                    <option value="deshabilitar">Deshabilitar</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination-container" *ngIf="totalPaginas > 1">
+            <button
+              *ngFor="let page of paginas"
+              type="button"
+              (click)="cambiarPagina(page)"
+              [class.active]="page === paginaActual">
+              {{ page }}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </article>
+</div>
