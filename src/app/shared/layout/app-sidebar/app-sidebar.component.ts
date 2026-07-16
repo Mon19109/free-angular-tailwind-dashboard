@@ -127,11 +127,6 @@ export class AppSidebarComponent {
       title: 'GESTIÓN DE NEGOCIO',
       items: [
         {
-          name: 'ALTA DE COMERCIO',
-         icon: '<i class="fas fa-building fa-lg"></i>',
-          path: '/alta_comercio'
-        },
-        {
           name: 'ENTIDAD',
            icon: '<i class="fas fa-store fa-lg"></i>',
           subItems: [

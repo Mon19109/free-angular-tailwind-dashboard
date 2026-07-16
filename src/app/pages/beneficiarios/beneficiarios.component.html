@@ -1,0 +1,276 @@
+<div class="beneficiarios-shell">
+  <article class="panel">
+    <header class="panel-header">
+      <div>
+        <span class="eyebrow">Beneficiarios</span>
+        <h2>Alta de Beneficiarios</h2>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="button ghost" [class.active]="vista === 'agregar'" (click)="cambiarVista('agregar')">
+          <i class="fas fa-plus-circle"></i>
+          AGREGAR BENEFICIARIOS
+        </button>
+        <button type="button" class="button ghost" [class.active]="vista === 'eliminar'" (click)="cambiarVista('eliminar')">
+          <i class="fas fa-minus-circle"></i>
+          ELIMINAR BENEFICIARIOS
+        </button>
+        <button type="button" class="button ghost" [class.active]="vista === 'estatus'" (click)="cambiarVista('estatus')">
+          <i class="fas fa-search"></i>
+          ESTATUS DE ALTA
+        </button>
+      </div>
+    </header>
+
+    <div class="notice success" *ngIf="mensaje">{{ mensaje }}</div>
+    <div class="notice error" *ngIf="error">{{ error }}</div>
+
+    <section class="panel-body" *ngIf="vista === 'lista'">
+      <div class="section-heading">
+        <h3>Beneficiarios ingresados con anterioridad</h3>
+      </div>
+
+      <div class="empty" *ngIf="!cargando && !contactos.length">No hay beneficiarios disponibles.</div>
+
+      <div class="table-wrap" *ngIf="contactos.length">
+        <table>
+          <thead>
+            <tr>
+              <th>Titular</th>
+              <th>Alias</th>
+              <th>Núm. Cuenta o Tarjeta</th>
+              <th>Banco</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let contacto of contactos">
+              <td>{{ obtenerTitular(contacto) }}</td>
+              <td>{{ obtenerAlias(contacto) }}</td>
+              <td>{{ obtenerCuenta(contacto) }}</td>
+              <td>{{ obtenerBanco(contacto) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel-body" *ngIf="vista === 'estatus'">
+      <div class="section-heading">
+        <h3>Estatus de alta masiva de beneficiarios</h3>
+      </div>
+
+      <form class="filters-grid" (ngSubmit)="consultarEstatus()">
+        <div class="field">
+          <label>Nombre</label>
+          <input class="form-control" type="text" [(ngModel)]="estatusFileKey" name="estatusFileKey">
+        </div>
+        <div class="field action-field">
+          <button type="submit" class="button primary">Buscar</button>
+        </div>
+      </form>
+
+      <div class="table-wrap" *ngIf="estatusRows.length">
+        <table>
+          <thead>
+            <tr>
+              <th>Archivo</th>
+              <th>Estatus</th>
+              <th>Detalle</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of estatusRows">
+              <td>{{ obtenerValorEstatus(row, ['fileKey', 'name', 'fileName']) }}</td>
+              <td>{{ obtenerValorEstatus(row, ['status', 'estatus', 'statusDescription']) }}</td>
+              <td>{{ obtenerValorEstatus(row, ['message', 'description', 'detail', 'error']) }}</td>
+              <td>{{ obtenerValorEstatus(row, ['createdAt', 'date', 'fecha']) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel-body" *ngIf="vista === 'eliminar'">
+      <div class="section-heading">
+        <h3>Eliminar beneficiarios</h3>
+      </div>
+
+      <div class="table-wrap" *ngIf="contactos.length">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Titular</th>
+              <th>Alias</th>
+              <th>Núm. Cuenta / Tarjeta</th>
+              <th>Banco</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let contacto of contactos">
+              <td>
+                <input
+                  type="checkbox"
+                  [checked]="idsEliminar.has(obtenerContactoId(contacto))"
+                  (change)="toggleEliminar(obtenerContactoId(contacto), $any($event.target).checked)">
+              </td>
+              <td>{{ obtenerTitular(contacto) }}</td>
+              <td>{{ obtenerAlias(contacto) }}</td>
+              <td>{{ obtenerCuenta(contacto) }}</td>
+              <td>{{ obtenerBanco(contacto) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="button primary" [disabled]="cargando" (click)="eliminarSeleccionados()">Eliminar</button>
+        <button type="button" class="button danger" (click)="cambiarVista('lista')">Cancelar</button>
+      </div>
+    </section>
+
+    <section class="panel-body" *ngIf="vista === 'agregar'">
+      <div class="section-heading">
+        <h3>Selecciona el tipo de alta de beneficiarios</h3>
+      </div>
+
+      <div class="segmented">
+        <label>
+          <input type="radio" name="altaMasiva" [value]="true" [(ngModel)]="altaMasiva">
+          <span>Alta Masiva</span>
+        </label>
+        <label>
+          <input type="radio" name="altaMasiva" [value]="false" [(ngModel)]="altaMasiva">
+          <span>Alta Individual</span>
+        </label>
+      </div>
+
+      <div class="massive-box" *ngIf="altaMasiva">
+        <p>Selecciona el archivo CSV con los campos necesarios para el alta masiva de contactos.</p>
+        <input class="form-control" type="file" accept=".csv">
+        <div class="form-actions">
+          <button type="button" class="button primary" disabled>Guardar</button>
+          <button type="button" class="button danger" (click)="cambiarVista('lista')">Cancelar</button>
+        </div>
+      </div>
+
+      <form *ngIf="!altaMasiva" (ngSubmit)="agregar()">
+        <div class="section-heading compact">
+          <h3>Información y datos del beneficiario</h3>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Nombre completo del beneficiario*</label>
+            <input class="form-control" type="text" [(ngModel)]="form.nombre" name="nombre">
+          </div>
+          <div class="field">
+            <label>Alias del Beneficiario*</label>
+            <input class="form-control" type="text" [(ngModel)]="form.alias" name="alias">
+          </div>
+          <div class="field">
+            <label>Correo Electrónico del beneficiario*</label>
+            <input class="form-control" type="email" [(ngModel)]="form.email" name="email">
+          </div>
+          <div class="field">
+            <label>RFC del beneficiario*</label>
+            <input class="form-control" type="text" maxlength="13" [(ngModel)]="form.rfc" name="rfc">
+          </div>
+          <div class="field span-2">
+            <label>Dirección Completa del beneficiario*</label>
+            <textarea class="form-control" [(ngModel)]="form.direccion" name="direccion"></textarea>
+          </div>
+          <div class="field">
+            <label>Moneda*</label>
+            <select class="form-control" name="moneda">
+              <option value="2">MXN</option>
+            </select>
+          </div>
+          <div class="field radio-field">
+            <label>Tipo de beneficiario*</label>
+            <div class="radio-row">
+              <label><input type="radio" name="tipoBen" value="PF" [(ngModel)]="form.tipoBen"> Persona Fisica</label>
+              <label><input type="radio" name="tipoBen" value="PM" [(ngModel)]="form.tipoBen"> Persona Moral</label>
+            </div>
+          </div>
+
+          <div class="field" *ngIf="form.tipoBen === 'PM'">
+            <label>Giro Comercial*</label>
+            <select class="form-control" [(ngModel)]="form.giro" name="giro">
+              <option value="">Selecciona giro</option>
+              <option *ngFor="let giro of giros" [value]="obtenerGiroId(giro)">
+                {{ obtenerGiroTexto(giro) }}
+              </option>
+            </select>
+          </div>
+          <div class="field" *ngIf="form.tipoBen === 'PM'">
+            <label>Descripción del giro*</label>
+            <select class="form-control" [(ngModel)]="form.desGiro" name="desGiro">
+              <option value="">Selecciona descripción</option>
+              <option *ngFor="let giro of giros" [value]="obtenerDescripcionGiro(giro)">
+                {{ obtenerDescripcionGiro(giro) }}
+              </option>
+            </select>
+          </div>
+          <div class="field" *ngIf="form.tipoBen === 'PF'">
+            <label>Actividad*</label>
+            <select class="form-control" [(ngModel)]="form.actividad" name="actividad">
+              <option value="">Selecciona actividad</option>
+              <option *ngFor="let actividad of actividades" [value]="obtenerActividadValor(actividad)">
+                {{ obtenerActividadTexto(actividad) }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-heading compact">
+          <h3>Banco beneficiario</h3>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Tipo de Cuenta*</label>
+            <select class="form-control" [(ngModel)]="form.tipoCuenta" name="tipoCuenta">
+              <option value="">Selecciona tipo</option>
+              <option value="2">Tarjeta de Débito</option>
+              <option value="4">CLABE</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Numero de cuenta*</label>
+            <div class="input-action">
+              <input class="form-control" type="text" maxlength="18" [(ngModel)]="form.cuenta" name="cuenta">
+              <button type="button" class="button primary small" (click)="buscarBanco()">Buscar</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Nombre completo del banco*</label>
+            <select class="form-control" [(ngModel)]="form.institucion" name="institucion" (ngModelChange)="seleccionarInstitucion($event)">
+              <option value="">Selecciona banco</option>
+              <option *ngFor="let institucion of instituciones" [value]="obtenerInstitucionId(institucion)">
+                {{ obtenerInstitucionTexto(institucion) }}
+              </option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Dirección Completa del banco*</label>
+            <textarea class="form-control" [(ngModel)]="form.dirBanco" name="dirBanco"></textarea>
+          </div>
+          <div class="field">
+            <label>Telefono del banco</label>
+            <input class="form-control" type="tel" maxlength="10" [(ngModel)]="form.telefono" name="telefono">
+          </div>
+          <div class="field">
+            <label>Correo Electrónico</label>
+            <input class="form-control" type="email" [(ngModel)]="form.emailB" name="emailB">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="button primary" [disabled]="cargando">Agregar</button>
+          <button type="button" class="button danger" (click)="cambiarVista('lista')">Cancelar</button>
+        </div>
+      </form>
+    </section>
+  </article>
+</div>
