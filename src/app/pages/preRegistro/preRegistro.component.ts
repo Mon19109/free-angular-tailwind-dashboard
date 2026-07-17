@@ -22,9 +22,10 @@ import { StepAccesosComponent } from './components/accesos/step-accesos.componen
 import { StepLiquidacionComponent } from './components/liquidacion/step-liquidacion.component';
 import { StepDocumentosComponent } from './components/documentos/step-documentos.component';
 import { TipoNegocio, TiposNegocioComponent } from './components/tipos-negocio/tipos-negocio.component';
+import { ArbolNegocioComponent } from './components/arbol-negocio/arbol-negocio.component';
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────
-type PasoWizard = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type PasoWizard = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
 type TipoComisionista = 'existente' | 'nuevo';
@@ -36,6 +37,7 @@ interface BorradorPreRegistro {
   registroTerminado: boolean;
   afiliacion: { afiliacion: string };
   comercio: { nivel: string; tipoComercio: string; afiliacionComisionista: string };
+  arbolNegocio: { numeroSucursales: string; numeroCajas: string };
   comisionista: Record<string, string>;
   datos: Record<string, string | boolean>;
   accesos: Record<string, string | boolean>;
@@ -58,6 +60,7 @@ interface BorradorPreRegistro {
     StepLiquidacionComponent,
     StepDocumentosComponent,
     TiposNegocioComponent,
+    ArbolNegocioComponent,
   ],
   templateUrl: './preRegistro.component.html',
   styleUrls: ['./preRegistro.component.css'],
@@ -80,6 +83,7 @@ export class PreRegistroComponent {
   datosBeneficiarioIgualComercio = false;
   modoReservaActual: ModoReserva = 'NINGUNO';
   tiposComercio: string[] = [];
+  tipoNegocioSeleccionado?: TipoNegocio;
 
 
   // ── Datos estáticos (los consume el HTML y los steps vía [input]) ────────────
@@ -401,6 +405,11 @@ export class PreRegistroComponent {
     nivel: ['', Validators.required],
     tipoComercio: ['', Validators.required],
     afiliacionComisionista: [''],
+  });
+
+  readonly arbolNegocioForm = this.fb.nonNullable.group({
+    numeroSucursales: ['', [Validators.required, Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]],
+    numeroCajas: ['', [Validators.required, Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]],
   });
 
   readonly datosForm = this.fb.nonNullable.group({
@@ -753,11 +762,24 @@ export class PreRegistroComponent {
   }
 
   seleccionarTipoNegocio(tipo: TipoNegocio): void {
+    this.tipoNegocioSeleccionado = tipo;
     this.comercioForm.patchValue({
       nivel: tipo.nivel,
       tipoComercio: tipo.tipoComercio,
     });
     this.tiposComercio = this.tiposComercioPorNivel[tipo.nivel] ?? [];
+    if (this.requiereArbolNegocio(tipo)) {
+      this.guardarBorradorSilencioso();
+      this.irAlPaso(7);
+      return;
+    }
+    this.continuarComercio();
+  }
+
+  continuarArbolNegocio(): void {
+    this.arbolNegocioForm.markAllAsTouched();
+    if (this.arbolNegocioForm.invalid) return;
+    this.accesosForm.controls.cajasTPV.setValue(this.arbolNegocioForm.controls.numeroCajas.value);
     this.continuarComercio();
   }
 
@@ -783,6 +805,9 @@ export class PreRegistroComponent {
      this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
    }
 
+  volverDesdeComercio(): void {
+    this.irAlPaso(this.requiereArbolNegocio() ? 7 : 6);
+  }
 
   volverDesdeAccesos(): void {
     if (this.pasoGeneralesDebeSaltarse) {
@@ -834,6 +859,7 @@ export class PreRegistroComponent {
   private primerPasoInvalido(): PasoWizard | null {
     if (this.afiliacionForm.invalid) return 0;
     if (this.comercioForm.invalid) return 1;
+    if (this.requiereArbolNegocio() && this.arbolNegocioForm.invalid) return 7;
     if (!this.pasoGeneralesDebeSaltarse && this.datosForm.invalid) return 2;
     if (this.accesosForm.invalid) return 3;
     if (this.mostrarCuentaLiquidacion && this.liquidacionForm.invalid) return 4;
@@ -936,6 +962,8 @@ export class PreRegistroComponent {
 
     this.afiliacionForm.reset({ afiliacion: '' });
     this.comercioForm.reset({ nivel: '', tipoComercio: '', afiliacionComisionista: '' });
+    this.arbolNegocioForm.reset({ numeroSucursales: '', numeroCajas: '' });
+    this.tipoNegocioSeleccionado = undefined;
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
     this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '' });
     this.accesosForm.reset({ modoReserva: 'NINGUNO', cajasTPV: '1', tieneSupervisor: 'si', reservaSplit: '', adminNombre: '', adminPaterno: '', adminMaterno: '', adminCorreo: '', adminConfirmarCorreo: '', adminTelefono: '', perfilReservaNombre: '', perfilReservaPaterno: '', perfilReservaMaterno: '', perfilReservaCorreo: '', perfilReservaConfirmarCorreo: '', perfilReservaTelefono: '', pinAdministrador: '', pinCorreo: '', pinConfirmarCorreo: '', pinContrasena: '' });
@@ -963,6 +991,7 @@ export class PreRegistroComponent {
         registroTerminado: this.registroTerminado,
         afiliacion: this.afiliacionForm.getRawValue(),
         comercio: this.comercioForm.getRawValue(),
+        arbolNegocio: this.arbolNegocioForm.getRawValue(),
         comisionista: this.comisionistaForm.getRawValue(),
         datos: this.datosForm.getRawValue(),
         accesos: this.accesosForm.getRawValue(),
@@ -980,6 +1009,7 @@ export class PreRegistroComponent {
       if (!draft) return;
       if (draft.afiliacion) this.afiliacionForm.patchValue(draft.afiliacion);
       if (draft.comercio) this.comercioForm.patchValue(draft.comercio);
+      if (draft.arbolNegocio) this.arbolNegocioForm.patchValue(draft.arbolNegocio);
       if (draft.comisionista) this.comisionistaForm.patchValue(draft.comisionista);
       if (draft.datos) this.datosForm.patchValue(draft.datos as any);
       if (draft.accesos) this.accesosForm.patchValue(draft.accesos as any);
@@ -996,9 +1026,61 @@ export class PreRegistroComponent {
       this.actualizarValidadoresAccesos(this.accesosForm.controls.modoReserva.value as ModoReserva);
       this.actualizarEstadoLiquidacion(this.liquidacionForm.controls.beneficiarioIgualComercio.value);
       if (this.datosBeneficiarioIgualComercio) this.sincronizarBeneficiarioDesdeComercio();
+      this.tipoNegocioSeleccionado = this.buscarTipoNegocioDesdeComercio();
     } catch {
       try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     }
+  }
+
+  private requiereArbolNegocio(tipo = this.tipoNegocioSeleccionado): boolean {
+    const tipoComercio = tipo?.tipoComercio ?? this.comercioForm.controls.tipoComercio.value;
+    return tipoComercio !== 'Sucursales Únicas';
+  }
+
+  private buscarTipoNegocioDesdeComercio(): TipoNegocio | undefined {
+    const { nivel, tipoComercio } = this.comercioForm.getRawValue();
+    return [
+      {
+        id: 'comercio-unico',
+        titulo: 'Comercio único',
+        descripcion: '',
+        icono: '',
+        iconoInferior: '',
+        nivel: 'Sucursal',
+        tipoComercio: 'Sucursales Únicas',
+        beneficios: [],
+      },
+      {
+        id: 'sucursales-multiples',
+        titulo: 'Sucursales múltiples',
+        descripcion: '',
+        icono: '',
+        iconoInferior: '',
+        nivel: 'Sucursal',
+        tipoComercio: 'Sucursales de Grupo',
+        beneficios: [],
+      },
+      {
+        id: 'empresa-holding',
+        titulo: 'Empresa holding',
+        descripcion: '',
+        icono: '',
+        iconoInferior: '',
+        nivel: 'Sub Afiliado',
+        tipoComercio: 'Empresa Holding',
+        beneficios: [],
+      },
+      {
+        id: 'auditor-unico',
+        titulo: 'Sucursales múltiples un solo auditor',
+        descripcion: '',
+        icono: '',
+        iconoInferior: '',
+        nivel: 'Entidad',
+        tipoComercio: 'Empresa Grupo',
+        beneficios: [],
+      },
+    ].find(tipo => tipo.nivel === nivel && tipo.tipoComercio === tipoComercio);
   }
 
   private copiarDomicilioFiscal(): void {

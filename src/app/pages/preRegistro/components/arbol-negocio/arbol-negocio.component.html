@@ -1,0 +1,50 @@
+<main class="tree-shell" [formGroup]="form">
+  <header class="tree-header">
+    <span class="tree-logo" aria-hidden="true">
+      <i class="fa-solid fa-shop"></i>
+      <i class="fa-solid fa-store branch-one"></i>
+      <i class="fa-solid fa-store branch-two"></i>
+    </span>
+    <div>
+      <p>{{ tituloTipoNegocio || 'Tipo de negocio seleccionado' }}</p>
+      <h1>Árbol de Negocio</h1>
+    </div>
+  </header>
+
+  <section class="tree-section" aria-labelledby="sucursalesTitulo">
+    <label id="sucursalesTitulo" for="numeroSucursales">Número de Sucursales que tiene el Negocio:</label>
+    <div class="number-field" [class.invalid]="esInvalido('numeroSucursales')">
+      <input id="numeroSucursales" type="number" inputmode="numeric" min="1" step="1"
+        formControlName="numeroSucursales" placeholder="1" (blur)="normalizar('numeroSucursales', 1)" />
+    </div>
+    @if (esInvalido('numeroSucursales')) {
+    <small>Selecciona el número de sucursales.</small>
+    }
+  </section>
+
+  <section class="tpv-section" aria-labelledby="tpvTitulo">
+    <div class="tpv-heading">
+      <span aria-hidden="true"><i class="fa-solid fa-cash-register"></i></span>
+      <h2 id="tpvTitulo">Operación de las Terminales para Cobrar (TPV)</h2>
+    </div>
+
+    <label for="numeroCajas">Número de Cajas para operar la terminal TPV:</label>
+    <div class="number-field" [class.invalid]="esInvalido('numeroCajas')">
+      <input id="numeroCajas" type="number" inputmode="numeric" min="1" step="1" formControlName="numeroCajas"
+        placeholder="1" (blur)="normalizar('numeroCajas', 1)" />
+    </div>
+    @if (esInvalido('numeroCajas')) {
+    <small>Selecciona el número de cajas.</small>
+    }
+
+    <aside class="tree-note">
+      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      <p><strong>Nota:</strong> Los comercios deben tener al menos una caja para operar la terminal TPV; los accesos serán enviados vía email al administrador de la Plataforma.</p>
+    </aside>
+  </section>
+
+  <footer class="tree-actions">
+    <button type="button" class="button secondary" (click)="volver.emit()">Volver</button>
+    <button type="button" class="button primary" (click)="continuar.emit()">Continuar</button>
+  </footer>
+</main>

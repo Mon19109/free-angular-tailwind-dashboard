@@ -47,6 +47,14 @@
     } @else if (pasoActual === 6) {
     <app-tipos-negocio (seleccionar)="seleccionarTipoNegocio($event)" />
 
+    <!-- Pantalla: Árbol de negocio -->
+    } @else if (pasoActual === 7) {
+    <app-arbol-negocio
+      [form]="arbolNegocioForm"
+      [tituloTipoNegocio]="tipoNegocioSeleccionado?.titulo || comercioForm.value.tipoComercio || ''"
+      (continuar)="continuarArbolNegocio()"
+      (volver)="volver(6)" />
+
     <!--  Wizard -->
     } @else {
     <section class="wizard-layout">
@@ -110,7 +118,7 @@
             @switch (paso.numero) {
             @case (1) {
             <app-step-comercio [form]="comercioForm" [niveles]="datos.niveles" [tiposComercio]="tiposComercio"
-              (continuar)="continuarComercio()" (volver)="volver(0)" (abrirComisionista)="mostrarComisionista = true" />
+              (continuar)="continuarComercio()" (volver)="volverDesdeComercio()" (abrirComisionista)="mostrarComisionista = true" />
             }
             @case (2) {
             <app-step-datos [form]="datosForm" [campos]="camposDatosGenerales" [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' || 

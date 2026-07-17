@@ -33,19 +33,19 @@ export class TiposNegocioComponent {
       tipoComercio: 'Sucursales Únicas',
       beneficios: [
         'Un usuario Administrador de Portal para Gestión de Recursos.',
-        'Un usuario para operar las TPV en cajas.',
+        'Un usuario para operar las TPV´S en Cajas.',
       ],
     },
     {
       id: 'sucursales-multiples',
       titulo: 'Sucursales múltiples',
-      descripcion: 'Aplica para una empresa con múltiples sucursales que pueden tener los mismos datos fiscales o diferentes.',
+      descripcion: 'Aplica para una empresa con múltiples sucursales que pueden tener los mismos datos fiscales o pueden ser diferentes.',
       icono: 'fa-shop',
       iconoInferior: 'fa-users',
       nivel: 'Sucursal',
       tipoComercio: 'Sucursales de Grupo',
       beneficios: [
-        'Un usuario Administrador de Portal para Gestión del negocio, recursos y reportes de todas las sucursales.',
+        'Un usuario Administrador de Portal para Gestión del negocio. Administrador de Recursos.Consulta de Reportes de todas las sucursales.',
         'Usuario Administrador para cada sucursal.',
         'De un usuario hasta N para operar las terminales en cajas.',
       ],
@@ -53,13 +53,13 @@ export class TiposNegocioComponent {
     {
       id: 'empresa-holding',
       titulo: 'Empresa holding',
-      descripcion: 'Aplica para una empresa con múltiples negocios y giros comerciales que pueden tener los mismos datos fiscales o diferentes.',
+      descripcion: 'Aplica para una empresa con múltiples negocios y giros comerciales que pueden tener los mismos datos fiscales o pueden ser diferentes.',
       icono: 'fa-building',
       iconoInferior: 'fa-crown',
       nivel: 'Sub Afiliado',
       tipoComercio: 'Empresa Holding',
       beneficios: [
-        'Un usuario Administrador de Portal para Gestión de cada negocio y reportes generales.',
+        'Un usuario Administrador de Portal para Gestión de cada uno de los Negocios. Administradorde Recursos consulta de Reportes general de todas las sucursales.',
         'Usuario Administrador para cada sucursal.',
         'De un usuario hasta N para operar las terminales en cajas.',
       ],
@@ -67,15 +67,14 @@ export class TiposNegocioComponent {
     {
       id: 'auditor-unico',
       titulo: 'Sucursales múltiples un solo auditor',
-      descripcion: 'Centraliza la supervisión de recursos, reportes y administración de sucursales bajo un auditor principal.',
+      descripcion: 'Un usuario  Administrador de Portal para Gestion del negocio. Administrador de Recursos. Consulta de Reportes de todas las sucursales.',
       icono: '',
       iconoInferior: 'fa-shield-halved',
       nivel: 'Entidad',
       tipoComercio: 'Empresa Grupo',
       beneficios: [
-        'Un usuario Administrador de Portal para Gestión del negocio, recursos y reportes de todas las sucursales.',
         'Usuario Administrador para cada sucursal.',
-        'De un usuario hasta N para operar las terminales en cajas.',
+        'De un usuario hasta N para operar las terminales en Cajas.',
       ],
     },
   ];
