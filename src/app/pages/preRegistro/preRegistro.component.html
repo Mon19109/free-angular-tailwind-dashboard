@@ -228,9 +228,7 @@
               (volver)="volver(1)" />
             }
             @case (3) {
-            <app-step-accesos [form]="accesosForm" [modosReserva]="datos.modosReserva"
-              [mostrarAdminTotal]="mostrarAdminTotal" [mostrarPerfilReserva]="mostrarPerfilReserva"
-              [mostrarReservaSplit]="mostrarReservaSplit" [mostrarPinSupervisor]="mostrarPinSupervisor"
+            <app-step-accesos [form]="accesosForm"
               [textoContinuar]="mostrarCuentaLiquidacion || mostrarPasoDocumentos ? 'Guardar y continuar' : 'Finalizar preregistro'"
               (continuar)="continuarAccesos()" (volver)="volverDesdeAccesos()" />
             }

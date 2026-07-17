@@ -1,149 +1,64 @@
 <form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
-
-  <section class="step-section">
-    <div class="section-title"><h3>Accesos a la plataforma y terminales TPV</h3></div>
-    <div class="form-grid cols-2">
-      <div class="field">
-        <label for="modoReserva">Modo de reserva <b>*</b></label>
-        <select id="modoReserva" formControlName="modoReserva" [class.invalid]="esInvalido('modoReserva')">
-          @for (modo of modosReserva; track modo) {
-            <option [value]="modo">{{ modo }}</option>
-          }
-        </select>
-        @if (esInvalido('modoReserva')) { <small>Debes llenar este campo.</small> }
+  <section class="step-section access-admin-section">
+    <div class="access-admin-heading">
+      <span class="access-admin-icon" aria-hidden="true">
+        <i class="fa-regular fa-user"></i>
+      </span>
+      <div>
+        <h3>Administrador de la Plataforma</h3>
+        <p>con Acceso Total y Gestión de Pagos.</p>
       </div>
-
-      @if (mostrarReservaSplit) {
-        <div class="field">
-          <label for="reservaSplit">Modo de reserva Split (%) <b>*</b></label>
-          <input id="reservaSplit" type="number" min="1" max="99" formControlName="reservaSplit"
-            placeholder="Ej. 15"
-            [class.invalid]="esInvalido('reservaSplit') || (form.hasError('rangoSplitInvalido') && form.get('reservaSplit')?.touched)" />
-          @if (esInvalido('reservaSplit')) {
-            <small>Debes llenar este campo.</small>
-          } @else if (form.hasError('rangoSplitInvalido') && form.get('reservaSplit')?.touched) {
-            <small>El split debe estar entre 1 y 99.</small>
-          }
-        </div>
-      }
     </div>
 
-  </section>
-
-  @if (mostrarAdminTotal) {
-    <section class="step-section">
-      <h3>Administrador de la Plataforma con Acceso Total y Gestión de Pagos</h3>
-      <div class="form-grid cols-3">
-        <div class="field"><label for="adminNombre">Nombre <b>*</b></label>
-          <input id="adminNombre" formControlName="adminNombre" [class.invalid]="esInvalido('adminNombre')" />
-          @if (esInvalido('adminNombre')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="adminPaterno">Apellido paterno <b>*</b></label>
-          <input id="adminPaterno" formControlName="adminPaterno" [class.invalid]="esInvalido('adminPaterno')" />
-          @if (esInvalido('adminPaterno')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="adminMaterno">Apellido materno <b>*</b></label>
-          <input id="adminMaterno" formControlName="adminMaterno" [class.invalid]="esInvalido('adminMaterno')" />
-          @if (esInvalido('adminMaterno')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="adminCorreo">Correo electrónico <b>*</b></label>
-          <input id="adminCorreo" type="email" formControlName="adminCorreo" [class.invalid]="esInvalido('adminCorreo')" />
-          @if (esInvalido('adminCorreo')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="adminConfirmarCorreo">Confirmar correo <b>*</b></label>
-          <input id="adminConfirmarCorreo" type="email" formControlName="adminConfirmarCorreo"
-            [class.invalid]="esInvalido('adminConfirmarCorreo') || (form.hasError('adminCorreosDistintos') && form.get('adminConfirmarCorreo')?.touched)" />
-          @if (esInvalido('adminConfirmarCorreo')) {
-            <small>Debes llenar este campo.</small>
-          } @else if (form.hasError('adminCorreosDistintos') && form.get('adminConfirmarCorreo')?.touched) {
-            <small>Los correos no coinciden.</small>
-          }
-        </div>
-        <div class="field"><label for="adminTelefono">Teléfono <b>*</b></label>
-          <input id="adminTelefono" maxlength="10" inputmode="numeric" formControlName="adminTelefono"
-            [class.invalid]="esInvalido('adminTelefono')" />
-          @if (esInvalido('adminTelefono')) { <small>Debes llenar este campo.</small> }</div>
-      </div>
-    </section>
-  }
-
-  @if (mostrarPerfilReserva) {
-    <section class="step-section">
-      <h3>Administrador de la Plataforma con Perfil de Reserva</h3>
-      <div class="form-grid cols-3">
-        <div class="field"><label for="perfilReservaNombre">Nombre <b>*</b></label>
-          <input id="perfilReservaNombre" formControlName="perfilReservaNombre" [class.invalid]="esInvalido('perfilReservaNombre')" />
-          @if (esInvalido('perfilReservaNombre')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="perfilReservaPaterno">Apellido paterno <b>*</b></label>
-          <input id="perfilReservaPaterno" formControlName="perfilReservaPaterno" [class.invalid]="esInvalido('perfilReservaPaterno')" />
-          @if (esInvalido('perfilReservaPaterno')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="perfilReservaMaterno">Apellido materno <b>*</b></label>
-          <input id="perfilReservaMaterno" formControlName="perfilReservaMaterno" [class.invalid]="esInvalido('perfilReservaMaterno')" />
-          @if (esInvalido('perfilReservaMaterno')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="perfilReservaCorreo">Correo electrónico <b>*</b></label>
-          <input id="perfilReservaCorreo" type="email" formControlName="perfilReservaCorreo" [class.invalid]="esInvalido('perfilReservaCorreo')" />
-          @if (esInvalido('perfilReservaCorreo')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="perfilReservaConfirmarCorreo">Confirmar correo <b>*</b></label>
-          <input id="perfilReservaConfirmarCorreo" type="email" formControlName="perfilReservaConfirmarCorreo"
-            [class.invalid]="esInvalido('perfilReservaConfirmarCorreo') || (form.hasError('perfilCorreosDistintos') && form.get('perfilReservaConfirmarCorreo')?.touched)" />
-          @if (esInvalido('perfilReservaConfirmarCorreo')) {
-            <small>Debes llenar este campo.</small>
-          } @else if (form.hasError('perfilCorreosDistintos') && form.get('perfilReservaConfirmarCorreo')?.touched) {
-            <small>Los correos no coinciden.</small>
-          }
-        </div>
-        <div class="field"><label for="perfilReservaTelefono">Teléfono <b>*</b></label>
-          <input id="perfilReservaTelefono" maxlength="10" inputmode="numeric" formControlName="perfilReservaTelefono" [class.invalid]="esInvalido('perfilReservaTelefono')" />
-          @if (esInvalido('perfilReservaTelefono')) { <small>Debes llenar este campo.</small> }</div>
-      </div>
-    </section>
-  }
-
-  <section class="step-section">
-    <h3>Operación de las Terminales para Cobrar (TPV)</h3>
-    <div class="form-grid cols-2">
+    <div class="form-grid cols-3">
       <div class="field">
-        <label for="cajasTPV">Número de Cajas para operar la terminal TPV <b>*</b></label>
-        <input id="cajasTPV" type="number" min="1" formControlName="cajasTPV" [class.invalid]="esInvalido('cajasTPV')" />
-        @if (esInvalido('cajasTPV')) { <small>Debes llenar este campo.</small> }
+        <label for="adminNombre">Nombre <b>*</b></label>
+        <input id="adminNombre" formControlName="adminNombre" placeholder="Ingresa tu nombre"
+          [class.invalid]="esInvalido('adminNombre')" />
+        @if (esInvalido('adminNombre')) { <small>Debes llenar este campo.</small> }
       </div>
+
       <div class="field">
-        <label>PIN Administrador Terminales</label>
-        <div class="radio-grid">
-          <label class="radio-option">
-            <input type="radio" value="si" formControlName="tieneSupervisor" />
-            <span>Sí, requiere PIN de supervisor</span>
-          </label>
-          <label class="radio-option">
-            <input type="radio" value="no" formControlName="tieneSupervisor" />
-            <span>No, solo acceso operativo</span>
-          </label>
-        </div>
+        <label for="adminPaterno">Apellido paterno <b>*</b></label>
+        <input id="adminPaterno" formControlName="adminPaterno" placeholder="Ingresa tu apellido paterno"
+          [class.invalid]="esInvalido('adminPaterno')" />
+        @if (esInvalido('adminPaterno')) { <small>Debes llenar este campo.</small> }
+      </div>
+
+      <div class="field">
+        <label for="adminMaterno">Apellido materno <b>*</b></label>
+        <input id="adminMaterno" formControlName="adminMaterno" placeholder="Ingresa tu apellido materno"
+          [class.invalid]="esInvalido('adminMaterno')" />
+        @if (esInvalido('adminMaterno')) { <small>Debes llenar este campo.</small> }
+      </div>
+
+      <div class="field">
+        <label for="adminCorreo">Correo electrónico <b>*</b></label>
+        <input id="adminCorreo" type="email" formControlName="adminCorreo" placeholder="ejemplo@correo.com"
+          [class.invalid]="esInvalido('adminCorreo')" />
+        @if (esInvalido('adminCorreo')) { <small>Debes llenar este campo.</small> }
+      </div>
+
+      <div class="field">
+        <label for="adminConfirmarCorreo">Confirmar correo electrónico <b>*</b></label>
+        <input id="adminConfirmarCorreo" type="email" formControlName="adminConfirmarCorreo"
+          placeholder="Confirma tu correo"
+          [class.invalid]="esInvalido('adminConfirmarCorreo') || (form.hasError('adminCorreosDistintos') && form.get('adminConfirmarCorreo')?.touched)" />
+        @if (esInvalido('adminConfirmarCorreo')) {
+        <small>Debes llenar este campo.</small>
+        } @else if (form.hasError('adminCorreosDistintos') && form.get('adminConfirmarCorreo')?.touched) {
+        <small>Los correos no coinciden.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="adminTelefono">Teléfono <b>*</b></label>
+        <input id="adminTelefono" maxlength="10" inputmode="numeric" formControlName="adminTelefono"
+          placeholder="(55) 1234 5678" [class.invalid]="esInvalido('adminTelefono')" />
+        @if (esInvalido('adminTelefono')) { <small>Debes llenar este campo.</small> }
       </div>
     </div>
   </section>
-
-  @if (mostrarPinSupervisor) {
-    <section class="step-section">
-      <h3>PIN de administrador para terminal</h3>
-      <div class="form-grid cols-3">
-        <div class="field"><label for="pinAdministrador">PIN administrador <b>*</b></label>
-          <input id="pinAdministrador" formControlName="pinAdministrador" [class.invalid]="esInvalido('pinAdministrador')" />
-          @if (esInvalido('pinAdministrador')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="pinCorreo">Correo de recuperación <b>*</b></label>
-          <input id="pinCorreo" type="email" formControlName="pinCorreo" [class.invalid]="esInvalido('pinCorreo')" />
-          @if (esInvalido('pinCorreo')) { <small>Debes llenar este campo.</small> }</div>
-        <div class="field"><label for="pinConfirmarCorreo">Confirmar correo <b>*</b></label>
-          <input id="pinConfirmarCorreo" type="email" formControlName="pinConfirmarCorreo"
-            [class.invalid]="esInvalido('pinConfirmarCorreo') || (form.hasError('pinCorreosDistintos') && form.get('pinConfirmarCorreo')?.touched)" />
-          @if (esInvalido('pinConfirmarCorreo')) {
-            <small>Debes llenar este campo.</small>
-          } @else if (form.hasError('pinCorreosDistintos') && form.get('pinConfirmarCorreo')?.touched) {
-            <small>Los correos no coinciden.</small>
-          }
-        </div>
-        <div class="field"><label for="pinContrasena">Contraseña <b>*</b></label>
-          <input id="pinContrasena" type="password" formControlName="pinContrasena" [class.invalid]="esInvalido('pinContrasena')" />
-          @if (esInvalido('pinContrasena')) { <small>Debes llenar este campo.</small> }</div>
-      </div>
-    </section>
-  }
 
   <div class="step-actions">
     <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>

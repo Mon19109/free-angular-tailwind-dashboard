@@ -11,18 +11,9 @@ import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 })
 export class StepAccesosComponent {
   @Input() form!: FormGroup;
-  @Input() modosReserva: readonly string[] = [];
-  @Input() mostrarAdminTotal = true;
-  @Input() mostrarPerfilReserva = false;
-  @Input() mostrarReservaSplit = false;
-  @Input() mostrarPinSupervisor = true;
   @Input() textoContinuar = 'Guardar y continuar';
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
-
-  get modoSeleccionado(): string {
-  return this.form.get('modoReserva')?.value ?? 'NINGUNO';
-}
 
   esInvalido(campo: string): boolean {
     const c = this.form.get(campo);

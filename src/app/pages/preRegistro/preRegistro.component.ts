@@ -734,7 +734,7 @@ export class PreRegistroComponent {
   get mostrarPerfilReserva(): boolean { return this.modoReservaActual !== 'NINGUNO'; }
   get mostrarReservaSplit(): boolean { return this.modoReservaActual === 'TRANSACCIONAL'; }
   get mostrarPinSupervisor(): boolean { return this.accesosForm.controls.tieneSupervisor.value === 'si'; }
-  get mostrarCuentaLiquidacion(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
+  get mostrarCuentaLiquidacion(): boolean { return false; }
   get mostrarPasoDocumentos(): boolean { return this.documentosVisibles.length > 0; }
   get mostrarBeneficiarioIgualComercio(): boolean { return !this.pasoGeneralesDebeSaltarse; }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
@@ -1445,28 +1445,24 @@ export class PreRegistroComponent {
 
   private actualizarValidadoresAccesos(modoReserva: ModoReserva): void {
     this.modoReservaActual = modoReserva;
-    const adminActivos = modoReserva !== 'COMPLETO';
-    const perfilActivos = modoReserva !== 'NINGUNO';
-    const splitActivos = modoReserva === 'TRANSACCIONAL';
-    const supervisorActivos = this.accesosForm.controls.tieneSupervisor.value === 'si';
+    this.togglarControl(this.accesosForm.controls.adminNombre, true, [Validators.required]);
+    this.togglarControl(this.accesosForm.controls.adminPaterno, true, [Validators.required]);
+    this.togglarControl(this.accesosForm.controls.adminMaterno, true, [Validators.required]);
+    this.togglarControl(this.accesosForm.controls.adminCorreo, true, [Validators.required, Validators.email]);
+    this.togglarControl(this.accesosForm.controls.adminConfirmarCorreo, true, [Validators.required, Validators.email]);
+    this.togglarControl(this.accesosForm.controls.adminTelefono, true, [Validators.required, Validators.pattern(/^\d{10}$/)]);
 
-    this.togglarControl(this.accesosForm.controls.adminNombre, adminActivos, [Validators.required]);
-    this.togglarControl(this.accesosForm.controls.adminPaterno, adminActivos, [Validators.required]);
-    this.togglarControl(this.accesosForm.controls.adminMaterno, adminActivos, [Validators.required]);
-    this.togglarControl(this.accesosForm.controls.adminCorreo, adminActivos, [Validators.required, Validators.email]);
-    this.togglarControl(this.accesosForm.controls.adminConfirmarCorreo, adminActivos, [Validators.required, Validators.email]);
-    this.togglarControl(this.accesosForm.controls.adminTelefono, adminActivos, [Validators.required, Validators.pattern(/^\d{10}$/)]);
-    this.togglarControl(this.accesosForm.controls.perfilReservaNombre, perfilActivos, [Validators.required]);
-    this.togglarControl(this.accesosForm.controls.perfilReservaPaterno, perfilActivos, [Validators.required]);
-    this.togglarControl(this.accesosForm.controls.perfilReservaMaterno, perfilActivos, [Validators.required]);
-    this.togglarControl(this.accesosForm.controls.perfilReservaCorreo, perfilActivos, [Validators.required, Validators.email]);
-    this.togglarControl(this.accesosForm.controls.perfilReservaConfirmarCorreo, perfilActivos, [Validators.required, Validators.email]);
-    this.togglarControl(this.accesosForm.controls.perfilReservaTelefono, perfilActivos, [Validators.required, Validators.pattern(/^\d{10}$/)]);
-    this.togglarControl(this.accesosForm.controls.reservaSplit, splitActivos, splitActivos ? [Validators.required, Validators.pattern(/^\d{1,3}(\.\d{1,2})?$/)] : []);
-    this.togglarControl(this.accesosForm.controls.pinAdministrador, supervisorActivos, supervisorActivos ? [Validators.required] : []);
-    this.togglarControl(this.accesosForm.controls.pinCorreo, supervisorActivos, supervisorActivos ? [Validators.required, Validators.email] : []);
-    this.togglarControl(this.accesosForm.controls.pinConfirmarCorreo, supervisorActivos, supervisorActivos ? [Validators.required, Validators.email] : []);
-    this.togglarControl(this.accesosForm.controls.pinContrasena, supervisorActivos, supervisorActivos ? [Validators.required, Validators.minLength(6)] : []);
+    this.togglarControl(this.accesosForm.controls.perfilReservaNombre, false);
+    this.togglarControl(this.accesosForm.controls.perfilReservaPaterno, false);
+    this.togglarControl(this.accesosForm.controls.perfilReservaMaterno, false);
+    this.togglarControl(this.accesosForm.controls.perfilReservaCorreo, false);
+    this.togglarControl(this.accesosForm.controls.perfilReservaConfirmarCorreo, false);
+    this.togglarControl(this.accesosForm.controls.perfilReservaTelefono, false);
+    this.togglarControl(this.accesosForm.controls.reservaSplit, false);
+    this.togglarControl(this.accesosForm.controls.pinAdministrador, false);
+    this.togglarControl(this.accesosForm.controls.pinCorreo, false);
+    this.togglarControl(this.accesosForm.controls.pinConfirmarCorreo, false);
+    this.togglarControl(this.accesosForm.controls.pinContrasena, false);
     this.accesosForm.updateValueAndValidity({ emitEvent: false });
   }
 
