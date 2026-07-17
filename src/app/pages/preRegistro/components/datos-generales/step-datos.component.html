@@ -43,8 +43,8 @@
       @if (tiene('giroComercial')) {
       <div class="field">
         <label for="giroComercial">Familia del giro <b>*</b></label>
-        <input id="giroComercial" formControlName="giroComercial" placeholder="Se llena con Búsqueda Avanzada"
-          [class.invalid]="esInvalido('giroComercial')" readonly />
+        <input id="giroComercial" formControlName="giroComercial" placeholder="Escribe la familia o usa Búsqueda Avanzada"
+          [class.invalid]="esInvalido('giroComercial')" />
         @if (esInvalido('giroComercial')) { <small>Debes llenar este campo.</small> }
       </div>
       }

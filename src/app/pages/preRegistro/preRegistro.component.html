@@ -89,11 +89,103 @@
         }
       </nav>
 
-      <!-- Cards de pasos -->
-      <div class="wizard-stack">
-        @for (paso of pasosVisibles; track paso.numero; let i = $index) {
-        <article class="step-card" [class.current]="pasoActual === paso.numero"
-          [class.done]="esPasoCompletado(paso.numero)">
+      <div class="wizard-workspace" [class.with-tree]="mostrarArbolWizard">
+        @if (mostrarArbolWizard) {
+        <aside class="location-tree-panel" aria-label="Niveles de ubicación">
+          <div class="location-tree-heading">
+            <span>Niveles de ubicación</span>
+            <h2>Árbol de negocio</h2>
+            <p>Selecciona la sucursal o caja que vas a capturar.</p>
+          </div>
+
+          <div class="location-tree" role="tree">
+            <div class="location-root level-0">
+              <button type="button" class="tree-toggle" (click)="alternarNodoArbol('nivel-padre')">
+                <i class="fa-solid" [ngClass]="nodoArbolExpandido('nivel-padre') ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+              </button>
+              <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+              <input class="node-name" [value]="nombreNivelPadreArbol" (change)="renombrarNodoArbol('nivel-padre', $event)" />
+            </div>
+
+            @if (nodoArbolExpandido('nivel-padre') && mostrarCarpetaSucursales) {
+            <div class="location-root level-1">
+              <button type="button" class="tree-toggle" (click)="alternarNodoArbol('sucursales')">
+                <i class="fa-solid" [ngClass]="nodoArbolExpandido('sucursales') ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+              </button>
+              <i class="fa-solid fa-folder" aria-hidden="true"></i>
+              <input class="node-name" [value]="nombreSucursalesArbol" (change)="renombrarNodoArbol('sucursales', $event)" />
+            </div>
+            }
+
+            @if (nodoArbolExpandido('nivel-padre') && (!mostrarCarpetaSucursales || nodoArbolExpandido('sucursales'))) {
+            <ul class="location-list" [class.level-1]="!mostrarCarpetaSucursales" [class.level-2]="mostrarCarpetaSucursales">
+              @for (sucursal of arbolNegocioWizard; track sucursal.id; let sucursalIndex = $index) {
+              <li class="location-branch">
+                <div class="location-branch-row">
+                  <button type="button" class="tree-toggle" (click)="alternarNodoArbol(sucursal.id)">
+                    <i class="fa-solid" [ngClass]="nodoArbolExpandido(sucursal.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                  </button>
+                  <button type="button" class="location-node" [class.selected]="esNodoArbolSeleccionado(sucursal)"
+                    (click)="seleccionarNodoArbol(sucursal)">
+                    <i class="fa-solid fa-folder" aria-hidden="true"></i>
+                    <input class="node-name" [value]="sucursal.nombre" (click)="$event.stopPropagation()"
+                      (change)="renombrarNodoArbol(sucursal.id, $event)" />
+                  </button>
+                </div>
+
+                @if (nodoArbolExpandido(sucursal.id)) {
+                <div class="location-root level-caja">
+                  <button type="button" class="tree-toggle" (click)="alternarNodoArbol(sucursal.id + '-cajas')">
+                    <i class="fa-solid" [ngClass]="nodoArbolExpandido(sucursal.id + '-cajas') ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                  </button>
+                  <i class="fa-solid fa-folder" aria-hidden="true"></i>
+                  <input class="node-name" [value]="nombreNodoArbol(sucursal.id + '-cajas', 'Caja')" (change)="renombrarNodoArbol(sucursal.id + '-cajas', $event)" />
+                  <div class="branch-actions" aria-label="Editar cajas de la sucursal">
+                    <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(sucursalIndex, -1)">
+                      <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(sucursalIndex, 1)">
+                      <i class="fa-solid fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+
+                @if (nodoArbolExpandido(sucursal.id + '-cajas')) {
+                <ul class="location-list leaf-list">
+                  @for (caja of sucursal.hijos; track caja.id) {
+                  <li>
+                    <button type="button" class="location-node leaf" [class.selected]="esNodoArbolSeleccionado(caja)"
+                      (click)="seleccionarNodoArbol(caja)">
+                      <i class="fa-regular fa-circle" aria-hidden="true"></i>
+                      <input class="node-name" [value]="caja.nombre" (click)="$event.stopPropagation()"
+                        (change)="renombrarNodoArbol(caja.id, $event)" />
+                    </button>
+                  </li>
+                  }
+                </ul>
+                }
+                }
+              </li>
+              }
+            </ul>
+            }
+          </div>
+
+          <div class="location-selected">
+            <span>Ubicación seleccionada</span>
+            <div class="location-selected-route">
+              <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+              <strong>{{ ubicacionArbolSeleccionada || 'Sucursal 01' }}</strong>
+            </div>
+          </div>
+        </aside>
+        }
+
+        <!-- Cards de pasos -->
+        <div class="wizard-stack">
+          @for (paso of pasosVisibles; track paso.numero; let i = $index) {
+          <article class="step-card" [class.current]="pasoActual === paso.numero"
+            [class.done]="esPasoCompletado(paso.numero)">
 
           <button type="button" class="step-card-header"
             [disabled]="!puedeAbrirPaso(paso.numero)" (click)="abrirPaso(paso.numero)">
@@ -115,6 +207,12 @@
 
           @if (pasoActual === paso.numero) {
           <div class="step-card-body">
+            @if (mostrarArbolWizard && paso.numero === 2) {
+            <div class="location-context">
+              <span>Datos generales de</span>
+              <strong>{{ ubicacionArbolSeleccionada || 'Sucursal 01' }}</strong>
+            </div>
+            }
             @switch (paso.numero) {
             @case (1) {
             <app-step-comercio [form]="comercioForm" [niveles]="datos.niveles" [tiposComercio]="tiposComercio"
@@ -160,8 +258,9 @@
           </div>
           }
 
-        </article>
-        }
+          </article>
+          }
+        </div>
       </div>
     </section>
     }

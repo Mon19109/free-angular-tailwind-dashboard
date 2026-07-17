@@ -579,6 +579,287 @@ small {
   gap: 16px;
 }
 
+.wizard-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.wizard-workspace.with-tree {
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.location-tree-panel {
+  position: sticky;
+  top: 104px;
+  padding: 18px;
+  border: 1px solid var(--pre-border);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(10, 14, 21, 0.96), rgba(7, 10, 15, 0.96));
+  box-shadow: var(--pre-shadow-soft);
+}
+
+.location-tree-heading {
+  margin-bottom: 16px;
+}
+
+.location-tree-heading span,
+.location-selected span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--pre-gold);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.location-tree-heading h2 {
+  margin: 0 0 8px;
+  color: var(--pre-text);
+  font-size: 20px;
+}
+
+.location-tree-heading p,
+.location-selected p {
+  margin: 0;
+  color: var(--pre-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.location-tree {
+  max-height: 440px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.location-root,
+.location-node {
+  width: 100%;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 10px;
+  color: var(--pre-text);
+  text-align: left;
+}
+
+.location-root {
+  padding: 0 10px;
+  color: var(--pre-gold-strong);
+}
+
+.tree-toggle {
+  width: 22px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: var(--pre-muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.tree-toggle:hover,
+.tree-toggle:focus-visible {
+  color: var(--pre-gold);
+}
+
+.location-root.level-1,
+.location-list.level-1 {
+  margin-left: 18px;
+}
+
+.location-root.level-2,
+.location-list.level-2 {
+  margin-left: 36px;
+}
+
+.location-root.level-3,
+.location-list.level-3 {
+  margin-left: 54px;
+}
+
+.location-root.level-4,
+.location-list.level-4 {
+  margin-left: 72px;
+}
+
+.location-list.level-2 {
+  margin-left: 36px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(241, 178, 61, 0.22);
+}
+
+.location-root.level-caja {
+  min-height: 32px;
+  margin-left: 28px;
+  color: var(--pre-muted);
+}
+
+.location-root i,
+.location-node i {
+  color: var(--pre-gold);
+}
+
+.location-tree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.location-tree > ul,
+.location-list {
+  margin-top: 8px;
+}
+
+.location-tree li ul,
+.leaf-list {
+  margin-left: 42px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.location-branch {
+  min-width: 0;
+}
+
+.location-branch-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.location-node {
+  margin: 2px 0;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.node-name {
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+}
+
+.node-name:hover,
+.node-name:focus {
+  border-color: rgba(241, 178, 61, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  outline: 0;
+}
+
+.branch-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.branch-actions button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(241, 178, 61, 0.22);
+  border-radius: 50%;
+  color: var(--pre-gold);
+  background: rgba(241, 178, 61, 0.08);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.branch-actions button:hover,
+.branch-actions button:focus-visible {
+  border-color: rgba(241, 178, 61, 0.48);
+  background: rgba(241, 178, 61, 0.16);
+}
+
+.location-node.leaf {
+  color: var(--pre-muted);
+}
+
+.location-node:hover,
+.location-node:focus-visible,
+.location-node.selected {
+  border-color: var(--pre-border-strong);
+  color: var(--pre-text);
+  background: rgba(241, 178, 61, 0.12);
+}
+
+.location-selected {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(241, 178, 61, 0.2);
+  border-radius: 16px;
+  background: rgba(241, 178, 61, 0.06);
+}
+
+.location-selected-route {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+.location-selected-route i {
+  color: var(--pre-gold);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.location-selected-route strong {
+  color: var(--pre-text);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.location-context {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(241, 178, 61, 0.22);
+  border-radius: 14px;
+  background: rgba(241, 178, 61, 0.06);
+}
+
+.location-context span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--pre-gold);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.location-context strong {
+  color: var(--pre-text);
+  font-size: 15px;
+}
+
 .step-card {
   overflow: hidden;
 }
@@ -1135,6 +1416,14 @@ small {
     grid-template-columns: 1fr;
   }
 
+  .wizard-workspace.with-tree {
+    grid-template-columns: 1fr;
+  }
+
+  .location-tree-panel {
+    position: static;
+  }
+
   .wizard-header {
     align-items: flex-start;
     flex-direction: column;
@@ -1330,6 +1619,7 @@ small {
 :host-context(html:not(.dark)) .prep-card,
 :host-context(html:not(.dark)) .success-card,
 :host-context(html:not(.dark)) .step-card,
+:host-context(html:not(.dark)) .location-tree-panel,
 :host-context(html:not(.dark)) .modal-card {
   border-color: var(--pre-border);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 249, 252, 0.95));
@@ -1370,10 +1660,26 @@ small {
 :host-context(html:not(.dark)) .consent,
 :host-context(html:not(.dark)) .success-metrics article,
 :host-context(html:not(.dark)) .help-card,
+:host-context(html:not(.dark)) .location-tree,
+:host-context(html:not(.dark)) .location-selected,
 :host-context(html:not(.dark)) .results-list button {
   border-color: var(--pre-border);
   background: rgba(255, 255, 255, 0.86);
   color: var(--pre-text);
+}
+
+:host-context(html:not(.dark)) .branch-actions button {
+  border-color: rgba(36, 50, 71, 0.18);
+  color: #ffffff;
+  background: linear-gradient(135deg, #355070 0%, #243247 100%);
+  box-shadow: 0 8px 18px rgba(35, 50, 77, 0.16);
+}
+
+:host-context(html:not(.dark)) .branch-actions button:hover,
+:host-context(html:not(.dark)) .branch-actions button:focus-visible {
+  border-color: rgba(36, 50, 71, 0.28);
+  background: linear-gradient(135deg, #3f5d82 0%, #2b3c56 100%);
+  box-shadow: 0 10px 22px rgba(35, 50, 77, 0.2);
 }
 
 :host-context(html:not(.dark)) .button.ghost {
@@ -1617,14 +1923,14 @@ small {
 
 /* MODO CLARO → azul */
 :host-context(html:not(.dark)) .btn-busqueda-avanzada {
-  background: linear-gradient(135deg, #2fc0df 0%, #2696d0 100%);
+  background: linear-gradient(135deg, #355070 0%, #243247 100%);
   color: #fff;
-  box-shadow: 0 8px 20px rgba(38, 150, 208, 0.28);
+  box-shadow: 0 8px 20px rgba(35, 50, 77, 0.18);
 }
 
 
 :host-context(html:not(.dark)) .btn-busqueda-avanzada:hover {
-  box-shadow: 0 12px 26px rgba(38, 150, 208, 0.38);
+  box-shadow: 0 12px 26px rgba(35, 50, 77, 0.24);
 }
 /* ── Items del modal con MCC ─────────────────────────────────────────────── */
 .giro-item {

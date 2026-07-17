@@ -24,10 +24,19 @@ export class ArbolNegocioComponent {
     const control = this.form.get(campo);
     const valor = this.obtenerValor(campo, minimo);
     control?.setValue(String(Math.max(minimo, valor)));
+    if (this.ubicacionSeleccionada) {
+      this.form.get('ubicacionSeleccionada')?.setValue('');
+    }
+    this.form.get('cajasPorSucursal')?.setValue('');
+  }
+
+  private get ubicacionSeleccionada(): string {
+    return `${this.form.get('ubicacionSeleccionada')?.value ?? ''}`;
   }
 
   private obtenerValor(campo: 'numeroSucursales' | 'numeroCajas', minimo: number): number {
     const valor = Number(this.form.get(campo)?.value);
     return Number.isFinite(valor) && valor > 0 ? Math.floor(valor) : minimo;
   }
+
 }
