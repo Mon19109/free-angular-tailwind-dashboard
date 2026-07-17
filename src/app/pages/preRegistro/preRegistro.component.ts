@@ -21,9 +21,10 @@ import { StepDatosComponent } from './components/datos-generales/step-datos.comp
 import { StepAccesosComponent } from './components/accesos/step-accesos.component';
 import { StepLiquidacionComponent } from './components/liquidacion/step-liquidacion.component';
 import { StepDocumentosComponent } from './components/documentos/step-documentos.component';
+import { TipoNegocio, TiposNegocioComponent } from './components/tipos-negocio/tipos-negocio.component';
 
 // ── Tipos locales ─────────────────────────────────────────────────────────────
-type PasoWizard = 0 | 1 | 2 | 3 | 4 | 5;
+type PasoWizard = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
 type TipoComisionista = 'existente' | 'nuevo';
@@ -56,6 +57,7 @@ interface BorradorPreRegistro {
     StepAccesosComponent,
     StepLiquidacionComponent,
     StepDocumentosComponent,
+    TiposNegocioComponent,
   ],
   templateUrl: './preRegistro.component.html',
   styleUrls: ['./preRegistro.component.css'],
@@ -747,7 +749,16 @@ export class PreRegistroComponent {
   // ── Continuar ─────────────────────────────────────────────────────────────────
   continuarAfiliacion(): void {
     if (this.afiliacionForm.invalid) { this.afiliacionForm.markAllAsTouched(); return; }
-    this.guardarBorradorSilencioso(); this.irAlPaso(1);
+    this.guardarBorradorSilencioso(); this.irAlPaso(6);
+  }
+
+  seleccionarTipoNegocio(tipo: TipoNegocio): void {
+    this.comercioForm.patchValue({
+      nivel: tipo.nivel,
+      tipoComercio: tipo.tipoComercio,
+    });
+    this.tiposComercio = this.tiposComercioPorNivel[tipo.nivel] ?? [];
+    this.continuarComercio();
   }
 
   /* continuarComercio(): void {

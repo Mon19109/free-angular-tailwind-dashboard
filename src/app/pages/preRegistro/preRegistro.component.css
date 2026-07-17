@@ -166,6 +166,11 @@
   padding: 34px 0 74px;
 }
 
+.page-content:has(.business-shell) {
+  width: 100%;
+  padding: 0;
+}
+
 .card,
 .hero-card,
 .prep-card,

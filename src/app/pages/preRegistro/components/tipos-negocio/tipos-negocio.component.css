@@ -1,0 +1,396 @@
+:host {
+  --business-bg: transparent;
+  --business-panel: rgba(9, 13, 20, 0.96);
+  --business-panel-soft: rgba(13, 18, 27, 0.96);
+  --business-accent: #f1b23d;
+  --business-accent-strong: #ffd56b;
+  --business-border: rgba(241, 178, 61, 0.34);
+  --business-text: #f6f7fb;
+  --business-muted: rgba(246, 247, 251, 0.72);
+  --business-shadow: 0 30px 72px rgba(0, 0, 0, 0.36);
+  display: block;
+  min-height: calc(100vh - 92px);
+  color: var(--business-text);
+  background: var(--business-bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.business-shell {
+  min-height: calc(100vh - 92px);
+  background: transparent;
+}
+
+.business-heading {
+  width: min(2048px, 100%);
+  margin: 0 auto;
+  padding: 14px clamp(22px, 2.2vw, 42px) 0;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  text-align: center;
+}
+
+.business-heading h1 {
+  margin: 0;
+  color: var(--business-accent-strong);
+  font-size: clamp(28px, 2.75vw, 52px);
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.business-heading span {
+  width: min(360px, 44vw);
+  height: 1px;
+  position: relative;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--business-accent) 48%, transparent), transparent);
+}
+
+.business-heading span::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border-radius: 2px;
+  background: var(--business-accent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--business-accent) 45%, transparent);
+}
+
+.business-heading p {
+  margin: 0;
+  color: var(--business-muted);
+  font-size: clamp(14px, 1vw, 20px);
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.business-content {
+  width: min(2048px, 100%);
+  margin: 0 auto;
+  padding: 14px clamp(22px, 2.2vw, 42px) 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(260px, 1fr));
+  gap: 22px;
+}
+
+.business-card {
+  min-height: calc(100vh - 214px);
+  padding: clamp(18px, 2.2vw, 28px) clamp(22px, 2vw, 34px) 14px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr auto auto;
+  justify-items: center;
+  gap: clamp(12px, 1.55vh, 22px);
+  border: 1px solid var(--business-border);
+  border-radius: 24px;
+  color: var(--business-text);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(241, 178, 61, 0.08), transparent 18%),
+    linear-gradient(180deg, var(--business-panel-soft), var(--business-panel));
+  box-shadow: var(--business-shadow);
+  text-align: center;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.business-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--business-accent) 22%, transparent), transparent 44%);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.business-card:hover,
+.business-card:focus-within {
+  transform: translateY(-6px);
+  border-color: rgba(255, 218, 107, 0.88);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4), 0 0 0 1px color-mix(in srgb, var(--business-accent) 16%, transparent);
+}
+
+.business-card:hover::before,
+.business-card:focus-within::before {
+  opacity: 1;
+}
+
+.business-icon,
+.business-bottom-icon {
+  display: grid;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--business-accent) 42%, transparent);
+  border-radius: 50%;
+  color: var(--business-accent-strong);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--business-accent) 10%, transparent), color-mix(in srgb, var(--business-accent) 3%, transparent));
+}
+
+.business-icon {
+  width: clamp(92px, 6.2vw, 118px);
+  height: clamp(92px, 6.2vw, 118px);
+  font-size: clamp(34px, 2.3vw, 46px);
+}
+
+.business-icon.empty i {
+  display: none;
+}
+
+.business-bottom-icon {
+  width: 76px;
+  height: 76px;
+  font-size: 32px;
+}
+
+.business-card strong {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--business-accent-strong);
+  font-size: clamp(20px, 1.35vw, 28px);
+  font-weight: 950;
+  line-height: 1.12;
+  text-transform: uppercase;
+}
+
+.business-divider {
+  width: min(180px, 62%);
+  height: 1px;
+  position: relative;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--business-accent) 38%, transparent), transparent);
+}
+
+.business-divider::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border-radius: 4px;
+  background: var(--business-accent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--business-accent) 42%, transparent);
+}
+
+.business-card p {
+  max-width: 440px;
+  margin: 0;
+  color: var(--business-muted);
+  font-size: clamp(13px, 0.82vw, 17px);
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.business-card ul {
+  width: 100%;
+  margin: 0;
+  padding: clamp(12px, 1.6vh, 20px) 0 0;
+  display: grid;
+  gap: clamp(10px, 1.3vh, 16px);
+  align-content: start;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  list-style: none;
+  text-align: left;
+}
+
+.business-card li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  color: rgba(247, 244, 234, 0.78);
+  font-size: clamp(12px, 0.75vw, 15px);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.business-card li i {
+  color: var(--business-accent);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.business-select-label {
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: #140e02;
+  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  box-shadow: 0 16px 28px rgba(241, 178, 61, 0.18);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 950;
+  text-transform: uppercase;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease;
+}
+
+.business-select-label:hover,
+.business-select-label:focus-visible {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
+  box-shadow: 0 20px 34px rgba(241, 178, 61, 0.26);
+}
+
+.business-select-label:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--business-accent) 32%, transparent);
+  outline-offset: 4px;
+}
+
+@media (max-width: 1280px) {
+  .business-content {
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+  }
+
+  .business-card {
+    min-height: 620px;
+  }
+}
+
+@media (max-width: 720px) {
+  .business-heading {
+    padding-inline: 14px;
+  }
+
+  .business-heading h1 {
+    font-size: 30px;
+  }
+
+  .business-content {
+    grid-template-columns: 1fr;
+    padding-inline: 14px;
+  }
+
+  .business-card {
+    min-height: auto;
+    padding: 26px 20px 16px;
+    gap: 18px;
+  }
+
+  .business-icon {
+    width: 104px;
+    height: 104px;
+  }
+
+  .business-bottom-icon {
+    width: 84px;
+    height: 84px;
+  }
+
+  .business-card strong {
+    min-height: auto;
+    font-size: 24px;
+  }
+
+  .business-card p,
+  .business-card li {
+    font-size: 15px;
+  }
+}
+
+:host-context(html:not(.dark)),
+:host-context(html[data-theme="light"]) {
+  --business-bg: #f7f9fc;
+  --business-panel: rgba(255, 255, 255, 0.98);
+  --business-panel-soft: rgba(246, 250, 255, 0.96);
+  --business-accent: #2696d0;
+  --business-accent-strong: #243247;
+  --business-border: rgba(209, 219, 233, 0.95);
+  --business-text: #243247;
+  --business-muted: #5f6f84;
+  --business-shadow: 0 24px 50px rgba(35, 50, 77, 0.08);
+  background: transparent;
+}
+
+:host-context(html:not(.dark)) .business-shell,
+:host-context(html[data-theme="light"]) .business-shell {
+  background: linear-gradient(180deg, rgba(36, 50, 71, 0.018), transparent 30%);
+}
+
+:host-context(html:not(.dark)) .business-card,
+:host-context(html[data-theme="light"]) .business-card {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(47, 144, 200, 0.08), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 248, 252, 0.98));
+  box-shadow: 0 24px 54px rgba(35, 50, 77, 0.1);
+}
+
+:host-context(html:not(.dark)) .business-card::before,
+:host-context(html[data-theme="light"]) .business-card::before {
+  background: linear-gradient(135deg, rgba(47, 144, 200, 0.16), transparent 44%);
+}
+
+:host-context(html:not(.dark)) .business-card:hover,
+:host-context(html:not(.dark)) .business-card:focus-within,
+:host-context(html[data-theme="light"]) .business-card:hover,
+:host-context(html[data-theme="light"]) .business-card:focus-within {
+  border-color: rgba(47, 144, 200, 0.7);
+  box-shadow: 0 30px 64px rgba(35, 50, 77, 0.18), 0 0 0 1px rgba(47, 144, 200, 0.12);
+}
+
+:host-context(html:not(.dark)) .business-icon,
+:host-context(html:not(.dark)) .business-bottom-icon,
+:host-context(html[data-theme="light"]) .business-icon,
+:host-context(html[data-theme="light"]) .business-bottom-icon {
+  border-color: rgba(47, 144, 200, 0.34);
+  color: #2696d0;
+  background: rgba(47, 144, 200, 0.08);
+}
+
+:host-context(html:not(.dark)) .business-divider,
+:host-context(html[data-theme="light"]) .business-divider {
+  background: linear-gradient(90deg, transparent, rgba(47, 144, 200, 0.36), transparent);
+}
+
+:host-context(html:not(.dark)) .business-divider::after,
+:host-context(html[data-theme="light"]) .business-divider::after {
+  background: #2696d0;
+  box-shadow: 0 0 22px rgba(38, 150, 208, 0.28);
+}
+
+:host-context(html:not(.dark)) .business-card ul,
+:host-context(html[data-theme="light"]) .business-card ul {
+  border-top-color: rgba(35, 50, 77, 0.1);
+}
+
+:host-context(html:not(.dark)) .business-card p,
+:host-context(html:not(.dark)) .business-card li,
+:host-context(html[data-theme="light"]) .business-card p,
+:host-context(html[data-theme="light"]) .business-card li {
+  color: #5f6f84;
+}
+
+:host-context(html:not(.dark)) .business-card li i,
+:host-context(html[data-theme="light"]) .business-card li i {
+  color: #2696d0;
+}
+
+:host-context(html:not(.dark)) .business-select-label,
+:host-context(html[data-theme="light"]) .business-select-label {
+  color: #ffffff;
+  background: linear-gradient(135deg, #355070 0%, #243247 100%);
+  box-shadow: 0 16px 28px rgba(35, 50, 77, 0.18);
+}
+
+:host-context(html:not(.dark)) .business-select-label:hover,
+:host-context(html:not(.dark)) .business-select-label:focus-visible,
+:host-context(html[data-theme="light"]) .business-select-label:hover,
+:host-context(html[data-theme="light"]) .business-select-label:focus-visible {
+  box-shadow: 0 20px 34px rgba(35, 50, 77, 0.24);
+}

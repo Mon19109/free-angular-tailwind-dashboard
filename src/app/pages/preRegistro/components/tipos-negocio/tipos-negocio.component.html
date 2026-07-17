@@ -1,0 +1,40 @@
+<main class="business-shell">
+  <header class="business-heading">
+    <h1>Tipos de negocio</h1>
+    <span aria-hidden="true"></span>
+    <p>Selecciona la Solución que se adapte mas a tu Negocio</p>
+  </header>
+
+  <section class="business-content" aria-label="Tipos de negocio">
+    @for (tipo of tiposNegocio; track tipo.id) {
+    <article class="business-card">
+      <span class="business-icon" [class.empty]="!tipo.icono">
+        @if (tipo.icono) {
+        <i class="fa-solid" [ngClass]="tipo.icono"></i>
+        }
+      </span>
+
+      <strong>{{ tipo.titulo }}</strong>
+      <span class="business-divider" aria-hidden="true"></span>
+      <p>{{ tipo.descripcion }}</p>
+
+      <ul>
+        @for (beneficio of tipo.beneficios; track beneficio) {
+        <li>
+          <i class="fa-solid fa-circle-check"></i>
+          <span>{{ beneficio }}</span>
+        </li>
+        }
+      </ul>
+
+      <span class="business-bottom-icon">
+        <i class="fa-solid" [ngClass]="tipo.iconoInferior"></i>
+      </span>
+
+      <button type="button" class="business-select-label" (click)="seleccionarTipo(tipo)">
+        Seleccionar
+      </button>
+    </article>
+    }
+  </section>
+</main>

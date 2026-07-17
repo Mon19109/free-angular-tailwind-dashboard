@@ -43,6 +43,10 @@
     <app-step-afiliacion [form]="afiliacionForm" [requisitos]="datos.requisitos" (continuar)="continuarAfiliacion()"
       (abrirAyuda)="abrirAyuda()" />
 
+    <!-- Pantalla: Tipos de negocio -->
+    } @else if (pasoActual === 6) {
+    <app-tipos-negocio (seleccionar)="seleccionarTipoNegocio($event)" />
+
     <!--  Wizard -->
     } @else {
     <section class="wizard-layout">
