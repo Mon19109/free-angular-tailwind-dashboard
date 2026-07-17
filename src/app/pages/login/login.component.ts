@@ -26,7 +26,9 @@ export class LoginComponent implements OnInit {
   lon = '';
   showPassword = false;
   loading = false;
-    userLocation: any;
+  userLocation: any;
+  showTokenModal = false;
+  tokenValue = '';
 
   private modalService = inject( NgxTailwindModalService);
   private vcr = inject(ViewContainerRef);
@@ -79,6 +81,26 @@ export class LoginComponent implements OnInit {
       return;
     }
 
+    this.errorMessage = '';
+    this.tokenValue = '';
+    this.showTokenModal = true;
+  }
+
+  closeTokenModal(): void {
+    if (this.loading) {
+      return;
+    }
+
+    this.showTokenModal = false;
+    this.tokenValue = '';
+  }
+
+  validateToken(): void {
+    this.showTokenModal = false;
+    this.executeLogin();
+  }
+
+  private executeLogin(): void {
     this.isLoading = true;
     this.loading = true;
     this.errorMessage = '';

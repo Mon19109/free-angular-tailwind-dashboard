@@ -21,6 +21,162 @@
   position: relative;
   z-index: 1;
 }
+
+.token-modal-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  display: block;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.52);
+}
+
+.token-modal {
+  position: fixed;
+  top: 44px;
+  left: 50%;
+  width: min(88vw, 600px);
+  background: #ffffff;
+  color: #7a7d8b;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
+  overflow: hidden;
+  transform: translateX(-50%);
+  animation: tokenModalPop 160ms ease-out;
+}
+
+.token-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #b8b8b8;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.token-modal-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.token-modal-body {
+  padding: 28px 30px 34px;
+}
+
+.token-modal-body label {
+  display: block;
+  margin-bottom: 12px;
+  color: #858793;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.token-modal-body textarea {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  color: #172033;
+  font-size: 16px;
+  line-height: 38px;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.token-modal-body textarea:focus {
+  border-color: #bfc3ca;
+  box-shadow: none;
+}
+
+.token-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 11px 12px;
+  border-top: 1px solid #e5e5e5;
+  background: #f5f5f5;
+}
+
+.token-btn {
+  min-width: 96px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.token-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.token-btn-primary {
+  background: #d09a49;
+}
+
+.token-btn-secondary {
+  background: #303c4f;
+}
+
+@media (max-width: 640px) {
+  .token-modal {
+    top: 24px;
+    width: calc(100vw - 32px);
+    transform: translateX(-50%);
+  }
+
+  .token-modal-body {
+    padding: 44px 20px 34px;
+  }
+
+  .token-modal-body label {
+    font-size: 17px;
+  }
+
+  .token-modal-actions {
+    flex-direction: column;
+  }
+
+  .token-btn {
+    width: 100%;
+  }
+}
+
+@keyframes tokenModalPop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
 .text-gradient {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;

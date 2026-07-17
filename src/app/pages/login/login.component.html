@@ -73,3 +73,48 @@
     </form>
   </div>
 </div>
+
+<div class="token-modal-backdrop" *ngIf="showTokenModal">
+  <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="token-modal-title">
+    <button
+      type="button"
+      class="token-modal-close"
+      aria-label="Cerrar"
+      [disabled]="loading"
+      (click)="closeTokenModal()"
+    >
+      &times;
+    </button>
+
+    <form (ngSubmit)="validateToken()">
+      <div class="token-modal-body">
+        <label id="token-modal-title" for="login-token">
+          Ingresa el token enviado al dispositivo registrado con terminación ******
+        </label>
+        <textarea
+          id="login-token"
+          name="verification-token-field"
+          [(ngModel)]="tokenValue"
+          [ngModelOptions]="{ standalone: true }"
+          autocomplete="new-password"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          rows="1"
+          [disabled]="loading"
+          (keydown.enter)="$event.preventDefault(); validateToken()"
+          autofocus
+        ></textarea>
+      </div>
+
+      <div class="token-modal-actions">
+        <button type="submit" class="token-btn token-btn-primary" [disabled]="loading">
+          VALIDAR
+        </button>
+        <button type="button" class="token-btn token-btn-secondary" [disabled]="loading" (click)="closeTokenModal()">
+          CANCELAR
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
