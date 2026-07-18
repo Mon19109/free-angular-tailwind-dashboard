@@ -43,6 +43,7 @@ import { EstadoCuentaComponent } from './pages/estadoCuenta/estadoCuenta.compone
 import { SucursalesComponent } from './pages/sucursales/sucursales.component';
 import { ListarComerciosComponent } from './pages/listarComercios/listarComercios.component';
 import { BeneficiariosComponent } from './pages/beneficiarios/beneficiarios.component';
+import { RevisionMesaDigitalComponent } from './pages/revisionMesaDigital/revisionMesaDigital.component';
 
 export const routes: Routes = [
   { 
@@ -230,6 +231,13 @@ export const routes: Routes = [
       {
         path: 'manuales',
         component: ManualesComponent,
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+      {
+        path: 'revision_mesa_digital',
+        component: RevisionMesaDigitalComponent,
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },

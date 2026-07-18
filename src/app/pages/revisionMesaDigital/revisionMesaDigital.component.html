@@ -1,0 +1,87 @@
+<main class="review-shell page-container">
+  <article class="review-card">
+    <header class="review-card-header">
+      <div>
+        <span class="eyebrow">Mesa digital</span>
+        <h1>Revisión de Mesa Digital</h1>
+        <p>Valida los documentos cargados y registra el resultado del pre registro.</p>
+      </div>
+    </header>
+
+    <section class="review-card-body">
+      <div class="review-summary">
+        <strong>Resultados de la Revisión</strong>
+        <div class="summary-grid">
+          <article><i class="fa-solid fa-file-lines"></i><span>Documentos Totales: {{ documentos.length }}</span></article>
+          <article>Aprobados: <b>{{ aprobados }}</b></article>
+          <article>Rechazados: <b>{{ rechazados }}</b></article>
+          <article>Pendientes: <b>{{ pendientes }}</b></article>
+          <article><i class="fa-solid fa-circle-info"></i><span>Estado General: <b>{{ estadoGeneral }}</b></span></article>
+        </div>
+      </div>
+
+      <div class="review-table">
+        <div class="review-row header">
+          <span>#</span>
+          <span>Nombre del Documento</span>
+          <span>Estado</span>
+          <span>Ver Archivo</span>
+          <span>Validación (Aprobado)</span>
+        </div>
+
+        @for (documento of documentos; track documento.numero) {
+        <div class="review-row">
+          <span class="doc-number">{{ documento.numero }}</span>
+          <span class="doc-name">{{ documento.nombre }} @if (documento.obligatorio) { <b>*</b> }</span>
+          <span>{{ documento.estado }}</span>
+          <span>
+            <button type="button" class="view-button">
+              <i class="fa-solid fa-download"></i>
+              Ver
+            </button>
+          </span>
+          <span class="validation-cell">
+            <label class="switch" [class.on]="documento.aprobado">
+              <input type="checkbox" [(ngModel)]="documento.aprobado" />
+              <span class="switch-on">ON</span>
+              <span class="switch-off">OFF</span>
+            </label>
+            <span class="validation-text" [class.valid]="documento.aprobado">
+              {{ documento.aprobado ? 'Válido' : 'No Válido' }}
+            </span>
+          </span>
+        </div>
+        }
+      </div>
+
+      <footer class="review-footer">
+        <label>
+          <span>Observaciones al Cliente</span>
+          <textarea [(ngModel)]="observacionesCliente"></textarea>
+        </label>
+        <label>
+          <span>Observaciones Internas</span>
+          <textarea [(ngModel)]="observacionesInternas"></textarea>
+        </label>
+        <label>
+          <span>Enviar por Email</span>
+          <div class="email-row">
+            <input [(ngModel)]="emailCliente" type="email" placeholder="Email del Cliente" />
+            <button type="button" class="notify-button" (click)="enviarNotificacion()">
+              <i class="fa-solid fa-envelope"></i>
+              Enviar Notificación
+            </button>
+          </div>
+        </label>
+      </footer>
+    </section>
+
+    <div class="review-actions">
+      <button type="button" class="draft-button" (click)="guardarBorrador()">
+        <i class="fa-regular fa-folder"></i>
+        Guardar Borrador
+      </button>
+      <button type="button" class="register-button" (click)="registrarCliente()">Registrar Cliente</button>
+    </div>
+  </article>
+</main>

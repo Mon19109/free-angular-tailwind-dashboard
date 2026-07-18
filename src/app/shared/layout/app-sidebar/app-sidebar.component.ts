@@ -175,6 +175,11 @@ export class AppSidebarComponent {
           name: 'MANUALES',
            icon: '<i class="fas fa-book fa-lg"></i>',
           path: '/manuales'
+        },
+        {
+          name: 'REVISIÓN MESA DIGITAL',
+          icon: '<i class="fas fa-clipboard-check fa-lg"></i>',
+          path: '/revision_mesa_digital'
         }
       ]
     }
