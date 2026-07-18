@@ -43,6 +43,7 @@ private readonly titulosPaginas: Record<string, string> = {
   pago_distancia: 'Pago a Distancia',
   orden_pago: 'Gestion de Pago',
   revision_mesa_digital: 'Revisión de Mesa Digital',
+  enviar_invitacion_comercio: 'Enviar Invitación a Comercio',
   beneficiarios: 'Beneficiarios',
   manuales: 'Manuales',
   informacion_cuenta: 'Información de cuenta',

@@ -1,0 +1,41 @@
+<main class="invitation-shell page-container">
+  <article class="invitation-card">
+    <header class="invitation-card-header">
+      <div>
+        <span class="eyebrow">Comercios</span>
+        <h1>Enviar invitación a comercio</h1>
+      </div>
+    </header>
+
+    <section class="invitation-card-body">
+      <p class="intro">
+        Genera más Comisiones, envia una invitación a un nuevo comercio para ser parte de Kashpay.
+      </p>
+
+      <form class="invitation-form">
+        <label class="form-field">
+          <span>Correo Electrónico*</span>
+          <input
+            type="email"
+            name="correoElectronico"
+            [(ngModel)]="correoElectronico"
+            autocomplete="email" />
+        </label>
+
+        <label class="form-field">
+          <span>Nombre:</span>
+          <input
+            type="text"
+            name="nombre"
+            [(ngModel)]="nombre"
+            autocomplete="name" />
+        </label>
+
+        <div class="actions">
+          <button type="button" class="button primary" (click)="continuar()">Continuar</button>
+          <button type="button" class="button secondary" (click)="cancelar()">Cancelar</button>
+        </div>
+      </form>
+    </section>
+  </article>
+</main>

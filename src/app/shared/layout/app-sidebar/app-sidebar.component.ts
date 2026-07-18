@@ -172,6 +172,11 @@ export class AppSidebarComponent {
       title: 'OTROS',
       items: [
         {
+          name: 'ENVIAR INVITACIÓN A COMERCIO',
+          icon: '<i class="fas fa-paper-plane fa-lg"></i>',
+          path: '/enviar_invitacion_comercio'
+        },
+        {
           name: 'MANUALES',
            icon: '<i class="fas fa-book fa-lg"></i>',
           path: '/manuales'
