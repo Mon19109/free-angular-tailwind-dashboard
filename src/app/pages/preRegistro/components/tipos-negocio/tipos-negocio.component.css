@@ -138,17 +138,29 @@
 .business-icon {
   width: clamp(92px, 6.2vw, 118px);
   height: clamp(92px, 6.2vw, 118px);
-  font-size: clamp(34px, 2.3vw, 46px);
+  padding: 12px;
 }
 
-.business-icon.empty i {
-  display: none;
+.business-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0) saturate(100%) invert(78%) sepia(39%) saturate(681%) hue-rotate(354deg) brightness(101%) contrast(101%);
 }
 
 .business-bottom-icon {
   width: 76px;
   height: 76px;
-  font-size: 32px;
+  padding: 18px;
+}
+
+.business-bottom-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0) saturate(100%) invert(78%) sepia(39%) saturate(681%) hue-rotate(354deg) brightness(101%) contrast(101%);
 }
 
 .business-card strong {
@@ -351,6 +363,13 @@
   border-color: rgba(47, 144, 200, 0.34);
   color: #2696d0;
   background: rgba(47, 144, 200, 0.08);
+}
+
+:host-context(html:not(.dark)) .business-icon img,
+:host-context(html:not(.dark)) .business-bottom-icon img,
+:host-context(html[data-theme="light"]) .business-icon img,
+:host-context(html[data-theme="light"]) .business-bottom-icon img {
+  filter: brightness(0) saturate(100%) invert(48%) sepia(57%) saturate(757%) hue-rotate(160deg) brightness(89%) contrast(92%);
 }
 
 :host-context(html:not(.dark)) .business-divider,

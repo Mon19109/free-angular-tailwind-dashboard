@@ -56,7 +56,7 @@ interface BorradorPreRegistro {
   registroTerminado: boolean;
   afiliacion: { afiliacion: string };
   comercio: { nivel: string; tipoComercio: string; afiliacionComisionista: string };
-  arbolNegocio: { numeroEntidades: string; numeroSucursales: string; numeroCajas: string; ubicacionSeleccionada: string; nivelSeleccionado: string; cajasPorSucursal: string; nombresArbol: string; nodosColapsados: string; nodoSeleccionado: string; datosPorSucursal: string };
+  arbolNegocio: { numeroEntidades: string; numeroSucursales: string; numeroCajas: string; ubicacionSeleccionada: string; nivelSeleccionado: string; sucursalesPorEntidad: string; cajasPorSucursal: string; nombresArbol: string; nodosColapsados: string; nodoSeleccionado: string; datosPorSucursal: string };
   comisionista: Record<string, string>;
   datos: Record<string, string | boolean>;
   accesos: Record<string, string | boolean>;
@@ -432,6 +432,7 @@ export class PreRegistroComponent {
     numeroCajas: ['1', [Validators.required, Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]],
     ubicacionSeleccionada: [''],
     nivelSeleccionado: [''],
+    sucursalesPorEntidad: [''],
     cajasPorSucursal: [''],
     nombresArbol: [''],
     nodosColapsados: [''],
@@ -748,6 +749,7 @@ export class PreRegistroComponent {
   get mostrarCuentaLiquidacion(): boolean { return false; }
   get mostrarPasoDocumentos(): boolean { return this.documentosVisibles.length > 0; }
   get mostrarBeneficiarioIgualComercio(): boolean { return !this.pasoGeneralesDebeSaltarse; }
+  get esComercioUnico(): boolean { return this.tipoNegocioSeleccionado?.id === 'comercio-unico'; }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
   get documentosCargados(): number { return this.documentosVisibles.filter(d => !!(d.archivo || d.archivoNombre)).length; }
   get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo).length; }
@@ -861,10 +863,18 @@ export class PreRegistroComponent {
     return this.arbolNegocioForm.controls.nodoSeleccionado.value === nodo.id;
   }
 
-  cambiarCajasSucursal(indiceSucursal: number, cambio: number): void {
+  cambiarCajasSucursal(sucursalId: string, cambio: number): void {
+    if (this.esComercioUnico) return;
     const cajas = this.obtenerCajasPorSucursal();
-    cajas[indiceSucursal] = Math.max(1, (cajas[indiceSucursal] ?? 1) + cambio);
+    cajas[sucursalId] = Math.max(1, (cajas[sucursalId] ?? 1) + cambio);
     this.guardarCajasPorSucursal(cajas);
+    this.guardarBorradorSilencioso();
+  }
+
+  cambiarSucursalesEntidad(indiceEntidad: number, cambio: number): void {
+    const sucursales = this.obtenerSucursalesPorEntidad();
+    sucursales[indiceEntidad] = Math.max(1, (sucursales[indiceEntidad] ?? 1) + cambio);
+    this.guardarSucursalesPorEntidad(sucursales);
     this.guardarBorradorSilencioso();
   }
 
@@ -915,7 +925,8 @@ export class PreRegistroComponent {
       this.arbolNegocioForm.patchValue({
         numeroEntidades: this.arbolNegocioForm.controls.numeroEntidades.value || '1',
         numeroSucursales: this.arbolNegocioForm.controls.numeroSucursales.value || '1',
-        numeroCajas: this.arbolNegocioForm.controls.numeroCajas.value || '1',
+        numeroCajas: tipo.id === 'comercio-unico' ? '1' : this.arbolNegocioForm.controls.numeroCajas.value || '1',
+        cajasPorSucursal: tipo.id === 'comercio-unico' ? JSON.stringify([1]) : this.arbolNegocioForm.controls.cajasPorSucursal.value,
       });
       this.guardarBorradorSilencioso();
       if (!this.requierePantallaArbolNegocio(tipo)) {
@@ -946,7 +957,7 @@ export class PreRegistroComponent {
         nodoSeleccionado: primerNodo?.id || 'sucursal-1',
       });
     }
-    this.accesosForm.controls.cajasTPV.setValue(String(Math.max(...this.obtenerCajasPorSucursal())));
+    this.accesosForm.controls.cajasTPV.setValue(String(Math.max(...Object.values(this.obtenerCajasPorSucursal()))));
     this.continuarComercio();
   }
 
@@ -1134,7 +1145,7 @@ export class PreRegistroComponent {
 
     this.afiliacionForm.reset({ afiliacion: '' });
     this.comercioForm.reset({ nivel: '', tipoComercio: '', afiliacionComisionista: '' });
-    this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodoSeleccionado: '', datosPorSucursal: '' });
+    this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', sucursalesPorEntidad: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodoSeleccionado: '', datosPorSucursal: '' });
     this.tipoNegocioSeleccionado = undefined;
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
     this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '' });
@@ -1223,35 +1234,65 @@ export class PreRegistroComponent {
     return String(numero).padStart(2, '0');
   }
 
-  private obtenerCajasPorSucursal(): number[] {
+  private obtenerCajasPorSucursal(): Record<string, number> {
     const sucursales = this.numeroEntero(this.arbolNegocioForm.controls.numeroSucursales.value, 1);
     const cajasBase = this.numeroEntero(this.arbolNegocioForm.controls.numeroCajas.value, 1);
-    let cajas: number[] = [];
+    let cajas: Record<string, number> = {};
 
     try {
       const parsed = JSON.parse(this.arbolNegocioForm.controls.cajasPorSucursal.value || '[]');
-      if (Array.isArray(parsed)) cajas = parsed.map(valor => Math.max(1, Math.floor(Number(valor) || cajasBase)));
+      if (Array.isArray(parsed)) {
+        parsed.forEach((valor, index) => {
+          cajas[String(index)] = Math.max(1, Math.floor(Number(valor) || cajasBase));
+        });
+      } else if (parsed && typeof parsed === 'object') {
+        cajas = Object.fromEntries(
+          Object.entries(parsed).map(([clave, valor]) => [clave, Math.max(1, Math.floor(Number(valor) || cajasBase))])
+        );
+      }
     } catch {
-      cajas = [];
+      cajas = {};
     }
 
-    while (cajas.length < sucursales) cajas.push(cajasBase);
-    return cajas.slice(0, sucursales);
+    for (let index = 0; index < sucursales; index += 1) {
+      cajas[String(index)] ??= cajasBase;
+    }
+    return cajas;
   }
 
   private sincronizarCajasPorSucursal(): void {
     this.guardarCajasPorSucursal(this.obtenerCajasPorSucursal());
   }
 
-  private guardarCajasPorSucursal(cajas: number[]): void {
+  private guardarCajasPorSucursal(cajas: Record<string, number>): void {
     this.arbolNegocioForm.controls.cajasPorSucursal.setValue(JSON.stringify(cajas), { emitEvent: false });
+  }
+
+  private obtenerSucursalesPorEntidad(): number[] {
+    const entidades = this.numeroEntero(this.arbolNegocioForm.controls.numeroEntidades.value, 1);
+    const sucursalesBase = this.numeroEntero(this.arbolNegocioForm.controls.numeroSucursales.value, 1);
+    let sucursales: number[] = [];
+
+    try {
+      const parsed = JSON.parse(this.arbolNegocioForm.controls.sucursalesPorEntidad.value || '[]');
+      if (Array.isArray(parsed)) sucursales = parsed.map(valor => Math.max(1, Math.floor(Number(valor) || sucursalesBase)));
+    } catch {
+      sucursales = [];
+    }
+
+    while (sucursales.length < entidades) sucursales.push(sucursalesBase);
+    return sucursales.slice(0, entidades);
+  }
+
+  private guardarSucursalesPorEntidad(sucursales: number[]): void {
+    this.arbolNegocioForm.controls.sucursalesPorEntidad.setValue(JSON.stringify(sucursales), { emitEvent: false });
   }
 
   private crearEntidadArbol(entidadIndex: number, padreRuta = ''): NodoArbolNegocio {
     const entidadId = padreRuta ? `${padreRuta}-entidad-${entidadIndex + 1}` : `entidad-${entidadIndex + 1}`;
     const entidadNombre = this.nombreNodoArbol(entidadId, `Entidad ${this.formatearNumero(entidadIndex + 1)}`);
     const ruta = [padreRuta ? this.nombreNodoArbol(padreRuta, 'Sub Afiliado 01') : '', entidadNombre].filter(Boolean).join(' > ');
-    const sucursales = this.numeroEntero(this.arbolNegocioForm.controls.numeroSucursales.value, 1);
+    const sucursales = this.obtenerSucursalesPorEntidad()[entidadIndex] ?? this.numeroEntero(this.arbolNegocioForm.controls.numeroSucursales.value, 1);
     return {
       id: entidadId,
       nombre: entidadNombre,
@@ -1266,7 +1307,7 @@ export class PreRegistroComponent {
     const sucursalNombre = this.nombreNodoArbol(sucursalId, `Sucursal ${this.formatearNumero(sucursalIndex + 1)}`);
     const ruta = [padreRuta, sucursalNombre].filter(Boolean).join(' > ');
     const cajasPorSucursal = this.obtenerCajasPorSucursal();
-    const cajas = cajasPorSucursal[sucursalIndex] ?? 1;
+    const cajas = cajasPorSucursal[sucursalId] ?? cajasPorSucursal[String(sucursalIndex)] ?? 1;
     return {
       id: sucursalId,
       nombre: sucursalNombre,
@@ -1303,6 +1344,7 @@ export class PreRegistroComponent {
       nivelSeleccionado: '',
       nodoSeleccionado: '',
       cajasPorSucursal: '',
+      sucursalesPorEntidad: '',
       nombresArbol: '',
       nodosColapsados: '',
       datosPorSucursal: '',
@@ -1420,7 +1462,9 @@ export class PreRegistroComponent {
         titulo: 'Comercio único',
         descripcion: '',
         icono: '',
+        imagen: 'assets/paquetes/comercio.png',
         iconoInferior: '',
+        imagenInferior: 'assets/paquetes/usuario.png',
         nivel: 'Sucursal',
         tipoComercio: 'Sucursales Únicas',
         beneficios: [],
@@ -1430,7 +1474,9 @@ export class PreRegistroComponent {
         titulo: 'Sucursales múltiples',
         descripcion: '',
         icono: '',
+        imagen: 'assets/paquetes/sucursales.png',
         iconoInferior: '',
+        imagenInferior: 'assets/paquetes/grupo.png',
         nivel: 'Sucursal',
         tipoComercio: 'Sucursales de Grupo',
         beneficios: [],
@@ -1440,7 +1486,9 @@ export class PreRegistroComponent {
         titulo: 'Empresa holding',
         descripcion: '',
         icono: '',
+        imagen: 'assets/paquetes/empresa.png',
         iconoInferior: '',
+        imagenInferior: 'assets/paquetes/corona.png',
         nivel: 'Sub Afiliado',
         tipoComercio: 'Empresa Holding',
         beneficios: [],
@@ -1450,7 +1498,9 @@ export class PreRegistroComponent {
         titulo: 'Sucursales múltiples un solo auditor',
         descripcion: '',
         icono: '',
+        imagen: 'assets/paquetes/auditor.png',
         iconoInferior: '',
+        imagenInferior: 'assets/paquetes/seguridad.png',
         nivel: 'Entidad',
         tipoComercio: 'Empresa Grupo',
         beneficios: [],

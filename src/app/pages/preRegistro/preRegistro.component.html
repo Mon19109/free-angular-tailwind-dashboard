@@ -33,8 +33,7 @@
         <article><strong>{{ documentosCargados }}</strong><span>Documentos cargados</span></article>
       </div>
       <div class="actions center">
-        <button type="button" class="button primary" (click)="reiniciarFlujo()">Nuevo preregistro</button>
-        <a routerLink="/" class="button ghost">Volver al inicio</a>
+        <a routerLink="/" class="button primary">Volver al inicio</a>
       </div>
     </section>
 
@@ -120,18 +119,34 @@
                 </div>
 
                 @if (nodoArbolExpandido(nivel1.id) && nivel1.hijos?.length) {
+                @if (nivel1.nivel === 'entidad') {
+                <div class="caja-actions-row">
+                  <i class="fa-solid fa-folder" aria-hidden="true"></i>
+                  <span>Sucursales</span>
+                  <div class="branch-actions" aria-label="Editar sucursales de la entidad">
+                    <button type="button" title="Quitar sucursal" (click)="cambiarSucursalesEntidad(nivel1Index, -1)">
+                      <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <button type="button" title="Agregar sucursal" (click)="cambiarSucursalesEntidad(nivel1Index, 1)">
+                      <i class="fa-solid fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+                }
                 @if (nivel1.nivel === 'sucursal') {
                 <div class="caja-actions-row">
                   <i class="fa-solid fa-folder" aria-hidden="true"></i>
                   <span>Cajas</span>
+                  @if (!esComercioUnico) {
                   <div class="branch-actions" aria-label="Editar cajas de la sucursal">
-                    <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel1Index, -1)">
+                    <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel1.id, -1)">
                       <i class="fa-solid fa-minus"></i>
                     </button>
-                    <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(nivel1Index, 1)">
+                    <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(nivel1.id, 1)">
                       <i class="fa-solid fa-plus"></i>
                     </button>
                   </div>
+                  }
                 </div>
                 }
                 <ul class="location-list level-2">
@@ -151,18 +166,34 @@
                     </div>
 
                     @if (nodoArbolExpandido(nivel2.id) && nivel2.hijos?.length) {
+                    @if (nivel2.nivel === 'entidad') {
+                    <div class="caja-actions-row">
+                      <i class="fa-solid fa-folder" aria-hidden="true"></i>
+                      <span>Sucursales</span>
+                      <div class="branch-actions" aria-label="Editar sucursales de la entidad">
+                        <button type="button" title="Quitar sucursal" (click)="cambiarSucursalesEntidad(sucursalIndex, -1)">
+                          <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <button type="button" title="Agregar sucursal" (click)="cambiarSucursalesEntidad(sucursalIndex, 1)">
+                          <i class="fa-solid fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                    }
                     @if (nivel2.nivel === 'sucursal') {
                     <div class="caja-actions-row">
                       <i class="fa-solid fa-folder" aria-hidden="true"></i>
                       <span>Cajas</span>
+                      @if (!esComercioUnico) {
                       <div class="branch-actions" aria-label="Editar cajas de la sucursal">
-                        <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(sucursalIndex, -1)">
+                        <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel2.id, -1)">
                           <i class="fa-solid fa-minus"></i>
                         </button>
-                        <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(sucursalIndex, 1)">
+                        <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(nivel2.id, 1)">
                           <i class="fa-solid fa-plus"></i>
                         </button>
                       </div>
+                      }
                     </div>
                     }
                     <ul class="location-list level-3">
@@ -191,14 +222,16 @@
                         <div class="caja-actions-row">
                           <i class="fa-solid fa-folder" aria-hidden="true"></i>
                           <span>Cajas</span>
+                          @if (!esComercioUnico) {
                           <div class="branch-actions" aria-label="Editar cajas de la sucursal">
-                            <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel3Index, -1)">
+                            <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel3.id, -1)">
                               <i class="fa-solid fa-minus"></i>
                             </button>
-                            <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(nivel3Index, 1)">
+                            <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(nivel3.id, 1)">
                               <i class="fa-solid fa-plus"></i>
                             </button>
                           </div>
+                          }
                         </div>
                         }
                         <ul class="location-list leaf-list">

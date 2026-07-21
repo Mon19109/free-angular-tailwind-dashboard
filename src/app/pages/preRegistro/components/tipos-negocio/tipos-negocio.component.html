@@ -8,10 +8,8 @@
   <section class="business-content" aria-label="Tipos de negocio">
     @for (tipo of tiposNegocio; track tipo.id) {
     <article class="business-card">
-      <span class="business-icon" [class.empty]="!tipo.icono">
-        @if (tipo.icono) {
-        <i class="fa-solid" [ngClass]="tipo.icono"></i>
-        }
+      <span class="business-icon">
+        <img [src]="tipo.imagen" [alt]="tipo.titulo" />
       </span>
 
       <strong>{{ tipo.titulo }}</strong>
@@ -28,7 +26,7 @@
       </ul>
 
       <span class="business-bottom-icon">
-        <i class="fa-solid" [ngClass]="tipo.iconoInferior"></i>
+        <img [src]="tipo.imagenInferior" [alt]="tipo.titulo" />
       </span>
 
       <button type="button" class="business-select-label" (click)="seleccionarTipo(tipo)">

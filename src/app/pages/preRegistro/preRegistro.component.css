@@ -2028,6 +2028,31 @@ small {
   box-shadow: 0 12px 26px rgba(35, 50, 77, 0.24);
 }
 /* ── Items del modal con MCC ─────────────────────────────────────────────── */
+.giro-modal-card {
+  display: flex;
+  flex-direction: column;
+  width: min(920px, 100%);
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+}
+
+.giro-modal-card .giro-lista {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 12px;
+  padding-right: 4px;
+}
+
+.giro-modal-card .step-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0;
+  padding-top: 16px;
+  background: linear-gradient(180deg, rgba(8, 11, 17, 0), var(--pre-card) 28%);
+}
+
 .giro-item {
   padding: 12px 16px;
   cursor: pointer;

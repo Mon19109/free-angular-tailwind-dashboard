@@ -6,7 +6,9 @@ export interface TipoNegocio {
   titulo: string;
   descripcion: string;
   icono: string;
+  imagen: string;
   iconoInferior: string;
+  imagenInferior: string;
   nivel: string;
   tipoComercio: string;
   beneficios: string[];
@@ -28,7 +30,9 @@ export class TiposNegocioComponent {
       titulo: 'Comercio único',
       descripcion: 'Aplica para un comercio con una sola sucursal.',
       icono: 'fa-store',
+      imagen: 'assets/paquetes/comercio.png',
       iconoInferior: 'fa-user',
+      imagenInferior: 'assets/paquetes/usuario.png',
       nivel: 'Sucursal',
       tipoComercio: 'Sucursales Únicas',
       beneficios: [
@@ -41,7 +45,9 @@ export class TiposNegocioComponent {
       titulo: 'Sucursales múltiples',
       descripcion: 'Aplica para una empresa con múltiples sucursales que pueden tener los mismos datos fiscales o pueden ser diferentes.',
       icono: 'fa-shop',
+      imagen: 'assets/paquetes/sucursales.png',
       iconoInferior: 'fa-users',
+      imagenInferior: 'assets/paquetes/grupo.png',
       nivel: 'Sucursal',
       tipoComercio: 'Sucursales de Grupo',
       beneficios: [
@@ -55,7 +61,9 @@ export class TiposNegocioComponent {
       titulo: 'Empresa holding',
       descripcion: 'Aplica para una empresa con múltiples negocios y giros comerciales que pueden tener los mismos datos fiscales o pueden ser diferentes.',
       icono: 'fa-building',
+      imagen: 'assets/paquetes/empresa.png',
       iconoInferior: 'fa-crown',
+      imagenInferior: 'assets/paquetes/corona.png',
       nivel: 'Sub Afiliado',
       tipoComercio: 'Empresa Holding',
       beneficios: [
@@ -69,7 +77,9 @@ export class TiposNegocioComponent {
       titulo: 'Sucursales múltiples un solo auditor',
       descripcion: 'Un usuario  Administrador de Portal para Gestion del negocio. Administrador de Recursos. Consulta de Reportes de todas las sucursales.',
       icono: '',
+      imagen: 'assets/paquetes/auditor.png',
       iconoInferior: 'fa-shield-halved',
+      imagenInferior: 'assets/paquetes/seguridad.png',
       nivel: 'Entidad',
       tipoComercio: 'Empresa Grupo',
       beneficios: [
