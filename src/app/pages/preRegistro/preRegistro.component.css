@@ -629,12 +629,16 @@ small {
 }
 
 .location-tree {
-  max-height: 440px;
+  max-height: min(62vh, 620px);
   overflow: auto;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.025);
+}
+
+.location-tree > .location-list {
+  min-width: 560px;
 }
 
 .location-root,
@@ -674,26 +678,26 @@ small {
 
 .location-root.level-1,
 .location-list.level-1 {
-  margin-left: 18px;
+  margin-left: 8px;
 }
 
 .location-root.level-2,
 .location-list.level-2 {
-  margin-left: 36px;
+  margin-left: 20px;
 }
 
 .location-root.level-3,
 .location-list.level-3 {
-  margin-left: 54px;
+  margin-left: 28px;
 }
 
 .location-root.level-4,
 .location-list.level-4 {
-  margin-left: 72px;
+  margin-left: 36px;
 }
 
 .location-list.level-2 {
-  margin-left: 36px;
+  margin-left: 20px;
   padding-left: 12px;
   border-left: 1px solid rgba(241, 178, 61, 0.22);
 }
@@ -722,7 +726,7 @@ small {
 
 .location-tree li ul,
 .leaf-list {
-  margin-left: 42px;
+  margin-left: 24px;
   padding-left: 12px;
   border-left: 1px solid rgba(255, 255, 255, 0.09);
 }
@@ -733,12 +737,14 @@ small {
 
 .location-branch-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
 }
 
 .location-node {
+  width: max-content;
+  min-width: 220px;
   margin: 2px 0;
   padding: 0 10px;
   border: 1px solid transparent;
@@ -753,8 +759,9 @@ small {
 }
 
 .node-name {
-  width: 100%;
-  min-width: 0;
+  width: auto;
+  min-width: 150px;
+  field-sizing: content;
   min-height: 28px;
   padding: 0 4px;
   border: 1px solid transparent;
@@ -772,9 +779,27 @@ small {
 }
 
 .branch-actions {
-  margin-left: auto;
+  margin-left: 10px;
+  flex: 0 0 auto;
   display: inline-flex;
   gap: 4px;
+}
+
+.caja-actions-row {
+  width: max-content;
+  min-width: 260px;
+  min-height: 34px;
+  margin: 4px 0 4px 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--pre-muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.caja-actions-row > i {
+  color: var(--pre-gold);
 }
 
 .branch-actions button {
@@ -798,6 +823,38 @@ small {
 
 .location-node.leaf {
   color: var(--pre-muted);
+}
+
+.location-node.readonly {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.location-node.readonly:hover,
+.location-node.readonly:focus-visible {
+  border-color: transparent;
+  color: var(--pre-muted);
+  background: transparent;
+}
+
+.location-node.complete {
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.node-complete {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #04130a;
+  background: #22c55e;
+  font-size: 10px;
+}
+
+.node-complete i {
+  color: inherit;
 }
 
 .location-node:hover,

@@ -52,6 +52,10 @@
     <app-arbol-negocio
       [form]="arbolNegocioForm"
       [tituloTipoNegocio]="tipoNegocioSeleccionado?.titulo || comercioForm.value.tipoComercio || ''"
+      [mostrarEntidades]="configuracionArbol.mostrarEntidades"
+      [mostrarSucursales]="configuracionArbol.mostrarSucursales"
+      [mostrarCajas]="configuracionArbol.mostrarCajas"
+      [nivelPadre]="configuracionArbol.nivelPadre"
       (continuar)="continuarArbolNegocio()"
       (volver)="volver(6)" />
 
@@ -99,76 +103,129 @@
           </div>
 
           <div class="location-tree" role="tree">
-            <div class="location-root level-0">
-              <button type="button" class="tree-toggle" (click)="alternarNodoArbol('nivel-padre')">
-                <i class="fa-solid" [ngClass]="nodoArbolExpandido('nivel-padre') ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-              </button>
-              <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
-              <input class="node-name" [value]="nombreNivelPadreArbol" (change)="renombrarNodoArbol('nivel-padre', $event)" />
-            </div>
-
-            @if (nodoArbolExpandido('nivel-padre') && mostrarCarpetaSucursales) {
-            <div class="location-root level-1">
-              <button type="button" class="tree-toggle" (click)="alternarNodoArbol('sucursales')">
-                <i class="fa-solid" [ngClass]="nodoArbolExpandido('sucursales') ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-              </button>
-              <i class="fa-solid fa-folder" aria-hidden="true"></i>
-              <input class="node-name" [value]="nombreSucursalesArbol" (change)="renombrarNodoArbol('sucursales', $event)" />
-            </div>
-            }
-
-            @if (nodoArbolExpandido('nivel-padre') && (!mostrarCarpetaSucursales || nodoArbolExpandido('sucursales'))) {
-            <ul class="location-list" [class.level-1]="!mostrarCarpetaSucursales" [class.level-2]="mostrarCarpetaSucursales">
-              @for (sucursal of arbolNegocioWizard; track sucursal.id; let sucursalIndex = $index) {
+            <ul class="location-list level-1">
+              @for (nivel1 of arbolNegocioWizard; track nivel1.id; let nivel1Index = $index) {
               <li class="location-branch">
                 <div class="location-branch-row">
-                  <button type="button" class="tree-toggle" (click)="alternarNodoArbol(sucursal.id)">
-                    <i class="fa-solid" [ngClass]="nodoArbolExpandido(sucursal.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                  <button type="button" class="tree-toggle" (click)="alternarNodoArbol(nivel1.id)">
+                    <i class="fa-solid" [ngClass]="nodoArbolExpandido(nivel1.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                   </button>
-                  <button type="button" class="location-node" [class.selected]="esNodoArbolSeleccionado(sucursal)"
-                    (click)="seleccionarNodoArbol(sucursal)">
-                    <i class="fa-solid fa-folder" aria-hidden="true"></i>
-                    <input class="node-name" [value]="sucursal.nombre" (click)="$event.stopPropagation()"
-                      (change)="renombrarNodoArbol(sucursal.id, $event)" />
+                  <button type="button" class="location-node" [class.selected]="esNodoArbolSeleccionado(nivel1)" [class.complete]="nodoArbolCompletado(nivel1.id)"
+                    (click)="seleccionarNodoArbol(nivel1)">
+                    <i class="fa-solid" [ngClass]="nivel1.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'" aria-hidden="true"></i>
+                    <input class="node-name" [value]="nivel1.nombre" (click)="$event.stopPropagation()"
+                      (change)="renombrarNodoArbol(nivel1.id, $event)" />
+                    @if (nodoArbolCompletado(nivel1.id)) { <span class="node-complete"><i class="fa-solid fa-check"></i></span> }
                   </button>
                 </div>
 
-                @if (nodoArbolExpandido(sucursal.id)) {
-                <div class="location-root level-caja">
-                  <button type="button" class="tree-toggle" (click)="alternarNodoArbol(sucursal.id + '-cajas')">
-                    <i class="fa-solid" [ngClass]="nodoArbolExpandido(sucursal.id + '-cajas') ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                  </button>
+                @if (nodoArbolExpandido(nivel1.id) && nivel1.hijos?.length) {
+                @if (nivel1.nivel === 'sucursal') {
+                <div class="caja-actions-row">
                   <i class="fa-solid fa-folder" aria-hidden="true"></i>
-                  <input class="node-name" [value]="nombreNodoArbol(sucursal.id + '-cajas', 'Caja')" (change)="renombrarNodoArbol(sucursal.id + '-cajas', $event)" />
+                  <span>Cajas</span>
                   <div class="branch-actions" aria-label="Editar cajas de la sucursal">
-                    <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(sucursalIndex, -1)">
+                    <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel1Index, -1)">
                       <i class="fa-solid fa-minus"></i>
                     </button>
-                    <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(sucursalIndex, 1)">
+                    <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(nivel1Index, 1)">
                       <i class="fa-solid fa-plus"></i>
                     </button>
                   </div>
                 </div>
+                }
+                <ul class="location-list level-2">
+                  @for (nivel2 of nivel1.hijos; track nivel2.id; let sucursalIndex = $index) {
+                  <li class="location-branch">
+                    <div class="location-branch-row">
+                      <button type="button" class="tree-toggle" (click)="alternarNodoArbol(nivel2.id)">
+                        <i class="fa-solid" [ngClass]="nodoArbolExpandido(nivel2.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                      </button>
+                      <button type="button" class="location-node" [class.selected]="esNodoArbolSeleccionado(nivel2)" [class.complete]="nodoArbolCompletado(nivel2.id)"
+                        (click)="seleccionarNodoArbol(nivel2)">
+                        <i class="fa-solid" [ngClass]="nivel2.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'" aria-hidden="true"></i>
+                        <input class="node-name" [value]="nivel2.nombre" (click)="$event.stopPropagation()"
+                          (change)="renombrarNodoArbol(nivel2.id, $event)" />
+                        @if (nodoArbolCompletado(nivel2.id)) { <span class="node-complete"><i class="fa-solid fa-check"></i></span> }
+                      </button>
+                    </div>
 
-                @if (nodoArbolExpandido(sucursal.id + '-cajas')) {
-                <ul class="location-list leaf-list">
-                  @for (caja of sucursal.hijos; track caja.id) {
-                  <li>
-                    <button type="button" class="location-node leaf" [class.selected]="esNodoArbolSeleccionado(caja)"
-                      (click)="seleccionarNodoArbol(caja)">
-                      <i class="fa-regular fa-circle" aria-hidden="true"></i>
-                      <input class="node-name" [value]="caja.nombre" (click)="$event.stopPropagation()"
-                        (change)="renombrarNodoArbol(caja.id, $event)" />
-                    </button>
+                    @if (nodoArbolExpandido(nivel2.id) && nivel2.hijos?.length) {
+                    @if (nivel2.nivel === 'sucursal') {
+                    <div class="caja-actions-row">
+                      <i class="fa-solid fa-folder" aria-hidden="true"></i>
+                      <span>Cajas</span>
+                      <div class="branch-actions" aria-label="Editar cajas de la sucursal">
+                        <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(sucursalIndex, -1)">
+                          <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(sucursalIndex, 1)">
+                          <i class="fa-solid fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+                    }
+                    <ul class="location-list level-3">
+                      @for (nivel3 of nivel2.hijos; track nivel3.id; let nivel3Index = $index) {
+                      <li class="location-branch">
+                        <div class="location-branch-row">
+                          @if (nivel3.hijos?.length) {
+                          <button type="button" class="tree-toggle" (click)="alternarNodoArbol(nivel3.id)">
+                            <i class="fa-solid" [ngClass]="nodoArbolExpandido(nivel3.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                          </button>
+                          } @else {
+                          <span class="tree-toggle"></span>
+                          }
+                          <button type="button" class="location-node" [class.leaf]="!nivel3.hijos?.length"
+                            [class.readonly]="nivel3.nivel === 'caja'" [class.selected]="esNodoArbolSeleccionado(nivel3)"
+                            [class.complete]="nodoArbolCompletado(nivel3.id)" (click)="seleccionarNodoArbol(nivel3)">
+                            <i class="fa-solid" [ngClass]="nivel3.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'" aria-hidden="true"></i>
+                            <input class="node-name" [value]="nivel3.nombre" (click)="$event.stopPropagation()"
+                              (change)="renombrarNodoArbol(nivel3.id, $event)" />
+                            @if (nodoArbolCompletado(nivel3.id)) { <span class="node-complete"><i class="fa-solid fa-check"></i></span> }
+                          </button>
+                        </div>
+
+                        @if (nodoArbolExpandido(nivel3.id) && nivel3.hijos?.length) {
+                        @if (nivel3.nivel === 'sucursal') {
+                        <div class="caja-actions-row">
+                          <i class="fa-solid fa-folder" aria-hidden="true"></i>
+                          <span>Cajas</span>
+                          <div class="branch-actions" aria-label="Editar cajas de la sucursal">
+                            <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel3Index, -1)">
+                              <i class="fa-solid fa-minus"></i>
+                            </button>
+                            <button type="button" title="Agregar caja" (click)="cambiarCajasSucursal(nivel3Index, 1)">
+                              <i class="fa-solid fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                        }
+                        <ul class="location-list leaf-list">
+                          @for (nivel4 of nivel3.hijos; track nivel4.id) {
+                          <li>
+                            <button type="button" class="location-node leaf readonly" [class.selected]="esNodoArbolSeleccionado(nivel4)" [class.complete]="nodoArbolCompletado(nivel4.id)"
+                              (click)="seleccionarNodoArbol(nivel4)">
+                              <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+                              <input class="node-name" [value]="nivel4.nombre" (click)="$event.stopPropagation()"
+                                (change)="renombrarNodoArbol(nivel4.id, $event)" />
+                              @if (nodoArbolCompletado(nivel4.id)) { <span class="node-complete"><i class="fa-solid fa-check"></i></span> }
+                            </button>
+                          </li>
+                          }
+                        </ul>
+                        }
+                      </li>
+                      }
+                    </ul>
+                    }
                   </li>
                   }
                 </ul>
                 }
-                }
               </li>
               }
             </ul>
-            }
           </div>
 
           <div class="location-selected">

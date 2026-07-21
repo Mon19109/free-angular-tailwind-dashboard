@@ -11,6 +11,20 @@
     </div>
   </header>
 
+  @if (mostrarEntidades) {
+  <section class="tree-section" aria-labelledby="entidadesTitulo">
+    <label id="entidadesTitulo" for="numeroEntidades">Número de Entidades que tendrá el Negocio:</label>
+    <div class="number-field" [class.invalid]="esInvalido('numeroEntidades')">
+      <input id="numeroEntidades" type="number" inputmode="numeric" min="1" step="1"
+        formControlName="numeroEntidades" placeholder="1" (blur)="normalizar('numeroEntidades', 1)" />
+    </div>
+    @if (esInvalido('numeroEntidades')) {
+    <small>Selecciona el número de entidades.</small>
+    }
+  </section>
+  }
+
+  @if (mostrarSucursales) {
   <section class="tree-section" aria-labelledby="sucursalesTitulo">
     <label id="sucursalesTitulo" for="numeroSucursales">Número de Sucursales que tiene el Negocio:</label>
     <div class="number-field" [class.invalid]="esInvalido('numeroSucursales')">
@@ -21,7 +35,9 @@
     <small>Selecciona el número de sucursales.</small>
     }
   </section>
+  }
 
+  @if (mostrarCajas) {
   <section class="tpv-section" aria-labelledby="tpvTitulo">
     <div class="tpv-heading">
       <span aria-hidden="true"><i class="fa-solid fa-cash-register"></i></span>
@@ -42,6 +58,7 @@
       <p><strong>Nota:</strong> Los comercios deben tener al menos una caja para operar la terminal TPV; los accesos serán enviados vía email al administrador de la Plataforma.</p>
     </aside>
   </section>
+  }
 
   <footer class="tree-actions">
     <button type="button" class="button secondary" (click)="volver.emit()">Volver</button>

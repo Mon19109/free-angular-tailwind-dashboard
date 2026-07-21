@@ -1,23 +1,26 @@
 <div class="consulta-shell">
-  <header class="page-header">
-    <div>
-      <h1>Consulta de Comercios</h1>
-      <p>Busca y consulta comercios por niveles o por información específica.</p>
-    </div>
-
-    <div class="export-wrapper">
-      <button class="btn btn-primary" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
-        <i class="fa-solid fa-download"></i>
-        Exportar
-        <i class="fa-solid fa-chevron-down"></i>
-      </button>
-      <div class="export-menu" *ngIf="exportMenuAbierto">
-        <button type="button" (click)="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
-        <button type="button" (click)="exportarPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+  <article class="consulta-card">
+    <header class="page-header">
+      <div>
+        <span class="page-eyebrow">Gestión de negocio</span>
+        <h1>Consulta de Comercios</h1>
+        <p>Busca y consulta comercios por niveles o por información específica.</p>
       </div>
-    </div>
-  </header>
 
+      <div class="export-wrapper">
+        <button class="btn btn-primary" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
+          <i class="fa-solid fa-download"></i>
+          Exportar
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="export-menu" *ngIf="exportMenuAbierto">
+          <button type="button" (click)="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button type="button" (click)="exportarPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="consulta-card-body">
   <section class="panel filters-panel">
     <div class="panel-title">
       <div><i class="fa-solid fa-filter"></i><span>Filtros de búsqueda</span></div>
@@ -28,7 +31,7 @@
       <fieldset class="level-grid">
         <legend>Buscar por Nivel</legend>
         <label class="level-option" *ngFor="let nivel of niveles" [class.active]="filtros.nivel === nivel.id">
-          <input type="radio" name="nivel" [value]="nivel.id" [(ngModel)]="filtros.nivel">
+          <input type="radio" name="nivel" [value]="nivel.id" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
           <i class="fa-solid" [ngClass]="nivel.icon"></i>
           <span>{{ nivel.label }}</span>
         </label>
@@ -159,6 +162,8 @@
       </div>
     </footer>
   </section>
+    </div>
+  </article>
 </div>
 
 <div class="modal-backdrop" *ngIf="modalConfirmacion">

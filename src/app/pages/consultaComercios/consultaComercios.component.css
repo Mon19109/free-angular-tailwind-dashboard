@@ -57,6 +57,42 @@
     linear-gradient(180deg, #f7f9fc 0%, #edf3fa 52%, #f7f9fc 100%);
 }
 
+.consulta-card {
+  width: 100%;
+  overflow: visible;
+  border: 1px solid var(--consulta-border-soft);
+  border-radius: 8px;
+  background: transparent;
+}
+
+:host-context(html:not(.dark)) .consulta-card {
+  overflow: hidden;
+  border-color: rgba(209, 219, 233, 0.95);
+  border-radius: 18px 18px 0 0;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 24px 50px rgba(35, 50, 77, 0.08);
+}
+
+:host-context(html.dark) .consulta-card {
+  overflow: hidden;
+  border-color: rgba(241, 178, 61, 0.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(9, 13, 20, 0.94), rgba(13, 18, 27, 0.96));
+  box-shadow: 0 30px 72px rgba(0, 0, 0, 0.45);
+}
+
+.consulta-card-body {
+  padding: 0;
+}
+
+:host-context(html:not(.dark)) .consulta-card-body {
+  padding: clamp(18px, 2.2vw, 26px);
+}
+
+:host-context(html.dark) .consulta-card-body {
+  padding: clamp(18px, 2.2vw, 26px);
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -65,17 +101,53 @@
   margin-bottom: 14px;
 }
 
+:host-context(html:not(.dark)) .page-header {
+  min-height: 150px;
+  margin-bottom: 0;
+  padding: 30px clamp(28px, 4vw, 42px);
+  align-items: center;
+  color: #ffffff;
+  background: linear-gradient(90deg, #243247 0%, #344c68 100%);
+}
+
+:host-context(html.dark) .page-header {
+  min-height: 150px;
+  margin-bottom: 0;
+  padding: 30px clamp(28px, 4vw, 42px);
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(90deg, rgba(8, 12, 19, 0.96), rgba(14, 20, 31, 0.96));
+}
+
+.page-eyebrow {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--consulta-gold);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
 .page-header h1 {
   margin: 0;
-  color: var(--consulta-gold);
+  color: var(--consulta-text);
   font-size: clamp(24px, 2.4vw, 32px);
   font-weight: 850;
+}
+
+:host-context(html:not(.dark)) .page-header h1 {
+  color: #ffffff;
 }
 
 .page-header p {
   margin: 6px 0 0;
   color: var(--consulta-muted);
   font-size: 13px;
+}
+
+:host-context(html:not(.dark)) .page-header p {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .panel,
@@ -111,6 +183,11 @@
   font-size: 13px;
   font-weight: 850;
   text-transform: uppercase;
+}
+
+:host-context(html:not(.dark)) .panel-title,
+:host-context(html:not(.dark)) .link-action {
+  color: #315aa3;
 }
 
 .level-grid {
@@ -166,6 +243,15 @@
   text-align: center;
   color: var(--consulta-gold);
   font-size: 16px;
+}
+
+:host-context(html:not(.dark)) .level-option i {
+  color: #315aa3;
+}
+
+:host-context(html:not(.dark)) .level-option.active {
+  border-color: #315aa3;
+  box-shadow: 0 0 0 3px rgba(49, 90, 163, 0.16);
 }
 
 .level-option span {
@@ -353,6 +439,11 @@ select:focus {
   font-size: 18px;
 }
 
+:host-context(html:not(.dark)) .summary-card > i {
+  color: #315aa3;
+  background: rgba(49, 90, 163, 0.1);
+}
+
 .summary-card span,
 .summary-card small {
   display: block;
@@ -414,6 +505,10 @@ th {
   color: var(--consulta-gold);
   font-size: 12px;
   text-transform: uppercase;
+}
+
+:host-context(html:not(.dark)) th {
+  color: #315aa3;
 }
 
 td {

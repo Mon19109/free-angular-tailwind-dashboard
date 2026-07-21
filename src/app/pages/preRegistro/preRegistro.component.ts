@@ -30,7 +30,7 @@ type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COM
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
 type TipoComisionista = 'existente' | 'nuevo';
 type ReglaDocumento = Pick<DocumentoRequerido, 'numero' | 'obligatorio'>;
-type NivelArbolNegocio = 'sucursal' | 'caja';
+type NivelArbolNegocio = 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja';
 
 interface NodoArbolNegocio {
   id: string;
@@ -40,13 +40,23 @@ interface NodoArbolNegocio {
   hijos?: NodoArbolNegocio[];
 }
 
+interface ConfiguracionArbolNegocio {
+  nivelPadre: 'Sub Afiliado' | 'Entidad' | 'Sucursal';
+  mostrarEntidades: boolean;
+  mostrarSucursales: boolean;
+  mostrarCajas: boolean;
+  entidadesBase: number;
+  sucursalesBase: number;
+  cajasBase: number;
+}
+
 interface BorradorPreRegistro {
   pasoActual: PasoWizard;
   pasosCompletados: number[];
   registroTerminado: boolean;
   afiliacion: { afiliacion: string };
   comercio: { nivel: string; tipoComercio: string; afiliacionComisionista: string };
-  arbolNegocio: { numeroSucursales: string; numeroCajas: string; ubicacionSeleccionada: string; nivelSeleccionado: string; cajasPorSucursal: string; nombresArbol: string; nodosColapsados: string; nodoSeleccionado: string; datosPorSucursal: string };
+  arbolNegocio: { numeroEntidades: string; numeroSucursales: string; numeroCajas: string; ubicacionSeleccionada: string; nivelSeleccionado: string; cajasPorSucursal: string; nombresArbol: string; nodosColapsados: string; nodoSeleccionado: string; datosPorSucursal: string };
   comisionista: Record<string, string>;
   datos: Record<string, string | boolean>;
   accesos: Record<string, string | boolean>;
@@ -417,6 +427,7 @@ export class PreRegistroComponent {
   });
 
   readonly arbolNegocioForm = this.fb.nonNullable.group({
+    numeroEntidades: ['1', [Validators.required, Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]],
     numeroSucursales: ['1', [Validators.required, Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]],
     numeroCajas: ['1', [Validators.required, Validators.min(1), Validators.pattern(/^[1-9]\d*$/)]],
     ubicacionSeleccionada: [''],
@@ -742,46 +753,58 @@ export class PreRegistroComponent {
   get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo).length; }
   get mostrarArbolWizard(): boolean { return this.requiereArbolNegocio(); }
   get ubicacionArbolSeleccionada(): string {
-    const sucursalId = this.obtenerSucursalIdDesdeNodo(this.arbolNegocioForm.controls.nodoSeleccionado.value || 'sucursal-1');
-    return this.formatearRutaSucursalDesdeDatos(sucursalId)
-      || this.buscarNodoArbol(sucursalId)?.ruta
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    return this.formatearRutaNodoDesdeDatos(nodoId)
+      || this.buscarNodoArbol(nodoId)?.ruta
       || this.arbolNegocioForm.controls.ubicacionSeleccionada.value;
   }
   get nivelArbolSeleccionado(): string { return this.arbolNegocioForm.controls.nivelSeleccionado.value; }
-  get nombreNivelPadreArbol(): string { return this.nombreNodoArbol('nivel-padre', this.comercioForm.value.nivel || 'Nivel'); }
+  get configuracionArbol(): ConfiguracionArbolNegocio {
+    const id = this.tipoNegocioSeleccionado?.id;
+    if (id === 'empresa-holding') {
+      return { nivelPadre: 'Sub Afiliado', mostrarEntidades: true, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
+    }
+    if (id === 'sucursales-multiples') {
+      return { nivelPadre: 'Entidad', mostrarEntidades: true, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
+    }
+    if (id === 'auditor-unico') {
+      return { nivelPadre: 'Sucursal', mostrarEntidades: false, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
+    }
+    return { nivelPadre: 'Sucursal', mostrarEntidades: false, mostrarSucursales: false, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
+  }
+  get nombreNivelPadreArbol(): string { return this.nombreNodoArbol('nivel-padre', this.configuracionArbol.nivelPadre); }
   get nombreSucursalesArbol(): string { return this.nombreNodoArbol('sucursales', 'Sucursal'); }
   get mostrarCarpetaSucursales(): boolean { return this.nombreNivelPadreArbol.toLowerCase() !== 'sucursal'; }
   get detalleUbicacionArbolSeleccionada(): string {
-    const sucursalId = this.obtenerSucursalIdDesdeNodo(this.arbolNegocioForm.controls.nodoSeleccionado.value || 'sucursal-1');
-    const datos = this.obtenerDatosPorSucursal()[sucursalId];
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    const datos = this.obtenerDatosPorSucursal()[nodoId];
     if (!datos) return '';
     return `${datos['direccionComercial'] || datos['nombreVialidadComercial'] || datos['nombreVialidad'] || ''}`.trim();
   }
 
   get arbolNegocioWizard(): NodoArbolNegocio[] {
-    const sucursales = this.numeroEntero(this.arbolNegocioForm.controls.numeroSucursales.value, 1);
-    const cajasPorSucursal = this.obtenerCajasPorSucursal();
+    const config = this.configuracionArbol;
+    if (config.nivelPadre === 'Sub Afiliado') {
+      const entidades = this.numeroEntero(this.arbolNegocioForm.controls.numeroEntidades.value, 1);
+      return [{
+        id: 'sub-afiliado-1',
+        nombre: this.nombreNodoArbol('sub-afiliado-1', 'Sub Afiliado 01'),
+        nivel: 'sub-afiliado',
+        ruta: this.nombreNodoArbol('sub-afiliado-1', 'Sub Afiliado 01'),
+        hijos: Array.from({ length: entidades }, (_, entidadIndex) => this.crearEntidadArbol(entidadIndex, `sub-afiliado-1`)),
+      }];
+    }
 
+    if (config.nivelPadre === 'Entidad') {
+      const entidades = config.mostrarEntidades
+        ? this.numeroEntero(this.arbolNegocioForm.controls.numeroEntidades.value, 1)
+        : 1;
+      return Array.from({ length: entidades }, (_, entidadIndex) => this.crearEntidadArbol(entidadIndex));
+    }
+
+    const sucursales = this.numeroEntero(this.arbolNegocioForm.controls.numeroSucursales.value, 1);
     return Array.from({ length: sucursales }, (_, sucursalIndex) => {
-      const sucursalId = `sucursal-${sucursalIndex + 1}`;
-      const sucursalNombre = this.nombreNodoArbol(sucursalId, `Sucursal ${this.formatearNumero(sucursalIndex + 1)}`);
-      const cajas = cajasPorSucursal[sucursalIndex] ?? 1;
-      return {
-        id: sucursalId,
-        nombre: sucursalNombre,
-        nivel: 'sucursal',
-        ruta: sucursalNombre,
-        hijos: Array.from({ length: cajas }, (_, cajaIndex) => {
-          const cajaId = `${sucursalId}-caja-${cajaIndex + 1}`;
-          const cajaNombre = this.nombreNodoArbol(cajaId, `Caja ${this.formatearNumero(cajaIndex + 1)}`);
-          return {
-            id: cajaId,
-            nombre: cajaNombre,
-            nivel: 'caja',
-            ruta: `${sucursalNombre} > ${cajaNombre}`,
-          };
-        }),
-      };
+      return this.crearSucursalArbol(sucursalIndex);
     });
   }
 
@@ -816,6 +839,8 @@ export class PreRegistroComponent {
   private marcarPasoCompletado(paso: number): void { this.pasosCompletados.add(paso); }
 
   seleccionarNodoArbol(nodo: NodoArbolNegocio): void {
+    if (nodo.nivel === 'caja') return;
+
     if (this.pasoActual === 2) {
       this.guardarDatosSucursalActual();
     }
@@ -826,14 +851,13 @@ export class PreRegistroComponent {
       nodoSeleccionado: nodo.id,
     });
 
-    if (this.pasoActual === 2) {
-      this.cargarDatosSucursal(this.obtenerSucursalIdDesdeNodo(nodo.id));
-    }
+    if (this.pasoActual === 2) this.cargarDatosSucursal(nodo.id);
 
     this.guardarBorradorSilencioso();
   }
 
   esNodoArbolSeleccionado(nodo: NodoArbolNegocio): boolean {
+    if (nodo.nivel === 'caja') return false;
     return this.arbolNegocioForm.controls.nodoSeleccionado.value === nodo.id;
   }
 
@@ -887,11 +911,23 @@ export class PreRegistroComponent {
     });
     this.tiposComercio = this.tiposComercioPorNivel[tipo.nivel] ?? [];
     if (this.requiereArbolNegocio(tipo)) {
+      this.configurarArbolPorTipo(tipo);
       this.arbolNegocioForm.patchValue({
+        numeroEntidades: this.arbolNegocioForm.controls.numeroEntidades.value || '1',
         numeroSucursales: this.arbolNegocioForm.controls.numeroSucursales.value || '1',
         numeroCajas: this.arbolNegocioForm.controls.numeroCajas.value || '1',
       });
       this.guardarBorradorSilencioso();
+      if (!this.requierePantallaArbolNegocio(tipo)) {
+        const primerNodo = this.primerNodoCapturableArbol();
+        this.arbolNegocioForm.patchValue({
+          ubicacionSeleccionada: primerNodo?.ruta || 'Sucursal 01',
+          nivelSeleccionado: primerNodo?.nivel || 'sucursal',
+          nodoSeleccionado: primerNodo?.id || 'sucursal-1',
+        }, { emitEvent: false });
+        this.continuarComercio();
+        return;
+      }
       this.irAlPaso(7);
       return;
     }
@@ -903,10 +939,11 @@ export class PreRegistroComponent {
     if (this.arbolNegocioForm.invalid) return;
     this.sincronizarCajasPorSucursal();
     if (!this.arbolNegocioForm.controls.ubicacionSeleccionada.value) {
+      const primerNodo = this.primerNodoCapturableArbol();
       this.arbolNegocioForm.patchValue({
-        ubicacionSeleccionada: 'Sucursal 01',
-        nivelSeleccionado: 'sucursal',
-        nodoSeleccionado: 'sucursal-1',
+        ubicacionSeleccionada: primerNodo?.ruta || 'Sucursal 01',
+        nivelSeleccionado: primerNodo?.nivel || 'sucursal',
+        nodoSeleccionado: primerNodo?.id || 'sucursal-1',
       });
     }
     this.accesosForm.controls.cajasTPV.setValue(String(Math.max(...this.obtenerCajasPorSucursal())));
@@ -941,7 +978,7 @@ export class PreRegistroComponent {
    }
 
   volverDesdeComercio(): void {
-    this.irAlPaso(this.requiereArbolNegocio() ? 7 : 6);
+    this.irAlPaso(this.requierePantallaArbolNegocio() ? 7 : 6);
   }
 
   volverDesdeAccesos(): void {
@@ -1097,7 +1134,7 @@ export class PreRegistroComponent {
 
     this.afiliacionForm.reset({ afiliacion: '' });
     this.comercioForm.reset({ nivel: '', tipoComercio: '', afiliacionComisionista: '' });
-    this.arbolNegocioForm.reset({ numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodoSeleccionado: '', datosPorSucursal: '' });
+    this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodoSeleccionado: '', datosPorSucursal: '' });
     this.tipoNegocioSeleccionado = undefined;
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
     this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '' });
@@ -1170,7 +1207,11 @@ export class PreRegistroComponent {
 
   private requiereArbolNegocio(tipo = this.tipoNegocioSeleccionado): boolean {
     const tipoComercio = tipo?.tipoComercio ?? this.comercioForm.controls.tipoComercio.value;
-    return tipoComercio !== 'Sucursales Únicas';
+    return ['Sucursales Únicas', 'Sucursales de Grupo', 'Empresa Holding', 'Empresa Grupo'].includes(tipoComercio);
+  }
+
+  private requierePantallaArbolNegocio(tipo = this.tipoNegocioSeleccionado): boolean {
+    return tipo?.id !== 'comercio-unico';
   }
 
   private numeroEntero(valor: string, minimo: number): number {
@@ -1206,6 +1247,78 @@ export class PreRegistroComponent {
     this.arbolNegocioForm.controls.cajasPorSucursal.setValue(JSON.stringify(cajas), { emitEvent: false });
   }
 
+  private crearEntidadArbol(entidadIndex: number, padreRuta = ''): NodoArbolNegocio {
+    const entidadId = padreRuta ? `${padreRuta}-entidad-${entidadIndex + 1}` : `entidad-${entidadIndex + 1}`;
+    const entidadNombre = this.nombreNodoArbol(entidadId, `Entidad ${this.formatearNumero(entidadIndex + 1)}`);
+    const ruta = [padreRuta ? this.nombreNodoArbol(padreRuta, 'Sub Afiliado 01') : '', entidadNombre].filter(Boolean).join(' > ');
+    const sucursales = this.numeroEntero(this.arbolNegocioForm.controls.numeroSucursales.value, 1);
+    return {
+      id: entidadId,
+      nombre: entidadNombre,
+      nivel: 'entidad',
+      ruta,
+      hijos: Array.from({ length: sucursales }, (_, sucursalIndex) => this.crearSucursalArbol(sucursalIndex, entidadId, ruta)),
+    };
+  }
+
+  private crearSucursalArbol(sucursalIndex: number, padreId = '', padreRuta = ''): NodoArbolNegocio {
+    const sucursalId = padreId ? `${padreId}-sucursal-${sucursalIndex + 1}` : `sucursal-${sucursalIndex + 1}`;
+    const sucursalNombre = this.nombreNodoArbol(sucursalId, `Sucursal ${this.formatearNumero(sucursalIndex + 1)}`);
+    const ruta = [padreRuta, sucursalNombre].filter(Boolean).join(' > ');
+    const cajasPorSucursal = this.obtenerCajasPorSucursal();
+    const cajas = cajasPorSucursal[sucursalIndex] ?? 1;
+    return {
+      id: sucursalId,
+      nombre: sucursalNombre,
+      nivel: 'sucursal',
+      ruta: ruta || sucursalNombre,
+      hijos: Array.from({ length: cajas }, (_, cajaIndex) => {
+        const cajaId = `${sucursalId}-caja-${cajaIndex + 1}`;
+        const cajaNombre = this.nombreNodoArbol(cajaId, `Caja ${this.formatearNumero(cajaIndex + 1)}`);
+        return {
+          id: cajaId,
+          nombre: cajaNombre,
+          nivel: 'caja',
+          ruta: [ruta || sucursalNombre, cajaNombre].filter(Boolean).join(' > '),
+        };
+      }),
+    };
+  }
+
+  private aplanarArbolNegocio(nodos: NodoArbolNegocio[]): NodoArbolNegocio[] {
+    return nodos.flatMap(nodo => [nodo, ...this.aplanarArbolNegocio(nodo.hijos ?? [])]);
+  }
+
+  private primerNodoCapturableArbol(): NodoArbolNegocio | undefined {
+    return this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.nivel !== 'caja');
+  }
+
+  private configurarArbolPorTipo(tipo: TipoNegocio): void {
+    const config = this.configuracionArbol;
+    this.arbolNegocioForm.patchValue({
+      numeroEntidades: String(config.entidadesBase),
+      numeroSucursales: String(config.sucursalesBase),
+      numeroCajas: String(config.cajasBase),
+      ubicacionSeleccionada: '',
+      nivelSeleccionado: '',
+      nodoSeleccionado: '',
+      cajasPorSucursal: '',
+      nombresArbol: '',
+      nodosColapsados: '',
+      datosPorSucursal: '',
+    }, { emitEvent: false });
+  }
+
+  nodoArbolCompletado(id: string): boolean {
+    const nodo = this.buscarNodoArbol(id);
+    if (nodo?.nivel === 'caja') return false;
+
+    const datos = this.obtenerDatosPorSucursal()[id];
+    if (!datos) return false;
+    return ['nombreComercial', 'razonSocial', 'rfc', 'correoComercial', 'telefonoComercial']
+      .some(campo => `${datos[campo] || ''}`.trim().length > 0);
+  }
+
   nombreNodoArbol(id: string, respaldo: string): string {
     return this.obtenerNombresArbol()[id] || respaldo;
   }
@@ -1230,22 +1343,17 @@ export class PreRegistroComponent {
 
   private buscarNodoArbol(id: string): NodoArbolNegocio | undefined {
     if (!id) return undefined;
-    for (const sucursal of this.arbolNegocioWizard) {
-      if (sucursal.id === id) return sucursal;
-      const caja = sucursal.hijos?.find(hijo => hijo.id === id);
-      if (caja) return caja;
-    }
-    return undefined;
+    return this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.id === id);
   }
 
   private guardarDatosSucursalActual(): void {
     if (!this.mostrarArbolWizard) return;
-    const sucursalId = this.obtenerSucursalIdDesdeNodo(this.arbolNegocioForm.controls.nodoSeleccionado.value || 'sucursal-1');
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
     const datos = this.obtenerDatosPorSucursal();
-    const datosSucursal = this.datosForm.getRawValue();
-    datos[sucursalId] = datosSucursal;
+    const datosNodo = this.datosForm.getRawValue();
+    datos[nodoId] = datosNodo;
     this.arbolNegocioForm.controls.datosPorSucursal.setValue(JSON.stringify(datos), { emitEvent: false });
-    this.actualizarNombreSucursalDesdeDatos(sucursalId, datosSucursal);
+    this.actualizarNombreSucursalDesdeDatos(nodoId, datosNodo);
   }
 
   private cargarDatosSucursal(sucursalId: string): void {
@@ -1263,15 +1371,11 @@ export class PreRegistroComponent {
     }
   }
 
-  private obtenerSucursalIdDesdeNodo(id: string): string {
-    const match = id.match(/^sucursal-\d+/);
-    return match?.[0] ?? 'sucursal-1';
-  }
-
   private avanzarASiguienteSucursal(): boolean {
-    const actualId = this.obtenerSucursalIdDesdeNodo(this.arbolNegocioForm.controls.nodoSeleccionado.value || 'sucursal-1');
-    const actualIndex = this.arbolNegocioWizard.findIndex(sucursal => sucursal.id === actualId);
-    const siguiente = this.arbolNegocioWizard[actualIndex + 1];
+    const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard).filter(nodo => nodo.nivel !== 'caja');
+    const actualId = this.arbolNegocioForm.controls.nodoSeleccionado.value || nodos[0]?.id || 'sucursal-1';
+    const actualIndex = nodos.findIndex(nodo => nodo.id === actualId);
+    const siguiente = nodos[actualIndex + 1];
     if (!siguiente) return false;
 
     this.arbolNegocioForm.patchValue({
@@ -1284,23 +1388,22 @@ export class PreRegistroComponent {
   }
 
   private actualizarNombreSucursalDesdeDatos(sucursalId: string, datosSucursal: Record<string, string | boolean>): void {
+    const nodo = this.buscarNodoArbol(sucursalId);
     const municipio = `${datosSucursal['municipioComercial'] || datosSucursal['municipio'] || ''}`.trim();
-    const nombre = municipio ? `Sucursal ${municipio}` : `${datosSucursal['nombreComercial'] || datosSucursal['razonSocial'] || ''}`.trim();
+    const nombreBase = `${datosSucursal['nombreComercial'] || datosSucursal['razonSocial'] || ''}`.trim();
+    const nombre = municipio && nodo?.nivel === 'sucursal' ? `Sucursal ${municipio}` : nombreBase;
     if (!nombre) return;
     const nombres = this.obtenerNombresArbol();
     nombres[sucursalId] = nombre;
     this.arbolNegocioForm.controls.nombresArbol.setValue(JSON.stringify(nombres), { emitEvent: false });
   }
 
-  private formatearRutaSucursalDesdeDatos(sucursalId: string): string {
-    const datosSucursal = this.obtenerDatosPorSucursal()[sucursalId];
+  private formatearRutaNodoDesdeDatos(nodoId: string): string {
+    const datosSucursal = this.obtenerDatosPorSucursal()[nodoId];
     const nodoSeleccionado = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
     const nombreComercial = `${datosSucursal?.['nombreComercial'] || datosSucursal?.['razonSocial'] || ''}`.trim();
-    const municipio = `${datosSucursal?.['municipioComercial'] || datosSucursal?.['municipio'] || datosSucursal?.['localidadComercial'] || datosSucursal?.['localidad'] || ''}`.trim();
-    const sucursal = municipio ? `Sucursal ${municipio}` : (this.buscarNodoArbol(sucursalId)?.nombre || '');
-    const caja = nodoSeleccionado?.nivel === 'caja' ? nodoSeleccionado.nombre : '';
-
-    return [this.nombreNivelPadreArbol, nombreComercial, sucursal, caja].filter(Boolean).join(' > ');
+    const ruta = nodoSeleccionado?.ruta || this.buscarNodoArbol(nodoId)?.ruta || '';
+    return [ruta, nombreComercial].filter(Boolean).join(' > ');
   }
 
   private crearDatosGeneralesVacios(): Record<string, string | boolean> {

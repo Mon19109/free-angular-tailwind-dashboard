@@ -111,6 +111,7 @@ export class ConsultaComerciosComponent {
 
   seleccionarNivel(nivel: NivelComercio): void {
     this.filtros.nivel = nivel;
+    this.buscar();
   }
 
   buscar(): void {

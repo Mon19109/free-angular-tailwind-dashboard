@@ -12,6 +12,10 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 export class ArbolNegocioComponent {
   @Input({ required: true }) form!: FormGroup;
   @Input() tituloTipoNegocio = '';
+  @Input() nivelPadre = 'Sucursal';
+  @Input() mostrarEntidades = false;
+  @Input() mostrarSucursales = true;
+  @Input() mostrarCajas = true;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 
@@ -20,7 +24,7 @@ export class ArbolNegocioComponent {
     return !!(control?.invalid && control.touched);
   }
 
-  normalizar(campo: 'numeroSucursales' | 'numeroCajas', minimo: number): void {
+  normalizar(campo: 'numeroEntidades' | 'numeroSucursales' | 'numeroCajas', minimo: number): void {
     const control = this.form.get(campo);
     const valor = this.obtenerValor(campo, minimo);
     control?.setValue(String(Math.max(minimo, valor)));
@@ -34,7 +38,7 @@ export class ArbolNegocioComponent {
     return `${this.form.get('ubicacionSeleccionada')?.value ?? ''}`;
   }
 
-  private obtenerValor(campo: 'numeroSucursales' | 'numeroCajas', minimo: number): number {
+  private obtenerValor(campo: 'numeroEntidades' | 'numeroSucursales' | 'numeroCajas', minimo: number): number {
     const valor = Number(this.form.get(campo)?.value);
     return Number.isFinite(valor) && valor > 0 ? Math.floor(valor) : minimo;
   }
