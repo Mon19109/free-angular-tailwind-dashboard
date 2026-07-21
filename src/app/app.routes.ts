@@ -45,6 +45,7 @@ import { ListarComerciosComponent } from './pages/listarComercios/listarComercio
 import { BeneficiariosComponent } from './pages/beneficiarios/beneficiarios.component';
 import { RevisionMesaDigitalComponent } from './pages/revisionMesaDigital/revisionMesaDigital.component';
 import { EnviarInvitacionComercioComponent } from './pages/enviarInvitacionComercio/enviarInvitacionComercio.component';
+import { ConsultaComerciosComponent } from './pages/consultaComercios/consultaComercios.component';
 
 export const routes: Routes = [
   { 
@@ -253,6 +254,13 @@ export const routes: Routes = [
       {
         path: 'informacion_cuenta',
         component: InformacionCuentaComponent,
+        //canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+
+      {
+        path: 'consulta_comercios',
+        component: ConsultaComerciosComponent,
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },

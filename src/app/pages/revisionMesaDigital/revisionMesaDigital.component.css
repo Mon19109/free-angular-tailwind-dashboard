@@ -10,6 +10,9 @@
   --review-muted: rgba(246, 247, 251, 0.68);
   --review-gold: #f1b23d;
   --review-gold-strong: #f8d877;
+  --review-danger: #dc2626;
+  --review-danger-strong: #b91c1c;
+  --review-danger-text: #f87171;
   --review-shadow: 0 30px 72px rgba(0, 0, 0, 0.45);
   --review-shadow-soft: 0 18px 34px rgba(0, 0, 0, 0.24);
   display: block;
@@ -27,6 +30,9 @@
   --review-line: rgba(148, 163, 184, 0.22);
   --review-text: #172033;
   --review-muted: #667085;
+  --review-danger: #dc2626;
+  --review-danger-strong: #b91c1c;
+  --review-danger-text: #b91c1c;
   --review-shadow: 0 24px 50px rgba(35, 50, 77, 0.08);
   --review-shadow-soft: 0 12px 28px rgba(35, 50, 77, 0.06);
 }
@@ -115,6 +121,62 @@
 
 .review-card-body {
   padding: clamp(18px, 2.4vw, 28px);
+}
+
+.documents-toggle {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--review-line);
+  border-radius: 8px;
+  color: var(--review-text);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+:host-context(html:not(.dark)) .documents-toggle {
+  background: #ffffff;
+}
+
+.documents-toggle i {
+  color: var(--review-gold);
+  font-size: 16px;
+}
+
+:host-context(html:not(.dark)) .documents-toggle i {
+  color: #315aa3;
+}
+
+.siprelad-result {
+  min-height: 108px;
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid var(--review-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+:host-context(html:not(.dark)) .siprelad-result {
+  background: #ffffff;
+}
+
+.siprelad-result h2 {
+  margin: 0 0 14px;
+  color: var(--review-text);
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.siprelad-result p {
+  margin: 0;
+  color: #5aa15a;
+  font-size: 15px;
+  font-weight: 850;
 }
 
 .review-summary {
@@ -238,7 +300,7 @@
 }
 
 .doc-name b {
-  color: #ef4444;
+  color: var(--review-danger-text);
 }
 
 .view-button,
@@ -288,7 +350,7 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
-  background: #ef2323;
+  background: var(--review-danger);
   cursor: pointer;
   color: #ffffff;
   font-size: 12px;
@@ -318,11 +380,11 @@
 
 .switch:not(.on)::before {
   transform: translateX(48px);
-  background: #bd1f1f;
+  background: var(--review-danger-strong);
 }
 
 .validation-text {
-  color: #ef4444;
+  color: var(--review-danger-text);
   font-weight: 900;
 }
 

@@ -127,43 +127,9 @@ export class AppSidebarComponent {
       title: 'GESTIÓN DE NEGOCIO',
       items: [
         {
-          name: 'ENTIDAD',
-           icon: '<i class="fas fa-store fa-lg"></i>',
-          subItems: [
-            {
-              name: 'Lista Entidades',
-              path: '/entidades'
-            }
-          ]
-        },
-        {
-          name: 'SUCURSAL',
-             icon: '<i class="fa-solid fa-cart-shopping fa-lg"></i>',
-          subItems: [
-            {
-              name: 'Lista Sucursales',
-              path: '/sucursales'
-            },
-            {
-              name: 'Agregar Sucursal',
-              path: '/sucursales_add'
-            }
-          ]
-        },
-        {
-          name: 'CAJAS',
-           icon: '<i class="fas fa-cash-register fa-lg"></i>',
-          subItems: [
-            {
-              name: 'Lista Cajas',
-              path: '/cajas'
-            }
-          ]
-        },
-        {
-          name: 'INFORMACION CUENTA',
-           icon: '<i class="fas fa-info-circle fa-lg"></i>',
-          path: '/informacion_cuenta'
+          name: 'CONSULTA DE COMERCIOS',
+          icon: '<i class="fas fa-store fa-lg"></i>',
+          path: '/consulta_comercios'
         }
       ]
     },
@@ -180,11 +146,6 @@ export class AppSidebarComponent {
           name: 'MANUALES',
            icon: '<i class="fas fa-book fa-lg"></i>',
           path: '/manuales'
-        },
-        {
-          name: 'REVISIÓN MESA DIGITAL',
-          icon: '<i class="fas fa-clipboard-check fa-lg"></i>',
-          path: '/revision_mesa_digital'
         }
       ]
     }

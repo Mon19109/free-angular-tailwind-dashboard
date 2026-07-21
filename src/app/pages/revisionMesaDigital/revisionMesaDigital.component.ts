@@ -21,6 +21,8 @@ export class RevisionMesaDigitalComponent {
   observacionesCliente = '';
   observacionesInternas = '';
   emailCliente = '';
+  documentosAbierto = true;
+  resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
 
   documentos: DocumentoRevision[] = [
     { numero: 1, nombre: 'Comprobante de domicilio', obligatorio: true, estado: 'Subido', aprobado: true },

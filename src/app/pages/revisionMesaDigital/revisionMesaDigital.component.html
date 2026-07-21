@@ -9,8 +9,18 @@
     </header>
 
     <section class="review-card-body">
+      <button type="button" class="documents-toggle" (click)="documentosAbierto = !documentosAbierto">
+        <span>Documentos</span>
+        <i class="fa-solid" [ngClass]="documentosAbierto ? 'fa-minus' : 'fa-plus'"></i>
+      </button>
+
+      <section class="siprelad-result">
+        <h2>Resultado de la consulta en listas SIPRELAD:</h2>
+        <p>{{ resultadoSiprelad }}</p>
+      </section>
+
       <div class="review-summary">
-        <strong>Resultados de la Revisión</strong>
+        <strong>Documentación Requerida</strong>
         <div class="summary-grid">
           <article><i class="fa-solid fa-file-lines"></i><span>Documentos Totales: {{ documentos.length }}</span></article>
           <article>Aprobados: <b>{{ aprobados }}</b></article>
@@ -20,6 +30,7 @@
         </div>
       </div>
 
+      @if (documentosAbierto) {
       <div class="review-table">
         <div class="review-row header">
           <span>#</span>
@@ -53,6 +64,7 @@
         </div>
         }
       </div>
+      }
 
       <footer class="review-footer">
         <label>

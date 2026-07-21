@@ -1,0 +1,650 @@
+:host {
+  --consulta-bg: var(--app-bg);
+  --consulta-surface: var(--app-surface);
+  --consulta-surface-alt: var(--app-surface-alt);
+  --consulta-text: var(--app-text);
+  --consulta-muted: var(--app-text-muted);
+  --consulta-border: var(--app-border);
+  --consulta-gold: var(--brand-secondary);
+  --consulta-primary: var(--brand-primary);
+  --consulta-border-soft: rgba(208, 213, 221, 0.72);
+  --consulta-gold-soft: rgba(199, 146, 75, 0.18);
+  --consulta-muted-soft: rgba(208, 213, 221, 0.32);
+  display: block;
+  margin: -1rem;
+  color: var(--consulta-text);
+}
+
+:host-context(html.dark) {
+  --consulta-bg: #05070b;
+  --consulta-surface: rgba(9, 13, 20, 0.94);
+  --consulta-surface-alt: rgba(13, 18, 27, 0.96);
+  --consulta-text: #f6f7fb;
+  --consulta-muted: rgba(246, 247, 251, 0.68);
+  --consulta-border: #334155;
+  --consulta-border-soft: rgba(51, 65, 85, 0.78);
+  --consulta-gold-soft: rgba(199, 146, 75, 0.22);
+  --consulta-muted-soft: rgba(51, 65, 85, 0.42);
+}
+
+@media (min-width: 768px) {
+  :host {
+    margin: -1.5rem;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.consulta-shell {
+  min-height: calc(100vh - 96px);
+  padding: clamp(16px, 2.2vw, 26px);
+  background: var(--consulta-bg);
+}
+
+:host-context(html.dark) .consulta-shell {
+  background:
+    radial-gradient(circle at top left, rgba(241, 178, 61, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 24%),
+    linear-gradient(180deg, #05070b 0%, #0b111a 52%, #05070b 100%);
+}
+
+:host-context(html:not(.dark)) .consulta-shell {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(241, 178, 61, 0.07), transparent 24%),
+    linear-gradient(180deg, #f7f9fc 0%, #edf3fa 52%, #f7f9fc 100%);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.page-header h1 {
+  margin: 0;
+  color: var(--consulta-gold);
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 850;
+}
+
+.page-header p {
+  margin: 6px 0 0;
+  color: var(--consulta-muted);
+  font-size: 13px;
+}
+
+.panel,
+.summary-card {
+  border: 1px solid var(--consulta-border-soft);
+  border-radius: 8px;
+  background: var(--consulta-surface);
+  box-shadow: var(--app-card-shadow);
+}
+
+:host-context(html.dark) .panel,
+:host-context(html.dark) .summary-card {
+  box-shadow: 0 30px 72px rgba(0, 0, 0, 0.45);
+}
+
+.filters-panel,
+.results-panel {
+  padding: clamp(14px, 1.8vw, 20px);
+  overflow: visible;
+}
+
+.panel-title,
+.panel-title > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-title {
+  justify-content: space-between;
+  margin-bottom: 14px;
+  color: var(--consulta-gold);
+  font-size: 13px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.level-grid legend {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+  color: var(--consulta-text);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.level-option {
+  min-height: 56px;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--consulta-border-soft);
+  border-radius: 8px;
+  background: var(--consulta-surface-alt);
+  color: var(--consulta-muted);
+  cursor: pointer;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.level-option.active {
+  border-color: var(--consulta-gold);
+  color: var(--consulta-text);
+  box-shadow: 0 0 0 3px var(--consulta-gold-soft);
+}
+
+.level-option input {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--consulta-gold);
+}
+
+.level-option i {
+  flex: 0 0 22px;
+  width: 22px;
+  text-align: center;
+  color: var(--consulta-gold);
+  font-size: 16px;
+}
+
+.level-option span {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.info-grid label,
+.table-search,
+.modal-card label {
+  position: relative;
+  display: block;
+}
+
+.info-grid span,
+.table-tools span,
+.modal-card label span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--consulta-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.info-grid i,
+.table-search i {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  color: var(--consulta-muted);
+  font-size: 14px;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--consulta-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  outline: 0;
+  color: var(--consulta-text);
+  background: var(--app-input-bg);
+  font-size: 13px;
+}
+
+.info-grid input,
+.table-search input {
+  padding-left: 36px;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--consulta-gold);
+  box-shadow: 0 0 0 3px var(--consulta-gold-soft);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn,
+.link-action,
+.icon-btn,
+.actions-menu button,
+.export-menu button,
+.pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.btn {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  color: #1d1608;
+  background: linear-gradient(180deg, #f6c65c, var(--consulta-gold));
+}
+
+.btn-ghost {
+  border: 1px solid var(--consulta-border);
+  color: var(--consulta-text);
+  background: var(--consulta-surface-alt);
+}
+
+.btn-dark {
+  color: #ffffff;
+  background: #05070b;
+}
+
+.btn:disabled,
+.actions-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.link-action {
+  color: var(--consulta-gold);
+  background: transparent;
+}
+
+.export-wrapper {
+  position: relative;
+}
+
+.export-menu,
+.actions-menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 150px;
+  border: 1px solid var(--consulta-border);
+  border-radius: 8px;
+  background: var(--consulta-surface);
+  box-shadow: var(--app-modal-shadow);
+  overflow: hidden;
+}
+
+.export-menu {
+  top: calc(100% + 8px);
+  right: 0;
+}
+
+.export-menu button,
+.actions-menu button {
+  width: 100%;
+  min-height: 40px;
+  justify-content: flex-start;
+  padding: 0 14px;
+  color: var(--consulta-text);
+  background: transparent;
+}
+
+.export-menu button:hover,
+.actions-menu button:hover {
+  background: var(--consulta-surface-alt);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+
+.summary-card > i {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--consulta-gold);
+  background: var(--consulta-gold-soft);
+  font-size: 18px;
+}
+
+.summary-card span,
+.summary-card small {
+  display: block;
+  color: var(--consulta-muted);
+  font-weight: 750;
+}
+
+.summary-card strong {
+  display: block;
+  color: var(--consulta-text);
+  font-size: 22px;
+}
+
+.results-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.table-tools {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+
+.table-tools label:first-child {
+  display: grid;
+  grid-template-columns: auto 76px auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-search {
+  min-width: 270px;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--consulta-border-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  color: var(--consulta-gold);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+td {
+  color: var(--consulta-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.badge {
+  display: inline-flex;
+  min-width: 86px;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 5px 9px;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.badge.caja { background: #8a6a0a; }
+.badge.sucursal { background: #6d54b5; }
+.badge.entidad { background: #1f7aac; }
+.badge.sub-afiliado { background: #d96a16; }
+
+.status {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: #43c478;
+}
+
+.status.inactive {
+  background: #e33d5f;
+}
+
+.actions-cell {
+  position: relative;
+  overflow: visible;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--consulta-border);
+  color: var(--consulta-gold);
+  background: transparent;
+}
+
+.actions-menu {
+  top: 44px;
+  right: 8px;
+  width: 190px;
+  min-width: 190px;
+  max-width: 190px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-transform: none;
+}
+
+.actions-menu button {
+  min-height: 34px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding-top: 16px;
+  color: var(--consulta-muted);
+}
+
+.pagination > div {
+  display: flex;
+  gap: 8px;
+}
+
+.pagination button {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--consulta-border);
+  color: var(--consulta-text);
+  background: var(--consulta-surface-alt);
+}
+
+.pagination button.active {
+  border-color: var(--consulta-gold);
+  background: var(--consulta-gold);
+  color: #1d1608;
+}
+
+.no-filters {
+  margin: 18px 0 0;
+  color: var(--consulta-muted);
+  font-weight: 750;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--app-overlay);
+}
+
+.modal-card {
+  width: min(820px, 100%);
+  border-radius: 8px;
+  background: var(--consulta-surface);
+  color: var(--consulta-text);
+  box-shadow: var(--app-modal-shadow);
+  overflow: hidden;
+}
+
+.modal-card header,
+.modal-card footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+}
+
+.modal-card header {
+  border-bottom: 1px solid var(--consulta-border);
+}
+
+.modal-card header h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 20px;
+  text-transform: uppercase;
+}
+
+.modal-card header > i {
+  color: #f0b429;
+  font-size: 30px;
+}
+
+.modal-card header button,
+.modal-card label button {
+  border: 0;
+  color: var(--consulta-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.modal-card p {
+  margin: 18px 22px;
+  padding: 16px;
+  border: 1px solid var(--consulta-border);
+  font-size: 20px;
+  line-height: 1.45;
+}
+
+.modal-card footer {
+  justify-content: flex-end;
+  background: var(--consulta-surface-alt);
+}
+
+.modal-card.password {
+  width: min(640px, 100%);
+}
+
+.modal-card.password label {
+  margin: 22px;
+}
+
+.modal-card.password input {
+  padding-right: 54px;
+}
+
+.modal-card.password label button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 46px;
+  height: 44px;
+  border-left: 1px solid var(--consulta-border);
+  background: var(--consulta-muted-soft);
+}
+
+.password-rules {
+  margin: 0 22px 22px;
+  color: var(--consulta-muted);
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .level-grid,
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .page-header,
+  .results-toolbar,
+  .pagination,
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .level-grid,
+  .info-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-tools label:first-child {
+    grid-template-columns: 1fr;
+  }
+
+  .table-search {
+    min-width: 0;
+  }
+}
