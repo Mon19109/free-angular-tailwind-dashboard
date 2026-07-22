@@ -124,16 +124,14 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        if (error.status == 401) {
-          //this.router.navigate(['/dashboard']);
-          console.log('error---',error);
+        this.isLoading = false;
+        this.loading = false;
 
+        if (error.status == 401) {
+          this.errorMessage = 'Correo o contraseña incorrectos.';
+          console.error('Login error:', error);
         } else {
-          /*this.errorMessage = this.getErrorMessage(result.idUser, result.message);
-          console.error('Login error3:', this.errorMessage);*/
-          this.isLoading = false;
-          this.loading = false;
-          this.errorMessage = error.message || 'Error al iniciar sesión2';
+          this.errorMessage = error.message || 'No fue posible iniciar sesión. Verifica tus datos e intenta nuevamente.';
           console.error('Login error:', error);
           console.error('Login error2:', error.message);
 

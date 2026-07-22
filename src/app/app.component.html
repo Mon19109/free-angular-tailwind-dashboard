@@ -1,1 +1,26 @@
 <router-outlet></router-outlet>
+
+@if (sessionTimeoutService.mostrarModal()) {
+  <div class="session-timeout-backdrop">
+    <div class="session-timeout-modal" role="dialog" aria-modal="true" aria-labelledby="session-timeout-title">
+      <button
+        type="button"
+        class="session-timeout-close"
+        aria-label="Cerrar"
+        (click)="sessionTimeoutService.aceptarCierreSesion()"
+      >
+        &times;
+      </button>
+
+      <div class="session-timeout-body">
+        <p id="session-timeout-title">Se cerró la sesión por seguridad.</p>
+      </div>
+
+      <div class="session-timeout-actions">
+        <button type="button" class="session-timeout-button" (click)="sessionTimeoutService.aceptarCierreSesion()">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+}

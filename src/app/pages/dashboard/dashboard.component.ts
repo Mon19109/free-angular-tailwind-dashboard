@@ -28,12 +28,41 @@ export class DashboardComponent {
   
   ngOnInit(): void {
     this.session = this.getSession();
+    console.log('[Dashboard debug] auth_session sin token:', this.omitSensitive(this.session));
+    console.log('[Dashboard debug] claves utiles localStorage:', {
+      issueId: localStorage.getItem('issueId'),
+      acquiringId: localStorage.getItem('acquiringId'),
+      entitySonID: localStorage.getItem('entitySonID'),
+      commerceDetailID: localStorage.getItem('commerceDetailID'),
+      nodeID: localStorage.getItem('nodeID'),
+      idBusinessModel: localStorage.getItem('idBusinessModel'),
+      idTypeAffiliation: localStorage.getItem('idTypeAffiliation'),
+      idRol: localStorage.getItem('idRol')
+    });
     this.cargarDatosIniciales();
   }
 
   private getSession(): any {
     const rawSession = localStorage.getItem('auth_session');
     return rawSession ? JSON.parse(rawSession) : {};
+  }
+
+  private omitSensitive(value: any): any {
+    if (Array.isArray(value)) {
+      return value.map(item => this.omitSensitive(item));
+    }
+
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+
+    return Object.keys(value).reduce((safe: any, key) => {
+      const lowerKey = key.toLowerCase();
+      safe[key] = lowerKey.includes('token') || lowerKey.includes('password')
+        ? '[oculto]'
+        : this.omitSensitive(value[key]);
+      return safe;
+    }, {});
   }
 
   get idBusinessModel(): number {
@@ -189,4 +218,3 @@ export class DashboardComponent {
 
   
 }
-

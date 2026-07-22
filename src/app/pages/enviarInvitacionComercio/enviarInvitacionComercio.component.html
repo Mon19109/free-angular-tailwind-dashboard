@@ -12,13 +12,14 @@
         Genera más Comisiones, envia una invitación a un nuevo comercio para ser parte de Kashpay.
       </p>
 
-      <form class="invitation-form">
+      <form class="invitation-form" (ngSubmit)="continuar()">
         <label class="form-field">
           <span>Correo Electrónico*</span>
           <input
             type="email"
             name="correoElectronico"
             [(ngModel)]="correoElectronico"
+            [disabled]="cargando"
             autocomplete="email" />
         </label>
 
@@ -28,12 +29,23 @@
             type="text"
             name="nombre"
             [(ngModel)]="nombre"
+            [disabled]="cargando"
             autocomplete="name" />
         </label>
 
+        @if (mensaje) {
+          <div class="status-message success">{{ mensaje }}</div>
+        }
+
+        @if (error) {
+          <div class="status-message error">{{ error }}</div>
+        }
+
         <div class="actions">
-          <button type="button" class="button primary" (click)="continuar()">Continuar</button>
-          <button type="button" class="button secondary" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="button primary" [disabled]="cargando">
+            {{ cargando ? 'Enviando...' : 'Continuar' }}
+          </button>
+          <button type="button" class="button secondary" [disabled]="cargando" (click)="cancelar()">Cancelar</button>
         </div>
       </form>
     </section>

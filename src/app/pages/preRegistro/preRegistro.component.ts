@@ -64,6 +64,8 @@ interface BorradorPreRegistro {
   documentos: Array<{ numero: number; archivoNombre?: string }>;
 }
 
+type DocumentoNodo = Pick<DocumentoRequerido, 'archivo' | 'archivoNombre'>;
+
 @Component({
   selector: 'app-preregistro',
   standalone: true,
@@ -103,6 +105,7 @@ export class PreRegistroComponent {
   modoReservaActual: ModoReserva = 'NINGUNO';
   tiposComercio: string[] = [];
   tipoNegocioSeleccionado?: TipoNegocio;
+  private documentosPorNodo: Record<string, Record<number, DocumentoNodo>> = {};
 
 
   // ── Datos estáticos (los consume el HTML y los steps vía [input]) ────────────
@@ -438,6 +441,7 @@ export class PreRegistroComponent {
     nodosColapsados: [''],
     nodoSeleccionado: [''],
     datosPorSucursal: [''],
+    accesosPorSucursal: [''],
   });
 
   readonly datosForm = this.fb.nonNullable.group({
@@ -843,9 +847,7 @@ export class PreRegistroComponent {
   seleccionarNodoArbol(nodo: NodoArbolNegocio): void {
     if (nodo.nivel === 'caja') return;
 
-    if (this.pasoActual === 2) {
-      this.guardarDatosSucursalActual();
-    }
+    this.guardarCapturaNodoActual();
 
     this.arbolNegocioForm.patchValue({
       ubicacionSeleccionada: nodo.ruta,
@@ -853,7 +855,7 @@ export class PreRegistroComponent {
       nodoSeleccionado: nodo.id,
     });
 
-    if (this.pasoActual === 2) this.cargarDatosSucursal(nodo.id);
+    this.cargarCapturaNodo(nodo.id);
 
     this.guardarBorradorSilencioso();
   }
@@ -863,10 +865,10 @@ export class PreRegistroComponent {
     return this.arbolNegocioForm.controls.nodoSeleccionado.value === nodo.id;
   }
 
-  cambiarCajasSucursal(sucursalId: string, cambio: number): void {
+  cambiarCajasSucursal(sucursalId: string, cambio: number, totalActual?: number): void {
     if (this.esComercioUnico) return;
     const cajas = this.obtenerCajasPorSucursal();
-    cajas[sucursalId] = Math.max(1, (cajas[sucursalId] ?? 1) + cambio);
+    cajas[sucursalId] = Math.max(1, (totalActual ?? cajas[sucursalId] ?? 1) + cambio);
     this.guardarCajasPorSucursal(cajas);
     this.guardarBorradorSilencioso();
   }
@@ -956,6 +958,7 @@ export class PreRegistroComponent {
         nivelSeleccionado: primerNodo?.nivel || 'sucursal',
         nodoSeleccionado: primerNodo?.id || 'sucursal-1',
       });
+      if (primerNodo) this.cargarCapturaNodo(primerNodo.id);
     }
     this.accesosForm.controls.cajasTPV.setValue(String(Math.max(...Object.values(this.obtenerCajasPorSucursal()))));
     this.continuarComercio();
@@ -981,10 +984,6 @@ export class PreRegistroComponent {
   continuarDatos(): void {
      if (this.datosForm.invalid) { this.datosForm.markAllAsTouched(); return; }
      this.guardarDatosSucursalActual();
-     if (this.mostrarArbolWizard && this.avanzarASiguienteSucursal()) {
-       this.guardarBorradorSilencioso();
-       return;
-     }
      this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
    }
 
@@ -1003,6 +1002,7 @@ export class PreRegistroComponent {
   continuarAccesos(): void {
     this.accesosForm.markAllAsTouched();
     if (this.accesosForm.invalid) return;
+    this.guardarAccesosNodoActual();
     this.marcarPasoCompletado(3);
     this.guardarBorradorSilencioso();
     if (this.mostrarCuentaLiquidacion) {
@@ -1033,6 +1033,11 @@ export class PreRegistroComponent {
     const faltantes = this.documentosVisibles.filter(d => d.obligatorio && !d.archivo);
     this.archivosInvalidos = faltantes.length > 0;
     if (this.archivosInvalidos) { this.pasoActual = 5; return; }
+    this.guardarDocumentosNodoActual();
+    if (this.mostrarArbolWizard && this.avanzarASiguienteSucursal()) {
+      this.guardarBorradorSilencioso();
+      return;
+    }
     this.marcarPasoCompletado(5);
     this.registroTerminado = true;
     this.guardarBorradorSilencioso();
@@ -1145,7 +1150,7 @@ export class PreRegistroComponent {
 
     this.afiliacionForm.reset({ afiliacion: '' });
     this.comercioForm.reset({ nivel: '', tipoComercio: '', afiliacionComisionista: '' });
-    this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', sucursalesPorEntidad: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodoSeleccionado: '', datosPorSucursal: '' });
+    this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', sucursalesPorEntidad: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodoSeleccionado: '', datosPorSucursal: '', accesosPorSucursal: '' });
     this.tipoNegocioSeleccionado = undefined;
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
     this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '' });
@@ -1168,7 +1173,7 @@ export class PreRegistroComponent {
 
   private guardarBorradorSilencioso(): void {
     try {
-      if (this.pasoActual === 2) this.guardarDatosSucursalActual();
+      this.guardarCapturaNodoActual();
       localStorage.setItem(this.draftKey, JSON.stringify({
         pasoActual: this.pasoActual,
         pasosCompletados: [...this.pasosCompletados],
@@ -1348,6 +1353,7 @@ export class PreRegistroComponent {
       nombresArbol: '',
       nodosColapsados: '',
       datosPorSucursal: '',
+      accesosPorSucursal: '',
     }, { emitEvent: false });
   }
 
@@ -1398,6 +1404,19 @@ export class PreRegistroComponent {
     this.actualizarNombreSucursalDesdeDatos(nodoId, datosNodo);
   }
 
+  private guardarCapturaNodoActual(): void {
+    if (!this.mostrarArbolWizard) return;
+    if (this.pasoActual === 2) this.guardarDatosSucursalActual();
+    if (this.pasoActual === 3) this.guardarAccesosNodoActual();
+    if (this.pasoActual === 5) this.guardarDocumentosNodoActual();
+  }
+
+  private cargarCapturaNodo(nodoId: string): void {
+    if (this.pasoActual === 2) this.cargarDatosSucursal(nodoId);
+    if (this.pasoActual === 3) this.cargarAccesosNodo(nodoId);
+    if (this.pasoActual === 5) this.cargarDocumentosNodo(nodoId);
+  }
+
   private cargarDatosSucursal(sucursalId: string): void {
     const datos = this.obtenerDatosPorSucursal()[sucursalId];
     this.datosForm.reset({ ...this.crearDatosGeneralesVacios(), ...(datos ?? {}) } as any, { emitEvent: false });
@@ -1413,6 +1432,50 @@ export class PreRegistroComponent {
     }
   }
 
+  private guardarAccesosNodoActual(): void {
+    if (!this.mostrarArbolWizard) return;
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    const accesos = this.obtenerAccesosPorSucursal();
+    accesos[nodoId] = this.accesosForm.getRawValue();
+    this.arbolNegocioForm.controls.accesosPorSucursal.setValue(JSON.stringify(accesos), { emitEvent: false });
+  }
+
+  private cargarAccesosNodo(nodoId: string): void {
+    const accesos = this.obtenerAccesosPorSucursal()[nodoId];
+    if (accesos) this.accesosForm.reset(accesos as any, { emitEvent: false });
+    this.actualizarValidadoresAccesos(this.accesosForm.controls.modoReserva.value as ModoReserva);
+  }
+
+  private obtenerAccesosPorSucursal(): Record<string, Record<string, string | boolean>> {
+    try {
+      const parsed = JSON.parse(this.arbolNegocioForm.controls.accesosPorSucursal.value || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private guardarDocumentosNodoActual(): void {
+    if (!this.mostrarArbolWizard) return;
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    this.documentosPorNodo[nodoId] = Object.fromEntries(
+      this.documentos.map(documento => [documento.numero, {
+        archivo: documento.archivo,
+        archivoNombre: documento.archivoNombre,
+      }])
+    );
+  }
+
+  private cargarDocumentosNodo(nodoId: string): void {
+    const documentos = this.documentosPorNodo[nodoId] ?? {};
+    this.documentos.forEach(documento => {
+      const guardado = documentos[documento.numero];
+      documento.archivo = guardado?.archivo;
+      documento.archivoNombre = guardado?.archivoNombre;
+    });
+    this.archivosInvalidos = false;
+  }
+
   private avanzarASiguienteSucursal(): boolean {
     const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard).filter(nodo => nodo.nivel !== 'caja');
     const actualId = this.arbolNegocioForm.controls.nodoSeleccionado.value || nodos[0]?.id || 'sucursal-1';
@@ -1426,6 +1489,12 @@ export class PreRegistroComponent {
       nodoSeleccionado: siguiente.id,
     }, { emitEvent: false });
     this.cargarDatosSucursal(siguiente.id);
+    this.cargarAccesosNodo(siguiente.id);
+    this.cargarDocumentosNodo(siguiente.id);
+    this.pasosCompletados.delete(2);
+    this.pasosCompletados.delete(3);
+    this.pasosCompletados.delete(5);
+    this.pasoActual = 2;
     return true;
   }
 
