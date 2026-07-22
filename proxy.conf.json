@@ -1,27 +1,24 @@
 {
   "/api-antaresv2.kashplataforma.com": {
-    "target": "http://api-antaresv2.kashplataforma.com",
+    "target": "http://10.15.5.160",
     "secure": false,
     "changeOrigin": true,
-    "pathRewrite": {
-      "^/api-antaresv2.kashplataforma.com": ""
-    },
     "logLevel": "debug"
   },
   "/api/v2/antares.kwt-v2.2.10": {
-    "target": "https://sdbx-api-antares.kashplataforma.com",
+    "target": "http://10.15.5.160",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/OrderReceiver": {
-    "target": "http://sdbx-api-antares.kashplataforma.com",
+    "target": "http://10.15.5.160",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/OAuthServices": {
-    "target": "http://sdbx-polaris.kashplataforma.com",
+    "target": "https://sdbx-polaris.kashplataforma.com",
     "secure": false,
     "changeOrigin": true,
     "headers": {
@@ -30,19 +27,19 @@
     "logLevel": "debug"
   },
   "/Entities": {
-    "target": "http://44.199.131.117",
+    "target": "http://10.15.5.171",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/kwt-a7f2-v1.3.2": {
-    "target": "https://api-aldebaran.kashplataforma.com",
+    "target": "http://10.15.5.158",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   },
   "/EntitiesServices": {
-    "target": "http://sdbx-sirio.kashplataforma.com",
+    "target": "http://10.15.5.162",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
