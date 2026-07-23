@@ -2,7 +2,7 @@
   <div class="form-grid cols-2">
     <div class="field">
       <label for="nivel">Nivel del cliente <b>*</b></label>
-      <select id="nivel" formControlName="nivel" [class.invalid]="esInvalido('nivel')">
+      <select id="nivel" formControlName="nivel" [class.invalid]="esInvalido('nivel')" [attr.disabled]="bloquearNivel ? true : null">
         <option value="">Selecciona una opción</option>
         @for (nivel of niveles; track nivel) {
           <option [value]="nivel">{{ nivel }}</option>
@@ -14,7 +14,7 @@
    @if (!esSinTipo) {
   <div class="field">
     <label for="tipoComercio">Tipo de comercio <b>*</b></label>
-    <select id="tipoComercio" formControlName="tipoComercio" [class.invalid]="esInvalido('tipoComercio')">
+    <select id="tipoComercio" formControlName="tipoComercio" [class.invalid]="esInvalido('tipoComercio')" [attr.disabled]="bloquearTipoComercio ? true : null">
       <option value="">Selecciona una opción</option>
       @for (tipo of tiposComercio; track tipo) {
         <option [value]="tipo">{{ tipo }}</option>

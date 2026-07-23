@@ -28,7 +28,7 @@ export class TiposNegocioComponent {
     {
       id: 'comercio-unico',
       titulo: 'Comercio único',
-      descripcion: 'Aplica para un comercio con una sola sucursal.',
+      descripcion: 'Aplica para un comercio con una sola sucursal y una caja numérica.',
       icono: 'fa-store',
       imagen: 'assets/paquetes/comercio.png',
       iconoInferior: 'fa-user',
@@ -36,8 +36,8 @@ export class TiposNegocioComponent {
       nivel: 'Sucursal',
       tipoComercio: 'Sucursales Únicas',
       beneficios: [
-        'Un usuario Administrador de Portal para Gestión de Recursos.',
-        'Un usuario para operar las TPV´S en Cajas.',
+        'Sucursal única.',
+        'Caja numérica única.',
       ],
     },
     {
@@ -51,9 +51,8 @@ export class TiposNegocioComponent {
       nivel: 'Sucursal',
       tipoComercio: 'Sucursales de Grupo',
       beneficios: [
-        'Un usuario Administrador de Portal para Gestión del negocio. Administrador de Recursos.Consulta de Reportes de todas las sucursales.',
-        'Usuario Administrador para cada sucursal.',
-        'De un usuario hasta N para operar las terminales en cajas.',
+        'N sucursales.',
+        'N cajas numéricas.',
       ],
     },
     {
@@ -67,9 +66,9 @@ export class TiposNegocioComponent {
       nivel: 'Sub Afiliado',
       tipoComercio: 'Empresa Holding',
       beneficios: [
-        'Un usuario Administrador de Portal para Gestión de cada uno de los Negocios. Administradorde Recursos consulta de Reportes general de todas las sucursales.',
-        'Usuario Administrador para cada sucursal.',
-        'De un usuario hasta N para operar las terminales en cajas.',
+        'N entidades.',
+        'N sucursales.',
+        'N cajas.',
       ],
     },
     {
@@ -83,8 +82,8 @@ export class TiposNegocioComponent {
       nivel: 'Entidad',
       tipoComercio: 'Empresa Grupo',
       beneficios: [
-        'Usuario Administrador para cada sucursal.',
-        'De un usuario hasta N para operar las terminales en Cajas.',
+        'N sucursales.',
+        'N cajas numéricas.',
       ],
     },
   ];

@@ -15,6 +15,8 @@ export class StepComercioComponent {
   @Input() form!: FormGroup;
   @Input() niveles: string[] = [];
   @Input() tiposComercio: string[] = [];
+  @Input() bloquearNivel = false;
+  @Input() bloquearTipoComercio = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() abrirComisionista = new EventEmitter<void>();

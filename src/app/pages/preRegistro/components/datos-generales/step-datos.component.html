@@ -5,8 +5,17 @@
   <section class="step-section">
     <div class="section-title">
       <h3>Datos generales</h3>
+      @if (mostrarInfoFiscalEntidad) {
+      <label class="checkbox-inline">
+        <input type="checkbox" [checked]="infoFiscalEntidadActiva"
+          (change)="cambiarInfoFiscalEntidad.emit($any($event.target).checked)">
+        Misma información fiscal de la Entidad
+      </label>
+      } @else {
       <span>Campos obligatorios marcados con *</span>
+      }
     </div>
+    @if (!infoFiscalEntidadActiva) {
     <div class="form-grid cols-2">
       @if (tiene('rfc')) {
       <div class="field">
@@ -124,6 +133,7 @@
       </div>
       }
     </div>
+    }
   </section>
   }
 

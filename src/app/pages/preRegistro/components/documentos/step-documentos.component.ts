@@ -13,6 +13,7 @@ export class StepDocumentosComponent {
   @Input() documentosCargados = 0;
   @Input() documentosPendientes = 0;
   @Input() archivosInvalidos = false;
+  @Input() textoFinalizar = 'Enviar preregistro';
   @Output() seleccionarArchivo = new EventEmitter<{ event: Event; documento: DocumentoRequerido }>();
   @Output() finalizar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();

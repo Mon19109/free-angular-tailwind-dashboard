@@ -26,12 +26,9 @@
       <h1>Tu preregistro quedó enviado</h1>
       <p>Guardamos la información del comercio
         <b>{{ datosForm.value.nombreComercial || 'sin nombre comercial' }}</b>.
+        Afiliación <b>{{ afiliacionForm.value.afiliacion || 'N/D' }}</b>.
         Mesa Digital revisará la documentación en aproximadamente 72 horas hábiles.
       </p>
-      <div class="success-metrics">
-        <article><strong>{{ afiliacionForm.value.afiliacion || 'N/D' }}</strong><span>Afiliación</span></article>
-        <article><strong>{{ documentosCargados }}</strong><span>Documentos cargados</span></article>
-      </div>
       <div class="actions center">
         <a routerLink="/" class="button primary">Volver al inicio</a>
       </div>
@@ -309,7 +306,8 @@
             }
             @switch (paso.numero) {
             @case (1) {
-            <app-step-comercio [form]="comercioForm" [niveles]="datos.niveles" [tiposComercio]="tiposComercio"
+            <app-step-comercio [form]="comercioForm" [niveles]="nivelesComercioVisibles" [tiposComercio]="tiposComercio"
+              [bloquearNivel]="bloquearNivelComercio" [bloquearTipoComercio]="bloquearTipoComercio"
               (continuar)="continuarComercio()" (volver)="volverDesdeComercio()" (abrirComisionista)="mostrarComisionista = true" />
             }
             @case (2) {
@@ -318,7 +316,11 @@
                 ? comercioForm.getRawValue().nivel 
                 : comercioForm.getRawValue().tipoComercio" [regimenesFiscales]="datos.regimenesFiscales ?? []"
               [girosComerciales]="datos.girosComerciales ?? []" [tiposPersona]="datos.tiposPersona"
-              [departamentos]="datos.departamentos" [ciudades]="datos.ciudades" (continuar)="continuarDatos()"
+              [departamentos]="datos.departamentos" [ciudades]="datos.ciudades"
+              [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
+              [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
+              (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
+              (continuar)="continuarDatos()"
               (volver)="volver(1)" />
             }
             @case (3) {
@@ -339,6 +341,7 @@
             @case (5) {
             <app-step-documentos [documentos]="documentosVisibles" [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes" [archivosInvalidos]="archivosInvalidos"
+              [textoFinalizar]="textoBotonDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (finalizar)="finalizarRegistro()" (volver)="volver(mostrarCuentaLiquidacion ? 4 : 3)" />
             }

@@ -18,8 +18,11 @@ export class StepDatosComponent {
   @Input() departamentos: string[] = [];
   @Input() ciudades: string[] = [];
   @Input() tipoComercio: string = '';
+  @Input() mostrarInfoFiscalEntidad = false;
+  @Input() infoFiscalEntidadActiva = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
+  @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
 
   // ── Búsqueda avanzada ──────────────────────────────────────────────────────
   mostrarModalGiro = false;
@@ -110,10 +113,10 @@ export class StepDatosComponent {
     ].includes(tipo);
     return {
       datosGenerales:     !esCaja,
-      domicilioFiscal:    !esCaja,
-      representante:      !esCaja && !sinRepresentante.includes(tipo),
-      dirRepresentante:   !esCaja && !sinRepresentante.includes(tipo),
-      contactoRep:        !esCaja && !sinRepresentante.includes(tipo),
+      domicilioFiscal:    !esCaja && !this.infoFiscalEntidadActiva,
+      representante:      !esCaja && !this.infoFiscalEntidadActiva && !sinRepresentante.includes(tipo),
+      dirRepresentante:   !esCaja && !this.infoFiscalEntidadActiva && !sinRepresentante.includes(tipo),
+      contactoRep:        !esCaja && !this.infoFiscalEntidadActiva && !sinRepresentante.includes(tipo),
       domicilioComercial: true,
       contactoComercial:  true,
     };

@@ -56,7 +56,7 @@ interface BorradorPreRegistro {
   registroTerminado: boolean;
   afiliacion: { afiliacion: string };
   comercio: { nivel: string; tipoComercio: string; afiliacionComisionista: string };
-  arbolNegocio: { numeroEntidades: string; numeroSucursales: string; numeroCajas: string; ubicacionSeleccionada: string; nivelSeleccionado: string; sucursalesPorEntidad: string; cajasPorSucursal: string; nombresArbol: string; nodosColapsados: string; nodoSeleccionado: string; datosPorSucursal: string };
+  arbolNegocio: { numeroEntidades: string; numeroSucursales: string; numeroCajas: string; ubicacionSeleccionada: string; nivelSeleccionado: string; sucursalesPorEntidad: string; cajasPorSucursal: string; nombresArbol: string; nodosColapsados: string; nodosCompletados: string; nodoSeleccionado: string; datosPorSucursal: string; comercioPorNodo: string };
   comisionista: Record<string, string>;
   datos: Record<string, string | boolean>;
   accesos: Record<string, string | boolean>;
@@ -106,6 +106,7 @@ export class PreRegistroComponent {
   tiposComercio: string[] = [];
   tipoNegocioSeleccionado?: TipoNegocio;
   private documentosPorNodo: Record<string, Record<number, DocumentoNodo>> = {};
+  private contextoComercio: 'paquete' | 'caja' = 'paquete';
 
 
   // ── Datos estáticos (los consume el HTML y los steps vía [input]) ────────────
@@ -439,14 +440,17 @@ export class PreRegistroComponent {
     cajasPorSucursal: [''],
     nombresArbol: [''],
     nodosColapsados: [''],
+    nodosCompletados: [''],
     nodoSeleccionado: [''],
     datosPorSucursal: [''],
+    comercioPorNodo: [''],
     accesosPorSucursal: [''],
   });
 
   readonly datosForm = this.fb.nonNullable.group({
     razonSocial: [''], nombreComercial: [''], rfc: [''],
     regimenFiscal: [''], giroComercial: [''], descripcionGiro: [''], mcc: [''],
+    mismaInfoFiscalEntidad: [false],
     nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''],
     tipoPersona: ['', Validators.required],
     correo: ['', [Validators.required, Validators.email]],
@@ -490,6 +494,17 @@ export class PreRegistroComponent {
   });
 
   private readonly camposDinamicosOpcionales = ['numeroExterior', 'numeroInterior', 'entreCalle', 'yCalle'];
+  private readonly camposInfoFiscalEntidad = [
+    'razonSocial', 'nombreComercial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
+    'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad',
+    'tipoPersona', 'correo', 'telefono', 'departamento', 'ciudad', 'direccionComercial',
+    'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior',
+    'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle',
+    'nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante',
+    'calleRepresentante', 'numeroExteriorRepresentante', 'numeroInteriorRepresentante',
+    'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante',
+    'correoRepresentante', 'telefonoRepresentante', 'telefonoAdicionalRepresentante',
+  ];
   private readonly todosCamposDinamicos: string[] = Array.from(
     new Set(Object.values(this.datosGeneralesPorTipo).flat())
   );
@@ -754,10 +769,23 @@ export class PreRegistroComponent {
   get mostrarPasoDocumentos(): boolean { return this.documentosVisibles.length > 0; }
   get mostrarBeneficiarioIgualComercio(): boolean { return !this.pasoGeneralesDebeSaltarse; }
   get esComercioUnico(): boolean { return this.tipoNegocioSeleccionado?.id === 'comercio-unico'; }
+  get bloquearNivelComercio(): boolean { return !!this.tipoNegocioSeleccionado || this.contextoComercio === 'caja'; }
+  get bloquearTipoComercio(): boolean { return this.esComercioUnico && this.contextoComercio !== 'caja'; }
+  get nivelesComercioVisibles(): string[] {
+    const nivelActual = this.comercioForm.controls.nivel.value;
+    return this.bloquearNivelComercio && nivelActual ? [nivelActual] : this.niveles;
+  }
+  get mostrarInfoFiscalEntidadSucursal(): boolean {
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    return !this.esComercioUnico && nodo?.nivel === 'sucursal' && !!this.buscarEntidadPadre(nodo.id);
+  }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
   get documentosCargados(): number { return this.documentosVisibles.filter(d => !!(d.archivo || d.archivoNombre)).length; }
   get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo).length; }
   get mostrarArbolWizard(): boolean { return this.requiereArbolNegocio(); }
+  get textoBotonDocumentos(): string {
+    return this.mostrarArbolWizard && this.hayNodoSiguienteArbol() ? 'Siguiente' : 'Enviar preregistro';
+  }
   get ubicacionArbolSeleccionada(): string {
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
     return this.formatearRutaNodoDesdeDatos(nodoId)
@@ -771,7 +799,7 @@ export class PreRegistroComponent {
       return { nivelPadre: 'Sub Afiliado', mostrarEntidades: true, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
     }
     if (id === 'sucursales-multiples') {
-      return { nivelPadre: 'Entidad', mostrarEntidades: true, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
+      return { nivelPadre: 'Entidad', mostrarEntidades: false, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
     }
     if (id === 'auditor-unico') {
       return { nivelPadre: 'Sucursal', mostrarEntidades: false, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
@@ -845,9 +873,8 @@ export class PreRegistroComponent {
   private marcarPasoCompletado(paso: number): void { this.pasosCompletados.add(paso); }
 
   seleccionarNodoArbol(nodo: NodoArbolNegocio): void {
-    if (nodo.nivel === 'caja') return;
-
     this.guardarCapturaNodoActual();
+    this.guardarComercioNodoActual();
 
     this.arbolNegocioForm.patchValue({
       ubicacionSeleccionada: nodo.ruta,
@@ -855,13 +882,35 @@ export class PreRegistroComponent {
       nodoSeleccionado: nodo.id,
     });
 
-    this.cargarCapturaNodo(nodo.id);
+    this.aplicarComercioPorNodo(nodo);
+    this.cargarCapturaNodoCompleta(nodo.id);
 
     this.guardarBorradorSilencioso();
   }
 
+  private aplicarComercioPorNodo(nodo: NodoArbolNegocio): void {
+    const nivel = this.nivelClientePorNodo(nodo);
+    const comercioGuardado = this.obtenerComercioPorNodo()[nodo.id];
+    this.contextoComercio = nodo.nivel === 'caja' ? 'caja' : 'paquete';
+    this.tiposComercio = this.esComercioUnico && nodo.nivel !== 'caja'
+      ? [this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas']
+      : this.tiposComercioPorNivel[nivel] ?? [];
+    this.comercioForm.patchValue({
+      nivel,
+      tipoComercio: comercioGuardado?.tipoComercio
+        || (this.esComercioUnico && nodo.nivel !== 'caja' ? this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas' : ''),
+    }, { emitEvent: false });
+    this.comercioForm.controls.tipoComercio.setValidators([Validators.required]);
+    this.comercioForm.controls.tipoComercio.updateValueAndValidity({ emitEvent: false });
+    this.actualizarValidadoresDatos();
+    this.pasosCompletados.delete(1);
+    this.pasosCompletados.delete(2);
+    this.pasosCompletados.delete(3);
+    this.pasosCompletados.delete(5);
+    this.pasoActual = 1;
+  }
+
   esNodoArbolSeleccionado(nodo: NodoArbolNegocio): boolean {
-    if (nodo.nivel === 'caja') return false;
     return this.arbolNegocioForm.controls.nodoSeleccionado.value === nodo.id;
   }
 
@@ -917,11 +966,14 @@ export class PreRegistroComponent {
 
   seleccionarTipoNegocio(tipo: TipoNegocio): void {
     this.tipoNegocioSeleccionado = tipo;
+    this.contextoComercio = 'paquete';
     this.comercioForm.patchValue({
       nivel: tipo.nivel,
       tipoComercio: tipo.tipoComercio,
     });
-    this.tiposComercio = this.tiposComercioPorNivel[tipo.nivel] ?? [];
+    this.tiposComercio = tipo.id === 'comercio-unico'
+      ? [tipo.tipoComercio]
+      : this.tiposComercioPorNivel[tipo.nivel] ?? [];
     if (this.requiereArbolNegocio(tipo)) {
       this.configurarArbolPorTipo(tipo);
       this.arbolNegocioForm.patchValue({
@@ -938,7 +990,8 @@ export class PreRegistroComponent {
           nivelSeleccionado: primerNodo?.nivel || 'sucursal',
           nodoSeleccionado: primerNodo?.id || 'sucursal-1',
         }, { emitEvent: false });
-        this.continuarComercio();
+        if (primerNodo) this.aplicarComercioPorNodo(primerNodo);
+        this.irAlPaso(1);
         return;
       }
       this.irAlPaso(7);
@@ -961,7 +1014,9 @@ export class PreRegistroComponent {
       if (primerNodo) this.cargarCapturaNodo(primerNodo.id);
     }
     this.accesosForm.controls.cajasTPV.setValue(String(Math.max(...Object.values(this.obtenerCajasPorSucursal()))));
-    this.continuarComercio();
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value) || this.primerNodoCapturableArbol();
+    if (nodo) this.aplicarComercioPorNodo(nodo);
+    this.irAlPaso(1);
   }
 
   /* continuarComercio(): void {
@@ -971,12 +1026,15 @@ export class PreRegistroComponent {
 
   continuarComercio(): void {
     if (this.comercioForm.invalid) { this.comercioForm.markAllAsTouched(); return; }
+    this.guardarComercioNodoActual();
     this.marcarPasoCompletado(1);
     this.guardarBorradorSilencioso();
     if (this.pasoGeneralesDebeSaltarse) {
       this.marcarPasoCompletado(2); // paso 2 se auto-completa
       this.irAlPaso(3);
     } else {
+      const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+      this.cargarDatosSucursal(nodoId);
       this.irAlPaso(2);
     }
   }
@@ -986,6 +1044,17 @@ export class PreRegistroComponent {
      this.guardarDatosSucursalActual();
      this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
    }
+
+  alternarInfoFiscalEntidad(usarInfoEntidad: boolean): void {
+    this.datosForm.controls.mismaInfoFiscalEntidad.setValue(usarInfoEntidad, { emitEvent: false });
+    if (usarInfoEntidad) {
+      this.copiarInfoFiscalDesdeEntidad();
+    } else {
+      this.limpiarInfoFiscalEntidad();
+    }
+    this.actualizarEstadoInfoFiscalEntidad();
+    this.guardarBorradorSilencioso();
+  }
 
   volverDesdeComercio(): void {
     this.irAlPaso(this.requierePantallaArbolNegocio() ? 7 : 6);
@@ -1034,9 +1103,18 @@ export class PreRegistroComponent {
     this.archivosInvalidos = faltantes.length > 0;
     if (this.archivosInvalidos) { this.pasoActual = 5; return; }
     this.guardarDocumentosNodoActual();
+    this.marcarNodoActualCompletado();
     if (this.mostrarArbolWizard && this.avanzarASiguienteSucursal()) {
       this.guardarBorradorSilencioso();
       return;
+    }
+    if (this.mostrarArbolWizard) {
+      const pendiente = this.primerNodoPendienteArbol();
+      if (pendiente) {
+        this.seleccionarNodoArbol(pendiente);
+        this.guardarBorradorSilencioso();
+        return;
+      }
     }
     this.marcarPasoCompletado(5);
     this.registroTerminado = true;
@@ -1052,6 +1130,17 @@ export class PreRegistroComponent {
     if (this.accesosForm.invalid) return 3;
     if (this.mostrarCuentaLiquidacion && this.liquidacionForm.invalid) return 4;
     return null;
+  }
+
+  private primerNodoPendienteArbol(): NodoArbolNegocio | undefined {
+    return this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => !this.nodoArbolCompletado(nodo.id));
+  }
+
+  private hayNodoSiguienteArbol(): boolean {
+    const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard);
+    const actualId = this.arbolNegocioForm.controls.nodoSeleccionado.value || nodos[0]?.id || 'sucursal-1';
+    const actualIndex = nodos.findIndex(nodo => nodo.id === actualId);
+    return actualIndex >= 0 && actualIndex < nodos.length - 1;
   }
 
   // ── Resumen ───────────────────────────────────────────────────────────────────
@@ -1150,7 +1239,7 @@ export class PreRegistroComponent {
 
     this.afiliacionForm.reset({ afiliacion: '' });
     this.comercioForm.reset({ nivel: '', tipoComercio: '', afiliacionComisionista: '' });
-    this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', sucursalesPorEntidad: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodoSeleccionado: '', datosPorSucursal: '', accesosPorSucursal: '' });
+    this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', sucursalesPorEntidad: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodosCompletados: '', nodoSeleccionado: '', datosPorSucursal: '', comercioPorNodo: '', accesosPorSucursal: '' });
     this.tipoNegocioSeleccionado = undefined;
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
     this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '' });
@@ -1352,19 +1441,52 @@ export class PreRegistroComponent {
       sucursalesPorEntidad: '',
       nombresArbol: '',
       nodosColapsados: '',
+      nodosCompletados: '',
       datosPorSucursal: '',
+      comercioPorNodo: '',
       accesosPorSucursal: '',
     }, { emitEvent: false });
   }
 
   nodoArbolCompletado(id: string): boolean {
-    const nodo = this.buscarNodoArbol(id);
-    if (nodo?.nivel === 'caja') return false;
+    return this.obtenerNodosCompletados().includes(id);
+  }
+
+  private datosNodoCompletos(id: string, tipoComercio: string): boolean {
+    const camposRequeridos = (this.datosGeneralesPorTipo[tipoComercio] ?? [])
+      .filter(campo => !this.camposDinamicosOpcionales.includes(campo));
+    if (!camposRequeridos.length) return true;
 
     const datos = this.obtenerDatosPorSucursal()[id];
     if (!datos) return false;
-    return ['nombreComercial', 'razonSocial', 'rfc', 'correoComercial', 'telefonoComercial']
-      .some(campo => `${datos[campo] || ''}`.trim().length > 0);
+
+    const camposComerciales = [
+      'codigoPostalComercial',
+      'tipoVialidadComercial',
+      'nombreVialidadComercial',
+      'coloniaComercial',
+      'localidadComercial',
+      'municipioComercial',
+      'entidadFederativaComercial',
+      'correoComercial',
+      'telefonoComercial',
+    ];
+
+    return [...camposRequeridos, ...camposComerciales]
+      .every(campo => `${datos[campo] || ''}`.trim().length > 0);
+  }
+
+  private accesosNodoCompletos(id: string): boolean {
+    return !!this.obtenerAccesosPorSucursal()[id];
+  }
+
+  private documentosNodoCompletos(id: string, tipoComercio: string): boolean {
+    const reglas = this.documentosPorTipoComercio[tipoComercio] ?? [];
+    const obligatorios = reglas.filter(regla => regla.obligatorio);
+    if (!obligatorios.length) return true;
+
+    const documentos = this.documentosPorNodo[id] ?? {};
+    return obligatorios.every(regla => !!documentos[regla.numero]?.archivoNombre || !!documentos[regla.numero]?.archivo);
   }
 
   nombreNodoArbol(id: string, respaldo: string): string {
@@ -1389,6 +1511,23 @@ export class PreRegistroComponent {
     }
   }
 
+  private obtenerNodosCompletados(): string[] {
+    try {
+      const parsed = JSON.parse(this.arbolNegocioForm.controls.nodosCompletados.value || '[]');
+      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private marcarNodoActualCompletado(): void {
+    if (!this.mostrarArbolWizard) return;
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    const completados = new Set(this.obtenerNodosCompletados());
+    completados.add(nodoId);
+    this.arbolNegocioForm.controls.nodosCompletados.setValue(JSON.stringify([...completados]), { emitEvent: false });
+  }
+
   private buscarNodoArbol(id: string): NodoArbolNegocio | undefined {
     if (!id) return undefined;
     return this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.id === id);
@@ -1406,6 +1545,7 @@ export class PreRegistroComponent {
 
   private guardarCapturaNodoActual(): void {
     if (!this.mostrarArbolWizard) return;
+    if (this.pasoActual === 1) this.guardarComercioNodoActual();
     if (this.pasoActual === 2) this.guardarDatosSucursalActual();
     if (this.pasoActual === 3) this.guardarAccesosNodoActual();
     if (this.pasoActual === 5) this.guardarDocumentosNodoActual();
@@ -1417,10 +1557,20 @@ export class PreRegistroComponent {
     if (this.pasoActual === 5) this.cargarDocumentosNodo(nodoId);
   }
 
+  private cargarCapturaNodoCompleta(nodoId: string): void {
+    this.cargarDatosSucursal(nodoId);
+    this.cargarAccesosNodo(nodoId);
+    this.cargarDocumentosNodo(nodoId);
+  }
+
   private cargarDatosSucursal(sucursalId: string): void {
     const datos = this.obtenerDatosPorSucursal()[sucursalId];
     this.datosForm.reset({ ...this.crearDatosGeneralesVacios(), ...(datos ?? {}) } as any, { emitEvent: false });
+    if (this.mostrarInfoFiscalEntidadSucursal && !this.datosForm.controls.mismaInfoFiscalEntidad.value) {
+      this.limpiarInfoFiscalEntidad();
+    }
     this.actualizarValidadoresDatos();
+    this.actualizarEstadoInfoFiscalEntidad();
   }
 
   private obtenerDatosPorSucursal(): Record<string, Record<string, string | boolean>> {
@@ -1430,6 +1580,72 @@ export class PreRegistroComponent {
     } catch {
       return {};
     }
+  }
+
+  private guardarComercioNodoActual(): void {
+    if (!this.mostrarArbolWizard) return;
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    const comercio = this.obtenerComercioPorNodo();
+    comercio[nodoId] = this.comercioForm.getRawValue();
+    this.arbolNegocioForm.controls.comercioPorNodo.setValue(JSON.stringify(comercio), { emitEvent: false });
+  }
+
+  private obtenerComercioPorNodo(): Record<string, { nivel: string; tipoComercio: string; afiliacionComisionista: string }> {
+    try {
+      const parsed = JSON.parse(this.arbolNegocioForm.controls.comercioPorNodo.value || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private nivelClientePorNodo(nodo: NodoArbolNegocio): string {
+    if (nodo.nivel === 'sub-afiliado') return 'Sub Afiliado';
+    if (nodo.nivel === 'entidad') return 'Entidad';
+    if (nodo.nivel === 'sucursal') return 'Sucursal';
+    return 'Caja';
+  }
+
+  private copiarInfoFiscalDesdeEntidad(): void {
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    const entidad = nodo ? this.buscarEntidadPadre(nodo.id) : undefined;
+    if (!entidad) return;
+
+    const datosEntidad = this.obtenerDatosPorSucursal()[entidad.id];
+    if (!datosEntidad) return;
+
+    const valores = Object.fromEntries(
+      this.camposInfoFiscalEntidad.map(campo => [campo, datosEntidad[campo] ?? ''])
+    );
+    this.datosForm.patchValue(valores as any, { emitEvent: false });
+  }
+
+  private limpiarInfoFiscalEntidad(): void {
+    const valores = Object.fromEntries(
+      this.camposInfoFiscalEntidad.map(campo => {
+        const actual = this.datosForm.get(campo)?.value;
+        return [campo, typeof actual === 'boolean' ? false : ''];
+      })
+    );
+    this.datosForm.patchValue(valores as any, { emitEvent: false });
+  }
+
+  private buscarEntidadPadre(nodoId: string): NodoArbolNegocio | undefined {
+    const match = nodoId.match(/^(.*entidad-\d+)/);
+    return match ? this.buscarNodoArbol(match[1]) : undefined;
+  }
+
+  private actualizarEstadoInfoFiscalEntidad(): void {
+    const debeBloquear = this.mostrarInfoFiscalEntidadSucursal && this.datosForm.controls.mismaInfoFiscalEntidad.value;
+    this.camposInfoFiscalEntidad.forEach(campo => {
+      const control = this.datosForm.get(campo);
+      if (!control) return;
+      if (debeBloquear) {
+        control.disable({ emitEvent: false });
+      } else {
+        control.enable({ emitEvent: false });
+      }
+    });
   }
 
   private guardarAccesosNodoActual(): void {
@@ -1442,7 +1658,28 @@ export class PreRegistroComponent {
 
   private cargarAccesosNodo(nodoId: string): void {
     const accesos = this.obtenerAccesosPorSucursal()[nodoId];
-    if (accesos) this.accesosForm.reset(accesos as any, { emitEvent: false });
+    this.accesosForm.reset((accesos ?? {
+      modoReserva: 'NINGUNO',
+      cajasTPV: '1',
+      tieneSupervisor: 'si',
+      reservaSplit: '',
+      adminNombre: '',
+      adminPaterno: '',
+      adminMaterno: '',
+      adminCorreo: '',
+      adminConfirmarCorreo: '',
+      adminTelefono: '',
+      perfilReservaNombre: '',
+      perfilReservaPaterno: '',
+      perfilReservaMaterno: '',
+      perfilReservaCorreo: '',
+      perfilReservaConfirmarCorreo: '',
+      perfilReservaTelefono: '',
+      pinAdministrador: '',
+      pinCorreo: '',
+      pinConfirmarCorreo: '',
+      pinContrasena: '',
+    }) as any, { emitEvent: false });
     this.actualizarValidadoresAccesos(this.accesosForm.controls.modoReserva.value as ModoReserva);
   }
 
@@ -1477,7 +1714,7 @@ export class PreRegistroComponent {
   }
 
   private avanzarASiguienteSucursal(): boolean {
-    const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard).filter(nodo => nodo.nivel !== 'caja');
+    const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard);
     const actualId = this.arbolNegocioForm.controls.nodoSeleccionado.value || nodos[0]?.id || 'sucursal-1';
     const actualIndex = nodos.findIndex(nodo => nodo.id === actualId);
     const siguiente = nodos[actualIndex + 1];
@@ -1491,22 +1728,50 @@ export class PreRegistroComponent {
     this.cargarDatosSucursal(siguiente.id);
     this.cargarAccesosNodo(siguiente.id);
     this.cargarDocumentosNodo(siguiente.id);
+    this.aplicarComercioPorNodo(siguiente);
+    this.pasosCompletados.delete(1);
     this.pasosCompletados.delete(2);
     this.pasosCompletados.delete(3);
     this.pasosCompletados.delete(5);
-    this.pasoActual = 2;
     return true;
   }
 
   private actualizarNombreSucursalDesdeDatos(sucursalId: string, datosSucursal: Record<string, string | boolean>): void {
     const nodo = this.buscarNodoArbol(sucursalId);
-    const municipio = `${datosSucursal['municipioComercial'] || datosSucursal['municipio'] || ''}`.trim();
-    const nombreBase = `${datosSucursal['nombreComercial'] || datosSucursal['razonSocial'] || ''}`.trim();
-    const nombre = municipio && nodo?.nivel === 'sucursal' ? `Sucursal ${municipio}` : nombreBase;
+    if (!nodo) return;
+
+    const municipio = `${datosSucursal['municipioComercial'] || ''}`.trim();
+    const localidad = `${datosSucursal['localidadComercial'] || ''}`.trim();
+    const colonia = `${datosSucursal['coloniaComercial'] || ''}`.trim();
+    const nombreComercial = `${datosSucursal['nombreComercial'] || datosSucursal['razonSocial'] || ''}`.trim();
+    let nombre = '';
+
+    if (nodo.nivel === 'sub-afiliado') {
+      nombre = ['Sub Afiliado', municipio].filter(Boolean).join(' ');
+    } else if (nodo.nivel === 'entidad') {
+      nombre = ['Entidad', nombreComercial, localidad].filter(Boolean).join(' ');
+    } else if (nodo.nivel === 'sucursal') {
+      const sufijo = this.municipioRepetidoEnSucursales(nodo.id, municipio) ? colonia : municipio;
+      nombre = ['Sucursal', sufijo || municipio || colonia].filter(Boolean).join(' ');
+    }
+
     if (!nombre) return;
     const nombres = this.obtenerNombresArbol();
     nombres[sucursalId] = nombre;
     this.arbolNegocioForm.controls.nombresArbol.setValue(JSON.stringify(nombres), { emitEvent: false });
+  }
+
+  private municipioRepetidoEnSucursales(sucursalId: string, municipio: string): boolean {
+    if (!municipio) return false;
+    const datos = this.obtenerDatosPorSucursal();
+    const parentId = sucursalId.includes('-sucursal-') ? sucursalId.replace(/-sucursal-\d+$/, '') : '';
+    return this.aplanarArbolNegocio(this.arbolNegocioWizard).some(nodo => {
+      if (nodo.id === sucursalId || nodo.nivel !== 'sucursal') return false;
+      if (parentId && !nodo.id.startsWith(`${parentId}-sucursal-`)) return false;
+      const datosNodo = datos[nodo.id];
+      const municipioNodo = `${datosNodo?.['municipioComercial'] || ''}`.trim();
+      return municipioNodo.toLowerCase() === municipio.toLowerCase();
+    });
   }
 
   private formatearRutaNodoDesdeDatos(nodoId: string): string {
@@ -1578,20 +1843,21 @@ export class PreRegistroComponent {
   }
 
   private copiarDomicilioFiscal(): void {
+    const datos = this.datosForm.getRawValue();
 
     this.datosForm.patchValue({
 
-      codigoPostalComercial: this.datosForm.value.codigoPostal,
-      tipoVialidadComercial: this.datosForm.value.tipoVialidad,
-      nombreVialidadComercial: this.datosForm.value.nombreVialidad,
-      numeroExteriorComercial: this.datosForm.value.numeroExterior,
-      numeroInteriorComercial: this.datosForm.value.numeroInterior,
-      coloniaComercial: this.datosForm.value.colonia,
-      localidadComercial: this.datosForm.value.localidad,
-      municipioComercial: this.datosForm.value.municipio,
-      entidadFederativaComercial: this.datosForm.value.entidadFederativa,
-      entreCalleComercial: this.datosForm.value.entreCalle,
-      yCalleComercial: this.datosForm.value.yCalle
+      codigoPostalComercial: datos.codigoPostal,
+      tipoVialidadComercial: datos.tipoVialidad,
+      nombreVialidadComercial: datos.nombreVialidad,
+      numeroExteriorComercial: datos.numeroExterior,
+      numeroInteriorComercial: datos.numeroInterior,
+      coloniaComercial: datos.colonia,
+      localidadComercial: datos.localidad,
+      municipioComercial: datos.municipio,
+      entidadFederativaComercial: datos.entidadFederativa,
+      entreCalleComercial: datos.entreCalle,
+      yCalleComercial: datos.yCalle
 
     }, { emitEvent: false });
 
