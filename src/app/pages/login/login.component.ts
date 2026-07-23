@@ -29,6 +29,7 @@ export class LoginComponent implements OnInit {
   userLocation: any;
   showTokenModal = false;
   tokenValue = '';
+  telModal = '';
 
   private modalService = inject( NgxTailwindModalService);
   private vcr = inject(ViewContainerRef);
@@ -74,16 +75,16 @@ export class LoginComponent implements OnInit {
       this.loginForm.markAllAsTouched();
       return;
     }*/
-   if (this.loginForm.invalid) {
+    if (this.loginForm.invalid) {
       Object.keys(this.loginForm.controls).forEach(key => {
         this.loginForm.get(key)?.markAsTouched();
       });
       return;
     }
-
-    this.errorMessage = '';
-    this.tokenValue = '';
-    this.showTokenModal = true;
+    this.executeLogin();
+    /*this.errorMessage = '';
+    this.tokenValue = '';*/
+    this.showTokenModal = false;
   }
 
   closeTokenModal(): void {
@@ -97,9 +98,45 @@ export class LoginComponent implements OnInit {
 
   validateToken(): void {
     this.showTokenModal = false;
-    this.executeLogin();
+    this.executeToken();
   }
 
+  private executeToken(): void {
+
+    this.authService.validateSmsToken(this.tokenValue).subscribe({
+      next: (result: any) => {
+        this.isLoading = false;
+        this.loading = false;
+
+        if (result.success) {
+          this.router.navigate(['/dashboard']);
+          this.errorMessage = '';
+          this.tokenValue = '';
+          this.showTokenModal = false;
+        } else {
+          this.errorMessage = this.getErrorMessage(result.idUser, result.message);
+          console.error('Token error3:', this.errorMessage);
+
+        }
+      },
+      error: (error: any) => {
+        this.isLoading = false;
+        this.loading = false;
+
+        if (error.status == 401) {
+          this.errorMessage = 'Correo o contraseña incorrectos.';
+          console.error('Token error:', error);
+        } else {
+          this.errorMessage = error.message || 'No fue posible iniciar sesión. Verifica tus datos e intenta nuevamente.';
+          console.error('Token error:', error);
+          console.error('Token error2:', error.message);
+
+        }
+        
+      }
+    });
+
+  }
   private executeLogin(): void {
     this.isLoading = true;
     this.loading = true;
@@ -116,7 +153,12 @@ export class LoginComponent implements OnInit {
         this.loading = false;
 
         if (result.success) {
-          this.router.navigate(['/dashboard']);
+          //this.router.navigate(['/dashboard']);
+          this.errorMessage = '';
+          this.tokenValue = '';
+          this.telModal = result.oft ?? '??';
+          console.log('TEEEEL :::',this.telModal);
+          this.showTokenModal = true;
         } else {
           this.errorMessage = this.getErrorMessage(result.idUser, result.message);
           console.error('Login error3:', this.errorMessage);
@@ -166,11 +208,11 @@ export class LoginComponent implements OnInit {
     if (event) {
         event.preventDefault();
       }
-  this.modalService
+    this.modalService
       .create('formulario-modal', FormularioModalComponent)
       .setData({ titulo: 'Formulario de contacto' })
       .open();
-}
+  }
 
   /*togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;

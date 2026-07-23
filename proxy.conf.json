@@ -18,7 +18,7 @@
     "logLevel": "debug"
   },
   "/OAuthServices": {
-    "target": "https://sdbx-polaris.kashplataforma.com",
+    "target": "http://10.15.5.162",
     "secure": false,
     "changeOrigin": true,
     "headers": {

@@ -50,6 +50,7 @@ export class AuthService {
   
   private authStatusSubject = new BehaviorSubject<boolean>(this.hasValidSession());
   authStatus$ = this.authStatusSubject.asObservable();
+  movilEncrip = '';
 
   constructor(private http: HttpClient) {
     const session = this.getSession();
@@ -245,6 +246,8 @@ export class AuthService {
   // ============================================
   
   loginKasPay(userLogin: string, passwordLogin: string, latitud: string, longitud: string, accessToken: string): Observable<any> {
+    
+    console.log('IP Login:: ',environment.api.kashpay);
     const url = `${environment.api.kashpay}api/v1/user/login`;
     
     const body = {
@@ -259,6 +262,7 @@ export class AuthService {
 
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
+      'versionApp': `3`,
     };
 
     console.log('body: ',body);
@@ -510,13 +514,15 @@ export class AuthService {
           nodeID: terminalInfo.nodeID
         };
 
+        this.movilEncrip = terminalInfo.phoneNumber.slice(-2);
+
         this.saveSession(sessionData);
 
         return {
           success: true,
           os: terminalInfo.statusID,
-          oft: terminalInfo.phoneNumber ? terminalInfo.phoneNumber.slice(-2) : '',
-          userData: sessionData
+          oft: terminalInfo.phoneNumber ? terminalInfo.phoneNumber.slice(-2) : ''
+          //userData: sessionData
         };
       }),
       catchError(error => {

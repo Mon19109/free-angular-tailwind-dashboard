@@ -74,6 +74,7 @@
   </div>
 </div>
 
+
 <div class="token-modal-backdrop" *ngIf="showTokenModal">
   <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="token-modal-title">
     <button
@@ -89,7 +90,7 @@
     <form (ngSubmit)="validateToken()">
       <div class="token-modal-body">
         <label id="token-modal-title" for="login-token">
-          Ingresa el token enviado al dispositivo registrado con terminación ******
+          Ingresa el token enviado al dispositivo registrado con terminación ** **** **{{ telModal }}
         </label>
         <textarea
           id="login-token"
