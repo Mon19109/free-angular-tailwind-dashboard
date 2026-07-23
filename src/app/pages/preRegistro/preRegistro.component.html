@@ -343,7 +343,7 @@
               [documentosPendientes]="documentosPendientes" [archivosInvalidos]="archivosInvalidos"
               [textoFinalizar]="textoBotonDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
-              (finalizar)="finalizarRegistro()" (volver)="volver(mostrarCuentaLiquidacion ? 4 : 3)" />
+              (finalizar)="finalizarRegistro()" (volver)="volver(pasoDocumentosAnterior)" />
             }
             }
           </div>

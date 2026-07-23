@@ -756,17 +756,24 @@ export class PreRegistroComponent {
   get pasosVisibles() {
     return this.pasos.filter(paso =>
       (paso.numero !== 2 || !this.pasoGeneralesDebeSaltarse) &&
+      (paso.numero !== 3 || this.mostrarPasoAccesos) &&
       (paso.numero !== 4 || this.mostrarCuentaLiquidacion) &&
       (paso.numero !== 5 || this.mostrarPasoDocumentos)
     );
   }
 
+  get mostrarPasoAccesos(): boolean { return this.contextoComercio !== 'caja'; }
   get mostrarAdminTotal(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
   get mostrarPerfilReserva(): boolean { return this.modoReservaActual !== 'NINGUNO'; }
   get mostrarReservaSplit(): boolean { return this.modoReservaActual === 'TRANSACCIONAL'; }
   get mostrarPinSupervisor(): boolean { return this.accesosForm.controls.tieneSupervisor.value === 'si'; }
   get mostrarCuentaLiquidacion(): boolean { return false; }
   get mostrarPasoDocumentos(): boolean { return this.documentosVisibles.length > 0; }
+  get pasoDocumentosAnterior(): PasoWizard {
+    if (this.mostrarCuentaLiquidacion) return 4;
+    if (this.mostrarPasoAccesos) return 3;
+    return this.pasoGeneralesDebeSaltarse ? 1 : 2;
+  }
   get mostrarBeneficiarioIgualComercio(): boolean { return !this.pasoGeneralesDebeSaltarse; }
   get esComercioUnico(): boolean { return this.tipoNegocioSeleccionado?.id === 'comercio-unico'; }
   get bloquearNivelComercio(): boolean { return !!this.tipoNegocioSeleccionado || this.contextoComercio === 'caja'; }
@@ -1031,7 +1038,7 @@ export class PreRegistroComponent {
     this.guardarBorradorSilencioso();
     if (this.pasoGeneralesDebeSaltarse) {
       this.marcarPasoCompletado(2); // paso 2 se auto-completa
-      this.irAlPaso(3);
+      this.continuarDesdePasoSinAccesos();
     } else {
       const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
       this.cargarDatosSucursal(nodoId);
@@ -1042,7 +1049,13 @@ export class PreRegistroComponent {
   continuarDatos(): void {
      if (this.datosForm.invalid) { this.datosForm.markAllAsTouched(); return; }
      this.guardarDatosSucursalActual();
-     this.marcarPasoCompletado(2); this.guardarBorradorSilencioso(); this.irAlPaso(3);
+     this.marcarPasoCompletado(2);
+     this.guardarBorradorSilencioso();
+     if (this.mostrarPasoAccesos) {
+       this.irAlPaso(3);
+     } else {
+       this.continuarDesdePasoSinAccesos();
+     }
    }
 
   alternarInfoFiscalEntidad(usarInfoEntidad: boolean): void {
@@ -1072,6 +1085,20 @@ export class PreRegistroComponent {
     this.accesosForm.markAllAsTouched();
     if (this.accesosForm.invalid) return;
     this.guardarAccesosNodoActual();
+    this.marcarPasoCompletado(3);
+    this.guardarBorradorSilencioso();
+    if (this.mostrarCuentaLiquidacion) {
+      this.irAlPaso(4);
+    } else if (this.mostrarPasoDocumentos) {
+      this.marcarPasoCompletado(4);
+      this.irAlPaso(5);
+    } else {
+      this.marcarPasoCompletado(4);
+      this.finalizarRegistro();
+    }
+  }
+
+  private continuarDesdePasoSinAccesos(): void {
     this.marcarPasoCompletado(3);
     this.guardarBorradorSilencioso();
     if (this.mostrarCuentaLiquidacion) {
@@ -1127,7 +1154,7 @@ export class PreRegistroComponent {
     if (this.comercioForm.invalid) return 1;
     if (this.requiereArbolNegocio() && this.arbolNegocioForm.invalid) return 7;
     if (!this.pasoGeneralesDebeSaltarse && this.datosForm.invalid) return 2;
-    if (this.accesosForm.invalid) return 3;
+    if (this.mostrarPasoAccesos && this.accesosForm.invalid) return 3;
     if (this.mostrarCuentaLiquidacion && this.liquidacionForm.invalid) return 4;
     return null;
   }
