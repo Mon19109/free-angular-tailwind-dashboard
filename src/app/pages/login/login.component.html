@@ -96,6 +96,7 @@
           id="login-token"
           name="verification-token-field"
           [(ngModel)]="tokenValue"
+          [class.is-invalid]="tokenErrorMessage"
           [ngModelOptions]="{ standalone: true }"
           autocomplete="new-password"
           autocapitalize="off"
@@ -103,9 +104,13 @@
           spellcheck="false"
           rows="1"
           [disabled]="loading"
+          (ngModelChange)="clearTokenError()"
           (keydown.enter)="$event.preventDefault(); validateToken()"
           autofocus
         ></textarea>
+        <div class="token-error" *ngIf="tokenErrorMessage">
+          {{ tokenErrorMessage }}
+        </div>
       </div>
 
       <div class="token-modal-actions">

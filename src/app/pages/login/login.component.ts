@@ -29,6 +29,7 @@ export class LoginComponent implements OnInit {
   userLocation: any;
   showTokenModal = false;
   tokenValue = '';
+  tokenErrorMessage = '';
   telModal = '';
 
   private modalService = inject( NgxTailwindModalService);
@@ -94,14 +95,26 @@ export class LoginComponent implements OnInit {
 
     this.showTokenModal = false;
     this.tokenValue = '';
+    this.tokenErrorMessage = '';
   }
 
   validateToken(): void {
-    this.showTokenModal = false;
+    if (!this.tokenValue.trim()) {
+      this.tokenErrorMessage = 'Código incorrecto';
+      return;
+    }
+
     this.executeToken();
   }
 
+  clearTokenError(): void {
+    this.tokenErrorMessage = '';
+  }
+
   private executeToken(): void {
+    this.isLoading = true;
+    this.loading = true;
+    this.tokenErrorMessage = '';
 
     this.authService.validateSmsToken(this.tokenValue).subscribe({
       next: (result: any) => {
@@ -112,10 +125,13 @@ export class LoginComponent implements OnInit {
           this.router.navigate(['/dashboard']);
           this.errorMessage = '';
           this.tokenValue = '';
+          this.tokenErrorMessage = '';
           this.showTokenModal = false;
         } else {
-          this.errorMessage = this.getErrorMessage(result.idUser, result.message);
-          console.error('Token error3:', this.errorMessage);
+          this.tokenValue = '';
+          this.showTokenModal = true;
+          this.tokenErrorMessage = 'Código incorrecto';
+          console.error('Token error3:', this.getErrorMessage(result.idUser, result.message));
 
         }
       },
@@ -123,15 +139,10 @@ export class LoginComponent implements OnInit {
         this.isLoading = false;
         this.loading = false;
 
-        if (error.status == 401) {
-          this.errorMessage = 'Correo o contraseña incorrectos.';
-          console.error('Token error:', error);
-        } else {
-          this.errorMessage = error.message || 'No fue posible iniciar sesión. Verifica tus datos e intenta nuevamente.';
-          console.error('Token error:', error);
-          console.error('Token error2:', error.message);
-
-        }
+        this.tokenValue = '';
+        this.showTokenModal = true;
+        this.tokenErrorMessage = 'Código incorrecto';
+        console.error('Token error:', error);
         
       }
     });
@@ -156,6 +167,7 @@ export class LoginComponent implements OnInit {
           //this.router.navigate(['/dashboard']);
           this.errorMessage = '';
           this.tokenValue = '';
+          this.tokenErrorMessage = '';
           this.telModal = result.oft ?? '??';
           console.log('TEEEEL :::',this.telModal);
           this.showTokenModal = true;
