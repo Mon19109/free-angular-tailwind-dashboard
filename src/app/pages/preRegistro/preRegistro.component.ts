@@ -618,6 +618,8 @@ export class PreRegistroComponent {
   });
 
   readonly liquidacionForm = this.fb.nonNullable.group({
+    cuentaFueraRed: ['no', Validators.required],
+    digitoVerificador: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]],
     tipoPersonaBeneficiario: ['fisica' as TipoPersonaBeneficiario, Validators.required],
     beneficiarioIgualComercio: [false],
     nombreBeneficiario: ['', Validators.required], apellidoPaternoBeneficiario: ['', Validators.required],
@@ -1271,7 +1273,7 @@ export class PreRegistroComponent {
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
     this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '' });
     this.accesosForm.reset({ modoReserva: 'NINGUNO', cajasTPV: '1', tieneSupervisor: 'si', reservaSplit: '', adminNombre: '', adminPaterno: '', adminMaterno: '', adminCorreo: '', adminConfirmarCorreo: '', adminTelefono: '', perfilReservaNombre: '', perfilReservaPaterno: '', perfilReservaMaterno: '', perfilReservaCorreo: '', perfilReservaConfirmarCorreo: '', perfilReservaTelefono: '', pinAdministrador: '', pinCorreo: '', pinConfirmarCorreo: '', pinContrasena: '' });
-    this.liquidacionForm.reset({ tipoPersonaBeneficiario: 'fisica', beneficiarioIgualComercio: false, nombreBeneficiario: '', apellidoPaternoBeneficiario: '', apellidoMaternoBeneficiario: '', correoBeneficiario: '', direccionBeneficiario: '', rfcBeneficiario: '', actividadBeneficiario: '', giroBeneficiario: '', tipoCuenta: '', cuentaClabe: '', nombreBanco: '', direccionBanco: '', telefonoBanco: '', emailBanco: '' });
+    this.liquidacionForm.reset({ cuentaFueraRed: 'no', digitoVerificador: '', tipoPersonaBeneficiario: 'fisica', beneficiarioIgualComercio: false, nombreBeneficiario: '', apellidoPaternoBeneficiario: '', apellidoMaternoBeneficiario: '', correoBeneficiario: '', direccionBeneficiario: '', rfcBeneficiario: '', actividadBeneficiario: '', giroBeneficiario: '', tipoCuenta: '', cuentaClabe: '', nombreBanco: '', direccionBanco: '', telefonoBanco: '', emailBanco: '' });
     this.documentos.forEach(d => { d.archivo = undefined; d.archivoNombre = undefined; });
     this.actualizarValidadoresAccesos('NINGUNO');
     this.actualizarEstadoLiquidacion(false);

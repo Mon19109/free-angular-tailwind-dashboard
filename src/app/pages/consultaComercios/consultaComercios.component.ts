@@ -51,16 +51,18 @@ export class ConsultaComerciosComponent {
   };
 
   comercios: Comercio[] = [
-    { idComercio: 'COM-00012845', nivel: 'Caja', jerarquia: 'Sucursal Centro / Caja 1', nombreComercial: 'Tienda Del Centro', razonSocial: 'Tienda Del Centro SA de CV', rfc: 'TDC980101AB1', correo: 'tienda.centro@correo.com', telefono: '55 1234 5678', estatus: 'Activo', cajaPinRapido: true, password: 'Temp1#209901' },
-    { idComercio: 'COM-00012844', nivel: 'Sucursal', jerarquia: 'Sucursal Norte', nombreComercial: 'Super Norte', razonSocial: 'Super Norte SA', rfc: 'SNO850203CD4', correo: 'contacto@supernorte.com', telefono: '81 2245 6789', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012843', nivel: 'Entidad', jerarquia: 'Entidad Monterrey', nombreComercial: 'Comercial Monterrey SA', razonSocial: 'Comercial Monterrey SA', rfc: 'CME850122EF6', correo: 'info@comercialmty.com', telefono: '81 8765 4321', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012842', nivel: 'Sub Afiliado', jerarquia: 'Sub Afiliado Premium', nombreComercial: 'Premium Stores', razonSocial: 'Premium Stores SA de CV', rfc: 'PST012305GH7', correo: 'ventas@premiumstores.com', telefono: '33 1122 3344', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012841', nivel: 'Caja', jerarquia: 'Sucursal Sur / Caja 2', nombreComercial: 'Abarrotes La Esquina', razonSocial: 'Abarrotes La Esquina SA', rfc: 'ALE920415IJ8', correo: 'esquina@correo.com', telefono: '55 3344 5566', estatus: 'Inactivo', cajaPinRapido: false },
-    { idComercio: 'COM-00012840', nivel: 'Sucursal', jerarquia: 'Sucursal Centro', nombreComercial: 'Farmacia Central', razonSocial: 'Farmacia Central SA', rfc: 'FCE890630KL9', correo: 'contacto@farmaciacentral.com', telefono: '55 6677 8899', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012839', nivel: 'Entidad', jerarquia: 'Entidad Guadalajara', nombreComercial: 'Distribuidora del Bajio', razonSocial: 'Distribuidora del Bajio SA', rfc: 'DBJ800303MN1', correo: 'ventas@distrobajio.com', telefono: '33 9900 7766', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012838', nivel: 'Sub Afiliado', jerarquia: 'Sub Afiliado Empresarial', nombreComercial: 'Empresarial Grupo', razonSocial: 'Empresarial Grupo SA', rfc: 'EMP930712OP2', correo: 'info@empresarialgrupo.com', telefono: '55 4433 2211', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012837', nivel: 'Caja', jerarquia: 'Sucursal Norte / Caja 3', nombreComercial: 'Mini Super Express', razonSocial: 'Mini Super Express SA', rfc: 'MSE940611QR3', correo: 'cajero2@minisuper.com', telefono: '81 2233 4455', estatus: 'Activo', cajaPinRapido: true, password: 'Caja2#445566' },
-    { idComercio: 'COM-00012836', nivel: 'Sucursal', jerarquia: 'Sucursal Poniente', nombreComercial: 'Ferreteria del Poniente', razonSocial: 'Ferreteria del Poniente SA', rfc: 'FPO960221ST4', correo: 'ventas@ferreteriapte.com', telefono: '55 7788 9900', estatus: 'Activo', tieneInferiores: true }
+    { idComercio: 'COM-00012842', nivel: 'Sub Afiliado', jerarquia: 'Empresa Holding', nombreComercial: 'Sub Afiliado Norte', razonSocial: 'Sub Afiliado Norte SA de CV', rfc: 'SAN010101AA1', correo: 'holding@subnorte.com', telefono: '55 1000 0000', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012843', nivel: 'Entidad', jerarquia: 'Sub Afiliado Norte / Entidad 01', nombreComercial: 'Entidad Financiera México', razonSocial: 'Entidad Financiera México SA', rfc: 'EFM010101BB2', correo: 'entidad01@subnorte.com', telefono: '55 1000 0101', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012839', nivel: 'Entidad', jerarquia: 'Sub Afiliado Norte / Entidad 02', nombreComercial: 'Entidad Financiera Occidente', razonSocial: 'Entidad Financiera Occidente SA', rfc: 'EFO010101CC3', correo: 'entidad02@subnorte.com', telefono: '55 1000 0202', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012844', nivel: 'Sucursal', jerarquia: 'Entidad 01 / Sucursal 01', nombreComercial: 'Sucursal Toluca Centro', razonSocial: 'Sucursal Toluca Centro SA', rfc: 'STC010101DD4', correo: 'sucursal01.e1@subnorte.com', telefono: '55 1101 0001', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012840', nivel: 'Sucursal', jerarquia: 'Entidad 01 / Sucursal 02', nombreComercial: 'Sucursal Metepec', razonSocial: 'Sucursal Metepec SA', rfc: 'SME010101EE5', correo: 'sucursal02.e1@subnorte.com', telefono: '55 1101 0002', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012836', nivel: 'Sucursal', jerarquia: 'Entidad 01 / Sucursal 03', nombreComercial: 'Sucursal Zinacantepec', razonSocial: 'Sucursal Zinacantepec SA', rfc: 'SZI010101FF6', correo: 'sucursal03.e1@subnorte.com', telefono: '55 1101 0003', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012846', nivel: 'Sucursal', jerarquia: 'Entidad 02 / Sucursal 01', nombreComercial: 'Sucursal Guadalajara Centro', razonSocial: 'Sucursal Guadalajara Centro SA', rfc: 'SGC010101GG7', correo: 'sucursal01.e2@subnorte.com', telefono: '55 1102 0001', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012847', nivel: 'Sucursal', jerarquia: 'Entidad 02 / Sucursal 02', nombreComercial: 'Sucursal Zapopan', razonSocial: 'Sucursal Zapopan SA', rfc: 'SZA010101HH8', correo: 'sucursal02.e2@subnorte.com', telefono: '55 1102 0002', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012848', nivel: 'Sucursal', jerarquia: 'Entidad 02 / Sucursal 03', nombreComercial: 'Sucursal Tlaquepaque', razonSocial: 'Sucursal Tlaquepaque SA', rfc: 'STL010101II9', correo: 'sucursal03.e2@subnorte.com', telefono: '55 1102 0003', estatus: 'Activo', tieneInferiores: true },
+    { idComercio: 'COM-00012845', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 01 / Caja 01', nombreComercial: 'Caja 01 Toluca Centro', razonSocial: 'Caja 01 Toluca Centro SA', rfc: 'C1T010101JJ1', correo: 'caja01.s1e1@subnorte.com', telefono: '55 1201 0101', estatus: 'Activo', cajaPinRapido: true, password: 'Temp1#209901' },
+    { idComercio: 'COM-00012841', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 01 / Caja 02', nombreComercial: 'Caja 02 Toluca Centro', razonSocial: 'Caja 02 Toluca Centro SA', rfc: 'C2T010101KK2', correo: 'caja02.s1e1@subnorte.com', telefono: '55 1201 0102', estatus: 'Activo', cajaPinRapido: true },
+    { idComercio: 'COM-00012837', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 02 / Caja 01', nombreComercial: 'Caja 01 Metepec', razonSocial: 'Caja 01 Metepec SA', rfc: 'C1M010101LL3', correo: 'caja01.s2e1@subnorte.com', telefono: '55 1201 0201', estatus: 'Activo', cajaPinRapido: true, password: 'Caja2#445566' }
   ];
 
   resultados = [...this.comercios];
@@ -151,8 +153,27 @@ export class ConsultaComerciosComponent {
     this.accionesAbiertas = this.accionesAbiertas === idComercio ? null : idComercio;
   }
 
-  ejecutarAccion(accion: 'editar' | 'inactivar' | 'baja' | 'revision-mesa-digital' | 'password', comercio: Comercio): void {
+  ejecutarAccion(accion: 'editar' | 'inactivar' | 'baja' | 'revision-mesa-digital' | 'password' | 'registrar-informacion', comercio: Comercio): void {
     this.accionesAbiertas = null;
+
+    if (accion === 'registrar-informacion') {
+      this.router.navigate(['/registro_cliente'], {
+        queryParams: {
+          id: comercio.idComercio,
+          nivel: comercio.nivel,
+          nombre: comercio.nombreComercial,
+          rfc: comercio.rfc,
+          correo: comercio.correo,
+          telefono: comercio.telefono,
+          paquete: 'empresa-holding',
+          entidades: 2,
+          sucursales: 3,
+          cajas: 2,
+          selectedNode: this.nodoRegistroPorComercio(comercio)
+        }
+      });
+      return;
+    }
 
     if (accion === 'editar') {
       console.log('Consultar/editar comercio:', comercio);
@@ -197,6 +218,23 @@ export class ConsultaComerciosComponent {
 
     this.modalCambiarPassword.password = this.nuevaPassword;
     this.modalCambiarPassword = null;
+  }
+
+  private nodoRegistroPorComercio(comercio: Comercio): string {
+    if (comercio.nivel === 'Sub Afiliado') return 'sub-afiliado-1';
+
+    const entidadMatch = comercio.jerarquia.match(/Entidad\s+0?(\d+)/i);
+    const sucursalMatch = comercio.jerarquia.match(/Sucursal\s+0?(\d+)/i);
+    const cajaMatch = comercio.jerarquia.match(/Caja\s+0?(\d+)/i);
+    const entidad = entidadMatch ? Number(entidadMatch[1]) : comercio.idComercio === 'COM-00012839' ? 2 : 1;
+
+    if (comercio.nivel === 'Entidad') return `entidad-${entidad}`;
+
+    const sucursal = sucursalMatch ? Number(sucursalMatch[1]) : 1;
+    if (comercio.nivel === 'Sucursal') return `entidad-${entidad}-sucursal-${sucursal}`;
+
+    const caja = cajaMatch ? Number(cajaMatch[1]) : 1;
+    return `entidad-${entidad}-sucursal-${sucursal}-caja-${caja}`;
   }
 
   get passwordValida(): boolean {

@@ -50,6 +50,8 @@ private readonly titulosPaginas: Record<string, string> = {
   sucursales: 'Lista Sucursales',
   cajas: 'Lista Cajas',
   estado_cuenta: 'Estado de Cuenta',
+  consulta_comercios: 'Consulta de Comercios',
+  registro_cliente: 'Registro de Cliente / Comercio',
   // futuros módulos
   reportes: 'Reportes',
   conciliacion: 'Conciliación',

@@ -1,92 +1,181 @@
-<form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
+<form class="step-form liquidacion-form" [formGroup]="form" (ngSubmit)="submit()">
+  <section class="step-section liquidation-top">
+    <div class="liquidation-question">
+      <span class="liquidation-icon"><i class="fa-solid fa-building-columns"></i></span>
+      <strong>Tengo una cuenta fuera de RED en otros BANCOS</strong>
+      <div class="segmented-choice">
+        <label [class.active]="form.get('cuentaFueraRed')?.value === 'si'">
+          <input type="radio" value="si" formControlName="cuentaFueraRed">
+          <span>Sí</span>
+        </label>
+        <label [class.active]="form.get('cuentaFueraRed')?.value === 'no'">
+          <input type="radio" value="no" formControlName="cuentaFueraRed">
+          <span>No <i class="fa-solid fa-check"></i></span>
+        </label>
+      </div>
+    </div>
 
-  <section class="step-section">
-    <div class="section-title"><h3>Cuenta para liquidación</h3></div>
+    <div class="field verifier-field">
+      <label for="digitoVerificador">Dígito Verificador (5 dígitos) <b>*</b></label>
+      <div class="input-with-icon">
+        <i class="fa-solid fa-shield-halved"></i>
+        <input id="digitoVerificador" maxlength="5" inputmode="numeric" formControlName="digitoVerificador"
+          placeholder="12345" [class.invalid]="esInvalido('digitoVerificador')" />
+        <i class="fa-solid fa-check success-mark"></i>
+      </div>
+      @if (esInvalido('digitoVerificador')) { <small>{{ mensajeCampo('digitoVerificador') }}</small> }
+    </div>
+  </section>
+
+  <section class="step-section liquidation-section">
+    <div class="liquidation-section-heading">
+      <span class="liquidation-icon small"><i class="fa-solid fa-user"></i></span>
+      <div>
+        <h3>Información del Beneficiario</h3>
+        <p>Proporcione los datos del titular o razón social del beneficiario.</p>
+      </div>
+    </div>
+
     @if (mostrarBeneficiarioIgualComercio) {
-    <label class="checkbox-option">
+    <label class="checkbox-option same-beneficiary">
       <input type="checkbox" formControlName="beneficiarioIgualComercio" />
       <span>Los datos del beneficiario son los mismos del comercio</span>
     </label>
     }
+
+    <div class="beneficiary-toolbar">
+      <div class="person-tabs">
+        <label [class.active]="tipoPersonaBeneficiario === 'fisica'">
+          <input type="radio" value="fisica" formControlName="tipoPersonaBeneficiario">
+          <i class="fa-solid fa-user"></i>
+          <span>Persona Física</span>
+        </label>
+        <label [class.active]="tipoPersonaBeneficiario === 'moral'">
+          <input type="radio" value="moral" formControlName="tipoPersonaBeneficiario">
+          <i class="fa-solid fa-building-columns"></i>
+          <span>Persona Moral</span>
+        </label>
+      </div>
+
+      <div class="document-actions">
+        <span>Carta Liquidación Otros Bancos</span>
+        <button type="button"><i class="fa-solid fa-download"></i> Ver</button>
+        <span>Carátula EDC</span>
+        <button type="button"><i class="fa-solid fa-download"></i> Ver</button>
+      </div>
+    </div>
+
     <div class="form-grid cols-3">
       <div class="field">
-        <label for="tipoPersonaBeneficiario">Tipo de persona <b>*</b></label>
-        <select id="tipoPersonaBeneficiario" formControlName="tipoPersonaBeneficiario"
-          [class.invalid]="esInvalido('tipoPersonaBeneficiario')">
-          <option value="fisica">Persona física</option>
-          <option value="moral">Persona moral</option>
-        </select>
-        @if (esInvalido('tipoPersonaBeneficiario')) { <small>{{ mensajeCampo('tipoPersonaBeneficiario') }}</small> }
+        <label for="nombreBeneficiario">
+          {{ tipoPersonaBeneficiario === 'moral' ? 'Razón social' : 'Nombre' }} <b>*</b>
+        </label>
+        <input id="nombreBeneficiario" formControlName="nombreBeneficiario" placeholder="Ingrese nombre"
+          [class.invalid]="esInvalido('nombreBeneficiario')" />
+        @if (esInvalido('nombreBeneficiario')) { <small>{{ mensajeCampo('nombreBeneficiario') }}</small> }
+      </div>
+
+      @if (tipoPersonaBeneficiario === 'fisica') {
+      <div class="field">
+        <label for="apellidoPaternoBeneficiario">Apellido Paterno <b>*</b></label>
+        <input id="apellidoPaternoBeneficiario" formControlName="apellidoPaternoBeneficiario"
+          placeholder="Ingrese apellido paterno" [class.invalid]="esInvalido('apellidoPaternoBeneficiario')" />
+        @if (esInvalido('apellidoPaternoBeneficiario')) { <small>{{ mensajeCampo('apellidoPaternoBeneficiario') }}</small> }
       </div>
       <div class="field">
-        <label for="tipoCuenta">Tipo de cuenta <b>*</b></label>
-        <select id="tipoCuenta" formControlName="tipoCuenta" [class.invalid]="esInvalido('tipoCuenta')">
-          <option value="">Selecciona una opción</option>
-          @for (tipo of tiposCuenta; track tipo) { <option [value]="tipo">{{ tipo }}</option> }
-        </select>
-        @if (esInvalido('tipoCuenta')) { <small>{{ mensajeCampo('tipoCuenta') }}</small> }
+        <label for="apellidoMaternoBeneficiario">Apellido Materno <b>*</b></label>
+        <input id="apellidoMaternoBeneficiario" formControlName="apellidoMaternoBeneficiario"
+          placeholder="Ingrese apellido materno" [class.invalid]="esInvalido('apellidoMaternoBeneficiario')" />
+        @if (esInvalido('apellidoMaternoBeneficiario')) { <small>{{ mensajeCampo('apellidoMaternoBeneficiario') }}</small> }
+      </div>
+      }
+
+      <div class="field">
+        <label for="correoBeneficiario">Correo Electrónico <b>*</b></label>
+        <input id="correoBeneficiario" type="email" formControlName="correoBeneficiario"
+          placeholder="ejemplo@correo.com" [class.invalid]="esInvalido('correoBeneficiario')" />
+        @if (esInvalido('correoBeneficiario')) { <small>{{ mensajeCampo('correoBeneficiario') }}</small> }
       </div>
       <div class="field">
-        <label for="cuentaClabe">{{ etiquetaCuenta }} <b>*</b></label>
-        <input id="cuentaClabe" [attr.maxlength]="longitudCuenta" inputmode="numeric" formControlName="cuentaClabe"
-          [class.invalid]="esInvalido('cuentaClabe')" />
-        @if (esInvalido('cuentaClabe')) { <small>{{ mensajeCampo('cuentaClabe') }}</small> }
+        <label for="direccionBeneficiario">Dirección Completa <b>*</b></label>
+        <input id="direccionBeneficiario" formControlName="direccionBeneficiario"
+          placeholder="Ingrese la dirección completa" [class.invalid]="esInvalido('direccionBeneficiario')" />
+        @if (esInvalido('direccionBeneficiario')) { <small>{{ mensajeCampo('direccionBeneficiario') }}</small> }
+      </div>
+      <div class="field">
+        <label for="rfcBeneficiario">RFC <b>*</b></label>
+        <input id="rfcBeneficiario" formControlName="rfcBeneficiario" placeholder="Ingrese RFC"
+          [class.invalid]="esInvalido('rfcBeneficiario')" />
+        @if (esInvalido('rfcBeneficiario')) { <small>{{ mensajeCampo('rfcBeneficiario') }}</small> }
+      </div>
+      <div class="field">
+        <label for="actividadBeneficiario">Actividad <b>*</b></label>
+        <input id="actividadBeneficiario" formControlName="actividadBeneficiario" placeholder="Seleccione actividad"
+          [class.invalid]="esInvalido('actividadBeneficiario')" />
+        @if (esInvalido('actividadBeneficiario')) { <small>{{ mensajeCampo('actividadBeneficiario') }}</small> }
+      </div>
+      <div class="field span-2">
+        <label for="giroBeneficiario">Giro <b>*</b></label>
+        <input id="giroBeneficiario" formControlName="giroBeneficiario" placeholder="Seleccione giro"
+          [class.invalid]="esInvalido('giroBeneficiario')" />
+        @if (esInvalido('giroBeneficiario')) { <small>{{ mensajeCampo('giroBeneficiario') }}</small> }
       </div>
     </div>
   </section>
 
-  <section class="step-section">
-      <h3>Beneficiario</h3>
-      <div class="form-grid cols-3">
-        <div class="field">
-          <label for="nombreBeneficiario">
-            {{ tipoPersonaBeneficiario === 'moral' ? 'Razón social' : 'Nombre' }} <b>*</b>
-          </label>
-          <input id="nombreBeneficiario" formControlName="nombreBeneficiario"
-            [class.invalid]="esInvalido('nombreBeneficiario')" />
-          @if (esInvalido('nombreBeneficiario')) { <small>{{ mensajeCampo('nombreBeneficiario') }}</small> }
-        </div>
-        @if (tipoPersonaBeneficiario === 'fisica') {
-        <div class="field"><label for="apellidoPaternoBeneficiario">Apellido paterno <b>*</b></label>
-          <input id="apellidoPaternoBeneficiario" formControlName="apellidoPaternoBeneficiario" [class.invalid]="esInvalido('apellidoPaternoBeneficiario')" />
-          @if (esInvalido('apellidoPaternoBeneficiario')) { <small>{{ mensajeCampo('apellidoPaternoBeneficiario') }}</small> }</div>
-        <div class="field"><label for="apellidoMaternoBeneficiario">Apellido materno <b>*</b></label>
-          <input id="apellidoMaternoBeneficiario" formControlName="apellidoMaternoBeneficiario" [class.invalid]="esInvalido('apellidoMaternoBeneficiario')" />
-          @if (esInvalido('apellidoMaternoBeneficiario')) { <small>{{ mensajeCampo('apellidoMaternoBeneficiario') }}</small> }</div>
-        }
-        <div class="field"><label for="correoBeneficiario">Correo electrónico <b>*</b></label>
-          <input id="correoBeneficiario" type="email" formControlName="correoBeneficiario" [class.invalid]="esInvalido('correoBeneficiario')" />
-          @if (esInvalido('correoBeneficiario')) { <small>{{ mensajeCampo('correoBeneficiario') }}</small> }</div>
-        <div class="field"><label for="direccionBeneficiario">Dirección completa <b>*</b></label>
-          <input id="direccionBeneficiario" formControlName="direccionBeneficiario" [class.invalid]="esInvalido('direccionBeneficiario')" />
-          @if (esInvalido('direccionBeneficiario')) { <small>{{ mensajeCampo('direccionBeneficiario') }}</small> }</div>
-        <div class="field"><label for="rfcBeneficiario">RFC <b>*</b></label>
-          <input id="rfcBeneficiario" formControlName="rfcBeneficiario" [class.invalid]="esInvalido('rfcBeneficiario')" />
-          @if (esInvalido('rfcBeneficiario')) { <small>{{ mensajeCampo('rfcBeneficiario') }}</small> }</div>
-        <div class="field"><label for="actividadBeneficiario">Actividad <b>*</b></label>
-          <input id="actividadBeneficiario" formControlName="actividadBeneficiario" [class.invalid]="esInvalido('actividadBeneficiario')" />
-          @if (esInvalido('actividadBeneficiario')) { <small>{{ mensajeCampo('actividadBeneficiario') }}</small> }</div>
-        <div class="field"><label for="giroBeneficiario">Giro <b>*</b></label>
-          <input id="giroBeneficiario" formControlName="giroBeneficiario" [class.invalid]="esInvalido('giroBeneficiario')" />
-          @if (esInvalido('giroBeneficiario')) { <small>{{ mensajeCampo('giroBeneficiario') }}</small> }</div>
+  <section class="step-section liquidation-section">
+    <div class="liquidation-section-heading">
+      <span class="liquidation-icon small"><i class="fa-solid fa-building-columns"></i></span>
+      <div>
+        <h3>Datos Bancarios</h3>
+        <p>Proporcione la información bancaria para la recepción de las liquidaciones.</p>
       </div>
-  </section>
+    </div>
 
-  <section class="step-section">
-    <h3>Información bancaria</h3>
     <div class="form-grid cols-3">
-      <div class="field"><label for="nombreBanco">Nombre del banco <b>*</b></label>
-        <input id="nombreBanco" formControlName="nombreBanco" [class.invalid]="esInvalido('nombreBanco')" />
-        @if (esInvalido('nombreBanco')) { <small>{{ mensajeCampo('nombreBanco') }}</small> }</div>
-      <div class="field"><label for="direccionBanco">Dirección del banco <b>*</b></label>
-        <input id="direccionBanco" formControlName="direccionBanco" [class.invalid]="esInvalido('direccionBanco')" />
-        @if (esInvalido('direccionBanco')) { <small>{{ mensajeCampo('direccionBanco') }}</small> }</div>
-      <div class="field"><label for="telefonoBanco">Teléfono del banco <b>*</b></label>
-        <input id="telefonoBanco" maxlength="10" inputmode="numeric" formControlName="telefonoBanco" [class.invalid]="esInvalido('telefonoBanco')" />
-        @if (esInvalido('telefonoBanco')) { <small>{{ mensajeCampo('telefonoBanco') }}</small> }</div>
-      <div class="field"><label for="emailBanco">Correo del banco <b>*</b></label>
-        <input id="emailBanco" type="email" formControlName="emailBanco" [class.invalid]="esInvalido('emailBanco')" />
-        @if (esInvalido('emailBanco')) { <small>{{ mensajeCampo('emailBanco') }}</small> }</div>
+      <div class="field">
+        <label for="tipoCuenta">Tipo de Cuenta <b>*</b></label>
+        <select id="tipoCuenta" formControlName="tipoCuenta" [class.invalid]="esInvalido('tipoCuenta')">
+          <option value="">Seleccione tipo de cuenta</option>
+          @for (tipo of tiposCuenta; track tipo) { <option [value]="tipo">{{ tipo }}</option> }
+        </select>
+        @if (esInvalido('tipoCuenta')) { <small>{{ mensajeCampo('tipoCuenta') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="cuentaClabe">{{ etiquetaCuenta }} <b>*</b></label>
+        <input id="cuentaClabe" [attr.maxlength]="longitudCuenta" inputmode="numeric" formControlName="cuentaClabe"
+          placeholder="Ingrese cuenta CLABE (18 dígitos)" [class.invalid]="esInvalido('cuentaClabe')" />
+        @if (esInvalido('cuentaClabe')) { <small>{{ mensajeCampo('cuentaClabe') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="nombreBanco">Nombre del Banco <b>*</b></label>
+        <input id="nombreBanco" formControlName="nombreBanco" placeholder="Seleccione banco"
+          [class.invalid]="esInvalido('nombreBanco')" />
+        @if (esInvalido('nombreBanco')) { <small>{{ mensajeCampo('nombreBanco') }}</small> }
+      </div>
+
+      <div class="field span-2">
+        <label for="direccionBanco">Dirección del Banco <b>*</b></label>
+        <input id="direccionBanco" formControlName="direccionBanco" placeholder="Ingrese la dirección del banco"
+          [class.invalid]="esInvalido('direccionBanco')" />
+        @if (esInvalido('direccionBanco')) { <small>{{ mensajeCampo('direccionBanco') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="telefonoBanco">Teléfono del Banco <b>*</b></label>
+        <input id="telefonoBanco" maxlength="10" inputmode="numeric" formControlName="telefonoBanco"
+          placeholder="Ingrese teléfono del banco" [class.invalid]="esInvalido('telefonoBanco')" />
+        @if (esInvalido('telefonoBanco')) { <small>{{ mensajeCampo('telefonoBanco') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="emailBanco">Correo del Banco <b>*</b></label>
+        <input id="emailBanco" type="email" formControlName="emailBanco" placeholder="correo@banco.com"
+          [class.invalid]="esInvalido('emailBanco')" />
+        @if (esInvalido('emailBanco')) { <small>{{ mensajeCampo('emailBanco') }}</small> }
+      </div>
     </div>
   </section>
 

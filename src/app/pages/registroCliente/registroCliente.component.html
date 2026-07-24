@@ -1,0 +1,164 @@
+<div class="registro-shell">
+  <article class="registro-card">
+    <header class="registro-card-header">
+      <div>
+        <span class="eyebrow">Gestión de negocio</span>
+        <h2>Registro de Cliente / Comercio</h2>
+      </div>
+    </header>
+
+    <nav class="flow-stepper" aria-label="Progreso del registro">
+      <div class="flow-step" *ngFor="let paso of pasos; let i = index" [class.active]="paso.numero === pasoActual" [class.done]="paso.numero < pasoActual">
+        <span>{{ paso.numero }}</span>
+        <strong>{{ paso.titulo }}</strong>
+      </div>
+    </nav>
+
+    <div class="registro-layout">
+      <aside class="tree-panel">
+        <div class="panel-heading">
+          <h2>Niveles de Ubicación</h2>
+          <h3>Árbol de negocio</h3>
+          <p>Selecciona la sucursal o caja que vas a capturar.</p>
+        </div>
+
+        <div class="tree-list">
+          <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: arbol, nivel: 0 }"></ng-container>
+        </div>
+
+        <section class="selected-box">
+          <span>Ubicación seleccionada</span>
+          <strong><i class="fa-solid fa-location-dot"></i>{{ rutaSeleccionada() }}</strong>
+        </section>
+      </aside>
+
+      <section class="content-panel">
+        <div class="context-strip" *ngIf="contextoSeleccionado.idComercio">
+          <div>
+            <span>{{ contextoSeleccionado.idComercio }}</span>
+            <strong>{{ contextoSeleccionado.nombreComercial }}</strong>
+          </div>
+          <small>{{ contextoSeleccionado.nivel }} · {{ contextoSeleccionado.rfc || 'RFC pendiente' }}</small>
+        </div>
+
+        <div class="location-context-strip">
+          Datos de {{ contextoSeleccionado.nombreComercial || rutaSeleccionada() }}
+        </div>
+
+        <article class="section-card" *ngFor="let seccion of secciones; let i = index" [class.open]="seccionAbierta === seccion.id" [class.done]="pasoCompletado(seccion.id)">
+          <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)">
+            <span class="section-icon"><i class="fa-solid" [ngClass]="seccion.icono"></i></span>
+            <span class="section-copy">
+              <strong>{{ i + 1 }}. {{ seccion.titulo }}</strong>
+              <small>{{ seccion.descripcion }}</small>
+            </span>
+            <span class="step-status">{{ estadoPaso(seccion.id) }}</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+
+          <div class="section-body" *ngIf="seccionAbierta === seccion.id">
+            <app-step-comercio
+              *ngIf="seccion.id === 'comercio'"
+              [form]="comercioForm"
+              [niveles]="niveles"
+              [tiposComercio]="tiposComercio"
+              [bloquearNivel]="false"
+              [bloquearTipoComercio]="false"
+              (continuar)="completarPaso('comercio', 'datos')"
+              (volver)="volver()" />
+
+            <app-step-datos
+              *ngIf="seccion.id === 'datos'"
+              [form]="datosForm"
+              [campos]="camposDatosGenerales"
+              [tipoComercio]="comercioForm.getRawValue().tipoComercio"
+              [regimenesFiscales]="regimenesFiscales"
+              [girosComerciales]="girosComerciales"
+              [tiposPersona]="tiposPersona"
+              [departamentos]="departamentos"
+              [ciudades]="ciudades"
+              [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
+              [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
+              (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
+              (continuar)="completarPaso('datos', 'accesos')"
+              (volver)="continuarSeccion('comercio')" />
+
+            <app-step-accesos
+              *ngIf="seccion.id === 'accesos'"
+              [form]="accesosForm"
+              textoContinuar="Guardar y continuar"
+              (continuar)="completarPaso('accesos', 'liquidacion')"
+              (volver)="continuarSeccion('datos')" />
+
+            <app-step-liquidacion
+              *ngIf="seccion.id === 'liquidacion'"
+              [form]="liquidacionForm"
+              [tiposCuenta]="tiposCuenta"
+              [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio"
+              [mostrarBeneficiarioIgualComercio]="true"
+              textoContinuar="Guardar y continuar"
+              (continuar)="completarPaso('liquidacion', 'documentos')"
+              (volver)="continuarSeccion('accesos')" />
+
+            <app-step-documentos
+              *ngIf="seccion.id === 'documentos'"
+              [documentos]="documentosVisibles"
+              [documentosCargados]="documentosCargados"
+              [documentosPendientes]="documentosPendientes"
+              [archivosInvalidos]="archivosInvalidos"
+              textoFinalizar="Guardar registro"
+              (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
+              (finalizar)="completarPaso('documentos'); finalizar()"
+              (volver)="continuarSeccion('liquidacion')" />
+          </div>
+        </article>
+
+        <footer class="footer-actions">
+          <button class="button ghost" type="button" (click)="volver()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+          <button class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
+        </footer>
+      </section>
+    </div>
+  </article>
+</div>
+
+<ng-template #treeTemplate let-nodos="nodos" let-nivel="nivel">
+  <ul class="tree-level" [style.--level]="nivel">
+    <li *ngFor="let nodo of nodos">
+      <div class="tree-row" [class.leaf-row]="!nodo.hijos?.length" (pointerdown)="seleccionarNodo(nodo); $event.preventDefault(); $event.stopPropagation()">
+        <button type="button" class="tree-toggle" *ngIf="nodo.hijos?.length" (pointerdown)="alternarNodo(nodo.id); $event.preventDefault(); $event.stopPropagation()">
+          <i class="fa-solid" [ngClass]="nodoExpandido(nodo.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+        </button>
+        <button type="button" class="tree-node" [class.selected]="esNodoSeleccionado(nodo)" [class.leaf]="!nodo.hijos?.length" (pointerdown)="seleccionarNodo(nodo); $event.preventDefault(); $event.stopPropagation()">
+          <i class="fa-solid" [ngClass]="iconoNodo(nodo.nivel)"></i>
+          <span>{{ nodo.nombre }}</span>
+        </button>
+      </div>
+
+      <div class="tree-actions nested group-action" *ngIf="nodo.nivel === 'sub-afiliado' && nodoExpandido(nodo.id)">
+        <i class="fa-solid fa-folder"></i>
+        <span>Entidades</span>
+        <button type="button" (pointerdown)="cambiarEntidades(-1); $event.preventDefault(); $event.stopPropagation()" title="Quitar entidad"><i class="fa-solid fa-minus"></i></button>
+        <button type="button" (pointerdown)="cambiarEntidades(1); $event.preventDefault(); $event.stopPropagation()" title="Agregar entidad"><i class="fa-solid fa-plus"></i></button>
+      </div>
+
+      <div class="tree-actions nested group-action" *ngIf="nodo.nivel === 'entidad' && nodoExpandido(nodo.id)">
+        <i class="fa-solid fa-folder"></i>
+        <span>Sucursales</span>
+        <button type="button" (pointerdown)="cambiarSucursales(nodo.id, -1); $event.preventDefault(); $event.stopPropagation()" title="Quitar sucursal"><i class="fa-solid fa-minus"></i></button>
+        <button type="button" (pointerdown)="cambiarSucursales(nodo.id, 1); $event.preventDefault(); $event.stopPropagation()" title="Agregar sucursal"><i class="fa-solid fa-plus"></i></button>
+      </div>
+
+      <div class="tree-actions nested group-action" *ngIf="nodo.nivel === 'sucursal' && nodoExpandido(nodo.id)">
+        <i class="fa-solid fa-folder"></i>
+        <span>Cajas</span>
+        <button type="button" (pointerdown)="cambiarCajas(nodo.id, -1); $event.preventDefault(); $event.stopPropagation()" title="Quitar caja"><i class="fa-solid fa-minus"></i></button>
+        <button type="button" (pointerdown)="cambiarCajas(nodo.id, 1); $event.preventDefault(); $event.stopPropagation()" title="Agregar caja"><i class="fa-solid fa-plus"></i></button>
+      </div>
+
+      <ng-container *ngIf="nodo.hijos?.length && nodoExpandido(nodo.id)">
+        <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: nodo.hijos, nivel: nivel + 1 }"></ng-container>
+      </ng-container>
+    </li>
+  </ul>
+</ng-template>
