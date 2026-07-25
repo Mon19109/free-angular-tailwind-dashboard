@@ -8,7 +8,7 @@
     </header>
 
     <nav class="flow-stepper" aria-label="Progreso del registro">
-      <div class="flow-step" *ngFor="let paso of pasos; let i = index" [class.active]="paso.numero === pasoActual" [class.done]="paso.numero < pasoActual">
+      <div class="flow-step" *ngFor="let paso of pasosVisiblesRegistro; let i = index" [class.active]="paso.numero === pasoActual" [class.done]="paso.numero < pasoActual">
         <span>{{ paso.numero }}</span>
         <strong>{{ paso.titulo }}</strong>
       </div>
@@ -45,7 +45,12 @@
           Datos de {{ contextoSeleccionado.nombreComercial || rutaSeleccionada() }}
         </div>
 
-        <article class="section-card" *ngFor="let seccion of secciones; let i = index" [class.open]="seccionAbierta === seccion.id" [class.done]="pasoCompletado(seccion.id)">
+        <article
+          class="section-card"
+          *ngFor="let seccion of seccionesVisibles; let i = index"
+          [class.open]="seccionAbierta === seccion.id"
+          [class.done]="pasoCompletado(seccion.id) || (esNodoExistente && seccion.id !== 'liquidacion')"
+          [class.readonly-existing]="esNodoExistente && seccion.id !== 'liquidacion'">
           <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)">
             <span class="section-icon"><i class="fa-solid" [ngClass]="seccion.icono"></i></span>
             <span class="section-copy">
@@ -60,9 +65,9 @@
             <app-step-comercio
               *ngIf="seccion.id === 'comercio'"
               [form]="comercioForm"
-              [niveles]="niveles"
+              [niveles]="nivelesNodoActual"
               [tiposComercio]="tiposComercio"
-              [bloquearNivel]="false"
+              [bloquearNivel]="true"
               [bloquearTipoComercio]="false"
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
@@ -96,8 +101,9 @@
               [tiposCuenta]="tiposCuenta"
               [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio"
               [mostrarBeneficiarioIgualComercio]="true"
-              textoContinuar="Guardar y continuar"
-              (continuar)="completarPaso('liquidacion', 'documentos')"
+              [permitirVacio]="true"
+              [textoContinuar]="esNodoExistente ? 'Guardar cuenta de liquidación' : 'Guardar y continuar'"
+              (continuar)="guardarLiquidacion()"
               (volver)="continuarSeccion('accesos')" />
 
             <app-step-documentos
@@ -115,7 +121,7 @@
 
         <footer class="footer-actions">
           <button class="button ghost" type="button" (click)="volver()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
-          <button class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
+          <button *ngIf="!esNodoExistente" class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
         </footer>
       </section>
     </div>
@@ -132,6 +138,7 @@
         <button type="button" class="tree-node" [class.selected]="esNodoSeleccionado(nodo)" [class.leaf]="!nodo.hijos?.length" (pointerdown)="seleccionarNodo(nodo); $event.preventDefault(); $event.stopPropagation()">
           <i class="fa-solid" [ngClass]="iconoNodo(nodo.nivel)"></i>
           <span>{{ nodo.nombre }}</span>
+          <i *ngIf="tieneLiquidacion(nodo.id)" class="fa-solid fa-building-columns liquidacion-mark" title="Cuenta de liquidación capturada"></i>
         </button>
       </div>
 

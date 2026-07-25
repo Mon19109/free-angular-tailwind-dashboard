@@ -54,6 +54,8 @@ export class RegistroClienteComponent {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
+  private readonly registroLocalKey = 'kashpay.registro_cliente.local.v1';
 
   pasoActual = 1;
   seccionAbierta: SeccionRegistro['id'] = 'comercio';
@@ -146,23 +148,33 @@ export class RegistroClienteComponent {
     { numero: 1, nombre: 'Comprobante de domicilio', obligatorio: true },
     { numero: 2, nombre: 'Acta Constitutiva', obligatorio: true },
     { numero: 3, nombre: 'Identificación Oficial del Propietario', obligatorio: true },
+    { numero: 4, nombre: 'Contrato', obligatorio: false },
+    { numero: 5, nombre: 'Imagen Frente', obligatorio: true },
+    { numero: 6, nombre: 'Imagen Interior', obligatorio: true },
+    { numero: 7, nombre: 'Imagen Interior 2 del comercio', obligatorio: false },
+    { numero: 8, nombre: 'Escrituras Públicas', obligatorio: false },
+    { numero: 9, nombre: 'Poder del Representante', obligatorio: false },
     { numero: 10, nombre: 'Constancia Situación Fiscal', obligatorio: true },
+    { numero: 11, nombre: 'E-Firma', obligatorio: false },
     { numero: 12, nombre: 'Identificación Oficial del Representante Legal', obligatorio: false },
+    { numero: 13, nombre: 'Identificación Oficial de un tercero', obligatorio: false },
     { numero: 14, nombre: 'Carátula de Estado Cuenta para Liquidación', obligatorio: true }
   ];
 
   readonly documentosPorTipoComercio: Record<string, Array<Pick<DocumentoRequerido, 'numero' | 'obligatorio'>>> = {
-    'Empresa Holding': [{ numero: 1, obligatorio: true }, { numero: 2, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 10, obligatorio: false }],
-    'Empresa Grupo': [{ numero: 1, obligatorio: true }, { numero: 2, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 10, obligatorio: false }],
-    'Sucursales de Grupo': [{ numero: 1, obligatorio: true }, { numero: 2, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 10, obligatorio: false }],
-    'Persona Física': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 10, obligatorio: false }],
-    'Sucursal Persona Física': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 10, obligatorio: false }],
-    'Sucursales Únicas': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }],
-    'Caja con Tarjeta sólo Fondeo': [{ numero: 14, obligatorio: true }],
-    'Caja con Tarjeta SPEI': [{ numero: 14, obligatorio: true }],
-    'Cuenta Entidad': [{ numero: 14, obligatorio: true }],
-    'Cuenta Terminal': [{ numero: 14, obligatorio: true }],
-    'Cuenta Terminal Pin Rapido': [{ numero: 14, obligatorio: true }]
+    'Empresa Holding': [{ numero: 1, obligatorio: true }, { numero: 2, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }, { numero: 8, obligatorio: false }, { numero: 9, obligatorio: false }, { numero: 10, obligatorio: false }, { numero: 11, obligatorio: false }, { numero: 12, obligatorio: false }, { numero: 13, obligatorio: false }],
+    'Empresa Grupo': [{ numero: 1, obligatorio: true }, { numero: 2, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }, { numero: 8, obligatorio: false }, { numero: 9, obligatorio: false }, { numero: 10, obligatorio: false }, { numero: 11, obligatorio: false }, { numero: 12, obligatorio: false }, { numero: 13, obligatorio: false }],
+    'Sucursales de Grupo': [{ numero: 1, obligatorio: true }, { numero: 2, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }, { numero: 8, obligatorio: false }, { numero: 9, obligatorio: false }, { numero: 10, obligatorio: false }, { numero: 11, obligatorio: false }, { numero: 12, obligatorio: false }, { numero: 13, obligatorio: false }],
+    'Persona Física': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }, { numero: 10, obligatorio: false }, { numero: 11, obligatorio: false }],
+    'Sucursal Persona Física': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }, { numero: 10, obligatorio: false }, { numero: 11, obligatorio: false }],
+    'Referenciador': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }, { numero: 10, obligatorio: false }, { numero: 11, obligatorio: false }],
+    'Comisionista': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }, { numero: 10, obligatorio: false }, { numero: 11, obligatorio: false }],
+    'Sucursales Únicas': [{ numero: 1, obligatorio: true }, { numero: 3, obligatorio: true }, { numero: 4, obligatorio: false }, { numero: 5, obligatorio: false }, { numero: 6, obligatorio: false }, { numero: 7, obligatorio: false }],
+    'Caja con Tarjeta sólo Fondeo': [],
+    'Caja con Tarjeta SPEI': [],
+    'Cuenta Entidad': [],
+    'Cuenta Terminal': [],
+    'Cuenta Terminal Pin Rapido': []
   };
 
   readonly comercioForm = this.fb.nonNullable.group({
@@ -234,6 +246,7 @@ export class RegistroClienteComponent {
     this.entidades = this.numeroParametro(params.get('entidades'), 2);
     this.sucursalesBase = this.numeroParametro(params.get('sucursales'), 3);
     this.cajasBase = this.numeroParametro(params.get('cajas'), 2);
+    this.cargarEstadoRegistroLocal();
     this.inicializarEstructuraFake();
 
     this.nodoSeleccionado = params.get('selectedNode') ?? this.nodoInicialPorNivel(this.comercioSeleccionado.nivel);
@@ -269,6 +282,9 @@ export class RegistroClienteComponent {
       this.datosBeneficiarioIgualComercio = valor;
       if (valor) this.sincronizarBeneficiarioDesdeComercio();
     });
+    this.datosForm.controls.mismoDomicilio.valueChanges.subscribe(valor => {
+      if (valor) this.copiarDomicilioFiscal();
+    });
     this.actualizarValidadoresDatos();
     this.seleccionarNodoPorId(this.nodoSeleccionado);
   }
@@ -288,19 +304,47 @@ export class RegistroClienteComponent {
     return this.datosGeneralesPorTipo[['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo] ?? [];
   }
 
+  get pasosVisiblesRegistro() {
+    return this.seccionesVisibles.map((seccion, index) => ({
+      numero: index + 1,
+      titulo: seccion.titulo
+    }));
+  }
+
+  get seccionesVisibles(): SeccionRegistro[] {
+    return this.secciones.filter(seccion => {
+      if (seccion.id === 'datos') return this.camposDatosGenerales.length > 0;
+      if (seccion.id === 'accesos') return this.mostrarPasoAccesos;
+      if (seccion.id === 'liquidacion') return this.nivelSeleccionado !== 'caja';
+      if (seccion.id === 'documentos') return this.documentosVisibles.length > 0;
+      return true;
+    });
+  }
+
   get documentosVisibles(): DocumentoRequerido[] {
+    const nivel = this.comercioForm.getRawValue().nivel;
     const tipo = this.comercioForm.getRawValue().tipoComercio;
-    const reglas = this.documentosPorTipoComercio[tipo] ?? [];
+    const tipoEfectivo = ['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo;
+    const reglas = this.documentosPorTipoComercio[tipoEfectivo] ?? [];
     return reglas.map(regla => {
       const documento = this.documentos.find(item => item.numero === regla.numero);
       if (!documento) return undefined;
-      documento.obligatorio = regla.obligatorio;
-      return documento;
+      const documentoVisible = { ...documento, obligatorio: regla.obligatorio };
+      if (this.esNodoExistente) {
+        documentoVisible.archivoNombre = this.nombreDocumentoCargado(documentoVisible);
+      }
+      return this.esNodoExistente ? documentoVisible : Object.assign(documento, { obligatorio: regla.obligatorio });
     }).filter((documento): documento is DocumentoRequerido => !!documento);
   }
 
-  get documentosCargados(): number { return this.documentosVisibles.filter(documento => !!documento.archivoNombre).length; }
-  get documentosPendientes(): number { return this.documentosVisibles.filter(documento => documento.obligatorio && !documento.archivoNombre).length; }
+  get documentosCargados(): number { return this.documentosVisibles.filter(documento => !!(documento.archivo || documento.archivoNombre)).length; }
+  get documentosPendientes(): number { return this.documentosVisibles.filter(documento => documento.obligatorio && !(documento.archivo || documento.archivoNombre)).length; }
+  get esNodoExistente(): boolean { return !this.nodosNuevos.has(this.nodoSeleccionado); }
+  get mostrarPasoAccesos(): boolean { return this.nivelSeleccionado !== 'caja'; }
+  get nivelesNodoActual(): string[] {
+    const nivel = this.comercioForm.getRawValue().nivel;
+    return nivel ? [nivel] : this.niveles;
+  }
   get mostrarInfoFiscalEntidadSucursal(): boolean { return this.nivelSeleccionado === 'sucursal'; }
   get nivelSeleccionado(): NivelNodo { return this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nivel ?? 'sucursal'; }
 
@@ -388,6 +432,8 @@ export class RegistroClienteComponent {
       rfc: registro.rfc || this.rfcFake(nodo.id)
     };
     this.cargarCapturaNodo(nodo.id);
+    this.seccionAbierta = this.resolverSeccionVisible(this.seccionAbierta);
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
   }
 
   alternarNodo(id: string): void {
@@ -403,11 +449,18 @@ export class RegistroClienteComponent {
   }
   alternarSeccion(id: SeccionRegistro['id']): void { this.seccionAbierta = this.seccionAbierta === id ? id : id; }
   continuarSeccion(siguiente: SeccionRegistro['id']): void {
-    this.seccionAbierta = siguiente;
-    this.pasoActual = this.numeroPasoPorSeccion(siguiente);
+    this.seccionAbierta = this.resolverSeccionVisible(siguiente);
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
-  finalizar(): void { this.pasoActual = 5; }
+  finalizar(): void {
+    this.guardarCapturaNodoActual();
+    const nodoGuardado = this.nodoSeleccionado;
+    this.guardarLiquidacionActual();
+    this.consolidarNodoActual();
+    if (this.seleccionarPrimerHijoNuevo(nodoGuardado)) return;
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+  }
 
   pasoCompletado(id: SeccionRegistro['id']): boolean {
     return this.pasosCompletados.has(this.clavePasoNodo(id));
@@ -417,12 +470,27 @@ export class RegistroClienteComponent {
     this.guardarCapturaNodoActual();
     this.pasosCompletados.add(this.clavePasoNodo(id));
     if (siguiente) {
-      this.seccionAbierta = siguiente;
-      this.pasoActual = this.numeroPasoPorSeccion(siguiente);
+      this.seccionAbierta = this.resolverSeccionVisible(siguiente, id);
+      this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+    }
+  }
+
+  guardarLiquidacion(): void {
+    this.guardarCapturaNodoActual();
+    this.guardarLiquidacionActual();
+    this.pasosCompletados.add(this.clavePasoNodo('liquidacion'));
+    this.guardarComercioLocal();
+    this.guardarEstadoRegistroLocal();
+    this.liquidacionPorNodo = { ...this.liquidacionPorNodo };
+    if (!this.esNodoExistente) {
+      this.seccionAbierta = this.resolverSeccionVisible('documentos', 'liquidacion');
+      this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
     }
   }
 
   estadoPaso(id: SeccionRegistro['id']): string {
+    if (this.esNodoExistente && id !== 'liquidacion') return 'Completado';
+    if (id === 'liquidacion' && this.tieneLiquidacion(this.nodoSeleccionado)) return 'Completado';
     if (this.seccionAbierta === id) return 'En curso';
     if (this.pasoCompletado(id)) return 'Completado';
     return 'Pendiente';
@@ -442,6 +510,12 @@ export class RegistroClienteComponent {
 
   alternarInfoFiscalEntidad(usarInfoEntidad: boolean): void {
     this.datosForm.controls.mismaInfoFiscalEntidad.setValue(usarInfoEntidad, { emitEvent: false });
+    if (usarInfoEntidad) {
+      this.copiarInfoFiscalEntidad();
+      if (this.datosForm.controls.mismoDomicilio.value) {
+        this.copiarDomicilioFiscal();
+      }
+    }
   }
 
   private nodoInicialPorNivel(nivel: string): string {
@@ -471,14 +545,137 @@ export class RegistroClienteComponent {
   }
 
   private numeroPasoPorSeccion(id: SeccionRegistro['id']): number {
-    return this.secciones.findIndex(seccion => seccion.id === id) + 1;
+    const index = this.seccionesVisibles.findIndex(seccion => seccion.id === id);
+    return index >= 0 ? index + 1 : 1;
+  }
+
+  private resolverSeccionVisible(preferida: SeccionRegistro['id'], actual?: SeccionRegistro['id']): SeccionRegistro['id'] {
+    if (this.seccionesVisibles.some(seccion => seccion.id === preferida)) return preferida;
+
+    const inicio = actual
+      ? this.secciones.findIndex(seccion => seccion.id === actual) + 1
+      : this.secciones.findIndex(seccion => seccion.id === preferida) + 1;
+    const siguienteVisible = this.secciones
+      .slice(Math.max(inicio, 0))
+      .find(seccion => this.seccionesVisibles.some(visible => visible.id === seccion.id));
+
+    return siguienteVisible?.id ?? this.seccionesVisibles[this.seccionesVisibles.length - 1]?.id ?? 'comercio';
   }
 
   private guardarCapturaNodoActual(): void {
     this.comercioPorNodo[this.nodoSeleccionado] = this.comercioForm.getRawValue();
     this.datosPorNodo[this.nodoSeleccionado] = this.datosForm.getRawValue();
     this.accesosPorNodo[this.nodoSeleccionado] = this.accesosForm.getRawValue();
-    this.liquidacionPorNodo[this.nodoSeleccionado] = this.liquidacionForm.getRawValue();
+  }
+
+  private guardarLiquidacionActual(): void {
+    const liquidacion = this.liquidacionForm.getRawValue();
+    if (this.liquidacionTieneContenido(liquidacion)) {
+      this.liquidacionPorNodo[this.nodoSeleccionado] = liquidacion;
+    } else {
+      delete this.liquidacionPorNodo[this.nodoSeleccionado];
+    }
+  }
+
+  private consolidarNodoActual(): void {
+    this.nodosNuevos.delete(this.nodoSeleccionado);
+    this.guardarComercioLocal();
+    this.guardarEstadoRegistroLocal();
+    this.seccionesVisibles.forEach(seccion => {
+      if (seccion.id !== 'liquidacion' || this.tieneLiquidacion(this.nodoSeleccionado)) {
+        this.pasosCompletados.add(this.clavePasoNodo(seccion.id));
+      }
+    });
+    this.actualizarModoEdicionNodo(this.nodoSeleccionado);
+  }
+
+  private seleccionarPrimerHijoNuevo(nodoId: string): boolean {
+    const nodo = this.buscarNodo(this.arbol, nodoId);
+    const siguiente = (nodo?.hijos ?? []).find(hijo => this.nodosNuevos.has(hijo.id));
+    if (!siguiente) return false;
+
+    this.abrirPadres(siguiente.id);
+    this.seleccionarNodoPorId(siguiente.id);
+    this.seccionAbierta = 'comercio';
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+    return true;
+  }
+
+  private guardarComercioLocal(): void {
+    const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    const comercio = this.comercioForm.getRawValue();
+    const datos = this.datosForm.getRawValue();
+    const nivel = comercio.nivel as 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja';
+    const item = {
+      idComercio: this.idFakeNodo(this.nodoSeleccionado),
+      nodoId: this.nodoSeleccionado,
+      nivel,
+      jerarquia: this.rutaSeleccionada(),
+      nombreComercial: datos.nombreComercial || nodo?.nombre || 'Nuevo comercio',
+      razonSocial: datos.razonSocial || datos.nombreComercial || nodo?.nombre || 'Nuevo comercio',
+      rfc: datos.rfc || this.rfcFake(this.nodoSeleccionado),
+      correo: datos.correoComercial || datos.correo || '',
+      telefono: datos.telefonoComercial || datos.telefono || '',
+      estatus: 'Activo',
+      tieneInferiores: (nodo?.hijos?.length ?? 0) > 0,
+      cuentaLiquidacion: this.tieneLiquidacion(this.nodoSeleccionado)
+    };
+
+    try {
+      const actuales = JSON.parse(localStorage.getItem(this.comerciosLocalesKey) || '[]') as Array<typeof item>;
+      const sinDuplicado = actuales.filter(actual => actual.idComercio !== item.idComercio);
+      localStorage.setItem(this.comerciosLocalesKey, JSON.stringify([...sinDuplicado, item]));
+    } catch {
+      localStorage.setItem(this.comerciosLocalesKey, JSON.stringify([item]));
+    }
+  }
+
+  private guardarEstadoRegistroLocal(): void {
+    const estado = {
+      entidades: this.entidades,
+      referenciadores: this.referenciadores,
+      sucursalesBase: this.sucursalesBase,
+      cajasBase: this.cajasBase,
+      sucursalesPorEntidad: this.sucursalesPorEntidad,
+      cajasPorSucursal: this.cajasPorSucursal,
+      comercioPorNodo: this.comercioPorNodo,
+      datosPorNodo: this.datosPorNodo,
+      accesosPorNodo: this.accesosPorNodo,
+      liquidacionPorNodo: this.liquidacionPorNodo
+    };
+
+    localStorage.setItem(this.registroLocalKey, JSON.stringify(estado));
+  }
+
+  private cargarEstadoRegistroLocal(): void {
+    try {
+      const estado = JSON.parse(localStorage.getItem(this.registroLocalKey) || 'null') as Partial<{
+        entidades: number;
+        referenciadores: number;
+        sucursalesBase: number;
+        cajasBase: number;
+        sucursalesPorEntidad: Record<string, number>;
+        cajasPorSucursal: Record<string, number>;
+        comercioPorNodo: Record<string, ReturnType<RegistroClienteComponent['comercioForm']['getRawValue']>>;
+        datosPorNodo: Record<string, ReturnType<RegistroClienteComponent['datosForm']['getRawValue']>>;
+        accesosPorNodo: Record<string, ReturnType<RegistroClienteComponent['accesosForm']['getRawValue']>>;
+        liquidacionPorNodo: Record<string, ReturnType<RegistroClienteComponent['liquidacionForm']['getRawValue']>>;
+      }> | null;
+      if (!estado) return;
+
+      this.entidades = Math.max(this.entidades, Number(estado.entidades) || this.entidades);
+      this.referenciadores = Math.max(this.referenciadores, Number(estado.referenciadores) || this.referenciadores);
+      this.sucursalesBase = Math.max(this.sucursalesBase, Number(estado.sucursalesBase) || this.sucursalesBase);
+      this.cajasBase = Math.max(this.cajasBase, Number(estado.cajasBase) || this.cajasBase);
+      this.sucursalesPorEntidad = { ...this.sucursalesPorEntidad, ...(estado.sucursalesPorEntidad ?? {}) };
+      this.cajasPorSucursal = { ...this.cajasPorSucursal, ...(estado.cajasPorSucursal ?? {}) };
+      this.comercioPorNodo = { ...this.comercioPorNodo, ...(estado.comercioPorNodo ?? {}) };
+      this.datosPorNodo = { ...this.datosPorNodo, ...(estado.datosPorNodo ?? {}) };
+      this.accesosPorNodo = { ...this.accesosPorNodo, ...(estado.accesosPorNodo ?? {}) };
+      this.liquidacionPorNodo = { ...this.liquidacionPorNodo, ...(estado.liquidacionPorNodo ?? {}) };
+    } catch {
+      return;
+    }
   }
 
   private cargarCapturaNodo(nodoId: string): void {
@@ -487,15 +684,42 @@ export class RegistroClienteComponent {
     const accesos = this.accesosPorNodo[nodoId];
     const liquidacion = this.liquidacionPorNodo[nodoId];
     if (comercio) this.comercioForm.patchValue(comercio, { emitEvent: false });
-    if (datos) {
-      this.datosForm.patchValue(datos, { emitEvent: false });
-    } else if (!this.nodosNuevos.has(nodoId)) {
+    if (!this.nodosNuevos.has(nodoId)) {
       this.datosForm.reset();
-      this.datosForm.patchValue(this.datosFakeNodo(nodoId), { emitEvent: false });
+      this.datosForm.patchValue({ ...this.datosFakeNodo(nodoId), ...this.valoresConContenido(datos) }, { emitEvent: false });
+    } else if (datos) {
+      this.datosForm.patchValue(datos, { emitEvent: false });
     } else {
       this.datosForm.reset();
     }
-    if (accesos) this.accesosForm.patchValue(accesos, { emitEvent: false });
+    if (!this.nodosNuevos.has(nodoId)) {
+      this.accesosForm.reset();
+      this.accesosForm.patchValue({ ...this.accesosFakeNodo(nodoId), ...this.valoresConContenido(accesos) }, { emitEvent: false });
+    } else if (accesos) {
+      this.accesosForm.patchValue(accesos, { emitEvent: false });
+    } else {
+      this.accesosForm.reset();
+    }
+    this.liquidacionForm.reset({
+      cuentaFueraRed: 'no',
+      digitoVerificador: '',
+      tipoPersonaBeneficiario: 'fisica',
+      beneficiarioIgualComercio: false,
+      nombreBeneficiario: '',
+      apellidoPaternoBeneficiario: '',
+      apellidoMaternoBeneficiario: '',
+      correoBeneficiario: '',
+      direccionBeneficiario: '',
+      rfcBeneficiario: '',
+      actividadBeneficiario: '',
+      giroBeneficiario: '',
+      tipoCuenta: '',
+      cuentaClabe: '',
+      nombreBanco: '',
+      direccionBanco: '',
+      telefonoBanco: '',
+      emailBanco: ''
+    }, { emitEvent: false });
     if (liquidacion) this.liquidacionForm.patchValue(liquidacion, { emitEvent: false });
     this.actualizarModoEdicionNodo(nodoId);
     this.actualizarValidadoresDatos();
@@ -506,7 +730,7 @@ export class RegistroClienteComponent {
     const sucursales = this.sucursalesPorEntidad[entidadId] ?? 1;
     return {
       id: entidadId,
-      nombre: numero === 1 ? 'Entidad Financiera México' : numero === 2 ? 'Entidad Financiera Occidente' : `Entidad ${String(numero).padStart(2, '0')}`,
+      nombre: this.nombreNodoGuardado(entidadId) || (numero === 1 ? 'Entidad Financiera México' : numero === 2 ? 'Entidad Financiera Occidente' : `Entidad ${String(numero).padStart(2, '0')}`),
       nivel: 'entidad',
       hijos: Array.from({ length: sucursales }, (_, index) => this.crearSucursal(entidadId, index + 1))
     };
@@ -525,14 +749,20 @@ export class RegistroClienteComponent {
     this.cajasPorSucursal[sucursalId] ??= this.cajasBase;
     return {
       id: sucursalId,
-      nombre: this.nombreSucursalFake(entidadId, numero),
+      nombre: this.nombreNodoGuardado(sucursalId) || this.nombreSucursalFake(entidadId, numero),
       nivel: 'sucursal',
       hijos: Array.from({ length: this.cajasPorSucursal[sucursalId] ?? 1 }, (_, index) => ({
         id: `${sucursalId}-caja-${index + 1}`,
-        nombre: `Caja ${String(index + 1).padStart(2, '0')}`,
+        nombre: this.nombreNodoGuardado(`${sucursalId}-caja-${index + 1}`) || `Caja ${String(index + 1).padStart(2, '0')}`,
         nivel: 'caja' as NivelNodo
       }))
     };
+  }
+
+  private nombreNodoGuardado(nodoId: string): string {
+    const datos = this.datosPorNodo[nodoId];
+    const comercio = this.comercioPorNodo[nodoId];
+    return `${datos?.nombreComercial || datos?.razonSocial || comercio?.tipoComercio || ''}`.trim();
   }
 
   private seleccionarNodoPorId(id: string): void {
@@ -554,14 +784,45 @@ export class RegistroClienteComponent {
   private actualizarModoEdicionNodo(nodoId: string): void {
     const puedeEditarTodo = this.nodosNuevos.has(nodoId);
     const opciones = { emitEvent: false };
-    this.comercioForm.enable(opciones);
-    this.datosForm.enable(opciones);
-    this.accesosForm.enable(opciones);
-    if (!puedeEditarTodo) {
+
+    if (puedeEditarTodo) {
+      this.comercioForm.enable(opciones);
+      this.datosForm.enable(opciones);
+      this.accesosForm.enable(opciones);
       this.comercioForm.controls.nivel.disable(opciones);
-      this.comercioForm.controls.tipoComercio.disable(opciones);
+    } else {
+      this.comercioForm.disable(opciones);
+      this.datosForm.disable(opciones);
+      this.accesosForm.disable(opciones);
     }
+
     this.liquidacionForm.enable(opciones);
+  }
+
+  tieneLiquidacion(nodoId: string): boolean {
+    return this.liquidacionTieneContenido(this.liquidacionPorNodo[nodoId]);
+  }
+
+  private liquidacionTieneContenido(liquidacion: ReturnType<typeof this.liquidacionForm.getRawValue> | undefined): boolean {
+    if (!liquidacion) return false;
+
+    return [
+      liquidacion.digitoVerificador,
+      liquidacion.nombreBeneficiario,
+      liquidacion.apellidoPaternoBeneficiario,
+      liquidacion.apellidoMaternoBeneficiario,
+      liquidacion.correoBeneficiario,
+      liquidacion.direccionBeneficiario,
+      liquidacion.rfcBeneficiario,
+      liquidacion.actividadBeneficiario,
+      liquidacion.giroBeneficiario,
+      liquidacion.tipoCuenta,
+      liquidacion.cuentaClabe,
+      liquidacion.nombreBanco,
+      liquidacion.direccionBanco,
+      liquidacion.telefonoBanco,
+      liquidacion.emailBanco
+    ].some(valor => `${valor ?? ''}`.trim() !== '');
   }
 
   private datosFakeNodo(nodoId: string): Partial<ReturnType<typeof this.datosForm.getRawValue>> {
@@ -577,16 +838,154 @@ export class RegistroClienteComponent {
       giroComercial: 'Servicios financieros',
       descripcionGiro: 'Servicios de pago y comercio',
       mcc: '6012',
+      tipoPersona: 'Jurídica',
+      correo: registro.correo || `${slug || 'comercio'}@subnorte.com`,
+      telefono: registro.telefono || '5510000000',
+      departamento: 'Bogotá D.C.',
+      ciudad: 'Bogotá',
+      direccionComercial: 'Avenida Principal 100, Centro',
+      codigoPostal: '50000',
+      tipoVialidad: 'Avenida',
+      nombreVialidad: 'Principal',
+      numeroExterior: '100',
+      numeroInterior: '1',
+      colonia: 'Centro',
+      localidad: 'Toluca',
+      municipio: 'Toluca',
+      entidadFederativa: 'Estado de México',
+      entreCalle: 'Independencia',
+      yCalle: 'Reforma',
+      nombreRepresentante: 'Representante',
+      apellidoPaternoRepresentante: 'Legal',
+      apellidoMaternoRepresentante: 'Kashpay',
+      calleRepresentante: 'Avenida Principal',
+      numeroExteriorRepresentante: '100',
+      numeroInteriorRepresentante: '1',
+      codigoPostalRepresentante: '50000',
+      coloniaRepresentante: 'Centro',
+      municipioRepresentante: 'Toluca',
+      estadoRepresentante: 'Estado de México',
+      correoRepresentante: `representante.${slug || 'comercio'}@subnorte.com`,
+      telefonoRepresentante: '5512345678',
+      telefonoAdicionalRepresentante: '5598765432',
       correoComercial: registro.correo || `${slug || 'comercio'}@subnorte.com`,
       telefonoComercial: registro.telefono || '5510000000',
       codigoPostalComercial: '50000',
       tipoVialidadComercial: 'Avenida',
       nombreVialidadComercial: 'Principal',
+      numeroExteriorComercial: '100',
+      numeroInteriorComercial: '1',
       coloniaComercial: 'Centro',
       localidadComercial: 'Toluca',
       municipioComercial: 'Toluca',
-      entidadFederativaComercial: 'Estado de México'
+      entidadFederativaComercial: 'Estado de México',
+      entreCalleComercial: 'Independencia',
+      yCalleComercial: 'Reforma'
     };
+  }
+
+  private copiarDomicilioFiscal(): void {
+    const datos = this.datosForm.getRawValue();
+
+    this.datosForm.patchValue({
+      codigoPostalComercial: datos.codigoPostal,
+      tipoVialidadComercial: datos.tipoVialidad,
+      nombreVialidadComercial: datos.nombreVialidad,
+      numeroExteriorComercial: datos.numeroExterior,
+      numeroInteriorComercial: datos.numeroInterior,
+      coloniaComercial: datos.colonia,
+      localidadComercial: datos.localidad,
+      municipioComercial: datos.municipio,
+      entidadFederativaComercial: datos.entidadFederativa,
+      entreCalleComercial: datos.entreCalle,
+      yCalleComercial: datos.yCalle
+    }, { emitEvent: false });
+  }
+
+  private copiarInfoFiscalEntidad(): void {
+    const entidadId = this.entidadPadreId(this.nodoSeleccionado);
+    if (!entidadId) return;
+
+    const datosEntidad = {
+      ...this.datosFakeNodo(entidadId),
+      ...this.valoresConContenido(this.datosPorNodo[entidadId])
+    };
+
+    this.datosForm.patchValue({
+      rfc: datosEntidad.rfc,
+      razonSocial: datosEntidad.razonSocial,
+      nombreComercial: datosEntidad.nombreComercial,
+      regimenFiscal: datosEntidad.regimenFiscal,
+      giroComercial: datosEntidad.giroComercial,
+      descripcionGiro: datosEntidad.descripcionGiro,
+      mcc: datosEntidad.mcc,
+      tipoPersona: datosEntidad.tipoPersona,
+      correo: datosEntidad.correo,
+      telefono: datosEntidad.telefono,
+      departamento: datosEntidad.departamento,
+      ciudad: datosEntidad.ciudad,
+      direccionComercial: datosEntidad.direccionComercial,
+      codigoPostal: datosEntidad.codigoPostal,
+      tipoVialidad: datosEntidad.tipoVialidad,
+      nombreVialidad: datosEntidad.nombreVialidad,
+      numeroExterior: datosEntidad.numeroExterior,
+      numeroInterior: datosEntidad.numeroInterior,
+      colonia: datosEntidad.colonia,
+      localidad: datosEntidad.localidad,
+      municipio: datosEntidad.municipio,
+      entidadFederativa: datosEntidad.entidadFederativa,
+      entreCalle: datosEntidad.entreCalle,
+      yCalle: datosEntidad.yCalle
+    }, { emitEvent: false });
+  }
+
+  private entidadPadreId(nodoId: string): string {
+    const match = nodoId.match(/^(entidad-\d+)/);
+    return match?.[1] ?? '';
+  }
+
+  private valoresConContenido<T extends Record<string, unknown>>(valores: T | undefined): Partial<T> {
+    if (!valores) return {};
+
+    return Object.fromEntries(
+      Object.entries(valores).filter(([, valor]) => {
+        if (typeof valor === 'string') return valor.trim() !== '';
+        return valor !== null && valor !== undefined;
+      })
+    ) as Partial<T>;
+  }
+
+  private accesosFakeNodo(nodoId: string): Partial<ReturnType<typeof this.accesosForm.getRawValue>> {
+    const registro = this.registroFakePorNodo(nodoId);
+    const nombre = registro.nombreComercial || this.buscarNodo(this.arbol, nodoId)?.nombre || 'Comercio';
+    const slug = nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '.').replace(/(^\.|\.$)/g, '');
+
+    return {
+      modoReserva: 'NINGUNO',
+      reservaSplit: '',
+      adminNombre: 'Administrador',
+      adminPaterno: 'Principal',
+      adminMaterno: 'Kashpay',
+      adminCorreo: `admin.${slug || 'comercio'}@subnorte.com`,
+      adminConfirmarCorreo: `admin.${slug || 'comercio'}@subnorte.com`,
+      adminTelefono: '5512345678',
+      perfilReservaNombre: 'Reserva',
+      perfilReservaPaterno: 'Operativa',
+      perfilReservaMaterno: 'Kashpay',
+      perfilReservaCorreo: `reserva.${slug || 'comercio'}@subnorte.com`,
+      perfilReservaConfirmarCorreo: `reserva.${slug || 'comercio'}@subnorte.com`,
+      perfilReservaTelefono: '5598765432',
+      cajasTPV: String(this.buscarNodo(this.arbol, nodoId)?.nivel === 'caja' ? 1 : this.cajasBase),
+      tieneSupervisor: 'si',
+      pinAdministrador: '1234',
+      pinCorreo: `pin.${slug || 'comercio'}@subnorte.com`,
+      pinConfirmarCorreo: `pin.${slug || 'comercio'}@subnorte.com`,
+      pinContrasena: 'PinTemp123'
+    };
+  }
+
+  private nombreDocumentoCargado(documento: DocumentoRequerido): string {
+    return `${documento.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'documento'}-${this.contextoSeleccionado.idComercio || this.nodoSeleccionado}.pdf`;
   }
 
   private idFakeNodo(nodoId: string): string {

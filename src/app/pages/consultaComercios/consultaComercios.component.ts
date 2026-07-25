@@ -11,6 +11,7 @@ type EstatusComercio = 'Activo' | 'Inactivo' | 'Baja definitiva';
 
 interface Comercio {
   idComercio: string;
+  nodoId?: string;
   nivel: 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja';
   jerarquia: string;
   nombreComercial: string;
@@ -22,6 +23,7 @@ interface Comercio {
   cajaPinRapido?: boolean;
   password?: string;
   tieneInferiores?: boolean;
+  cuentaLiquidacion?: boolean;
 }
 
 @Component({
@@ -32,7 +34,11 @@ interface Comercio {
   styleUrls: ['./consultaComercios.component.css']
 })
 export class ConsultaComerciosComponent {
-  constructor(private router: Router) {}
+  private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
+
+  constructor(private router: Router) {
+    this.cargarComerciosLocales();
+  }
 
   readonly niveles = [
     { id: 'todos' as NivelComercio, label: 'Todos los niveles', icon: 'fa-layer-group' },
@@ -82,10 +88,12 @@ export class ConsultaComerciosComponent {
 
   get resultadosFiltradosTabla(): Comercio[] {
     const termino = this.busquedaTabla.trim().toLowerCase();
-    if (!termino) return this.resultados;
+    if (!termino) return this.ordenarComoArbol(this.resultados);
 
-    return this.resultados.filter(comercio =>
-      Object.values(comercio).some(valor => String(valor).toLowerCase().includes(termino))
+    return this.ordenarComoArbol(
+      this.resultados.filter(comercio =>
+        Object.values(comercio).some(valor => String(valor).toLowerCase().includes(termino))
+      )
     );
   }
 
@@ -124,7 +132,7 @@ export class ConsultaComerciosComponent {
     const correo = normalizar(this.filtros.correo);
     const telefono = normalizar(this.filtros.telefono);
 
-    this.resultados = this.comercios.filter(comercio => {
+    this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
       const coincideNivel = nivel === 'todos' || this.normalizarNivel(comercio.nivel) === nivel;
       const coincideNombre = !nombre || comercio.nombreComercial.toLowerCase().includes(nombre) || comercio.razonSocial.toLowerCase().includes(nombre);
       const coincideRfc = !rfc || comercio.rfc.toLowerCase().includes(rfc);
@@ -132,7 +140,7 @@ export class ConsultaComerciosComponent {
       const coincideTelefono = !telefono || comercio.telefono.toLowerCase().includes(telefono);
 
       return coincideNivel && coincideNombre && coincideRfc && coincideCorreo && coincideTelefono;
-    });
+    }));
 
     this.paginaActual = 1;
     this.accionesAbiertas = null;
@@ -141,8 +149,63 @@ export class ConsultaComerciosComponent {
   limpiar(): void {
     this.filtros = { nivel: 'todos', nombre: '', rfc: '', correo: '', telefono: '' };
     this.busquedaTabla = '';
-    this.resultados = [...this.comercios];
+    this.resultados = this.ordenarComoArbol(this.comercios);
     this.paginaActual = 1;
+  }
+
+  private cargarComerciosLocales(): void {
+    try {
+      const locales = JSON.parse(localStorage.getItem(this.comerciosLocalesKey) || '[]') as Comercio[];
+      if (!Array.isArray(locales) || !locales.length) return;
+
+      const idsLocales = new Set(locales.map(comercio => comercio.idComercio));
+      this.comercios = this.ordenarComoArbol([
+        ...this.comercios.filter(comercio => !idsLocales.has(comercio.idComercio)),
+        ...locales
+      ]);
+      this.resultados = this.ordenarComoArbol(this.comercios);
+    } catch {
+      this.resultados = this.ordenarComoArbol(this.comercios);
+    }
+  }
+
+  private ordenarComoArbol(comercios: Comercio[]): Comercio[] {
+    const nivelOrden: Record<Comercio['nivel'], number> = {
+      'Sub Afiliado': 0,
+      'Entidad': 1,
+      'Sucursal': 2,
+      'Caja': 3
+    };
+
+    return [...comercios].sort((a, b) => {
+      const rutaA = this.rutaOrden(a);
+      const rutaB = this.rutaOrden(b);
+      for (let i = 0; i < Math.max(rutaA.length, rutaB.length); i += 1) {
+        const diff = (rutaA[i] ?? -1) - (rutaB[i] ?? -1);
+        if (diff !== 0) return diff;
+      }
+
+      const nivelDiff = nivelOrden[a.nivel] - nivelOrden[b.nivel];
+      if (nivelDiff !== 0) return nivelDiff;
+      return a.nombreComercial.localeCompare(b.nombreComercial);
+    });
+  }
+
+  private rutaOrden(comercio: Comercio): number[] {
+    const ruta = [comercio.nodoId, comercio.jerarquia, comercio.nombreComercial].filter(Boolean).join(' / ');
+    const entidad = this.extraerNumero(ruta, /entidad[-\s]*0?(\d+)/i);
+    const sucursal = this.extraerNumero(ruta, /sucursal[-\s]*0?(\d+)/i);
+    const caja = this.extraerNumero(ruta, /caja[-\s]*0?(\d+)/i);
+
+    if (comercio.nivel === 'Sub Afiliado') return [0, 0, 0];
+    if (comercio.nivel === 'Entidad') return [entidad || this.extraerNumero(comercio.nombreComercial, /(\d+)/), 0, 0];
+    if (comercio.nivel === 'Sucursal') return [entidad || 1, sucursal || this.extraerNumero(comercio.nombreComercial, /(\d+)/), 0];
+    return [entidad || 1, sucursal || 1, caja || this.extraerNumero(comercio.nombreComercial, /(\d+)/)];
+  }
+
+  private extraerNumero(valor: string, patron: RegExp): number {
+    const match = valor.match(patron);
+    return match ? Number(match[1]) : 0;
   }
 
   cambiarPagina(pagina: number): void {
@@ -221,11 +284,12 @@ export class ConsultaComerciosComponent {
   }
 
   private nodoRegistroPorComercio(comercio: Comercio): string {
+    if (comercio.nodoId) return comercio.nodoId;
     if (comercio.nivel === 'Sub Afiliado') return 'sub-afiliado-1';
 
-    const entidadMatch = comercio.jerarquia.match(/Entidad\s+0?(\d+)/i);
-    const sucursalMatch = comercio.jerarquia.match(/Sucursal\s+0?(\d+)/i);
-    const cajaMatch = comercio.jerarquia.match(/Caja\s+0?(\d+)/i);
+    const entidadMatch = comercio.jerarquia.match(/Entidad[-\s]+0?(\d+)/i);
+    const sucursalMatch = comercio.jerarquia.match(/Sucursal[-\s]+0?(\d+)/i);
+    const cajaMatch = comercio.jerarquia.match(/Caja[-\s]+0?(\d+)/i);
     const entidad = entidadMatch ? Number(entidadMatch[1]) : comercio.idComercio === 'COM-00012839' ? 2 : 1;
 
     if (comercio.nivel === 'Entidad') return `entidad-${entidad}`;

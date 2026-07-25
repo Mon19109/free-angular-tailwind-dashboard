@@ -15,6 +15,7 @@ export class StepLiquidacionComponent {
   @Input() beneficiarioIgualComercio = false;
   @Input() mostrarBeneficiarioIgualComercio = true;
   @Input() textoContinuar = 'Guardar y continuar';
+  @Input() permitirVacio = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 
@@ -50,7 +51,24 @@ export class StepLiquidacionComponent {
   }
 
   submit(): void {
+    if (this.permitirVacio) {
+      this.continuar.emit();
+      return;
+    }
+
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.continuar.emit();
+  }
+
+  private tieneDatosCapturados(): boolean {
+    const valores = this.form.getRawValue();
+    return Object.entries(valores).some(([campo, valor]) => {
+      if (campo === 'cuentaFueraRed' || campo === 'tipoPersonaBeneficiario' || campo === 'beneficiarioIgualComercio') {
+        return false;
+      }
+
+      if (typeof valor === 'string') return valor.trim() !== '';
+      return valor !== null && valor !== undefined && valor !== false;
+    });
   }
 }
