@@ -11,6 +11,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ThemeToggleButtonComponent } from '../../shared/components/common/theme-toggle/theme-toggle-button.component';
+import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
 import { DocumentoRequerido } from './models/preregistro.models';
 
 
@@ -89,6 +90,7 @@ type DocumentoNodo = Pick<DocumentoRequerido, 'archivo' | 'archivoNombre'>;
 export class PreRegistroComponent {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly regimenFiscalService = inject(RegimenFiscalService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
 
   // ── Estado UI ────────────────────────────────────────────────────────────────
@@ -249,27 +251,7 @@ export class PreRegistroComponent {
   };
   readonly departamentos = ['Antioquia', 'Bogotá D.C.', 'Valle del Cauca', 'Atlántico'];
   readonly ciudades = ['Medellín', 'Bogotá', 'Cali', 'Barranquilla'];
-  readonly regimenesFiscales: string[] = [
-    '601 - General de Ley Personas Morales',
-    '603 - Personas Morales con Fines no Lucrativos',
-    '605 - Sueldos y Salarios e Ingresos Asimilados a Salarios',
-    '606 - Arrendamiento',
-    '607 - Régimen de Enajenación o Adquisición de Bienes',
-    '608 - Demás ingresos',
-    '610 - Residentes en el Extranjero sin Establecimiento Permanente en México',
-    '611 - Ingresos por Dividendos (socios y accionistas)',
-    '612 - Personas Físicas con Actividades Empresariales y Profesionales',
-    '614 - Ingresos por intereses',
-    '615 - Régimen de los ingresos por obtención de premios',
-    '616 - Sin obligaciones fiscales',
-    '620 - Sociedades Cooperativas de Producción que optan por diferir sus ingresos',
-    '621 - Incorporación Fiscal',
-    '622 - Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras',
-    '623 - Opcional para Grupos de Sociedades',
-    '624 - Coordinados',
-    '625 - Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas',
-    '626 - Régimen Simplificado de Confianza',
-  ];
+  regimenesFiscales: string[] = [];
   readonly girosComerciales: string[] = [];
 
   readonly girosSugeridos = [
@@ -713,10 +695,25 @@ export class PreRegistroComponent {
     //this.cargarBorrador();
     try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     this.tiposComercio = this.tiposComercioPorNivel[this.comercioForm.controls.nivel.value] ?? [];
+    this.cargarRegimenesFiscales();
     this.actualizarValidadoresDatos();
     this.actualizarValidadorCuentaLiquidacion(this.liquidacionForm.controls.tipoCuenta.value);
 
 
+  }
+
+  private cargarRegimenesFiscales(): void {
+    this.regimenFiscalService.getAllOptions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: regimenes => {
+          this.regimenesFiscales = regimenes;
+        },
+        error: error => {
+          console.error('No se pudieron cargar los regímenes fiscales', error);
+          this.regimenesFiscales = [];
+        }
+      });
   }
 
   // ── Getters ──────────────────────────────────────────────────────────────────
