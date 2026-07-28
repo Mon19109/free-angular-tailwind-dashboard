@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TransaccionesAdquirenciaService, FiltrosTransaccion, Transaccion } from '../../services/transaccionesadquirencia.service';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
 
@@ -51,6 +54,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     caja: '',
     operacion: '',
     monto: '',
+    montoDesde: '',
+    montoHasta: '',
     edoTransaccion: '',
     referencia: '',
     autorizacion: '',
@@ -61,6 +66,10 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   };
   
   //user: UserSessionData | null = null;
+  elementosPorPagina = 10;
+  paginaActual = 1;
+  busquedaTabla = '';
+  exportMenuAbierto = false;
   
   @ViewChild('map') mapElement!: ElementRef;
   
@@ -136,6 +145,61 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   });
 
 }
+
+  get nivelUsuario(): 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' {
+    if (this.rolId === '3') return 'entidad';
+    if (this.rolId === '4') return 'sucursal';
+    if (this.rolId === '5' || this.rolId === '6') return 'caja';
+    return 'sub-afiliado';
+  }
+
+  get mostrarFiltroEntidad(): boolean { return this.nivelUsuario === 'sub-afiliado'; }
+  get mostrarFiltroSucursal(): boolean { return this.nivelUsuario === 'sub-afiliado' || this.nivelUsuario === 'entidad'; }
+  get mostrarFiltroCaja(): boolean { return this.nivelUsuario !== 'caja'; }
+  get resumenTransacciones() {
+    const montos = this.transacciones().map(item => this.toNumber(item.amount));
+    const total = montos.reduce((acc, monto) => acc + monto, 0);
+    const transaccionMasAlta = montos.length ? Math.max(...montos) : 0;
+
+    return {
+      totalTransacciones: this.transacciones().length,
+      montoTotal: total,
+      promedio: montos.length ? total / montos.length : 0,
+      transaccionMasAlta
+    };
+  }
+
+  get transaccionesFiltradasTabla(): Transaccion[] {
+    const termino = this.busquedaTabla.trim().toLowerCase();
+    if (!termino) return this.transacciones();
+
+    return this.transacciones().filter(transaccion =>
+      [
+        transaccion.idOperation,
+        transaccion.authorizationDate,
+        transaccion.entityName,
+        transaccion.terminalName,
+        transaccion.terminalUserName,
+        transaccion.transactiontype,
+        transaccion.status,
+        transaccion.payEmail || transaccion.terminalUserName,
+        transaccion.amount
+      ].some(valor => String(valor ?? '').toLowerCase().includes(termino))
+    );
+  }
+
+  get transaccionesPaginadas(): Transaccion[] {
+    const inicio = (this.paginaActual - 1) * this.elementosPorPagina;
+    return this.transaccionesFiltradasTabla.slice(inicio, inicio + this.elementosPorPagina);
+  }
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.transaccionesFiltradasTabla.length / this.elementosPorPagina));
+  }
+
+  get paginas(): number[] {
+    return Array.from({ length: this.totalPaginas }, (_, index) => index + 1);
+  }
   
   cargarDependenciasIniciales() {
     this.cargarSubafiliados();
@@ -354,6 +418,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       next: (res) => {
         this.showTable.set(true);
         this.processTransactions(res);
+        this.paginaActual = 1;
         this.loading.set(false);
       },
       error: (err) => {
@@ -397,6 +462,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       caja: '',
       operacion: '',
       monto: '',
+      montoDesde: '',
+      montoHasta: '',
       edoTransaccion: '',
       referencia: '',
       autorizacion: '',
@@ -406,7 +473,123 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       fechaFin: ''
     };
     this.inicializarFechas();
+    this.busquedaTabla = '';
+    this.paginaActual = 1;
     this.buscarTransacciones();
+  }
+
+  cambiarPagina(pagina: number): void {
+    this.paginaActual = Math.min(Math.max(pagina, 1), this.totalPaginas);
+  }
+
+  formatCurrency(value: string | number): string {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2
+    }).format(this.toNumber(value));
+  }
+
+  formatearMontoFiltro(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '');
+
+    if (!digits) {
+      this.filtros.monto = '';
+      input.value = '';
+      return;
+    }
+
+    const monto = Number(digits) / 100;
+    const formatted = monto.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    this.filtros.monto = formatted;
+    input.value = formatted;
+  }
+
+  tipoTransaccionClase(tipo?: string): string {
+    const normalizado = this.normalizarTexto(tipo);
+    if (normalizado.includes('venta')) return 'venta';
+    if (normalizado.includes('pago')) return 'pago';
+    if (normalizado.includes('devolucion')) return 'devolucion';
+    if (normalizado.includes('transferencia')) return 'transferencia';
+    return 'default';
+  }
+
+  tipoTransaccionIcono(tipo?: string): string {
+    const clase = this.tipoTransaccionClase(tipo);
+    const iconos: Record<string, string> = {
+      venta: 'fa-cart-shopping',
+      pago: 'fa-money-bill-wave',
+      devolucion: 'fa-rotate-left',
+      transferencia: 'fa-right-left',
+      default: 'fa-receipt'
+    };
+
+    return iconos[clase];
+  }
+
+  esDevolucion(tipo?: string): boolean {
+    return this.normalizarTexto(tipo).includes('devolucion');
+  }
+
+  exportarExcel(): void {
+    const rows = this.transaccionesFiltradasTabla.map(transaccion => this.exportRow(transaccion));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones');
+    XLSX.writeFile(workbook, 'transacciones.xlsx');
+    this.exportMenuAbierto = false;
+  }
+
+  exportarPDF(): void {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.text('Consulta de Transacciones', 14, 14);
+    autoTable(doc, {
+      startY: 20,
+      head: [['ID', 'Fecha / Hora', 'Sucursal', 'Caja', 'Tipo', 'Monto', 'Estatus', 'Usuario']],
+      body: this.transaccionesFiltradasTabla.map(transaccion => [
+        transaccion.idOperation,
+        transaccion.authorizationDate,
+        transaccion.terminalName,
+        transaccion.terminalUserName,
+        transaccion.transactiontype,
+        this.formatCurrency(transaccion.amount),
+        transaccion.status,
+        transaccion.payEmail || transaccion.terminalUserName
+      ])
+    });
+    doc.save('transacciones.pdf');
+    this.exportMenuAbierto = false;
+  }
+
+  private exportRow(transaccion: Transaccion) {
+    return {
+      ID: transaccion.idOperation,
+      'Fecha / Hora': transaccion.authorizationDate,
+      Sucursal: transaccion.terminalName,
+      Caja: transaccion.terminalUserName,
+      'Tipo Transaccion': transaccion.transactiontype,
+      Monto: this.toNumber(transaccion.amount),
+      Estatus: transaccion.status,
+      Usuario: transaccion.payEmail || transaccion.terminalUserName
+    };
+  }
+
+
+  private toNumber(value: string | number): number {
+    if (value === null || value === undefined || value === '') return 0;
+    return typeof value === 'number' ? value : Number(String(value).replace(/[$,]/g, '')) || 0;
+  }
+
+  private normalizarTexto(value?: string): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
   }
   
   verTicket(transaccion: Transaccion) {

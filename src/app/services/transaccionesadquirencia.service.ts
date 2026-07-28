@@ -10,6 +10,9 @@ export interface FiltrosTransaccion {
   caja?: string;
   operacion?: string;
   monto?: string;
+  montoDesde?: string;
+  montoHasta?: string;
+  email?: string;
   edoTransaccion?: string;
   referencia?: string;
   autorizacion?: string;
@@ -202,7 +205,10 @@ getOperaciones(): Observable<any> {
     const params = new HttpParams()
       .set('userID', localStorage.getItem('idUser') || '')
       .set('typeOperation', filtros.operacion || '')
-      .set('amount', (filtros.monto || '').replace(/,/g, ''))
+      .set('amount', (filtros.monto || filtros.montoDesde || '').replace(/[$,]/g, ''))
+      .set('amountFrom', (filtros.montoDesde || '').replace(/[$,]/g, ''))
+      .set('amountTo', (filtros.montoHasta || '').replace(/[$,]/g, ''))
+      .set('email', filtros.email || '')
       .set('responseCode', filtros.edoTransaccion || '')
       .set('referenceNumber', filtros.referencia || '')
       .set('authorizationNumber', filtros.autorizacion || '')

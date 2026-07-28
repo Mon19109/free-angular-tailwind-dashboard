@@ -1,318 +1,262 @@
-<div class="operations-shell page-container">
- 
-
-  @if (errorMessage()) {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-      {{ errorMessage() }}
-      <button type="button" class="btn-close" (click)="errorMessage.set('')"></button>
-    </div>
-  }
-
-  <article class="operation-card filter-card">
-
-    <header class="operation-card-header">
+<div class="consulta-shell">
+  <article class="consulta-card">
+    <header class="page-header">
       <div>
-        <span class="eyebrow">Filtros</span>
-        <h2>Busqueda de transacciones</h2>
+        <span class="page-eyebrow">Gestión de negocio</span>
+        <h1>Consulta de Transacciones</h1>
+        <p>Consulta movimientos por comercio, periodo, monto, tipo y estatus.</p>
+      </div>
+
+      <div class="export-wrapper">
+        <button class="btn btn-primary" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
+          <i class="fa-solid fa-download"></i>
+          Exportar
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="export-menu" *ngIf="exportMenuAbierto">
+          <button type="button" (click)="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button type="button" (click)="exportarPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        </div>
       </div>
     </header>
 
-    <div class="operation-card-body">
-      <section class="operation-section">
-        <div class="section-heading">
-          <h3>Datos de busqueda</h3>
-          <p>Define los criterios para consultar transacciones de adquirencia.</p>
+    <div class="consulta-card-body">
+      @if (errorMessage()) {
+        <div class="alert-message">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>{{ errorMessage() }}</span>
+          <button type="button" (click)="errorMessage.set('')"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
-    <form>
-      <div class="transactions-form-grid row g-4">
-        <div class="transaction-field col-md-4">
-          <label class="form-label">SubAfiliado</label>
-          <select
-            class="form-select"
-            [(ngModel)]="filtros.subafiliado"
-            name="subafiliado"
-            (change)="onSubafiliadoChange()">
-            @for (item of subafiliados(); track item.idContext) {
-              <option
-                [value]="getOptionValue(item.idContext, item.nodeID)"
-                [attr.selected]="item.idContext == 00 ? true : null">
-                {{ item.contextDescription }}
-              </option>
-            }
-          </select>
-        </div>
-
-        <div class="transaction-field col-md-4">
-          <label class="form-label">Entidad</label>
-          <select
-            class="form-select"
-            [(ngModel)]="filtros.entidad"
-            name="entidad"
-            (change)="onEntidadChange()">
-            <option value=""></option>
-            @for (item of entidades(); track item.idEntity) {
-              <option [value]="getOptionValue(item.idEntity, item.nodeID)">
-                {{ item.entityDescription }}
-              </option>
-            }
-          </select>
-        </div>
-
-        <div class="transaction-field col-md-4">
-          <label class="form-label">Sucursal</label>
-          <select
-            class="form-select"
-            [(ngModel)]="filtros.sucursal"
-            name="sucursal"
-            (change)="onSucursalChange()">
-            <option value=""></option>
-            @for (item of sucursales(); track item.idTerminal) {
-              <option [value]="getOptionValue(item.idTerminal, item.nodeID)">
-                {{ item.businessName }}
-              </option>
-            }
-          </select>
-        </div>
-
-        <div class="transaction-field col-md-4">
-  <label class="form-label">Caja</label>
-  <select
-    class="form-select"
-    [(ngModel)]="filtros.caja"
-    name="caja">
-    <option value=""></option>
-    @for (item of cajas(); track item.idTerminalUser) {
-      <option [value]="getOptionValue(item.idTerminalUser, item.nodeID)">
-        {{ item.tuName }}
-      </option>
-    }
-  </select>
-</div>
-
-<div class="transaction-field col-md-4"></div>
-
-<div class="transaction-field col-md-4"></div>
-
-<div class="transaction-field col-md-4">
-  <label class="form-label">Operación</label>
- <select
-  class="form-select"
-  [(ngModel)]="filtros.operacion"
-  name="operacion">
-
-  <option value=""></option>
-
-  @for (item of operaciones(); track item.idTransactionType) {
-    <option [value]="item.idTransactionType">
-      {{ item.tTypeInternalkey }}
-    </option>
-  }
-
-</select>
-</div>
-
-<div class="transaction-field col-md-4">
-  <label class="form-label">Estado de la Transacción</label>
-  <select
-  class="form-select"
-  [(ngModel)]="filtros.edoTransaccion"
-  name="edoTransaccion">
-
-  <option value=""></option>
-
-  @for (item of estadosTransaccion(); track item.responseCode) {
-    <option [value]="item.responseCode">
-      {{ item.respCodeDescription }}
-    </option>
-  }
-
-</select>
-</div>
-
-<div class="transaction-field col-md-4">
-  <label class="form-label">Monto</label>
-  <input
-    type="text"
-    class="form-control"
-    [(ngModel)]="filtros.monto"
-    name="monto">
-</div>
-
-        <div class="transaction-field col-md-4">
-          <label class="form-label">Nm. Referencia</label>
-          <input
-            type="text"
-            class="form-control"
-            [(ngModel)]="filtros.referencia"
-            name="referencia">
-        </div>
-
-        <div class="transaction-field col-md-4">
-          <label class="form-label">Nm. Autorización</label>
-          <input
-            type="text"
-            class="form-control"
-            [(ngModel)]="filtros.autorizacion"
-            name="autorizacion">
-        </div>
-
-        <div class="transaction-field col-md-4">
-          <label class="form-label">Nm. Tarjeta</label>
-          <input
-            type="text"
-            maxlength="16"
-            class="form-control"
-            [(ngModel)]="filtros.numTarjeta"
-            name="numTarjeta">
-        </div>
-
-        <div class="transaction-field col-md-4">
-          <label class="form-label">Bin</label>
-          <input
-            type="text"
-            class="form-control"
-            [(ngModel)]="filtros.bin"
-            name="bin">
-        </div>
-
-        <div class="transaction-field col-md-4">
-          <app-date-picker
-            id="fechaInicioTransaccionesAdquirencia"
-            label="Fecha Inicio"
-            placeholder="YYYY-MM-DD HH:mm"
-            (dateChange)="onFechaInicioChange($event)">
-          </app-date-picker>
-        </div>
-
-        <div class="transaction-field col-md-4">
-          <app-date-picker
-            id="fechaFinTransaccionesAdquirencia"
-            label="Fecha Fin"
-            placeholder="YYYY-MM-DD HH:mm"
-            position="above"
-            (dateChange)="onFechaFinChange($event)">
-          </app-date-picker>
-        </div>
-
-       <div class="transaction-actions botones-container">
-  <button
-    type="button"
-    class="button primary btn-buscar"
-    (click)="buscarTransacciones()"
-    [disabled]="loading()">
-
-    @if (loading()) {
-      <span class="spinner-border spinner-border-sm me-2"></span>
-    }
-
-    BUSCAR
-  </button>
-
-  <button
-    type="button"
-    class="button danger btn-limpiar"
-    (click)="limpiarFiltros()">
-    LIMPIAR FILTROS
-  </button>
-</div>
-      </div>
-    </form>
-
-      </section>
-    </div>
-
-  </article>
-
-  <article class="operation-card transactions-card">
-
-  <header class="operation-card-header">
-    <div>
-      <span class="eyebrow">Resultados</span>
-      <h2>Listado de transacciones</h2>
-    </div>
-
-    <div class="table-actions header-actions">
-      <button type="button" class="button ghost btn-export">EXCEL</button>
-      <button type="button" class="button ghost btn-export">PDF</button>
-      <button type="button" class="button ghost btn-export">PRINT</button>
-    </div>
-  </header>
-
-  <div class="operation-card-body">
-    <section class="operation-section results-section">
-
-    @if (showTable()) {
-
-<div class="transactions-wrapper">
-
-  <table class="transactions-table">
-
-    <thead>
-      <tr>
-        <th>Monto</th>
-        <th>N. de Autorización</th>
-        <th>Tarjeta</th>
-        <th>Folio del Ticket</th>
-        <th>Fecha de Autorización</th>
-        <th>Concepto</th>
-        <th>Tipo de Transacción</th>
-        <th>Estatus</th>
-        <th>Institución</th>
-        <th>Marca</th>
-        <th>Naturaleza</th>
-        <th>Entidad</th>
-        <th>Sucursal</th>
-        <th>Caja</th>
-        <th>Usuario Venta</th>
-        <th>Tipo</th>
-        <th>Email Cliente</th>
-        <th>Teléfono Cliente</th>
-        <th>Referencia 1</th>
-        <th>Referencia 2</th>
-        <th>Referencia 3</th>
-        <th>Propina</th>
-        <th>Response</th>
-        <th>Bin</th>
-        <th>IVA</th>
-        <th>Comisión</th>
-        <th>Ticket</th>
-        <th>Aclaraciones</th>
-      </tr>
-    </thead>
-
-    <tbody>
-
-      @for (t of transacciones(); track t.idOperation) {
-
-        <!-- tus rows -->
-
-      } @empty {
-
-        <tr>
-          <td colspan="28" class="text-center py-5 text-muted">
-            No se encontraron resultados
-          </td>
-        </tr>
-
       }
 
-    </tbody>
+      <section class="panel filters-panel">
+        <div class="panel-title">
+          <div><i class="fa-solid fa-filter"></i><span>Filtros de búsqueda</span></div>
+          <button class="link-action" type="button" (click)="limpiarFiltros()"><i class="fa-solid fa-rotate-right"></i> Limpiar filtros</button>
+        </div>
 
-  </table>
+        <form (ngSubmit)="buscarTransacciones()">
+          <div class="info-grid">
+            <label>
+              <span>SubAfiliado</span>
+              <select name="subafiliado" [(ngModel)]="filtros.subafiliado" (change)="onSubafiliadoChange()">
+                <option value="">Todos los subafiliados</option>
+                @for (item of subafiliados(); track item.idContext) {
+                  <option [value]="getOptionValue(item.idContext, item.nodeID)">{{ item.contextDescription }}</option>
+                }
+              </select>
+            </label>
 
-</div>
+            <label>
+              <span>Entidad</span>
+              <select name="entidad" [(ngModel)]="filtros.entidad" (change)="onEntidadChange()">
+                <option value="">Todas las entidades</option>
+                @for (item of entidades(); track item.idEntity) {
+                  <option [value]="getOptionValue(item.idEntity, item.nodeID)">{{ item.entityDescription }}</option>
+                }
+              </select>
+            </label>
 
-} @else {
+            <label *ngIf="mostrarFiltroSucursal">
+              <span>Sucursal</span>
+              <select name="sucursal" [(ngModel)]="filtros.sucursal" (change)="onSucursalChange()">
+                <option value="">Todas las sucursales</option>
+                @for (item of sucursales(); track item.idTerminal) {
+                  <option [value]="getOptionValue(item.idTerminal, item.nodeID)">{{ item.businessName }}</option>
+                }
+              </select>
+            </label>
 
-<div class="empty-message">
-  No se encontraron resultados
-</div>
+            <label *ngIf="mostrarFiltroCaja">
+              <span>Caja</span>
+              <select name="caja" [(ngModel)]="filtros.caja">
+                <option value="">Todas las cajas</option>
+                @for (item of cajas(); track item.idTerminalUser) {
+                  <option [value]="getOptionValue(item.idTerminalUser, item.nodeID)">{{ item.tuName }}</option>
+                }
+              </select>
+            </label>
 
-}
+            <label>
+              <span>Operación</span>
+              <select name="operacion" [(ngModel)]="filtros.operacion">
+                <option value="">Todas las operaciones</option>
+                @for (item of operaciones(); track item.idTransactionType) {
+                  <option [value]="item.idTransactionType">{{ item.tTypeInternalkey || item.description }}</option>
+                }
+              </select>
+            </label>
 
-    </section>
-  </div>
+            <label>
+              <span>Estado de la Transacción</span>
+              <select name="edoTransaccion" [(ngModel)]="filtros.edoTransaccion">
+                <option value="">Todos los estados</option>
+                @for (item of estadosTransaccion(); track item.responseCode) {
+                  <option [value]="item.responseCode">{{ item.respCodeDescription || item.responseDescription }}</option>
+                }
+              </select>
+            </label>
 
-</article>
+            <label>
+              <span>Monto</span>
+              <i class="fa-solid fa-dollar-sign"></i>
+              <input type="text" name="monto" [(ngModel)]="filtros.monto" (input)="formatearMontoFiltro($event)" placeholder="0.00">
+            </label>
+
+            <label>
+              <span>Nm. Referencia</span>
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" name="referencia" [(ngModel)]="filtros.referencia" placeholder="Referencia">
+            </label>
+
+            <label>
+              <span>Nm. Autorización</span>
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" name="autorizacion" [(ngModel)]="filtros.autorizacion" placeholder="Autorización">
+            </label>
+
+            <label>
+              <span>Nm. Tarjeta</span>
+              <i class="fa-regular fa-credit-card"></i>
+              <input type="text" maxlength="16" name="numTarjeta" [(ngModel)]="filtros.numTarjeta" placeholder="Tarjeta">
+            </label>
+
+            <label>
+              <span>Bin</span>
+              <i class="fa-solid fa-barcode"></i>
+              <input type="text" name="bin" [(ngModel)]="filtros.bin" placeholder="Bin">
+            </label>
+
+            <div class="date-field">
+              <app-date-picker
+                id="fechaInicioConsultaTransacciones"
+                label="Fecha Inicio"
+                placeholder="YYYY-MM-DD HH:mm"
+                (dateChange)="onFechaInicioChange($event)">
+              </app-date-picker>
+            </div>
+
+            <div class="date-field">
+              <app-date-picker
+                id="fechaFinConsultaTransacciones"
+                label="Fecha Fin"
+                placeholder="YYYY-MM-DD HH:mm"
+                position="above"
+                (dateChange)="onFechaFinChange($event)">
+              </app-date-picker>
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-ghost" type="button" (click)="limpiarFiltros()"><i class="fa-solid fa-rotate"></i> Limpiar</button>
+            <button class="btn btn-primary" type="submit" [disabled]="loading()">
+              @if (loading()) { <span class="spinner"></span> }
+              <i class="fa-solid fa-magnifying-glass"></i>
+              Buscar
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <i class="fa-solid fa-receipt"></i>
+          <div><span>Total Transacciones</span><strong>{{ resumenTransacciones.totalTransacciones | number }}</strong></div>
+        </article>
+        <article class="summary-card">
+          <i class="fa-solid fa-coins"></i>
+          <div><span>Monto Total</span><strong>{{ formatCurrency(resumenTransacciones.montoTotal) }}</strong></div>
+        </article>
+        <article class="summary-card">
+          <i class="fa-solid fa-chart-line"></i>
+          <div><span>Promedio por Transacción</span><strong>{{ formatCurrency(resumenTransacciones.promedio) }}</strong></div>
+        </article>
+        <article class="summary-card">
+          <i class="fa-solid fa-trophy"></i>
+          <div><span>Transacción Más Alta</span><strong>{{ formatCurrency(resumenTransacciones.transaccionMasAlta) }}</strong></div>
+        </article>
+      </section>
+
+      <section class="panel results-panel">
+        <div class="results-toolbar">
+          <div class="panel-title"><div><i class="fa-solid fa-list"></i><span>Resultados</span></div></div>
+          <div class="table-tools">
+            <label>
+              <span>Mostrar</span>
+              <select [(ngModel)]="elementosPorPagina" (ngModelChange)="cambiarPagina(1)">
+                <option [ngValue]="10">10</option>
+                <option [ngValue]="25">25</option>
+                <option [ngValue]="50">50</option>
+              </select>
+              <span>registros</span>
+            </label>
+            <label class="table-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="search" [(ngModel)]="busquedaTabla" (ngModelChange)="cambiarPagina(1)" placeholder="Buscar en resultados...">
+            </label>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha / Hora</th>
+                <th>Sucursal</th>
+                <th>Caja</th>
+                <th>Tipo Transacción</th>
+                <th>Monto</th>
+                <th>Método Pago</th>
+                <th>Usuario</th>
+                <th>Estatus</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of transaccionesPaginadas; track t.idOperation) {
+                <tr>
+                  <td>TXN-{{ t.idOperation }}</td>
+                  <td>{{ t.authorizationDate || 'ND' }}</td>
+                  <td>{{ t.terminalName || 'ND' }}</td>
+                  <td>{{ t.terminalUserName || 'ND' }}</td>
+                  <td>
+                    <span class="transaction-badge" [ngClass]="tipoTransaccionClase(t.transactiontype)">
+                      <i class="fa-solid" [ngClass]="tipoTransaccionIcono(t.transactiontype)"></i>
+                      {{ t.transactiontype || 'ND' }}
+                    </span>
+                  </td>
+                  <td class="amount" [class.negative]="esDevolucion(t.transactiontype)">
+                    {{ esDevolucion(t.transactiontype) ? '-' : '' }}{{ formatCurrency(t.amount) }}
+                  </td>
+                  <td>{{ t.entryMode || t.brand || 'ND' }}</td>
+                  <td>{{ t.payEmail || t.terminalUserName || 'ND' }}</td>
+                  <td><span class="status" [class.inactive]="t.status !== 'APROBADA' && t.status !== 'Aprobada'"></span>{{ t.status || 'ND' }}</td>
+                  <td class="actions-cell">
+                    <button class="icon-btn" type="button" (click)="verTicket(t)" title="Ver ticket">
+                      <i class="fa-regular fa-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="10" class="empty-cell">No se encontraron resultados</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <footer class="pagination">
+          <span>Mostrando {{ transaccionesPaginadas.length }} de {{ transaccionesFiltradasTabla.length }} registros</span>
+          <div>
+            <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1"><i class="fa-solid fa-chevron-left"></i></button>
+            <button type="button" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+            <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  </article>
 </div>

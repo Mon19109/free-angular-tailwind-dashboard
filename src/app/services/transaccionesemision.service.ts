@@ -29,6 +29,8 @@ export interface FormularioData {
   cuenta?: string;
   idEntidad?: string;
   monto?: number | string;
+  montoDesde?: number | string;
+  montoHasta?: number | string;
   numAuto?: string;
   email?: string;
   tel?: string;
@@ -112,9 +114,14 @@ export class TransaccionesEmisionService {
     const params = new HttpParams()
       .set('type_operation', this.emptyParam(formData.tipoOperacion))
       .set('id_status', this.emptyParam(formData.estatus))
-      .set('amount', this.emptyParam(formData.monto))
+      .set('amount', this.emptyParam(formData.monto || formData.montoDesde))
+      .set('amount_from', this.emptyParam(formData.montoDesde))
+      .set('amount_to', this.emptyParam(formData.montoHasta))
       .set('auth_number', this.emptyParam(formData.numAuto))
       .set('num_cuenta', this.emptyParam(formData.cuenta))
+      .set('id_entidad', this.emptyParam(formData.idEntidad))
+      .set('email', this.emptyParam(formData.email))
+      .set('tel', this.emptyParam(formData.tel))
       .set('init_date', this.emptyParam(formData.fechaInicio))
       .set('end_date', this.emptyParam(formData.fechaFin))
       .set('page', '0')

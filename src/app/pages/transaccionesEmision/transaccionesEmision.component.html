@@ -1,230 +1,214 @@
-<div class="operations-shell page-container">
-
-  <article class="operation-card filter-card">
-
-    <header class="operation-card-header">
+<div class="consulta-shell">
+  <article class="consulta-card">
+    <header class="page-header">
       <div>
-        <span class="eyebrow">Filtros</span>
-        <h2>Busqueda de transacciones</h2>
+        <span class="page-eyebrow">Reportes emisión</span>
+        <h1>Consulta de Transacciones</h1>
+        <p>Consulta movimientos de emisión por cuenta, periodo, monto y tipo.</p>
+      </div>
+
+      <div class="export-wrapper">
+        <button class="btn btn-primary" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
+          <i class="fa-solid fa-download"></i>
+          Exportar
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div class="export-menu" *ngIf="exportMenuAbierto">
+          <button type="button" (click)="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button type="button" (click)="exportarPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        </div>
       </div>
     </header>
 
-    <div class="operation-card-body">
-      <section class="operation-section">
-        <div class="section-heading">
-          <h3>Datos de busqueda</h3>
-          <p>Define los criterios para consultar transacciones de emision.</p>
+    <div class="consulta-card-body">
+      <div class="alert-message" *ngIf="errorMessage">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{ errorMessage }}</span>
+        <button type="button" (click)="errorMessage = ''"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <section class="panel filters-panel">
+        <div class="panel-title">
+          <div><i class="fa-solid fa-filter"></i><span>Filtros de búsqueda</span></div>
+          <button class="link-action" type="button" (click)="limpiarFiltros()"><i class="fa-solid fa-rotate-right"></i> Limpiar filtros</button>
         </div>
 
-  <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
+        <form (ngSubmit)="buscarTransacciones()">
+          <div class="info-grid">
+            <label>
+              <span>Tipo de operación</span>
+              <select name="tipoOperacion" [(ngModel)]="filtros.tipoOperacion">
+                <option value="">Seleccione un tipo de operación</option>
+                <option *ngFor="let tipo of tiposOperacion" [value]="tipo.idOperationType || tipo.id || tipo.codigo">
+                  {{ tipo.name || tipo.nombre || tipo.descripcion }}
+                </option>
+              </select>
+            </label>
 
-  <div class="transactions-form-grid row g-4">
+            <label>
+              <span>Número de cuenta</span>
+              <i class="fa-regular fa-credit-card"></i>
+              <input type="text" name="cuenta" [(ngModel)]="filtros.cuenta" placeholder="Número de cuenta">
+            </label>
 
-     <div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">Tipo de Operación</label>
-        <select formControlName="tipoOperacion" class="form-select">
-          <option value="">Seleccione un tipo de operación</option>
-          <option *ngFor="let tipo of tiposOperacion" [value]="tipo.idOperationType">
-            {{ tipo.name }}
-          </option>
-        </select>
-      </div>
-    </div>
+            <div class="date-field">
+              <app-date-picker
+                id="fechaInicioTransaccionesEmision"
+                label="Fecha Inicio"
+                placeholder="YYYY-MM-DD HH:mm"
+                (dateChange)="onFechaInicioChange($event)">
+              </app-date-picker>
+            </div>
 
-<div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">Número de Cuenta</label>
-        <input
-          type="text"
-          formControlName="cuenta"
-          class="form-control">
-      </div>
-    </div>
+            <div class="date-field">
+              <app-date-picker
+                id="fechaFinTransaccionesEmision"
+                label="Fecha Fin"
+                placeholder="YYYY-MM-DD HH:mm"
+                position="above"
+                (dateChange)="onFechaFinChange($event)">
+              </app-date-picker>
+            </div>
 
-<div class="transaction-field col-md-4">
-  <div class="form-group">
-    <app-date-picker
-      id="fechaInicioTransaccionesEmision"
-      label="Fecha Inicio"
-      placeholder="YYYY-MM-DD HH:mm"
-      (dateChange)="onFechaInicioChange($event)">
-    </app-date-picker>
-  </div>
-</div>
+            <label>
+              <span>Monto</span>
+              <i class="fa-solid fa-dollar-sign"></i>
+              <input type="text" name="monto" [(ngModel)]="filtros.monto" (input)="formatearMontoFiltro($event)" placeholder="0.00">
+            </label>
 
-<div class="transaction-field col-md-4">
-  <div class="form-group">
-    <app-date-picker
-      id="fechaFinTransaccionesEmision"
-      label="Fecha Fin"
-      placeholder="YYYY-MM-DD HH:mm"
-      position="above"
-      (dateChange)="onFechaFinChange($event)">
-    </app-date-picker>
-  </div>
-</div>
+            <label>
+              <span>Estatus de la operación</span>
+              <select name="estatus" [(ngModel)]="filtros.estatus">
+                <option value="">Seleccione un estatus</option>
+                <option *ngFor="let estatus of estatusOptions" [value]="estatus.value">{{ estatus.label }}</option>
+              </select>
+            </label>
 
-    <div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">Monto</label>
-        <input
-          type="text"
-          formControlName="monto"
-          class="form-control">
-      </div>
-    </div>
+            <label>
+              <span>Número de Autorización</span>
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" name="numAuto" [(ngModel)]="filtros.numAuto" placeholder="Autorización">
+            </label>
 
-     <div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">Estatus de la operación</label>
-        <select formControlName="estatus" class="form-select">
-          <option value="">Seleccione un estatus</option>
-          <option *ngFor="let estatus of estatusOptions" [value]="estatus.value">
-            {{ estatus.label }}
-          </option>
-        </select>
-      </div>
-    </div>
+            <label>
+              <span>Entidad</span>
+              <select name="idEntidad" [(ngModel)]="filtros.idEntidad">
+                <option value="">Seleccione una entidad</option>
+                <option *ngFor="let cuenta of cuentas" [value]="cuenta.bundle || cuenta.id">
+                  {{ cuenta.bundle || cuenta.id }} {{ cuenta.bussinesName ? '- ' + cuenta.bussinesName : '' }}
+                </option>
+              </select>
+            </label>
 
-    <div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">Número de Autorización</label>
-        <input
-          type="text"
-          formControlName="numAuto"
-          class="form-control">
-      </div>
-    </div>
+            <label>
+              <span>Correo electrónico</span>
+              <i class="fa-regular fa-envelope"></i>
+              <input type="email" name="email" [(ngModel)]="filtros.email" placeholder="correo@dominio.com">
+            </label>
 
-<div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">Entidad</label>
-       <select formControlName="idEntidad" class="form-select">
-          <option value="">Seleccione una entidad</option>
-         <option *ngFor="let cuenta of cuentas" [value]="cuenta.bundle">
-  {{ cuenta.bundle }} - {{ cuenta.bussinesName }}
-</option>
-        </select>
-      </div>
-    </div>
+            <label>
+              <span>Teléfono</span>
+              <i class="fa-solid fa-phone"></i>
+              <input type="text" maxlength="10" name="tel" [(ngModel)]="filtros.tel" placeholder="10 digitos">
+            </label>
+          </div>
 
-    <div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input
-          type="email"
-          formControlName="email"
-          class="form-control">
-      </div>
-    </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" type="button" (click)="limpiarFiltros()"><i class="fa-solid fa-rotate"></i> Limpiar</button>
+            <button class="btn btn-primary" type="submit" [disabled]="loading">
+              <span class="spinner" *ngIf="loading"></span>
+              <i class="fa-solid fa-magnifying-glass"></i>
+              Buscar
+            </button>
+          </div>
+        </form>
+      </section>
 
+      <section class="summary-grid">
+        <article class="summary-card">
+          <i class="fa-solid fa-receipt"></i>
+          <div><span>Total Transacciones</span><strong>{{ resumenTransacciones.totalTransacciones | number }}</strong></div>
+        </article>
+        <article class="summary-card">
+          <i class="fa-solid fa-coins"></i>
+          <div><span>Monto Total</span><strong>{{ formatCurrency(resumenTransacciones.montoTotal) }}</strong></div>
+        </article>
+        <article class="summary-card">
+          <i class="fa-solid fa-chart-line"></i>
+          <div><span>Promedio por Transacción</span><strong>{{ formatCurrency(resumenTransacciones.promedio) }}</strong></div>
+        </article>
+        <article class="summary-card">
+          <i class="fa-solid fa-trophy"></i>
+          <div><span>Transacción Más Alta</span><strong>{{ formatCurrency(resumenTransacciones.transaccionMasAlta) }}</strong></div>
+        </article>
+      </section>
 
-    <div class="transaction-field col-md-4">
-      <div class="form-group">
-        <label class="form-label">teléfono</label>
-        <input
-  type="text"
-  maxlength="10"
-  formControlName="tel"
-  class="form-control"
-  (keypress)="soloNumeros($event)">
-      </div>
-    </div>
+      <section class="panel results-panel">
+        <div class="results-toolbar">
+          <div class="panel-title"><div><i class="fa-solid fa-list"></i><span>Resultados</span></div></div>
+          <div class="table-tools">
+            <label>
+              <span>Mostrar</span>
+              <select [(ngModel)]="elementosPorPagina" (ngModelChange)="cambiarPagina(1)">
+                <option [ngValue]="10">10</option>
+                <option [ngValue]="25">25</option>
+                <option [ngValue]="50">50</option>
+              </select>
+              <span>registros</span>
+            </label>
+            <label class="table-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="search" [(ngModel)]="busquedaTabla" (ngModelChange)="cambiarPagina(1)" placeholder="Buscar en resultados...">
+            </label>
+          </div>
+        </div>
 
-  </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fecha / Hora</th>
+                <th>Cuenta</th>
+                <th>Tipo Transacción</th>
+                <th>Monto</th>
+                <th>Estatus</th>
+                <th>Autorización</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of operacionesPaginadas">
+                <td>{{ valorId(item) }}</td>
+                <td>{{ valorFecha(item) }}</td>
+                <td>{{ valorCuenta(item) }}</td>
+                <td>
+                  <span class="transaction-badge" [ngClass]="tipoTransaccionClase(valorTipo(item))">
+                    <i class="fa-solid" [ngClass]="tipoTransaccionIcono(valorTipo(item))"></i>
+                    {{ valorTipo(item) }}
+                  </span>
+                </td>
+                <td class="amount" [class.negative]="esDevolucion(valorTipo(item))">
+                  {{ esDevolucion(valorTipo(item)) ? '-' : '' }}{{ formatCurrency(valorMonto(item)) }}
+                </td>
+                <td><span class="status" [class.inactive]="valorEstatus(item) !== 'APROBADA' && valorEstatus(item) !== 'Aprobada'"></span>{{ valorEstatus(item) }}</td>
+                <td>{{ valorAutorizacion(item) }}</td>
+              </tr>
+              <tr *ngIf="operacionesPaginadas.length === 0">
+                <td colspan="7" class="empty-cell">No se encontraron resultados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-  <div class="transaction-actions botones-container">
-
-    <button type="submit" class="button primary btn-buscar">
-      BUSCAR
-    </button>
-
-    <button
-      type="button"
-      class="button danger btn-limpiar"
-      (click)="limpiarFormulario()">
-      LIMPIAR FILTROS
-    </button>
-
-  </div>
-
-</form>
-
+        <footer class="pagination">
+          <span>Mostrando {{ operacionesPaginadas.length }} de {{ operacionesFiltradasTabla.length }} registros</span>
+          <div>
+            <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1"><i class="fa-solid fa-chevron-left"></i></button>
+            <button type="button" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+            <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </footer>
       </section>
     </div>
-
   </article>
-
- <article class="operation-card transactions-card">
-
-  <header class="operation-card-header">
-    <div>
-      <span class="eyebrow">Resultados</span>
-      <h2>Listado de transacciones</h2>
-    </div>
-  </header>
-
-  <div class="operation-card-body">
-    <section class="operation-section results-section">
-
-  <!-- TABLA -->
-  <div
-    *ngIf="operaciones && operaciones.length > 0"
-    class="transactions-wrapper">
-
-
-    <table class="transactions-table">
-
-      <thead class="bg-darkn">
-        <tr>
-          <th>IdOperation</th>
-          <th>transactionSecuence</th>
-          <th>idCore</th>
-          <th>OperationType</th>
-          <th>statusDescription</th>
-          <th>counterpartInstitution</th>
-          <th>trakingKey</th>
-          <th>amount</th>
-          <th>concept</th>
-          <th>numericalReference</th>
-          <th>numeroAutorizacion</th>
-          <th>creationDate</th>
-          <th>updateDate</th>
-          <th>comission</th>
-          <th>descriptionRefund</th>
-          <th>merchantName</th>
-          <th>rubroMaster</th>
-          <th>traceMaster</th>
-          <th>dateMposMaster</th>
-          <th>maskedCard</th>
-          <th>responseCodeMaster</th>
-          <th># de Afiliacion</th>
-          <th>Nombre de Afiliacion</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        <tr *ngFor="let operacion of operaciones">
-          ...
-        </tr>
-      </tbody>
-
-    </table>
-
-  </div>
-
-  <!-- MENSAJE -->
-  <div
-  *ngIf="operaciones && operaciones.length === 0"
-    class="empty-message">
-
-    No se encontraron resultados
-
-  </div>
-
-    </section>
-  </div>
-
-</article>
 </div>
