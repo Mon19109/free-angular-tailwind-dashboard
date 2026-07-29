@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { map, catchError, switchMap, tap } from 'rxjs/operators';
+import { map, catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 
 @Injectable({
@@ -247,7 +247,6 @@ export class AuthService {
   
   loginKasPay(userLogin: string, passwordLogin: string, latitud: string, longitud: string, accessToken: string): Observable<any> {
     
-    console.log('IP Login:: ',environment.api.kashpay);
     const url = `${environment.api.kashpay}api/v1/user/login`;
     
     const body = {
@@ -265,9 +264,6 @@ export class AuthService {
       'versionApp': `3`,
     };
 
-    console.log('body: ',body);
-    console.log('headers: ',headers);
-
     return this.http.post(url, body, { headers: this.getHeadersLo(headers) });
   }
 
@@ -284,15 +280,6 @@ export class AuthService {
     };
 
     const finalHeaders = this.getHeadersB(headers);
-
-    console.log('Headers:', finalHeaders.keys());
-
-    finalHeaders.keys().forEach(key => {
-      console.log(key, finalHeaders.get(key));
-    });
-
-    console.log('key: ', finalHeaders);
-
 
     //return this.http.get<any>(url, { headers: finalHeaders });
 
@@ -312,7 +299,6 @@ export class AuthService {
 
     return this.authenticate(userLogin, passwordLogin, latitud, longitud).pipe(
       switchMap((authResult: any) => {
-        console.log('authResult : ',authResult.success);
         // Usuario no existe - Registrar
         if (authResult.success === false && authResult.error?.code === 300) {
           return this.register(userLogin, passwordLogin, latitud, longitud).pipe(
@@ -397,7 +383,6 @@ export class AuthService {
       }),
       catchError(error => {
         this.isProcessing = false;
-        console.log('error+++',error);
         if (error.status == 401) {
           return this.register(userLogin, passwordLogin, latitud, longitud).pipe(
             switchMap((registerResult: any) => {

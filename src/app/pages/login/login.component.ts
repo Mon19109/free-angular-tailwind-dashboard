@@ -55,8 +55,6 @@ export class LoginComponent implements OnInit {
     try {
       this.userLocation = await this.geolocationService.getCurrentLocation();
 
-      console.log('Latitud:', this.userLocation.latitude);
-      console.log('Longitud:', this.userLocation.longitude);
       this.lat = this.userLocation.latitude;
       this.lon = this.userLocation.longitude;
 
@@ -169,7 +167,6 @@ export class LoginComponent implements OnInit {
           this.tokenValue = '';
           this.tokenErrorMessage = '';
           this.telModal = result.oft ?? '??';
-          console.log('TEEEEL :::',this.telModal);
           this.showTokenModal = true;
         } else {
           this.errorMessage = this.getErrorMessage(result.idUser, result.message);
@@ -205,10 +202,6 @@ export class LoginComponent implements OnInit {
       'AU-AU': message || 'Error en autenticación',
       'PROCESSING': 'Ya hay una petición en proceso'
     };
-
-    console.log('idUser:',idUser);
-    console.log('message:',message);
-    console.log('errorMap:',errorMap);
 
     return errorMap[idUser || ''] || message || 'Error al iniciar sesión1';
   }

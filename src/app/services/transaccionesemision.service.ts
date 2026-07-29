@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { map, catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 //import { AuthService, UserSessionData } from '../services/auth.service';
 
@@ -89,10 +89,7 @@ export class TransaccionesEmisionService {
       return this.http.post<any>(`${this.apiAldebaran}catOperationType`, { 
           headers: headers,
           withCredentials: true
-        }).pipe(
-          //timeout(30000),
-          tap(response => console.log('Respuesta login:', response))
-        );
+        });
     
     
   }

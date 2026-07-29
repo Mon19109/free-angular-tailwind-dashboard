@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { map, catchError, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 
 export interface DeviceInfo {
@@ -131,9 +131,6 @@ export class AuthService {
   login(credentials: LoginCredentials): Observable<any> {
     //const body = { email, password };
 
-    
-  console.log('url',this.url);
-
     const deviceInfo: DeviceInfo = {
       os: 'WEB',
       latitude: credentials.latitud,
@@ -157,8 +154,6 @@ export class AuthService {
     return this.http.post<any>(this.url, loginData, httpOptions)
       .pipe(
         map(response => {
-          // Procesar respuesta exitosa
-          console.log('Login exitoso:', response);
           return response;
         }),
         catchError(this.handleErrorLogin)
@@ -179,18 +174,12 @@ export class AuthService {
     };
 
     const headers = this.getCommonHeaders();
-      
-    console.log('Intentando login a:', this.wsKashPayServices);
-    console.log('Headers:', headers.keys());
-    console.log('Datos:', loginData);
-    console.log('Intentando auth a:', this.wsAuthenticate);
 
   return this.http.post<LoginAPIResponse>(`${this.wsKashPayServices}api/v1/user/login`, loginData, { 
       headers: headers,
       withCredentials: true
     }).pipe(
       //timeout(30000),
-      tap(response => console.log('Respuesta login:', response)),
       switchMap(response => this.processLoginResponse(response, credentials)),
       catchError(this.handleErrorLogin)
     );
@@ -351,7 +340,6 @@ export class AuthService {
       withCredentials: true
     }).pipe(
       //timeout(30000),
-      tap(response => console.log('Respuesta auth:', response)),
       switchMap(response => this.processLoginResponse(response, credentials)),
       catchError(this.handleError)
     );*/
@@ -481,7 +469,6 @@ export class AuthService {
         },
         (error) => {
           let errorMessage = 'Error al obtener ubicación';
-          console.log('error.code = '+error.code);
           switch (error.code) {
             case error.PERMISSION_DENIED:
               errorMessage = 'Permiso denegado';
