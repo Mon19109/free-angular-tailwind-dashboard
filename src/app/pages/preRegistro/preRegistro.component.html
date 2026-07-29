@@ -466,38 +466,3 @@
   </section>
 </div>
 }
-
-<!-- Modal: Búsqueda de giro -->
-@if (mostrarBusquedaGiro) {
-<div class="modal-backdrop" (click)="mostrarBusquedaGiro = false">
-  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="titulo-giro"
-    (click)="$event.stopPropagation()">
-    <button type="button" class="modal-close" aria-label="Cerrar" (click)="mostrarBusquedaGiro = false">×</button>
-    <span class="eyebrow">Búsqueda avanzada</span>
-    <h2 id="titulo-giro">Buscar giro comercial</h2>
-    <p>Selecciona el giro que mejor describa la actividad registrada en la constancia fiscal.</p>
-    <form [formGroup]="busquedaGiroForm">
-      <div class="field">
-        <label for="terminoGiro">Palabras del giro comercial</label>
-        <input id="terminoGiro" formControlName="termino" placeholder="Ej. agencia, restaurante..." />
-      </div>
-      <div class="results-list">
-        @for (giro of girosFiltrados; track giro.mcc) {
-        <button type="button" [class.selected]="busquedaGiroForm.value.resultado === giro.mcc"
-          (click)="seleccionarGiro(giro)">
-          <span>{{ giro.descripcion }}</span>
-          <small>{{ giro.familia }} · MCC {{ giro.mcc }}</small>
-        </button>
-        }
-        @if (!girosFiltrados.length) {
-        <p class="no-results">No encontramos giros que coincidan con tu búsqueda.</p>
-        }
-      </div>
-    </form>
-    <div class="actions">
-      <button type="button" class="button ghost" (click)="mostrarBusquedaGiro = false">Cancelar</button>
-      <button type="button" class="button primary" (click)="guardarGiro()">Usar selección</button>
-    </div>
-  </section>
-</div>
-}

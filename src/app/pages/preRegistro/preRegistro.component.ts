@@ -98,7 +98,6 @@ export class PreRegistroComponent {
   pasosCompletados = new Set<number>();
   mostrarAyuda = false;
   mostrarComisionista = false;
-  mostrarBusquedaGiro = false;
   registroTerminado = false;
   archivosInvalidos = false;
   borradorGuardado = false;
@@ -253,13 +252,6 @@ export class PreRegistroComponent {
   readonly ciudades = ['Medellín', 'Bogotá', 'Cali', 'Barranquilla'];
   regimenesFiscales: string[] = [];
   readonly girosComerciales: string[] = [];
-
-  readonly girosSugeridos = [
-    { familia: 'Turismo', descripcion: 'Agencias de viajes', mcc: '4722' },
-    { familia: 'Alimentos', descripcion: 'Restaurantes', mcc: '5812' },
-    { familia: 'Comercio', descripcion: 'Tiendas de ropa', mcc: '5651' },
-    { familia: 'Servicios', descripcion: 'Servicios profesionales', mcc: '8999' },
-  ];
 
   readonly tiposComercioPorNivel: Record<string, string[]> = {
     'Sub Afiliado': ['Empresa Holding'],
@@ -616,8 +608,6 @@ export class PreRegistroComponent {
     emailBanco: ['', [Validators.required, Validators.email]],
   });
 
-  readonly busquedaGiroForm = this.fb.nonNullable.group({ termino: [''], resultado: [''] });
-
   readonly comisionistaForm = this.fb.nonNullable.group({
     tipo: ['existente' as TipoComisionista, Validators.required],
     afiliacion: [''], correo: [''], confirmarCorreo: [''],
@@ -846,14 +836,6 @@ export class PreRegistroComponent {
     return Array.from({ length: sucursales }, (_, sucursalIndex) => {
       return this.crearSucursalArbol(sucursalIndex);
     });
-  }
-
-  get girosFiltrados() {
-    const valor = this.busquedaGiroForm.getRawValue().termino.trim().toLowerCase();
-    if (!valor) return this.girosSugeridos;
-    return this.girosSugeridos.filter(g =>
-      [g.familia, g.descripcion, g.mcc].some(v => v.toLowerCase().includes(valor))
-    );
   }
 
   // ── Navegación ───────────────────────────────────────────────────────────────
@@ -1239,20 +1221,6 @@ export class PreRegistroComponent {
     this.guardarBorradorSilencioso();
   }
 
-  // ── Giro comercial ────────────────────────────────────────────────────────────
-  seleccionarGiro(giro: { mcc: string; descripcion: string }): void {
-    this.busquedaGiroForm.patchValue({ resultado: giro.mcc });
-  }
-
-  guardarGiro(): void {
-    const { resultado } = this.busquedaGiroForm.getRawValue();
-    const giro = this.girosFiltrados.find(g => g.mcc === resultado);
-    if (!giro) return;
-    this.datosForm.patchValue({ descripcionGiro: giro.descripcion, mcc: giro.mcc });
-    this.mostrarBusquedaGiro = false;
-    this.guardarBorradorSilencioso();
-  }
-
   // ── Ayuda / flujo ─────────────────────────────────────────────────────────────
   abrirAyuda(): void { this.mostrarAyuda = true; }
   cerrarAyuda(): void { this.mostrarAyuda = false; }
@@ -1261,7 +1229,7 @@ export class PreRegistroComponent {
     this.pasoActual = 0; this.pasosCompletados.clear();
     this.registroTerminado = false; this.archivosInvalidos = false;
     this.borradorGuardado = false; this.mostrarAyuda = false;
-    this.mostrarComisionista = false; this.mostrarBusquedaGiro = false;
+    this.mostrarComisionista = false;
 
     this.afiliacionForm.reset({ afiliacion: '' });
     this.comercioForm.reset({ nivel: '', tipoComercio: '', afiliacionComisionista: '' });

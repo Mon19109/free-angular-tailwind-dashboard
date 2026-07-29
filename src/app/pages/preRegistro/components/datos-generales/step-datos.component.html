@@ -451,6 +451,12 @@
       </p>
 
       <div class="giro-lista">
+        @if (cargandoGiros) {
+        <div class="giro-item giro-item--empty">Cargando giros comerciales...</div>
+        }
+        @if (errorGiros) {
+        <div class="giro-item giro-item--empty">{{ errorGiros }}</div>
+        }
         @for (giro of girosFiltrados; track giro.mcc) {
         <div class="giro-item" [class.selected]="giroSeleccionado?.mcc === giro.mcc"
           (click)="seleccionarGiroModal(giro)">
@@ -458,11 +464,11 @@
           <span class="giro-item-mcc">MCC: {{ giro.mcc }}</span>
         </div>
         }
-        @if (girosFiltrados.length === 0 && terminoBusqueda.value) {
+        @if (!cargandoGiros && girosFiltrados.length === 0 && (terminoBusqueda.value ?? '').trim().length >= minimoCaracteresBusqueda) {
         <div class="giro-item giro-item--empty">Sin coincidencias</div>
         }
-        @if (!terminoBusqueda.value) {
-        <div class="giro-item giro-item--empty">Escribe al menos una letra para buscar</div>
+        @if (!cargandoGiros && (terminoBusqueda.value ?? '').trim().length < minimoCaracteresBusqueda) {
+        <div class="giro-item giro-item--empty">Escribe al menos una palabra para buscar</div>
         }
       </div>
 

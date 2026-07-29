@@ -1,6 +1,15 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { GiroComercial, PreRegistroService } from '../../../../services/preregistro.service';
+
+interface GiroBusqueda {
+  familia: string;
+  descripcion: string;
+  mcc: string;
+}
 
 @Component({
   selector: 'app-step-datos',
@@ -9,7 +18,10 @@ import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
   templateUrl: './step-datos.component.html',
   styleUrls: ['../../preRegistro.component.css']
 })
-export class StepDatosComponent {
+export class StepDatosComponent implements OnInit {
+  private readonly preRegistroService = inject(PreRegistroService);
+  private readonly destroyRef = inject(DestroyRef);
+
   @Input() form!: FormGroup;
   @Input() campos: string[] = [];
   @Input() regimenesFiscales: string[] = [];
@@ -25,48 +37,96 @@ export class StepDatosComponent {
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
 
   // ── Búsqueda avanzada ──────────────────────────────────────────────────────
+  readonly minimoCaracteresBusqueda = 2;
   mostrarModalGiro = false;
   terminoBusqueda = new FormControl('');
 
   // ← UNA SOLA declaración con el tipo correcto
-  giroSeleccionado: { familia: string; descripcion: string; mcc: string } | null = null;
+  giroSeleccionado: GiroBusqueda | null = null;
+  cargandoGiros = false;
+  errorGiros = '';
 
-  readonly girosAN53: { familia: string; descripcion: string; mcc: string }[] = [
-    { familia: 'Turismo',            descripcion: 'Agencias de Viajes',       mcc: '4722' },
-    { familia: 'Servicios',          descripcion: 'Agencias de Publicidad',    mcc: '7311' },
-    { familia: 'Seguros',            descripcion: 'Agencias de Seguros',       mcc: '6411' },
-    { familia: 'Agropecuario',       descripcion: 'Agricultura y Ganadería',   mcc: '0100' },
-    { familia: 'Alimentos',          descripcion: 'Alimentos y Bebidas',       mcc: '5499' },
-    { familia: 'Construcción',       descripcion: 'Arquitectura e Ingeniería', mcc: '8711' },
-    { familia: 'Automotriz',         descripcion: 'Automotriz',                mcc: '5511' },
-    { familia: 'Comercio',           descripcion: 'Comercio al por Mayor',     mcc: '5099' },
-    { familia: 'Comercio',           descripcion: 'Comercio al por Menor',     mcc: '5999' },
-    { familia: 'Telecomunicaciones', descripcion: 'Comunicaciones',            mcc: '4899' },
-    { familia: 'Construcción',       descripcion: 'Construcción',              mcc: '1520' },
-    { familia: 'Servicios',          descripcion: 'Consultoría Empresarial',   mcc: '7389' },
-    { familia: 'Educación',          descripcion: 'Educación',                 mcc: '8299' },
-    { familia: 'Entretenimiento',    descripcion: 'Entretenimiento',           mcc: '7999' },
-    { familia: 'Salud',              descripcion: 'Farmacéutico',              mcc: '5912' },
-    { familia: 'Turismo',            descripcion: 'Hotelería y Turismo',       mcc: '7011' },
-    { familia: 'Industria',          descripcion: 'Industria Manufacturera',   mcc: '5040' },
-    { familia: 'Tecnología',         descripcion: 'Informática y Tecnología',  mcc: '7372' },
-    { familia: 'Transporte',         descripcion: 'Logística y Transporte',    mcc: '4731' },
-    { familia: 'Salud',              descripcion: 'Médico y Salud',            mcc: '8099' },
-    { familia: 'Alimentos',          descripcion: 'Restaurantes',              mcc: '5812' },
-    { familia: 'Finanzas',           descripcion: 'Servicios Financieros',     mcc: '6199' },
-    { familia: 'Servicios',          descripcion: 'Servicios Profesionales',   mcc: '8999' },
-    { familia: 'Comercio',           descripcion: 'Tiendas de Ropa',           mcc: '5651' },
-  ];
+  girosBusqueda: GiroBusqueda[] = [];
+
+  ngOnInit(): void {
+    this.terminoBusqueda.valueChanges.pipe(
+      debounceTime(350),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(termino => this.buscarGirosComerciales(termino ?? ''));
+  }
 
   // ── Métodos búsqueda avanzada ──────────────────────────────────────────────
-  get girosFiltrados(): { familia: string; descripcion: string; mcc: string }[] {
+  get girosFiltrados(): GiroBusqueda[] {
     const term = (this.terminoBusqueda.value ?? '').trim().toLowerCase();
-    if (!term) return [];
-    return this.girosAN53.filter(g =>
+    if (term.length < this.minimoCaracteresBusqueda) return [];
+    return this.girosBusqueda.filter(g =>
       g.descripcion.toLowerCase().includes(term) ||
       g.familia.toLowerCase().includes(term) ||
       g.mcc.includes(term)
     );
+  }
+
+  buscarGirosComerciales(termino: string): void {
+    const family = termino.trim();
+
+    if (family.length < this.minimoCaracteresBusqueda) {
+      this.cargandoGiros = false;
+      this.errorGiros = '';
+      this.giroSeleccionado = null;
+      this.girosBusqueda = [];
+      return;
+    }
+
+    this.cargandoGiros = true;
+    this.errorGiros = '';
+
+    this.preRegistroService.getGirosByFamily(family).subscribe({
+      next: response => {
+        const giros = this.normalizarGiros(response);
+        this.girosBusqueda = giros;
+        this.cargandoGiros = false;
+      },
+      error: error => {
+        console.error('Error al cargar giros comerciales:', error);
+        this.errorGiros = 'No se pudieron cargar los giros, intenta nuevamente.';
+        this.cargandoGiros = false;
+      }
+    });
+  }
+
+  private normalizarGiros(response: unknown): GiroBusqueda[] {
+    const lista = this.obtenerListaGiros(response);
+
+    return lista.map(giro => ({
+      familia: this.obtenerTexto(giro, ['familia', 'family', 'giro', 'name']),
+      descripcion: this.obtenerTexto(giro, ['descripcion', 'description', 'desGiro', 'actividad', 'label']),
+      mcc: this.obtenerTexto(giro, ['mcc', 'MCC', 'codigoMcc', 'idGiro', 'id'])
+    })).filter(giro => giro.descripcion || giro.familia || giro.mcc);
+  }
+
+  private obtenerListaGiros(response: unknown): GiroComercial[] {
+    if (Array.isArray(response)) return response as GiroComercial[];
+    if (!response || typeof response !== 'object') return [];
+
+    const payload = response as Record<string, unknown>;
+    const posiblesListas = ['rows', 'data', 'giros', 'catGiroResponse', 'result', 'response'];
+
+    for (const key of posiblesListas) {
+      const value = payload[key];
+      if (Array.isArray(value)) return value as GiroComercial[];
+    }
+
+    return [];
+  }
+
+  private obtenerTexto(giro: GiroComercial, keys: string[]): string {
+    for (const key of keys) {
+      const value = giro[key];
+      if (value !== null && value !== undefined) return String(value);
+    }
+
+    return '';
   }
 
   abrirModalGiro(): void {
@@ -79,7 +139,7 @@ export class StepDatosComponent {
     this.mostrarModalGiro = false;
   }
 
-  seleccionarGiroModal(giro: { familia: string; descripcion: string; mcc: string }): void {
+  seleccionarGiroModal(giro: GiroBusqueda): void {
     this.giroSeleccionado = giro;
   }
 
