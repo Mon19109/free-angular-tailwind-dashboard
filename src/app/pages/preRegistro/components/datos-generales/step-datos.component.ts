@@ -5,11 +5,17 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GiroComercial, PreRegistroService } from '../../../../services/preregistro.service';
 import { CodigoPostalLocalizacion } from '../../../../services/localidades.service';
+import { Actividad, ActividadesService } from '../../../../services/actividades.service';
 
 interface GiroBusqueda {
   familia: string;
   descripcion: string;
   mcc: string;
+}
+
+interface ActividadBusqueda {
+  id: string;
+  descripcion: string;
 }
 
 @Component({
@@ -21,6 +27,7 @@ interface GiroBusqueda {
 })
 export class StepDatosComponent implements OnInit {
   private readonly preRegistroService = inject(PreRegistroService);
+  private readonly actividadesService = inject(ActividadesService);
   private readonly destroyRef = inject(DestroyRef);
 
   @Input() form!: FormGroup;
@@ -46,7 +53,9 @@ export class StepDatosComponent implements OnInit {
   // ── Búsqueda avanzada ──────────────────────────────────────────────────────
   readonly minimoCaracteresBusqueda = 2;
   mostrarModalGiro = false;
+  mostrarModalActividad = false;
   terminoBusqueda = new FormControl('');
+  terminoActividad = new FormControl('');
 
   // ← UNA SOLA declaración con el tipo correcto
   giroSeleccionado: GiroBusqueda | null = null;
@@ -54,6 +63,10 @@ export class StepDatosComponent implements OnInit {
   errorGiros = '';
 
   girosBusqueda: GiroBusqueda[] = [];
+  actividadesBusqueda: ActividadBusqueda[] = [];
+  actividadSeleccionada: ActividadBusqueda | null = null;
+  cargandoActividades = false;
+  errorActividades = '';
 
   ngOnInit(): void {
     this.terminoBusqueda.valueChanges.pipe(
@@ -74,7 +87,32 @@ export class StepDatosComponent implements OnInit {
     );
   }
 
+  get esPersonaFisica(): boolean {
+    return this.form.get('tipoPersona')?.value === 'PF';
+  }
+
+  get esPersonaMoral(): boolean {
+    return this.form.get('tipoPersona')?.value === 'PM';
+  }
+
+  get actividadesFiltradas(): ActividadBusqueda[] {
+    const term = (this.terminoActividad.value ?? '').trim().toLowerCase();
+    if (term.length < this.minimoCaracteresBusqueda) return [];
+    return this.actividadesBusqueda.filter(actividad =>
+      actividad.descripcion.toLowerCase().includes(term) ||
+      actividad.id.toLowerCase().includes(term)
+    );
+  }
+
   buscarGirosComerciales(termino: string): void {
+    if (!this.esPersonaMoral) {
+      this.cargandoGiros = false;
+      this.errorGiros = '';
+      this.giroSeleccionado = null;
+      this.girosBusqueda = [];
+      return;
+    }
+
     const family = termino.trim();
 
     if (family.length < this.minimoCaracteresBusqueda) {
@@ -137,6 +175,7 @@ export class StepDatosComponent implements OnInit {
   }
 
   abrirModalGiro(): void {
+    if (!this.esPersonaMoral) return;
     this.terminoBusqueda.setValue('');
     this.giroSeleccionado = null;
     this.mostrarModalGiro = true;
@@ -158,6 +197,56 @@ export class StepDatosComponent implements OnInit {
       mcc:             this.giroSeleccionado.mcc,
     });
     this.mostrarModalGiro = false;
+  }
+
+  abrirModalActividad(): void {
+    if (!this.esPersonaFisica) return;
+    this.terminoActividad.setValue('');
+    this.actividadSeleccionada = null;
+    this.mostrarModalActividad = true;
+    if (this.actividadesBusqueda.length === 0) this.cargarActividades();
+  }
+
+  cerrarModalActividad(): void {
+    this.mostrarModalActividad = false;
+  }
+
+  seleccionarActividadModal(actividad: ActividadBusqueda): void {
+    this.actividadSeleccionada = actividad;
+  }
+
+  guardarActividadModal(): void {
+    if (!this.actividadSeleccionada) return;
+    this.form.patchValue({
+      actividad: this.actividadSeleccionada.descripcion,
+      actividadId: this.actividadSeleccionada.id,
+    });
+    this.mostrarModalActividad = false;
+  }
+
+  private cargarActividades(): void {
+    this.cargandoActividades = true;
+    this.errorActividades = '';
+
+    this.actividadesService.getActividades().subscribe({
+      next: response => {
+        console.log('[Actividades getActividades response]:', response);
+        this.actividadesBusqueda = this.normalizarActividades(response);
+        this.cargandoActividades = false;
+      },
+      error: error => {
+        console.error('Error al cargar actividades:', error);
+        this.errorActividades = 'No se pudieron cargar las actividades, intenta nuevamente.';
+        this.cargandoActividades = false;
+      }
+    });
+  }
+
+  private normalizarActividades(actividades: Actividad[]): ActividadBusqueda[] {
+    return actividades.map(actividad => ({
+      id: this.obtenerTexto(actividad, ['idcat_actividades', 'idActivity', 'id', 'code']),
+      descripcion: this.obtenerTexto(actividad, ['descripcion', 'description', 'actividad', 'activity', 'nombre', 'name', 'label']),
+    })).filter(actividad => actividad.descripcion || actividad.id);
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

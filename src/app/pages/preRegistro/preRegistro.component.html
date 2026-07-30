@@ -72,6 +72,12 @@
         </div>
       </div>
 
+      @if (errorEnvioPreRegistro) {
+      <div class="alert-error" role="alert">
+        {{ errorEnvioPreRegistro }}
+      </div>
+      }
+
       <!-- Stepper -->
       <nav class="stepper" aria-label="Progreso del preregistro">
         @for (paso of pasosVisibles; track paso.numero; let i = $index; let last = $last) {

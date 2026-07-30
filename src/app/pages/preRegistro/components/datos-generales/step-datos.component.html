@@ -17,6 +17,23 @@
     </div>
     @if (!infoFiscalEntidadActiva) {
     <div class="form-grid cols-2">
+      @if (tiene('tipoPersona')) {
+      <div class="field span-2">
+        <span class="field-label">Seleccione el tipo de cliente para el registro <b>*</b></span>
+        <div class="person-type-radios" [class.invalid]="esInvalido('tipoPersona')" role="radiogroup" aria-label="Tipo de cliente para el registro">
+          <label>
+            <input type="radio" formControlName="tipoPersona" value="PF" />
+            Persona Fisica
+          </label>
+          <label>
+            <input type="radio" formControlName="tipoPersona" value="PM" />
+            Persona Moral
+          </label>
+        </div>
+        @if (esInvalido('tipoPersona')) { <small>Debes seleccionar una opción.</small> }
+      </div>
+      }
+
       @if (tiene('rfc')) {
       <div class="field">
         <label for="rfc">RFC <b>*</b></label>
@@ -24,11 +41,39 @@
         @if (esInvalido('rfc')) { <small>Debes llenar este campo.</small> }
       </div>
       }
-      @if (tiene('razonSocial')) {
+      @if (tiene('razonSocial') && esPersonaMoral) {
       <div class="field">
         <label for="razonSocial">Razón social <b>*</b></label>
         <input id="razonSocial" formControlName="razonSocial" [class.invalid]="esInvalido('razonSocial')" />
         @if (esInvalido('razonSocial')) { <small>Debes llenar este campo.</small> }
+      </div>
+      }
+      @if (tiene('nombre') && esPersonaFisica) {
+      <div class="field">
+        <label for="nombre">Nombre(s) <b>*</b></label>
+        <input id="nombre" formControlName="nombre" [class.invalid]="esInvalido('nombre')" />
+        @if (esInvalido('nombre')) { <small>Debes llenar este campo.</small> }
+      </div>
+      }
+      @if (tiene('apellidoPaterno') && esPersonaFisica) {
+      <div class="field">
+        <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
+        <input id="apellidoPaterno" formControlName="apellidoPaterno" [class.invalid]="esInvalido('apellidoPaterno')" />
+        @if (esInvalido('apellidoPaterno')) { <small>Debes llenar este campo.</small> }
+      </div>
+      }
+      @if (tiene('apellidoMaterno') && esPersonaFisica) {
+      <div class="field">
+        <label for="apellidoMaterno">Apellido materno <b>*</b></label>
+        <input id="apellidoMaterno" formControlName="apellidoMaterno" [class.invalid]="esInvalido('apellidoMaterno')" />
+        @if (esInvalido('apellidoMaterno')) { <small>Debes llenar este campo.</small> }
+      </div>
+      }
+      @if (tiene('curp') && esPersonaFisica) {
+      <div class="field">
+        <label for="curp">CURP <b>*</b></label>
+        <input id="curp" formControlName="curp" [class.invalid]="esInvalido('curp')" />
+        @if (esInvalido('curp')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('nombreComercial')) {
@@ -48,24 +93,17 @@
         @if (esInvalido('regimenFiscal')) { <small>Debes llenar este campo.</small> }
       </div>
       }
-      @if (tiene('tipoPersona')) {
-      <div class="field span-2">
-        <span class="field-label">Tipo de persona <b>*</b></span>
-        <div class="person-type-radios" [class.invalid]="esInvalido('tipoPersona')" role="radiogroup" aria-label="Tipo de persona">
-          <label>
-            <input type="radio" formControlName="tipoPersona" value="PF" />
-            Persona Fisica
-          </label>
-          <label>
-            <input type="radio" formControlName="tipoPersona" value="PM" />
-            Persona Moral
-          </label>
-        </div>
-        @if (esInvalido('tipoPersona')) { <small>Debes seleccionar una opción.</small> }
+
+      @if (tiene('actividad') && esPersonaFisica) {
+      <div class="field">
+        <label for="actividad">Actividad <b>*</b></label>
+        <input id="actividad" formControlName="actividad" readonly placeholder="Selecciona una actividad"
+          (click)="abrirModalActividad()" (focus)="abrirModalActividad()" [class.invalid]="esInvalido('actividad')" />
+        @if (esInvalido('actividad')) { <small>Debes llenar este campo.</small> }
       </div>
       }
 
-      @if (tiene('giroComercial')) {
+      @if (tiene('giroComercial') && esPersonaMoral) {
       <div class="field">
         <label for="giroComercial">Familia del giro <b>*</b></label>
         <input id="giroComercial" formControlName="giroComercial" placeholder="Escribe la familia o usa Búsqueda Avanzada"
@@ -74,7 +112,7 @@
       </div>
       }
 
-      @if (tiene('descripcionGiro')) {
+      @if (tiene('descripcionGiro') && esPersonaMoral) {
       <div class="field">
         <label for="descripcionGiro">Descripción del giro <b>*</b></label>
         <input id="descripcionGiro" formControlName="descripcionGiro" [class.invalid]="esInvalido('descripcionGiro')" />
@@ -82,7 +120,7 @@
       </div>
       }
 
-      @if (tiene('mcc')) {
+      @if (tiene('mcc') && esPersonaMoral) {
       <div class="field">
         <label for="mcc">MCC <b>*</b></label>
         <input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('mcc')" />
@@ -90,7 +128,7 @@
       </div>
       }
 
-      @if (tiene('descripcionGiro')) {
+      @if (tiene('descripcionGiro') && esPersonaMoral) {
       <div class="field field-btn-avanzada">
         <span class="label-spacer"></span>
         <button type="button" class="btn-busqueda-avanzada" (click)="abrirModalGiro()">
@@ -99,41 +137,6 @@
       </div>
       }
 
-      @if (tiene('nombre')) {
-      <div class="field">
-        <label for="nombre">Nombre <b>*</b></label>
-        <input id="nombre" formControlName="nombre" [class.invalid]="esInvalido('nombre')" />
-        @if (esInvalido('nombre')) { <small>Debes llenar este campo.</small> }
-      </div>
-      }
-      @if (tiene('apellidoPaterno')) {
-      <div class="field">
-        <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
-        <input id="apellidoPaterno" formControlName="apellidoPaterno" [class.invalid]="esInvalido('apellidoPaterno')" />
-        @if (esInvalido('apellidoPaterno')) { <small>Debes llenar este campo.</small> }
-      </div>
-      }
-      @if (tiene('apellidoMaterno')) {
-      <div class="field">
-        <label for="apellidoMaterno">Apellido materno <b>*</b></label>
-        <input id="apellidoMaterno" formControlName="apellidoMaterno" [class.invalid]="esInvalido('apellidoMaterno')" />
-        @if (esInvalido('apellidoMaterno')) { <small>Debes llenar este campo.</small> }
-      </div>
-      }
-      @if (tiene('curp')) {
-      <div class="field">
-        <label for="curp">CURP <b>*</b></label>
-        <input id="curp" formControlName="curp" [class.invalid]="esInvalido('curp')" />
-        @if (esInvalido('curp')) { <small>Debes llenar este campo.</small> }
-      </div>
-      }
-      @if (tiene('actividad')) {
-      <div class="field">
-        <label for="actividad">Actividad <b>*</b></label>
-        <input id="actividad" formControlName="actividad" [class.invalid]="esInvalido('actividad')" />
-        @if (esInvalido('actividad')) { <small>Debes llenar este campo.</small> }
-      </div>
-      }
       @if (tiene('correo')) {
       <div class="field">
         <label for="correo">Correo electrónico <b>*</b></label>
@@ -447,6 +450,21 @@
       <h3>Contacto Comercial</h3>
     </div>
     <div class="form-grid cols-3">
+      <div class="field"><label for="nombreContactoComercial">Nombre(s) <b>*</b></label>
+        <input id="nombreContactoComercial" formControlName="nombreContactoComercial"
+          [class.invalid]="esInvalido('nombreContactoComercial')">
+        @if (esInvalido('nombreContactoComercial')) { <small>Debes llenar este campo.</small> }
+      </div>
+      <div class="field"><label for="apellidoPaternoContactoComercial">Apellido paterno <b>*</b></label>
+        <input id="apellidoPaternoContactoComercial" formControlName="apellidoPaternoContactoComercial"
+          [class.invalid]="esInvalido('apellidoPaternoContactoComercial')">
+        @if (esInvalido('apellidoPaternoContactoComercial')) { <small>Debes llenar este campo.</small> }
+      </div>
+      <div class="field"><label for="apellidoMaternoContactoComercial">Apellido materno <b>*</b></label>
+        <input id="apellidoMaternoContactoComercial" formControlName="apellidoMaternoContactoComercial"
+          [class.invalid]="esInvalido('apellidoMaternoContactoComercial')">
+        @if (esInvalido('apellidoMaternoContactoComercial')) { <small>Debes llenar este campo.</small> }
+      </div>
       <div class="field"><label for="correoComercial">Correo Electrónico <b>*</b></label>
         <input id="correoComercial" type="email" formControlName="correoComercial"
           [class.invalid]="esInvalido('correoComercial')">
@@ -517,6 +535,58 @@
           CANCELAR
         </button>
         <button type="button" class="button primary" [disabled]="!giroSeleccionado" (click)="guardarGiroModal()">
+          GUARDAR
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+
+  @if (mostrarModalActividad) {
+  <div class="modal-backdrop giro-backdrop" (click)="cerrarModalActividad()">
+    <div class="modal-card giro-modal-card" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" (click)="cerrarModalActividad()">✕</button>
+
+      <p class="giro-modal-instruccion">
+        Ingresa palabras para buscar la actividad:
+      </p>
+
+      <div class="giro-search-row">
+        <input type="text" class="giro-search-input" placeholder="Escribe para buscar..."
+          [formControl]="terminoActividad" />
+      </div>
+
+      <p class="giro-modal-sub">
+        Selecciona en el siguiente listado de coincidencias, la actividad:
+      </p>
+
+      <div class="giro-lista">
+        @if (cargandoActividades) {
+        <div class="giro-item giro-item--empty">Cargando actividades...</div>
+        }
+        @if (errorActividades) {
+        <div class="giro-item giro-item--empty">{{ errorActividades }}</div>
+        }
+        @for (actividad of actividadesFiltradas; track actividad.id || actividad.descripcion) {
+        <div class="giro-item" [class.selected]="actividadSeleccionada?.id === actividad.id && actividadSeleccionada?.descripcion === actividad.descripcion"
+          (click)="seleccionarActividadModal(actividad)">
+          <span class="giro-item-desc">{{ actividad.descripcion }}</span>
+          @if (actividad.id) { <span class="giro-item-mcc">ID: {{ actividad.id }}</span> }
+        </div>
+        }
+        @if (!cargandoActividades && actividadesFiltradas.length === 0 && (terminoActividad.value ?? '').trim().length >= minimoCaracteresBusqueda) {
+        <div class="giro-item giro-item--empty">Sin coincidencias</div>
+        }
+        @if (!cargandoActividades && (terminoActividad.value ?? '').trim().length < minimoCaracteresBusqueda) {
+        <div class="giro-item giro-item--empty">Escribe al menos una palabra para buscar</div>
+        }
+      </div>
+
+      <div class="step-actions">
+        <button type="button" class="button ghost" (click)="cerrarModalActividad()">
+          CANCELAR
+        </button>
+        <button type="button" class="button primary" [disabled]="!actividadSeleccionada" (click)="guardarActividadModal()">
           GUARDAR
         </button>
       </div>

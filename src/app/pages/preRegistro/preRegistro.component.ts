@@ -109,6 +109,7 @@ export class PreRegistroComponent {
   registroTerminado = false;
   archivosInvalidos = false;
   borradorGuardado = false;
+  errorEnvioPreRegistro = '';
   tipoPersonaBeneficiario: TipoPersonaBeneficiario = 'fisica';
   datosBeneficiarioIgualComercio = false;
   modoReservaActual: ModoReserva = 'NINGUNO';
@@ -274,16 +275,16 @@ export class PreRegistroComponent {
   };
 
   readonly datosGeneralesPorTipo: Record<string, string[]> = {
-    'Empresa Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Persona Física': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Empresa Holding': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursales de Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursal Persona Física': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursales Únicas': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Empresa Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Persona Física': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Empresa Holding': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursales de Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursal Persona Física': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursales Únicas': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Caja con Tarjeta sólo Fondeo': [], 'Caja con Tarjeta SPEI': [],
     'Cuenta Entidad': [], 'Cuenta Terminal': [], 'Cuenta Terminal Pin Rapido': [],
-    'Referenciador': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Comisionista': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Referenciador': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Comisionista': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
 
   };
 
@@ -437,7 +438,7 @@ export class PreRegistroComponent {
     razonSocial: [''], nombreComercial: [''], rfc: [''],
     regimenFiscal: [''], giroComercial: [''], descripcionGiro: [''], mcc: [''],
     mismaInfoFiscalEntidad: [false],
-    nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''],
+    nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''], actividadId: [''],
     tipoPersona: ['', Validators.required],
     correo: ['', [Validators.required, Validators.email]],
     telefono: ['', [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)]],
@@ -474,6 +475,9 @@ export class PreRegistroComponent {
     yCalleComercial: [''],
 
     correoComercial: ['', [Validators.required, Validators.email]],
+    nombreContactoComercial: ['', Validators.required],
+    apellidoPaternoContactoComercial: ['', Validators.required],
+    apellidoMaternoContactoComercial: ['', Validators.required],
     telefonoComercial: ['', [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)]],
     telefonoAdicionalComercial: [''],
 
@@ -577,11 +581,55 @@ export class PreRegistroComponent {
     telRep?.setValidators(mostrarRep ? [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)] : []);
     telRep?.updateValueAndValidity({ emitEvent: false });
 
+    this.actualizarValidadoresActividadYGiro();
+
     if (this.pasoGeneralesDebeSaltarse && this.liquidacionForm.controls.beneficiarioIgualComercio.value) {
       this.liquidacionForm.controls.beneficiarioIgualComercio.setValue(false, { emitEvent: false });
       this.actualizarEstadoLiquidacion(false);
     }
 
+  }
+
+  private actualizarValidadoresActividadYGiro(): void {
+    const tipoPersona = this.datosForm.controls.tipoPersona.value;
+    const esPersonaFisica = tipoPersona === 'PF';
+    const esPersonaMoral = tipoPersona === 'PM';
+
+    ['giroComercial', 'descripcionGiro', 'mcc'].forEach(nombre => {
+      const control = this.datosForm.get(nombre);
+      if (!control) return;
+      const obligatorio = esPersonaMoral && this.camposDatosGenerales.includes(nombre);
+      control.setValidators(obligatorio ? [Validators.required] : []);
+      if (!esPersonaMoral) control.setValue('', { emitEvent: false });
+      control.updateValueAndValidity({ emitEvent: false });
+    });
+
+    const actividad = this.datosForm.controls.actividad;
+    const actividadId = this.datosForm.controls.actividadId;
+    const actividadObligatoria = esPersonaFisica && this.camposDatosGenerales.includes('actividad');
+    actividad.setValidators(actividadObligatoria ? [Validators.required] : []);
+    actividadId.setValidators(actividadObligatoria ? [Validators.required] : []);
+    if (!esPersonaFisica) {
+      actividad.setValue('', { emitEvent: false });
+      actividadId.setValue('', { emitEvent: false });
+    }
+    actividad.updateValueAndValidity({ emitEvent: false });
+    actividadId.updateValueAndValidity({ emitEvent: false });
+
+    ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp'].forEach(nombre => {
+      const control = this.datosForm.get(nombre);
+      if (!control) return;
+      const obligatorio = esPersonaFisica && this.camposDatosGenerales.includes(nombre);
+      control.setValidators(obligatorio ? [Validators.required] : []);
+      if (!esPersonaFisica) control.setValue('', { emitEvent: false });
+      control.updateValueAndValidity({ emitEvent: false });
+    });
+
+    const razonSocial = this.datosForm.controls.razonSocial;
+    const razonSocialObligatoria = esPersonaMoral && this.camposDatosGenerales.includes('razonSocial');
+    razonSocial.setValidators(razonSocialObligatoria ? [Validators.required] : []);
+    if (!esPersonaMoral) razonSocial.setValue('', { emitEvent: false });
+    razonSocial.updateValueAndValidity({ emitEvent: false });
   }
 
   readonly accesosForm = this.fb.nonNullable.group({
@@ -665,6 +713,10 @@ export class PreRegistroComponent {
     const sincronizar = () => { if (this.datosBeneficiarioIgualComercio) this.sincronizarBeneficiarioDesdeComercio(); };
     this.comercioForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(sincronizar);
     this.datosForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(sincronizar);
+
+    this.datosForm.controls.tipoPersona.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.actualizarValidadoresDatos());
 
     this.datosForm.controls.codigoPostal.valueChanges
       .pipe(
@@ -1227,6 +1279,7 @@ export class PreRegistroComponent {
   }
 
   finalizarRegistro(): void {
+    this.errorEnvioPreRegistro = '';
     const pasoInvalido = this.primerPasoInvalido();
     if (pasoInvalido !== null) { this.pasoActual = pasoInvalido; this.registroTerminado = false; return; }
     const faltantes = this.documentosVisibles.filter(d => d.obligatorio && !d.archivo);
@@ -1246,12 +1299,9 @@ export class PreRegistroComponent {
         return;
       }
     }
-    this.marcarPasoCompletado(5);
-    this.registroTerminado = true;
     const payload = this.imprimirPayloadPreRegistro();
     this.enviarPreRegistroCompleto(payload);
     this.guardarBorradorSilencioso();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   private imprimirPayloadPreRegistro(): { entitys: Array<{ branchOficces: any[] }> } {
@@ -1271,11 +1321,38 @@ export class PreRegistroComponent {
     this.preregistroCompletoService.enviarPreRegistro(payload).subscribe({
       next: response => {
         console.log('[PreRegistro completo response]:', response);
+        this.marcarPasoCompletado(5);
+        this.registroTerminado = true;
+        this.errorEnvioPreRegistro = '';
+        this.guardarBorradorSilencioso();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       },
       error: error => {
         console.error('[PreRegistro completo error]:', error);
+        this.registroTerminado = false;
+        this.errorEnvioPreRegistro = this.obtenerMensajeErrorPreRegistro(error);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
+  }
+
+  private obtenerMensajeErrorPreRegistro(error: unknown): string {
+    const fallback = 'No se pudo enviar el preregistro. Revisa la información e intenta nuevamente.';
+    if (!error || typeof error !== 'object') return fallback;
+
+    const response = error as { error?: unknown; message?: unknown };
+    const body = response.error;
+    if (body && typeof body === 'object') {
+      const payload = body as Record<string, unknown>;
+      const nested = payload['error'];
+      if (nested && typeof nested === 'object') {
+        const nestedPayload = nested as Record<string, unknown>;
+        if (nestedPayload['message']) return String(nestedPayload['message']);
+      }
+      if (payload['message']) return String(payload['message']);
+    }
+
+    return response.message ? String(response.message) : fallback;
   }
 
   private construirPayloadPreRegistro(): { entitys: Array<{ branchOficces: any[] }> } {
@@ -1296,7 +1373,7 @@ export class PreRegistroComponent {
               nameCommerce: this.valorTexto(datos['nombreComercial']) || this.valorTexto(datos['razonSocial']),
               businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
               idBussinesLine: this.valorNumero(datos['mcc']),
-              idActivity: 0,
+              idActivity: this.valorNumero(datos['actividadId']),
               email: this.valorTexto(accesos['adminCorreo']),
               password: this.valorTexto(accesos['pinContrasena']),
               name: this.valorTexto(accesos['adminNombre']),
@@ -1322,9 +1399,9 @@ export class PreRegistroComponent {
               contacts: [
                 {
                   type: 1,
-                  name: this.valorTexto(datos['nombreRepresentante']) || this.valorTexto(datos['nombre']),
-                  paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']) || this.valorTexto(datos['apellidoPaterno']),
-                  maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']) || this.valorTexto(datos['apellidoMaterno']),
+                  name: this.valorTexto(datos['nombreRepresentante']) || this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(datos['nombre']),
+                  paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']) || this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(datos['apellidoPaterno']),
+                  maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']) || this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(datos['apellidoMaterno']),
                   phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']),
                   additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']) || this.valorTexto(datos['telefonoAdicionalComercial']),
                   email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']),
@@ -1567,7 +1644,7 @@ export class PreRegistroComponent {
     this.arbolNegocioForm.reset({ numeroEntidades: '1', numeroSucursales: '1', numeroCajas: '1', ubicacionSeleccionada: '', nivelSeleccionado: '', sucursalesPorEntidad: '', cajasPorSucursal: '', nombresArbol: '', nodosColapsados: '', nodosCompletados: '', nodoSeleccionado: '', datosPorSucursal: '', comercioPorNodo: '', accesosPorSucursal: '' });
     this.tipoNegocioSeleccionado = undefined;
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
-    this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '' });
+    this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', actividadId: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '', nombreContactoComercial: '', apellidoPaternoContactoComercial: '', apellidoMaternoContactoComercial: '' });
     this.accesosForm.reset({ modoReserva: 'NINGUNO', cajasTPV: '1', tieneSupervisor: 'si', reservaSplit: '', adminNombre: '', adminPaterno: '', adminMaterno: '', adminCorreo: '', adminConfirmarCorreo: '', adminTelefono: '', perfilReservaNombre: '', perfilReservaPaterno: '', perfilReservaMaterno: '', perfilReservaCorreo: '', perfilReservaConfirmarCorreo: '', perfilReservaTelefono: '', pinAdministrador: '', pinCorreo: '', pinConfirmarCorreo: '', pinContrasena: '' });
     this.liquidacionForm.reset({ cuentaFueraRed: 'no', digitoVerificador: '', tipoPersonaBeneficiario: 'fisica', beneficiarioIgualComercio: false, nombreBeneficiario: '', apellidoPaternoBeneficiario: '', apellidoMaternoBeneficiario: '', correoBeneficiario: '', direccionBeneficiario: '', rfcBeneficiario: '', actividadBeneficiario: '', giroBeneficiario: '', tipoCuenta: '', cuentaClabe: '', nombreBanco: '', direccionBanco: '', telefonoBanco: '', emailBanco: '' });
     this.documentos.forEach(d => { d.archivo = undefined; d.archivoNombre = undefined; });
@@ -1787,12 +1864,18 @@ export class PreRegistroComponent {
   }
 
   private datosNodoCompletos(id: string, tipoComercio: string): boolean {
-    const camposRequeridos = (this.datosGeneralesPorTipo[tipoComercio] ?? [])
-      .filter(campo => !this.camposDinamicosOpcionales.includes(campo));
-    if (!camposRequeridos.length) return true;
-
     const datos = this.obtenerDatosPorSucursal()[id];
     if (!datos) return false;
+
+    const tipoPersona = `${datos['tipoPersona'] || ''}`;
+    const camposRequeridos = (this.datosGeneralesPorTipo[tipoComercio] ?? [])
+      .filter(campo => !this.camposDinamicosOpcionales.includes(campo))
+      .filter(campo => {
+        if (tipoPersona === 'PF') return !['razonSocial', 'giroComercial', 'descripcionGiro', 'mcc'].includes(campo);
+        if (tipoPersona === 'PM') return !['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad'].includes(campo);
+        return true;
+      });
+    if (!camposRequeridos.length) return true;
 
     const camposComerciales = [
       'codigoPostalComercial',
@@ -1802,11 +1885,18 @@ export class PreRegistroComponent {
       'localidadComercial',
       'municipioComercial',
       'entidadFederativaComercial',
+      'nombreContactoComercial',
+      'apellidoPaternoContactoComercial',
+      'apellidoMaternoContactoComercial',
       'correoComercial',
       'telefonoComercial',
     ];
 
-    return [...camposRequeridos, ...camposComerciales]
+    const camposRequeridosFinales = tipoPersona === 'PF'
+      ? [...camposRequeridos, 'actividadId']
+      : camposRequeridos;
+
+    return [...camposRequeridosFinales, ...camposComerciales]
       .every(campo => `${datos[campo] || ''}`.trim().length > 0);
   }
 
