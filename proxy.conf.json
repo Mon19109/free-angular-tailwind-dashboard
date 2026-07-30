@@ -11,6 +11,14 @@
     "changeOrigin": true,
     "logLevel": "debug"
   },
+"/KashpayCoreAPI": {
+    "target": "http://10.15.5.160",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+
+
   "/OrderReceiver": {
     "target": "http://10.15.5.160",
     "secure": false,

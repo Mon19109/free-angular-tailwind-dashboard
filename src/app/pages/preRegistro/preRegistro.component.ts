@@ -163,7 +163,7 @@ export class PreRegistroComponent {
   readonly niveles = ['Sub Afiliado', 'Entidad', 'Sucursal', 'Caja', 'Referenciador', 'Comisionista'];
   readonly modosReserva: ModoReserva[] = ['NINGUNO', 'MANUAL', 'TRANSACCIONAL', 'AUTOMÁTICO', 'COMPLETO'];
   readonly tiposCuenta = ['CLABE', 'SPEI', 'Tarjeta'];
-  readonly tiposPersona = ['Jurídica', 'Natural'];
+  readonly tiposPersona = ['PF', 'PM'];
   private readonly bancosPorClaveClabe: Record<string, string> = {
     '002': 'BANAMEX',
     '006': 'BANCOMEXT',
@@ -274,16 +274,16 @@ export class PreRegistroComponent {
   };
 
   readonly datosGeneralesPorTipo: Record<string, string[]> = {
-    'Empresa Grupo': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Persona Física': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Empresa Holding': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursales de Grupo': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursal Persona Física': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursales Únicas': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Empresa Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Persona Física': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Empresa Holding': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursales de Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursal Persona Física': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursales Únicas': ['tipoPersona', 'rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Caja con Tarjeta sólo Fondeo': [], 'Caja con Tarjeta SPEI': [],
     'Cuenta Entidad': [], 'Cuenta Terminal': [], 'Cuenta Terminal Pin Rapido': [],
-    'Referenciador': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Comisionista': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Referenciador': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Comisionista': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
 
   };
 
@@ -1004,7 +1004,7 @@ export class PreRegistroComponent {
     this.comercioForm.patchValue({
       nivel,
       tipoComercio: comercioGuardado?.tipoComercio
-        || (this.esComercioUnico && nodo.nivel !== 'caja' ? this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas' : ''),
+        || this.tipoComercioAutomaticoPorNodo(nodo),
     }, { emitEvent: false });
     this.comercioForm.controls.tipoComercio.setValidators([Validators.required]);
     this.comercioForm.controls.tipoComercio.updateValueAndValidity({ emitEvent: false });
@@ -1097,7 +1097,11 @@ export class PreRegistroComponent {
           nodoSeleccionado: primerNodo?.id || 'sucursal-1',
         }, { emitEvent: false });
         if (primerNodo) this.aplicarComercioPorNodo(primerNodo);
-        this.irAlPaso(1);
+        this.guardarComercioAutomaticoComercioUnico();
+        this.marcarPasoCompletado(1);
+        this.guardarBorradorSilencioso();
+        if (primerNodo) this.cargarDatosSucursal(primerNodo.id);
+        this.irAlPaso(2);
         return;
       }
       this.irAlPaso(7);
@@ -1293,12 +1297,12 @@ export class PreRegistroComponent {
               businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
               idBussinesLine: this.valorNumero(datos['mcc']),
               idActivity: 0,
-              email: this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']),
+              email: this.valorTexto(accesos['adminCorreo']),
               password: this.valorTexto(accesos['pinContrasena']),
-              name: this.valorTexto(datos['nombreRepresentante']) || this.valorTexto(datos['nombre']),
-              paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']) || this.valorTexto(datos['apellidoPaterno']),
-              maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']) || this.valorTexto(datos['apellidoMaterno']),
-              phoneNumber: this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']),
+              name: this.valorTexto(accesos['adminNombre']),
+              paternalSurname: this.valorTexto(accesos['adminPaterno']),
+              maternalSurname: this.valorTexto(accesos['adminMaterno']),
+              phoneNumber: this.valorTexto(accesos['adminTelefono']),
               rfc: this.valorTexto(datos['rfc']),
               curp: this.valorTexto(datos['curp']),
               fiscalRegime: this.codigoRegimenFiscal(datos['regimenFiscal']),
@@ -1318,12 +1322,12 @@ export class PreRegistroComponent {
               contacts: [
                 {
                   type: 1,
-                  name: this.valorTexto(datos['nombreRepresentante']) || this.valorTexto(accesos['adminNombre']),
-                  paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']) || this.valorTexto(accesos['adminPaterno']),
-                  maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']) || this.valorTexto(accesos['adminMaterno']),
-                  phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(accesos['adminTelefono']),
-                  additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']),
-                  email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(accesos['adminCorreo']),
+                  name: this.valorTexto(datos['nombreRepresentante']) || this.valorTexto(datos['nombre']),
+                  paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']) || this.valorTexto(datos['apellidoPaterno']),
+                  maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']) || this.valorTexto(datos['apellidoMaterno']),
+                  phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']),
+                  additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']) || this.valorTexto(datos['telefonoAdicionalComercial']),
+                  email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']),
                   address: null,
                 },
               ],
@@ -1381,9 +1385,9 @@ export class PreRegistroComponent {
         paternalSurname: 'ND',
         maternalSurname: 'ND',
         password: this.valorTexto(accesos['pinContrasena']),
-        liquidationLevel: this.valorTexto(accesos['liquidationLevel']),
-        dispersionAccount: this.valorTexto(accesos['dispersionAccount']),
-        isAliasUser: Boolean(accesos['isAliasUser']),
+        liquidationLevel: '0',
+        dispersionAccount: 'CONC_ADQUI',
+        isAliasUser: true,
         typeOfBusiness: 13,
       };
     });
@@ -1468,11 +1472,11 @@ export class PreRegistroComponent {
   }
 
   private primerNodoPendienteArbol(): NodoArbolNegocio | undefined {
-    return this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => !this.nodoArbolCompletado(nodo.id));
+    return this.nodosCapturablesParaFlujo().find(nodo => !this.nodoArbolCompletado(nodo.id));
   }
 
   private hayNodoSiguienteArbol(): boolean {
-    const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard);
+    const nodos = this.nodosCapturablesParaFlujo();
     const actualId = this.arbolNegocioForm.controls.nodoSeleccionado.value || nodos[0]?.id || 'sucursal-1';
     const actualIndex = nodos.findIndex(nodo => nodo.id === actualId);
     return actualIndex >= 0 && actualIndex < nodos.length - 1;
@@ -1753,6 +1757,11 @@ export class PreRegistroComponent {
     return this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.nivel !== 'caja');
   }
 
+  private nodosCapturablesParaFlujo(): NodoArbolNegocio[] {
+    const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard);
+    return this.esComercioUnico ? nodos.filter(nodo => nodo.nivel !== 'caja') : nodos;
+  }
+
   private configurarArbolPorTipo(tipo: TipoNegocio): void {
     const config = this.configuracionArbol;
     this.arbolNegocioForm.patchValue({
@@ -1915,6 +1924,22 @@ export class PreRegistroComponent {
     this.arbolNegocioForm.controls.comercioPorNodo.setValue(JSON.stringify(comercio), { emitEvent: false });
   }
 
+  private guardarComercioAutomaticoComercioUnico(): void {
+    if (!this.esComercioUnico) return;
+    const comercio = this.obtenerComercioPorNodo();
+
+    this.aplanarArbolNegocio(this.arbolNegocioWizard).forEach(nodo => {
+      const nivel = this.nivelClientePorNodo(nodo);
+      comercio[nodo.id] = {
+        nivel,
+        tipoComercio: this.tipoComercioAutomaticoPorNodo(nodo),
+        afiliacionComisionista: this.comercioForm.controls.afiliacionComisionista.value,
+      };
+    });
+
+    this.arbolNegocioForm.controls.comercioPorNodo.setValue(JSON.stringify(comercio), { emitEvent: false });
+  }
+
   private obtenerComercioPorNodo(): Record<string, { nivel: string; tipoComercio: string; afiliacionComisionista: string }> {
     try {
       const parsed = JSON.parse(this.arbolNegocioForm.controls.comercioPorNodo.value || '{}');
@@ -1929,6 +1954,13 @@ export class PreRegistroComponent {
     if (nodo.nivel === 'entidad') return 'Entidad';
     if (nodo.nivel === 'sucursal') return 'Sucursal';
     return 'Caja';
+  }
+
+  private tipoComercioAutomaticoPorNodo(nodo: NodoArbolNegocio): string {
+    if (!this.esComercioUnico) return '';
+    return nodo.nivel === 'caja'
+      ? 'Cuenta Terminal Pin Rapido'
+      : this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas';
   }
 
   private copiarInfoFiscalDesdeEntidad(): void {
@@ -2039,7 +2071,7 @@ export class PreRegistroComponent {
   }
 
   private avanzarASiguienteSucursal(): boolean {
-    const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard);
+    const nodos = this.nodosCapturablesParaFlujo();
     const actualId = this.arbolNegocioForm.controls.nodoSeleccionado.value || nodos[0]?.id || 'sucursal-1';
     const actualIndex = nodos.findIndex(nodo => nodo.id === actualId);
     const siguiente = nodos[actualIndex + 1];
@@ -2169,6 +2201,8 @@ export class PreRegistroComponent {
 
   private copiarDomicilioFiscal(): void {
     const datos = this.datosForm.getRawValue();
+    this.localidadesComercial = [...this.localidadesFiscal];
+    this.cargandoLocalidadesComercial = false;
 
     this.datosForm.patchValue({
 

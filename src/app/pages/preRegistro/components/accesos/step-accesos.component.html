@@ -54,7 +54,7 @@
       <div class="field">
         <label for="adminTelefono">Teléfono <b>*</b></label>
         <input id="adminTelefono" maxlength="10" inputmode="numeric" formControlName="adminTelefono"
-          placeholder="(55) 1234 5678" [class.invalid]="esInvalido('adminTelefono')" />
+          [class.invalid]="esInvalido('adminTelefono')" />
         @if (esInvalido('adminTelefono')) { <small>Debes llenar este campo.</small> }
       </div>
     </div>

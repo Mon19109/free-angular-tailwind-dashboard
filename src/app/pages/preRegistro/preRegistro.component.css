@@ -1208,6 +1208,32 @@ small {
   flex: none;
 }
 
+.person-type-radios {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px 36px;
+  min-height: 40px;
+}
+
+.person-type-radios label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--pre-muted);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.person-type-radios input {
+  width: 16px;
+  height: 16px;
+  accent-color: #c89245;
+  cursor: pointer;
+}
+
 .docs-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
