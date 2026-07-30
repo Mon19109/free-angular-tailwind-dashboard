@@ -317,9 +317,15 @@
                 : comercioForm.getRawValue().tipoComercio" [regimenesFiscales]="datos.regimenesFiscales ?? []"
               [girosComerciales]="datos.girosComerciales ?? []" [tiposPersona]="datos.tiposPersona"
               [departamentos]="datos.departamentos" [ciudades]="datos.ciudades"
+              [localidadesFiscal]="localidadesFiscal"
+              [localidadesComercial]="localidadesComercial"
+              [cargandoLocalidadesFiscal]="cargandoLocalidadesFiscal"
+              [cargandoLocalidadesComercial]="cargandoLocalidadesComercial"
               [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
               [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
+              (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
+              (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"
               (continuar)="continuarDatos()"
               (volver)="volver(1)" />
             }

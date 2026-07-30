@@ -36,8 +36,8 @@ export class TiposNegocioComponent {
       nivel: 'Sucursal',
       tipoComercio: 'Sucursales Únicas',
       beneficios: [
-        'Sucursal única.',
-        'Caja numérica única.',
+        'Un usuario Administrador de Portal para Gestión de Recursos',
+        'Un usuario para operar las TPV´s en Cajas',
       ],
     },
     {
@@ -51,8 +51,9 @@ export class TiposNegocioComponent {
       nivel: 'Sucursal',
       tipoComercio: 'Sucursales de Grupo',
       beneficios: [
-        'N sucursales.',
-        'N cajas numéricas.',
+        'Un usuario Administrador de Portal para Gestión del negocio, Administrador de Recursos consulta de Reportes de todas las sucursales',
+        'Usuario Administrador para cada sucursal',
+        'De un usuario hasta N para operar las terminales en Cajas',
       ],
     },
     {
@@ -66,9 +67,9 @@ export class TiposNegocioComponent {
       nivel: 'Sub Afiliado',
       tipoComercio: 'Empresa Holding',
       beneficios: [
-        'N entidades.',
-        'N sucursales.',
-        'N cajas.',
+        'Un usuario Administrador de Portal para Gestión de cada uno de los Negocios, Administrador de Recursos consulta de Reportes general de todas las sucursales',
+        'Usuario Administrador para cada sucursal',
+        'De un usuario hasta N para operar las terminales en Cajas',
       ],
     },
     {
@@ -82,8 +83,9 @@ export class TiposNegocioComponent {
       nivel: 'Entidad',
       tipoComercio: 'Empresa Grupo',
       beneficios: [
-        'N sucursales.',
-        'N cajas numéricas.',
+        'Un usuario Administrador de Portal para Gestión del negocio, Administrador de Recursos, Consulta de Reportes de todas las sucursales',
+        'Usuario Administrador para cada sucursal',
+        'De un usuario hasta N para operar las terminales en Cajas',
       ],
     },
   ];

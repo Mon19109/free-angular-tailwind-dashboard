@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GiroComercial, PreRegistroService } from '../../../../services/preregistro.service';
+import { CodigoPostalLocalizacion } from '../../../../services/localidades.service';
 
 interface GiroBusqueda {
   familia: string;
@@ -29,12 +30,18 @@ export class StepDatosComponent implements OnInit {
   @Input() tiposPersona: string[] = [];
   @Input() departamentos: string[] = [];
   @Input() ciudades: string[] = [];
+  @Input() localidadesFiscal: CodigoPostalLocalizacion[] = [];
+  @Input() localidadesComercial: CodigoPostalLocalizacion[] = [];
+  @Input() cargandoLocalidadesFiscal = false;
+  @Input() cargandoLocalidadesComercial = false;
   @Input() tipoComercio: string = '';
   @Input() mostrarInfoFiscalEntidad = false;
   @Input() infoFiscalEntidadActiva = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
+  @Output() seleccionarLocalidadFiscal = new EventEmitter<string>();
+  @Output() seleccionarLocalidadComercial = new EventEmitter<string>();
 
   // ── Búsqueda avanzada ──────────────────────────────────────────────────────
   readonly minimoCaracteresBusqueda = 2;

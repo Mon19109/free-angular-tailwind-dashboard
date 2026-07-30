@@ -178,19 +178,29 @@
 
       @if (tiene('colonia')) {
       <div class="field"><label for="colonia">Colonia <b>*</b></label>
+        @if ((form.get('codigoPostal')?.value || '').length === 5) {
+        <select id="colonia" formControlName="colonia" [class.invalid]="esInvalido('colonia')"
+          (change)="seleccionarLocalidadFiscal.emit($any($event.target).selectedOptions[0]?.dataset.id || '')">
+          <option value="">{{ localidadesFiscal.length > 0 ? 'Selecciona una colonia' : (cargandoLocalidadesFiscal ? 'Cargando colonias...' : 'Sin colonias para este CP') }}</option>
+          @for (localidad of localidadesFiscal; track localidad.idLocalidad) {
+          <option [value]="localidad.colonia" [attr.data-id]="localidad.idLocalidad">{{ localidad.colonia }}</option>
+          }
+        </select>
+        } @else {
         <input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('colonia')" />
+        }
         @if (esInvalido('colonia')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('localidad')) {
       <div class="field"><label for="localidad">Localidad <b>*</b></label>
-        <input id="localidad" formControlName="localidad" [class.invalid]="esInvalido('localidad')" />
+        <input id="localidad" formControlName="localidad" [class.invalid]="esInvalido('localidad')" readonly />
         @if (esInvalido('localidad')) { <small>Debes llenar este campo.</small> }
       </div>
       }
       @if (tiene('municipio')) {
       <div class="field"><label for="municipio">Municipio / Alcaldía <b>*</b></label>
-        <input id="municipio" formControlName="municipio" [class.invalid]="esInvalido('municipio')" />
+        <input id="municipio" formControlName="municipio" [class.invalid]="esInvalido('municipio')" readonly />
         @if (esInvalido('municipio')) { <small>Debes llenar este campo.</small> }
       </div>
       }
@@ -362,22 +372,33 @@
 
       <div class="field">
         <label for="coloniaComercial">Colonia <b>*</b></label>
+        @if ((form.get('codigoPostalComercial')?.value || '').length === 5) {
+        <select id="coloniaComercial" formControlName="coloniaComercial"
+          [class.invalid]="esInvalido('coloniaComercial')"
+          (change)="seleccionarLocalidadComercial.emit($any($event.target).selectedOptions[0]?.dataset.id || '')">
+          <option value="">{{ localidadesComercial.length > 0 ? 'Selecciona una colonia' : (cargandoLocalidadesComercial ? 'Cargando colonias...' : 'Sin colonias para este CP') }}</option>
+          @for (localidad of localidadesComercial; track localidad.idLocalidad) {
+          <option [value]="localidad.colonia" [attr.data-id]="localidad.idLocalidad">{{ localidad.colonia }}</option>
+          }
+        </select>
+        } @else {
         <input id="coloniaComercial" formControlName="coloniaComercial"
           [class.invalid]="esInvalido('coloniaComercial')">
+        }
         @if (esInvalido('coloniaComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="localidadComercial">Localidad <b>*</b></label>
         <input id="localidadComercial" formControlName="localidadComercial"
-          [class.invalid]="esInvalido('localidadComercial')">
+          [class.invalid]="esInvalido('localidadComercial')" readonly>
         @if (esInvalido('localidadComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 
       <div class="field">
         <label for="municipioComercial">Municipio / Alcaldía <b>*</b></label>
         <input id="municipioComercial" formControlName="municipioComercial"
-          [class.invalid]="esInvalido('municipioComercial')">
+          [class.invalid]="esInvalido('municipioComercial')" readonly>
         @if (esInvalido('municipioComercial')) { <small>Debes llenar este campo.</small> }
       </div>
 

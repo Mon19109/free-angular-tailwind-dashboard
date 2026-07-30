@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -10,8 +10,11 @@ import {
 } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { ThemeToggleButtonComponent } from '../../shared/components/common/theme-toggle/theme-toggle-button.component';
 import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
+import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/localidades.service';
+import { PreregistroCompletoService } from '../../services/preregistro-completo.service';
 import { DocumentoRequerido } from './models/preregistro.models';
 
 
@@ -90,8 +93,11 @@ type DocumentoNodo = Pick<DocumentoRequerido, 'archivo' | 'archivoNombre'>;
 })
 export class PreRegistroComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly regimenFiscalService = inject(RegimenFiscalService);
+  private readonly localidadesService = inject(LocalidadesService);
+  private readonly preregistroCompletoService = inject(PreregistroCompletoService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
   private readonly payloadKey = 'kashpay.preregistro.payload.v1';
 
@@ -108,6 +114,10 @@ export class PreRegistroComponent {
   modoReservaActual: ModoReserva = 'NINGUNO';
   tiposComercio: string[] = [];
   tipoNegocioSeleccionado?: TipoNegocio;
+  localidadesFiscal: CodigoPostalLocalizacion[] = [];
+  localidadesComercial: CodigoPostalLocalizacion[] = [];
+  cargandoLocalidadesFiscal = false;
+  cargandoLocalidadesComercial = false;
   private documentosPorNodo: Record<string, Record<number, DocumentoNodo>> = {};
   private contextoComercio: 'paquete' | 'caja' = 'paquete';
 
@@ -437,6 +447,7 @@ export class PreRegistroComponent {
     codigoPostal: [''], tipoVialidad: [''], nombreVialidad: [''],
     numeroExterior: [''], numeroInterior: [''], colonia: [''],
     localidad: [''], municipio: [''], entidadFederativa: [''],
+    locationID: [''],
     entreCalle: [''], yCalle: [''],
     nombreRepresentante: [''], apellidoPaternoRepresentante: [''], apellidoMaternoRepresentante: [''],
     calleRepresentante: [''], numeroExteriorRepresentante: [''], numeroInteriorRepresentante: [''],
@@ -458,6 +469,7 @@ export class PreRegistroComponent {
     localidadComercial: ['', Validators.required],
     municipioComercial: ['', Validators.required],
     entidadFederativaComercial: ['', Validators.required],
+    locationIDComercial: [''],
     entreCalleComercial: [''],
     yCalleComercial: [''],
 
@@ -654,6 +666,22 @@ export class PreRegistroComponent {
     this.comercioForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(sincronizar);
     this.datosForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(sincronizar);
 
+    this.datosForm.controls.codigoPostal.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(codigoPostal => this.consultarLocalidadesPorCodigoPostal(codigoPostal, 'DF'));
+
+    this.datosForm.controls.codigoPostalComercial.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(codigoPostal => this.consultarLocalidadesPorCodigoPostal(codigoPostal, 'DC'));
+
     this.datosForm.get('mismoDomicilio')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(valor => {
@@ -706,6 +734,94 @@ export class PreRegistroComponent {
           this.regimenesFiscales = [];
         }
       });
+  }
+
+  private consultarLocalidadesPorCodigoPostal(codigoPostal: string, addressType: 'DF' | 'DC'): void {
+    const cp = codigoPostal.trim();
+    if (!/^\d{5}$/.test(cp)) {
+      if (addressType === 'DF') this.localidadesFiscal = [];
+      if (addressType === 'DC') this.localidadesComercial = [];
+      if (addressType === 'DF') this.cargandoLocalidadesFiscal = false;
+      if (addressType === 'DC') this.cargandoLocalidadesComercial = false;
+      return;
+    }
+
+    if (addressType === 'DF') this.cargandoLocalidadesFiscal = true;
+    if (addressType === 'DC') this.cargandoLocalidadesComercial = true;
+
+    this.localidadesService.obtenerPorCodigoPostal(cp).subscribe({
+      next: response => {
+        const localidades = [...response];
+        console.log(`[Localidades ${addressType} CP ${cp}]:`, localidades);
+        console.log(`[Localidades ${addressType} opciones]:`, localidades.length);
+        if (addressType === 'DF') {
+          this.localidadesFiscal = localidades;
+          this.cargandoLocalidadesFiscal = false;
+          this.precargarLocalidadPorCodigoPostal(localidades[0], 'DF');
+        }
+        if (addressType === 'DC') {
+          this.localidadesComercial = localidades;
+          this.cargandoLocalidadesComercial = false;
+          this.precargarLocalidadPorCodigoPostal(localidades[0], 'DC');
+        }
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        console.error(`[Localidades ${addressType} CP ${cp} error]:`, error);
+        if (addressType === 'DF') this.localidadesFiscal = [];
+        if (addressType === 'DC') this.localidadesComercial = [];
+        if (addressType === 'DF') this.cargandoLocalidadesFiscal = false;
+        if (addressType === 'DC') this.cargandoLocalidadesComercial = false;
+      }
+    });
+  }
+
+  private precargarLocalidadPorCodigoPostal(localidad: CodigoPostalLocalizacion | undefined, addressType: 'DF' | 'DC'): void {
+    if (!localidad) return;
+
+    if (addressType === 'DF') {
+      this.datosForm.patchValue({
+        colonia: '',
+        localidad: localidad.municipio || '',
+        municipio: localidad.municipio || '',
+        entidadFederativa: localidad.estado || '',
+        locationID: '',
+      }, { emitEvent: false });
+      return;
+    }
+
+    this.datosForm.patchValue({
+      coloniaComercial: '',
+      localidadComercial: localidad.municipio || '',
+      municipioComercial: localidad.municipio || '',
+      entidadFederativaComercial: localidad.estado || '',
+      locationIDComercial: '',
+    }, { emitEvent: false });
+  }
+
+  seleccionarLocalidad(idLocalidad: string, addressType: 'DF' | 'DC'): void {
+    const localidades = addressType === 'DF' ? this.localidadesFiscal : this.localidadesComercial;
+    const localidad = localidades.find(item => item.idLocalidad === idLocalidad);
+    if (!localidad) return;
+
+    if (addressType === 'DF') {
+      this.datosForm.patchValue({
+        colonia: localidad.colonia || '',
+        localidad: localidad.colonia || '',
+        municipio: localidad.municipio || '',
+        entidadFederativa: localidad.estado || '',
+        locationID: localidad.idLocalidad || '',
+      });
+      return;
+    }
+
+    this.datosForm.patchValue({
+      coloniaComercial: localidad.colonia || '',
+      localidadComercial: localidad.colonia || '',
+      municipioComercial: localidad.municipio || '',
+      entidadFederativaComercial: localidad.estado || '',
+      locationIDComercial: localidad.idLocalidad || '',
+    });
   }
 
   // ── Getters ──────────────────────────────────────────────────────────────────
@@ -1128,12 +1244,13 @@ export class PreRegistroComponent {
     }
     this.marcarPasoCompletado(5);
     this.registroTerminado = true;
-    this.imprimirPayloadPreRegistro();
+    const payload = this.imprimirPayloadPreRegistro();
+    this.enviarPreRegistroCompleto(payload);
     this.guardarBorradorSilencioso();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  private imprimirPayloadPreRegistro(): void {
+  private imprimirPayloadPreRegistro(): { entitys: Array<{ branchOficces: any[] }> } {
     this.guardarDatosSucursalActual();
     this.guardarAccesosNodoActual();
     this.guardarDocumentosNodoActual();
@@ -1143,6 +1260,18 @@ export class PreRegistroComponent {
       localStorage.setItem(this.payloadKey, payloadJson);
     } catch { /* no-op */ }
     console.log('[PreRegistro payload JSON]:\n' + payloadJson);
+    return payload;
+  }
+
+  private enviarPreRegistroCompleto(payload: { entitys: Array<{ branchOficces: any[] }> }): void {
+    this.preregistroCompletoService.enviarPreRegistro(payload).subscribe({
+      next: response => {
+        console.log('[PreRegistro completo response]:', response);
+      },
+      error: error => {
+        console.error('[PreRegistro completo error]:', error);
+      }
+    });
   }
 
   private construirPayloadPreRegistro(): { entitys: Array<{ branchOficces: any[] }> } {
@@ -1176,7 +1305,7 @@ export class PreRegistroComponent {
               typePerson: this.tipoPersonaPayload(datos['tipoPersona']),
               businessActivityCode: this.valorTexto(datos['mcc']),
               bussinesLineDescription: this.valorTexto(datos['descripcionGiro']),
-              typeOfBusiness: this.typeOfBusinessComercio(tipoComercioPayload),
+              typeOfBusiness: 6,
               commerceAddress: [
                 this.construirDireccionPayload('DF', datos, ''),
                 this.construirDireccionPayload('DC', datos, 'Comercial'),
@@ -1238,7 +1367,7 @@ export class PreRegistroComponent {
       federativeEntity: campo('entidadFederativa'),
       betweenStreet: campo('entreCalle'),
       andStreet: campo('yCalle'),
-      locationID: '',
+      locationID: campo('locationID'),
     };
   }
 
@@ -1255,7 +1384,7 @@ export class PreRegistroComponent {
         liquidationLevel: this.valorTexto(accesos['liquidationLevel']),
         dispersionAccount: this.valorTexto(accesos['dispersionAccount']),
         isAliasUser: Boolean(accesos['isAliasUser']),
-        typeOfBusiness: this.valorNumero(accesos['typeOfBusiness']),
+        typeOfBusiness: 13,
       };
     });
   }
@@ -2052,6 +2181,7 @@ export class PreRegistroComponent {
       localidadComercial: datos.localidad,
       municipioComercial: datos.municipio,
       entidadFederativaComercial: datos.entidadFederativa,
+      locationIDComercial: datos.locationID,
       entreCalleComercial: datos.entreCalle,
       yCalleComercial: datos.yCalle
 
