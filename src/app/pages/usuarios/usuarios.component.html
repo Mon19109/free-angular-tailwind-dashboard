@@ -29,17 +29,13 @@
             Tipo de Busqueda
           </label>
 
-          <select formControlName="typeSearch" class="form-control">
-
-            <option value=""></option>
-
-            <option *ngFor="let item of typeSearchOptions" [value]="item.value">
-
-              {{ item.label }}
-
-            </option>
-
-          </select>
+          <app-select
+            placeholder="Selecciona una opcion"
+            [options]="typeSearchOptions"
+            [value]="formulario.get('typeSearch')?.value"
+            className="users-select users-select-arrow"
+            (valueChange)="formulario.patchValue({ typeSearch: $event })"
+          />
 
         </div>
 
@@ -84,15 +80,13 @@
             Estatus
           </label>
 
-          <select formControlName="value1F" class="form-control">
-
-            <option *ngFor="let estatus of estatusOptions" [value]="estatus.id">
-
-              {{ estatus.nombre }}
-
-            </option>
-
-          </select>
+          <app-select
+            placeholder="Selecciona un estatus"
+            [options]="estatusSelectOptions"
+            [value]="formulario.get('value1F')?.value"
+            className="users-select"
+            (valueChange)="formulario.patchValue({ value1F: $event })"
+          />
 
         </div>
 
@@ -103,17 +97,13 @@
             Entidad
           </label>
 
-          <select formControlName="entidad" class="form-control">
-
-            <option value=""></option>
-
-            <option *ngFor="let entidad of entidades" [value]="entidad.bundle">
-
-              {{ entidad.bundle }}
-
-            </option>
-
-          </select>
+          <app-select
+            placeholder="Selecciona una entidad"
+            [options]="entidadesSelectOptions"
+            [value]="formulario.get('entidad')?.value"
+            className="users-select users-select-arrow"
+            (valueChange)="formulario.patchValue({ entidad: $event })"
+          />
 
         </div>
 
@@ -253,22 +243,12 @@
 
             <td>
 
-              <select class="form-control acciones-select"
-                (change)="onAccionChange($any($event.target).value, usuario)">
-
-                <option value="">
-                  ACCIONES
-                </option>
-
-                <option value="token">
-                  Reenvio de token
-                </option>
-
-                <option value="correo">
-                  Actualizar correo electrónico
-                </option>
-
-              </select>
+              <app-select
+                placeholder="ACCIONES"
+                className="form-control acciones-select"
+                [options]="accionesOptions"
+                (valueChange)="onAccionChange($event, usuario)"
+              />
 
             </td>
           </tr>

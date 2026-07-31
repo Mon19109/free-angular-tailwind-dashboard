@@ -71,6 +71,7 @@
 }
 
 .operation-card {
+  width: min(100%, 1200px);
   max-width: 1200px;
   margin: 0 auto 28px;
   overflow: hidden;
@@ -129,41 +130,79 @@
 
 .payment-access-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
+  align-items: stretch;
 }
 
 .payment-access-item {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-width: 0;
   min-height: 190px;
+  height: 100%;
 }
 
 .payment-icon {
+  position: relative;
   width: 56px;
   height: 56px;
   border: 1px solid var(--ops-line);
   border-radius: 16px;
   background-color: rgba(255, 255, 255, 0.06);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 34px;
+}
+
+.payment-icon::before {
+  content: "";
+  position: absolute;
+  inset: 11px;
+  background: linear-gradient(180deg, var(--ops-gold-strong) 0%, var(--ops-gold) 100%);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
 }
 
 :host-context(html:not(.dark)) .payment-icon {
   background-color: #ffffff;
 }
 
-.link-icon {
+:host-context(html:not(.dark)) .payment-icon::before {
+  background: none;
+  mask-image: none;
+  -webkit-mask-image: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.link-icon::before {
+  mask-image: url("/pagosDistancia/enlace.png");
+  -webkit-mask-image: url("/pagosDistancia/enlace.png");
+}
+
+.button-icon::before {
+  mask-image: url("/pagosDistancia/boton_pago.png");
+  -webkit-mask-image: url("/pagosDistancia/boton_pago.png");
+}
+
+.api-icon::before {
+  mask-image: url("/pagosDistancia/api_azul.png");
+  -webkit-mask-image: url("/pagosDistancia/api_azul.png");
+}
+
+:host-context(html:not(.dark)) .link-icon::before {
   background-image: url("/pagosDistancia/enlace.png");
 }
 
-.button-icon {
+:host-context(html:not(.dark)) .button-icon::before {
   background-image: url("/pagosDistancia/boton_pago.png");
 }
 
-.api-icon {
+:host-context(html:not(.dark)) .api-icon::before {
   background-image: url("/pagosDistancia/api_azul.png");
 }
 
@@ -206,7 +245,7 @@
 
 .transactions-form-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 24px;
   align-items: end;
 }
@@ -237,7 +276,7 @@
   padding: 0 14px;
   outline: none;
   color: var(--ops-text);
-  background: rgba(2, 4, 7, 0.72);
+  background: var(--app-input-bg);
   font-size: 15px;
   font-weight: 650;
   box-shadow: none;
@@ -334,6 +373,7 @@ html.dark .form-control option {
 
 .transactions-wrapper {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   border: 1px solid var(--ops-line);
@@ -390,7 +430,7 @@ html.dark .form-control option {
 @media (max-width: 1100px) {
   .payment-access-grid,
   .transactions-form-grid {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

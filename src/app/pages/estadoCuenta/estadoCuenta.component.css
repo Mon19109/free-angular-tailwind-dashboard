@@ -90,7 +90,7 @@
   padding: 0 16px;
   outline: none;
   color: var(--estado-text);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--app-input-bg);
   font-size: 18px;
   font-weight: 400;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
@@ -158,7 +158,7 @@ html.dark .form-control option {
   border: 1px solid var(--estado-border);
   border-radius: 5px;
   color: var(--estado-muted);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--app-input-bg);
   font-weight: 600;
 }
 

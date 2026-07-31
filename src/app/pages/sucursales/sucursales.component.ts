@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { SucursalesService } from '../../services/sucursales.service';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
+import { SelectComponent } from '../../shared/components/form/select/select.component';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,7 +12,7 @@ import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-sucursales',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePickerComponent],
+  imports: [CommonModule, FormsModule, DatePickerComponent, SelectComponent],
   templateUrl: './sucursales.component.html',
   styleUrls: ['./sucursales.component.css']
 })
@@ -39,6 +40,26 @@ export class SucursalesComponent implements OnInit {
   mostrarTabla = false;
   paginaActual = 1;
   elementosPorPagina = 10;
+
+  accionesOptions = [
+    { label: 'Editar Información', value: 'editar' },
+    { label: 'Segmento', value: 'segmento' },
+    { label: 'Deshabilitar', value: 'deshabilitar' }
+  ];
+
+  get subafiliadosOptions() {
+    return this.subafiliados.map(item => ({
+      label: this.obtenerSubafiliadoTexto(item),
+      value: this.obtenerSubafiliadoId(item)
+    }));
+  }
+
+  get entidadesOptions() {
+    return this.entidades.map(item => ({
+      label: this.obtenerEntidadTexto(item),
+      value: this.obtenerEntidadId(item)
+    }));
+  }
 
   get totalPaginas(): number {
     return Math.max(1, Math.ceil(this.sucursales.length / this.elementosPorPagina));

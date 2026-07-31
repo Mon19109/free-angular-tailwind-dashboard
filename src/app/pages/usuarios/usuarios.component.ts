@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { UsuariosService } from '../../services/usuarios.service';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
+import { SelectComponent } from '../../shared/components/form/select/select.component';
 
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -11,7 +12,7 @@ import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, SelectComponent],
   templateUrl: './usuarios.component.html',
   styleUrls: ['./usuarios.component.css']
 })
@@ -52,6 +53,25 @@ export class UsuariosComponent implements OnInit {
     { id: 23, nombre: 'Fallo alta web' },
     { id: 24, nombre: 'Rechazado por SCUD' }
   ];
+
+  accionesOptions = [
+    { label: 'Reenvio de token', value: 'token' },
+    { label: 'Actualizar correo electrónico', value: 'correo' }
+  ];
+
+  get estatusSelectOptions() {
+    return this.estatusOptions.map(estatus => ({
+      label: estatus.nombre,
+      value: String(estatus.id)
+    }));
+  }
+
+  get entidadesSelectOptions() {
+    return this.entidades.map(entidad => ({
+      label: entidad.bundle,
+      value: entidad.bundle
+    }));
+  }
 
   seleccionados: number[] = [];
 

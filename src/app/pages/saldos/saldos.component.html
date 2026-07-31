@@ -11,29 +11,23 @@
       <div class="filter-group">
         <label>Selecciona cuenta</label>
 
-        <select class="form-control" (change)="onCuentaChange($event)">
-          <option value="">Selecciona cuenta</option>
-
-          @for (cuenta of cuentas; track cuenta.idSirio) {
-            <option [value]="cuenta.idSirio">
-              {{ cuenta.name }}
-            </option>
-          }
-        </select>
+        <app-select
+          placeholder="Selecciona cuenta"
+          [options]="cuentasOptions"
+          className="form-control saldos-select-arrow"
+          (valueChange)="seleccionarCuenta($event)"
+        />
       </div>
 
       <div class="filter-group">
         <label>Entidad</label>
 
-        <select class="form-control" (change)="onEntidadChange($event)">
-          <option value="">Selecciona entidad</option>
-
-          @for (entidad of entidades; track entidad.bundle) {
-            <option [value]="entidad.bundle">
-              {{ entidad.bundle }} - {{ entidad.bussinesName }}
-            </option>
-          }
-        </select>
+        <app-select
+          placeholder="Selecciona entidad"
+          [options]="entidadesOptions"
+          className="form-control saldos-select-arrow"
+          (valueChange)="seleccionarEntidad($event)"
+        />
       </div>
     </div>
   </article>

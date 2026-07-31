@@ -2,13 +2,14 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SaldosService } from '../../services/saldos.service';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
+import { SelectComponent } from '../../shared/components/form/select/select.component';
 //import * as XLSX from 'xlsx';
 //import { saveAs } from 'file-saver';
 
 @Component({
   selector: 'app-saldos',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SelectComponent],
   templateUrl: './saldos.component.html',
   styleUrls: ['./saldos.component.scss']
 })
@@ -23,6 +24,28 @@ export class SaldosComponent implements OnInit {
   entidadSeleccionada = '';
   cuentas: any[] = [];
   fatherIDActual = '';
+
+  get cuentasOptions() {
+    return this.cuentas.map(cuenta => ({
+      label: cuenta.name,
+      value: cuenta.idSirio
+    }));
+  }
+
+  get entidadesOptions() {
+    return this.entidades.map(entidad => ({
+      label: `${entidad.bundle} - ${entidad.bussinesName}`,
+      value: entidad.bundle
+    }));
+  }
+
+  seleccionarCuenta(cuenta: string): void {
+    this.onCuentaChange({ target: { value: cuenta } } as unknown as Event);
+  }
+
+  seleccionarEntidad(entidad: string): void {
+    this.onEntidadChange({ target: { value: entidad } } as unknown as Event);
+  }
 
   ngOnInit(): void {
 

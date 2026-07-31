@@ -12,32 +12,37 @@
         <form class="filters-grid" (ngSubmit)="buscar()">
           <div class="filter-group">
             <label>SubAfiliado</label>
-            <select class="form-control" [(ngModel)]="filtros.subafiliado" name="subafiliado" (change)="cargarEntidades()">
-              <option value="">Selecciona subafiliado</option>
-              <option *ngFor="let item of subafiliados" [value]="obtenerSubafiliadoId(item)">
-                {{ obtenerSubafiliadoTexto(item) }}
-              </option>
-            </select>
+            <app-select
+              placeholder="Selecciona subafiliado"
+              className="form-control"
+              [options]="subafiliadosOptions"
+              [(ngModel)]="filtros.subafiliado"
+              name="subafiliado"
+              (valueChange)="cargarEntidades()"
+            />
           </div>
 
           <div class="filter-group">
             <label>Entidad</label>
-            <select class="form-control" [(ngModel)]="filtros.entidad" name="entidad" (change)="cargarSucursales()">
-              <option value="">Selecciona entidad</option>
-              <option *ngFor="let item of entidades" [value]="obtenerEntidadId(item)">
-                {{ obtenerEntidadTexto(item) }}
-              </option>
-            </select>
+            <app-select
+              placeholder="Selecciona entidad"
+              className="form-control"
+              [options]="entidadesOptions"
+              [(ngModel)]="filtros.entidad"
+              name="entidad"
+              (valueChange)="cargarSucursales()"
+            />
           </div>
 
           <div class="filter-group">
             <label>Sucursal</label>
-            <select class="form-control" [(ngModel)]="filtros.sucursal" name="sucursal">
-              <option value="">Selecciona sucursal</option>
-              <option *ngFor="let item of sucursales" [value]="obtenerSucursalId(item)">
-                {{ obtenerSucursalTexto(item) }}
-              </option>
-            </select>
+            <app-select
+              placeholder="Selecciona sucursal"
+              className="form-control"
+              [options]="sucursalesOptions"
+              [(ngModel)]="filtros.sucursal"
+              name="sucursal"
+            />
           </div>
 
           <div class="filter-group">
@@ -122,12 +127,12 @@
                 <td>{{ obtenerTelefono(caja) }}</td>
                 <td>{{ obtenerFecha(caja) }}</td>
                 <td>
-                  <select class="form-control acciones-select" (change)="onAccionChange($any($event.target).value, caja)">
-                    <option value="">ACCIONES</option>
-                    <option value="editar">Editar Información</option>
-                    <option value="segmento">Segmento</option>
-                    <option value="deshabilitar">Deshabilitar</option>
-                  </select>
+                  <app-select
+                    placeholder="ACCIONES"
+                    className="form-control acciones-select"
+                    [options]="accionesOptions"
+                    (valueChange)="onAccionChange($event, caja)"
+                  />
                 </td>
               </tr>
             </tbody>

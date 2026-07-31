@@ -12,22 +12,25 @@
         <form class="filters-grid" (ngSubmit)="buscar()">
           <div class="filter-group">
             <label>SubAfiliado</label>
-            <select class="form-control" [(ngModel)]="filtros.subafiliado" name="subafiliado" (change)="cargarEntidades()">
-              <option value="">Selecciona subafiliado</option>
-              <option *ngFor="let item of subafiliados" [value]="obtenerSubafiliadoId(item)">
-                {{ obtenerSubafiliadoTexto(item) }}
-              </option>
-            </select>
+            <app-select
+              placeholder="Selecciona subafiliado"
+              className="form-control"
+              [options]="subafiliadosOptions"
+              [(ngModel)]="filtros.subafiliado"
+              name="subafiliado"
+              (valueChange)="cargarEntidades()"
+            />
           </div>
 
           <div class="filter-group">
             <label>Entidad</label>
-            <select class="form-control" [(ngModel)]="filtros.entidad" name="entidad">
-              <option value="">Selecciona entidad</option>
-              <option *ngFor="let item of entidades" [value]="obtenerEntidadId(item)">
-                {{ obtenerEntidadTexto(item) }}
-              </option>
-            </select>
+            <app-select
+              placeholder="Selecciona entidad"
+              className="form-control"
+              [options]="entidadesOptions"
+              [(ngModel)]="filtros.entidad"
+              name="entidad"
+            />
           </div>
 
           <div class="filter-group">
@@ -127,12 +130,12 @@
                 <td>{{ obtenerTelefono(sucursal) }}</td>
                 <td>{{ obtenerFecha(sucursal) }}</td>
                 <td>
-                  <select class="form-control acciones-select" (change)="onAccionChange($any($event.target).value, sucursal)">
-                    <option value="">ACCIONES</option>
-                    <option value="editar">Editar Información</option>
-                    <option value="segmento">Segmento</option>
-                    <option value="deshabilitar">Deshabilitar</option>
-                  </select>
+                  <app-select
+                    placeholder="ACCIONES"
+                    className="form-control acciones-select"
+                    [options]="accionesOptions"
+                    (valueChange)="onAccionChange($event, sucursal)"
+                  />
                 </td>
               </tr>
             </tbody>

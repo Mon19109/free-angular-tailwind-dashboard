@@ -38,7 +38,7 @@
 .saldos-shell {
   min-height: calc(100vh - 104px);
   width: 100%;
-  padding: clamp(28px, 4vw, 54px);
+  padding: clamp(18px, 2.8vw, 36px);
   overflow-x: hidden;
   color: var(--saldos-text);
   background:
@@ -61,19 +61,19 @@
 }
 
 .panel {
-  max-width: 1200px;
-  margin: 0 auto 28px;
+  max-width: 1120px;
+  margin: 0 auto 22px;
   overflow: hidden;
   border: 1px solid var(--saldos-border);
-  border-radius: 22px;
+  border-radius: 16px;
   color: var(--saldos-text);
   background: linear-gradient(180deg, var(--saldos-card), var(--saldos-card-2));
   box-shadow: var(--saldos-shadow);
 }
 
 .panel-header {
-  min-height: 88px;
-  padding: 22px clamp(22px, 3vw, 34px);
+  min-height: 68px;
+  padding: 16px clamp(18px, 2.4vw, 26px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -90,7 +90,7 @@
 .panel-header h2 {
   margin: 0;
   color: inherit;
-  font-size: clamp(22px, 2.4vw, 28px);
+  font-size: clamp(18px, 1.8vw, 22px);
   line-height: 1.15;
 }
 
@@ -105,7 +105,7 @@
 }
 
 .filters-row {
-  padding: clamp(22px, 3vw, 34px);
+  padding: clamp(16px, 2.2vw, 24px);
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 24px;
@@ -125,14 +125,14 @@
 
 .form-control {
   width: 100%;
-  min-height: 48px;
+  min-height: 44px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 0 14px;
   outline: none;
   color: var(--saldos-text);
-  background: rgba(2, 4, 7, 0.72);
-  font-size: 15px;
+  background: var(--app-input-bg);
+  font-size: 14px;
   font-weight: 650;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
@@ -146,6 +146,16 @@
 .form-control:focus {
   border-color: rgba(241, 178, 61, 0.42);
   box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12);
+}
+
+:host ::ng-deep app-select select.form-control:focus {
+  border-color: rgba(241, 178, 61, 0.58) !important;
+  box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.14) !important;
+}
+
+:host ::ng-deep app-select select.saldos-select-arrow {
+  appearance: auto;
+  -webkit-appearance: menulist;
 }
 
 .form-control option {
@@ -178,14 +188,14 @@ html.dark .form-control option {
 }
 
 .export-btn {
-  min-height: 40px;
-  padding: 0 18px;
+  min-height: 38px;
+  padding: 0 16px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.04em;
   transition: transform 0.15s ease, background-color 0.15s ease;
@@ -197,8 +207,8 @@ html.dark .form-control option {
 }
 
 .table-container {
-  margin: clamp(22px, 3vw, 34px);
-  overflow-x: auto;
+  margin: clamp(16px, 2.2vw, 24px);
+  overflow-x: hidden;
   overflow-y: hidden;
   border: 1px solid var(--saldos-line);
   border-radius: 16px;
@@ -206,19 +216,21 @@ html.dark .form-control option {
 
 table {
   width: 100%;
-  min-width: 1040px;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
 }
 
 thead th {
-  padding: 14px 12px;
-  white-space: nowrap;
+  padding: 11px 10px;
+  white-space: normal;
   color: #ffffff;
   background: linear-gradient(90deg, rgba(8, 12, 19, 0.96), rgba(14, 20, 31, 0.96));
-  font-size: 12px;
-  font-weight: 850;
-  letter-spacing: 0.04em;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
   text-align: left;
 }
 
@@ -228,12 +240,46 @@ thead th {
 
 tbody td {
   border-top: 1px solid var(--saldos-line);
-  padding: 13px 12px;
+  padding: 10px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--saldos-text);
   background: var(--saldos-card);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.25;
   vertical-align: middle;
+}
+
+thead th:nth-child(1),
+tbody td:nth-child(1) {
+  width: 15%;
+}
+
+thead th:nth-child(2),
+tbody td:nth-child(2) {
+  width: 16%;
+}
+
+thead th:nth-child(3),
+tbody td:nth-child(3) {
+  width: 16%;
+}
+
+thead th:nth-child(4),
+tbody td:nth-child(4) {
+  width: 10%;
+}
+
+thead th:nth-child(5),
+tbody td:nth-child(5),
+thead th:nth-child(6),
+tbody td:nth-child(6),
+thead th:nth-child(7),
+tbody td:nth-child(7),
+thead th:nth-child(8),
+tbody td:nth-child(8) {
+  width: 10.75%;
 }
 
 tbody tr:nth-child(odd) td {

@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
 import { SaldosService } from '../../services/saldos.service';
+import { SelectComponent } from '../../shared/components/form/select/select.component';
 
 @Component({
   selector: 'app-informacion-cuenta',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SelectComponent],
   templateUrl: './informacionCuenta.component.html',
   styleUrls: ['./informacionCuenta.component.css']
 })
@@ -26,6 +27,28 @@ export class InformacionCuentaComponent implements OnInit {
     titular: 'ND',
     afiliacion: 'ND'
   };
+
+  get cuentasOptions() {
+    return this.cuentas.map(cuenta => ({
+      label: this.obtenerTextoCuenta(cuenta),
+      value: this.obtenerValorCuenta(cuenta)
+    }));
+  }
+
+  get entidadesOptions() {
+    return this.entidades.map(entidad => ({
+      label: this.obtenerTextoEntidad(entidad),
+      value: this.obtenerValorEntidad(entidad)
+    }));
+  }
+
+  seleccionarCuenta(cuenta: string): void {
+    this.onCuentaChange({ target: { value: cuenta } } as unknown as Event);
+  }
+
+  seleccionarEntidad(entidad: string): void {
+    this.onEntidadChange({ target: { value: entidad } } as unknown as Event);
+  }
 
   ngOnInit(): void {
     this.cargarDatosIniciales();

@@ -220,7 +220,7 @@
   padding: 0 14px;
   outline: none;
   color: var(--ops-text);
-  background: rgba(2, 4, 7, 0.72);
+  background: var(--app-input-bg);
   font-size: 15px;
   font-weight: 650;
   box-shadow: none;

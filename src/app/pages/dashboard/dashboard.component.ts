@@ -17,6 +17,7 @@ export class DashboardComponent {
   balanceAhorro = signal<any[]>([]);
   reportes = signal<any[]>([]);
   session: any = {};
+  hoveredAdquirenciaBalance: 'available' | 'pending' = 'available';
 
   //user: UserSessionData | null = null;
   private  dashService = inject(DashboardService);
@@ -91,6 +92,57 @@ export class DashboardComponent {
       style: 'currency',
       currency: 'MXN'
     });
+  }
+
+  setHoveredAdquirenciaBalance(type: 'available' | 'pending'): void {
+    this.hoveredAdquirenciaBalance = type;
+  }
+
+  get adquirenciaAvailable(): number {
+    return Number(this.balanceSirio()[0]?.balance || 0);
+  }
+
+  get adquirenciaPending(): number {
+    return Number(this.balanceSirio()[0]?.customerNetworkBalance || 0);
+  }
+
+  get hoveredAdquirenciaLabel(): string {
+    return this.hoveredAdquirenciaBalance === 'available' ? 'Disponible' : 'Pendiente';
+  }
+
+  get hoveredAdquirenciaAmount(): number {
+    return this.hoveredAdquirenciaBalance === 'available'
+      ? this.adquirenciaAvailable
+      : this.adquirenciaPending;
+  }
+
+  get adquirenciaPercentage(): number {
+    const available = Math.abs(this.adquirenciaAvailable);
+    const pending = Math.abs(this.adquirenciaPending);
+    const total = available + pending;
+
+    if (!total) {
+      return 0;
+    }
+
+    return Math.round((Math.abs(this.hoveredAdquirenciaAmount) / total) * 100);
+  }
+
+  get adquirenciaDonutBackground(): string {
+    const available = Math.abs(this.adquirenciaAvailable);
+    const pending = Math.abs(this.adquirenciaPending);
+    const total = available + pending;
+    const availableDegrees = total ? Math.max(2, Math.min(358, (available / total) * 360)) : 0;
+    const separator = 1.4;
+    const beforeAvailableEnd = Math.max(0, availableDegrees - separator);
+    const afterAvailableEnd = Math.min(360, availableDegrees + separator);
+
+    return `conic-gradient(
+      #d9dde7 0deg ${separator}deg,
+      #2f3f55 ${separator}deg ${beforeAvailableEnd}deg,
+      #d9dde7 ${beforeAvailableEnd}deg ${afterAvailableEnd}deg,
+      #2f3f55 ${afterAvailableEnd}deg 360deg
+    )`;
   }
 
   cargarDatosIniciales(): void {

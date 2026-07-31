@@ -1,12 +1,12 @@
-<div class="relative">
-  <button (click)="toggleDropdown()" class="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400">
+<div class="relative min-w-0">
+  <button (click)="toggleDropdown()" class="flex min-w-0 max-w-full items-center text-gray-700 dropdown-toggle dark:text-gray-400">
     <span style="background-color: white;" class="mr-3 grid h-12 w-12 place-items-center overflow-hidden border border-white/70">
       <svg width="38" height="38" viewBox="0 0 48 48" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="24" cy="15" r="10" fill="#3f474a" />
         <path d="M7 43C8.8 32.8 15.3 27 24 27C32.7 27 39.2 32.8 41 43H7Z" fill="#3f474a" />
       </svg>
     </span>
-    <span class="block mr-2 font-semibold text-theme-sm uppercase tracking-wide" style="color: white;">{{ userEmail }}</span>
+    <span class="block min-w-0 max-w-[42vw] truncate mr-2 font-semibold text-theme-sm uppercase tracking-wide xl:max-w-[280px]" style="color: white;">{{ userEmail }}</span>
     <svg [ngClass]="{
         'stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200': true,
         'rotate-180': isOpen

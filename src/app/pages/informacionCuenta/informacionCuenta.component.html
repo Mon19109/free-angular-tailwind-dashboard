@@ -11,25 +11,23 @@
       <div class="filter-group">
         <label>Selecciona cuenta</label>
 
-        <select class="form-control" (change)="onCuentaChange($event)">
-          <option value="">Selecciona cuenta</option>
-
-          <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
-            {{ obtenerTextoCuenta(cuenta) }}
-          </option>
-        </select>
+        <app-select
+          placeholder="Selecciona cuenta"
+          [options]="cuentasOptions"
+          className="form-control"
+          (valueChange)="seleccionarCuenta($event)"
+        />
       </div>
 
       <div class="filter-group">
         <label>Entidad</label>
 
-        <select class="form-control" (change)="onEntidadChange($event)">
-          <option value="">Selecciona entidad</option>
-
-          <option *ngFor="let entidad of entidades" [value]="obtenerValorEntidad(entidad)">
-            {{ obtenerTextoEntidad(entidad) }}
-          </option>
-        </select>
+        <app-select
+          placeholder="Selecciona entidad"
+          [options]="entidadesOptions"
+          className="form-control"
+          (valueChange)="seleccionarEntidad($event)"
+        />
       </div>
     </div>
   </article>
