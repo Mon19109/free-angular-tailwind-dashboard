@@ -921,7 +921,7 @@ export class PreRegistroComponent {
     );
   }
 
-  get mostrarPasoAccesos(): boolean { return this.contextoComercio !== 'caja'; }
+  get mostrarPasoAccesos(): boolean { return false; } // Temporal: se omite Accesos/TPV del flujo.
   get mostrarAdminTotal(): boolean { return this.modoReservaActual !== 'COMPLETO'; }
   get mostrarPerfilReserva(): boolean { return this.modoReservaActual !== 'NINGUNO'; }
   get mostrarReservaSplit(): boolean { return this.modoReservaActual === 'TRANSACCIONAL'; }
@@ -1010,6 +1010,9 @@ export class PreRegistroComponent {
 
   // ── Navegación ───────────────────────────────────────────────────────────────
   irAlPaso(paso: number): void {
+    if (paso === 3 && !this.mostrarPasoAccesos) {
+      paso = this.mostrarCuentaLiquidacion ? 4 : this.mostrarPasoDocumentos ? 5 : 2;
+    }
     this.pasoActual = paso as PasoWizard;
     this.registroTerminado = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1704,6 +1707,9 @@ export class PreRegistroComponent {
         d.archivo = undefined;
       });
       this.pasoActual = (draft.pasoActual ?? 0) as PasoWizard;
+      if (this.pasoActual === 3 && !this.mostrarPasoAccesos) {
+        this.pasoActual = this.mostrarCuentaLiquidacion ? 4 : this.mostrarPasoDocumentos ? 5 : 2;
+      }
       this.pasosCompletados = new Set(draft.pasosCompletados ?? []);
       this.registroTerminado = draft.registroTerminado ?? false;
       if (this.registroTerminado) { this.pasoActual = 5; this.pasosCompletados.add(5); }

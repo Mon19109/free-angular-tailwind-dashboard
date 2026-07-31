@@ -8,7 +8,7 @@
       <button type="button" class="tool-button" (click)="abrirAyuda()">
         <span class="tool-icon">?</span><span>Ayuda</span>
       </button>
-      <button type="button" class="tool-button accent" (click)="guardarBorrador()">
+      <button type="button" class="tool-button accent draft-button-hidden" (click)="guardarBorrador()">
         <span class="tool-icon">⤓</span><span>Guardar borrador</span>
       </button>
       <app-theme-toggle-button />
@@ -26,7 +26,6 @@
       <h1>Tu preregistro quedó enviado</h1>
       <p>Guardamos la información del comercio
         <b>{{ datosForm.value.nombreComercial || 'sin nombre comercial' }}</b>.
-        Afiliación <b>{{ afiliacionForm.value.afiliacion || 'N/D' }}</b>.
         Mesa Digital revisará la documentación en aproximadamente 72 horas hábiles.
       </p>
       <div class="actions center">

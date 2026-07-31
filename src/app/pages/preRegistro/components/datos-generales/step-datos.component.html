@@ -86,10 +86,12 @@
       @if (tiene('regimenFiscal')) {
       <div class="field">
         <label for="regimenFiscal">Régimen fiscal <b>*</b></label>
-        <select id="regimenFiscal" formControlName="regimenFiscal" [class.invalid]="esInvalido('regimenFiscal')">
-          <option value="">Selecciona una opción</option>
-          @for (r of regimenesFiscales; track r) { <option [value]="r">{{ r }}</option> }
-        </select>
+        <app-select
+          placeholder="Selecciona una opción"
+          [options]="regimenFiscalOptions"
+          formControlName="regimenFiscal"
+          [className]="esInvalido('regimenFiscal') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+        />
         @if (esInvalido('regimenFiscal')) { <small>Debes llenar este campo.</small> }
       </div>
       }
@@ -106,7 +108,7 @@
       @if (tiene('giroComercial') && esPersonaMoral) {
       <div class="field">
         <label for="giroComercial">Familia del giro <b>*</b></label>
-        <input id="giroComercial" formControlName="giroComercial" placeholder="Escribe la familia o usa Búsqueda Avanzada"
+        <input id="giroComercial" formControlName="giroComercial" readonly placeholder="Selecciona desde Búsqueda Avanzada"
           [class.invalid]="esInvalido('giroComercial')" />
         @if (esInvalido('giroComercial')) { <small>Debes llenar este campo.</small> }
       </div>
@@ -115,7 +117,7 @@
       @if (tiene('descripcionGiro') && esPersonaMoral) {
       <div class="field">
         <label for="descripcionGiro">Descripción del giro <b>*</b></label>
-        <input id="descripcionGiro" formControlName="descripcionGiro" [class.invalid]="esInvalido('descripcionGiro')" />
+        <input id="descripcionGiro" formControlName="descripcionGiro" readonly placeholder="Selecciona desde Búsqueda Avanzada" [class.invalid]="esInvalido('descripcionGiro')" />
         @if (esInvalido('descripcionGiro')) { <small>Debes llenar este campo.</small> }
       </div>
       }
@@ -123,7 +125,7 @@
       @if (tiene('mcc') && esPersonaMoral) {
       <div class="field">
         <label for="mcc">MCC <b>*</b></label>
-        <input id="mcc" formControlName="mcc" [class.invalid]="esInvalido('mcc')" />
+        <input id="mcc" formControlName="mcc" readonly placeholder="Selecciona desde Búsqueda Avanzada" [class.invalid]="esInvalido('mcc')" />
         @if (esInvalido('mcc')) { <small>Debes llenar este campo.</small> }
       </div>
       }
@@ -199,13 +201,14 @@
       @if (tiene('colonia')) {
       <div class="field"><label for="colonia">Colonia <b>*</b></label>
         @if ((form.get('codigoPostal')?.value || '').length === 5) {
-        <select id="colonia" formControlName="colonia" [class.invalid]="esInvalido('colonia')"
-          (change)="seleccionarLocalidadFiscal.emit($any($event.target).selectedOptions[0]?.dataset.id || '')">
-          <option value="">{{ localidadesFiscal.length > 0 ? 'Selecciona una colonia' : (cargandoLocalidadesFiscal ? 'Cargando colonias...' : 'Sin colonias para este CP') }}</option>
-          @for (localidad of localidadesFiscal; track localidad.idLocalidad) {
-          <option [value]="localidad.colonia" [attr.data-id]="localidad.idLocalidad">{{ localidad.colonia }}</option>
-          }
-        </select>
+        <app-select
+          [placeholder]="placeholderColoniaFiscal"
+          [options]="localidadesFiscalOptions"
+          formControlName="colonia"
+          [disabled]="localidadesFiscal.length === 0"
+          [className]="esInvalido('colonia') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+          (valueChange)="seleccionarColoniaFiscal($event)"
+        />
         } @else {
         <input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('colonia')" />
         }
@@ -394,14 +397,14 @@
       <div class="field">
         <label for="coloniaComercial">Colonia <b>*</b></label>
         @if ((form.get('codigoPostalComercial')?.value || '').length === 5) {
-        <select id="coloniaComercial" formControlName="coloniaComercial"
-          [class.invalid]="esInvalido('coloniaComercial')"
-          (change)="seleccionarLocalidadComercial.emit($any($event.target).selectedOptions[0]?.dataset.id || '')">
-          <option value="">{{ localidadesComercial.length > 0 ? 'Selecciona una colonia' : (cargandoLocalidadesComercial ? 'Cargando colonias...' : 'Sin colonias para este CP') }}</option>
-          @for (localidad of localidadesComercial; track localidad.idLocalidad) {
-          <option [value]="localidad.colonia" [attr.data-id]="localidad.idLocalidad">{{ localidad.colonia }}</option>
-          }
-        </select>
+        <app-select
+          [placeholder]="placeholderColoniaComercial"
+          [options]="localidadesComercialOptions"
+          formControlName="coloniaComercial"
+          [disabled]="localidadesComercial.length === 0"
+          [className]="esInvalido('coloniaComercial') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+          (valueChange)="seleccionarColoniaComercial($event)"
+        />
         } @else {
         <input id="coloniaComercial" formControlName="coloniaComercial"
           [class.invalid]="esInvalido('coloniaComercial')">

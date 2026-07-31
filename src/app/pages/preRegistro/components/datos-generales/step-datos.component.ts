@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GiroComercial, PreRegistroService } from '../../../../services/preregistro.service';
 import { CodigoPostalLocalizacion } from '../../../../services/localidades.service';
 import { Actividad, ActividadesService } from '../../../../services/actividades.service';
+import { Option, SelectComponent } from '../../../../shared/components/form/select/select.component';
 
 interface GiroBusqueda {
   familia: string;
@@ -21,7 +22,7 @@ interface ActividadBusqueda {
 @Component({
   selector: 'app-step-datos',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SelectComponent],
   templateUrl: './step-datos.component.html',
   styleUrls: ['../../preRegistro.component.css']
 })
@@ -251,6 +252,57 @@ export class StepDatosComponent implements OnInit {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   tiene(campo: string): boolean { return this.campos.includes(campo); }
+
+  get regimenFiscalOptions(): Option[] {
+    return this.regimenesFiscales.map(regimen => ({
+      label: regimen,
+      value: regimen
+    }));
+  }
+
+  get localidadesFiscalOptions(): Option[] {
+    return this.localidadesFiscal
+      .map(localidad => {
+        const colonia = localidad.colonia ?? '';
+        return {
+          label: colonia,
+          value: colonia
+        };
+      })
+      .filter(option => option.value);
+  }
+
+  get localidadesComercialOptions(): Option[] {
+    return this.localidadesComercial
+      .map(localidad => {
+        const colonia = localidad.colonia ?? '';
+        return {
+          label: colonia,
+          value: colonia
+        };
+      })
+      .filter(option => option.value);
+  }
+
+  get placeholderColoniaFiscal(): string {
+    if (this.localidadesFiscal.length > 0) return 'Selecciona una colonia';
+    return this.cargandoLocalidadesFiscal ? 'Cargando colonias...' : 'Sin colonias para este CP';
+  }
+
+  get placeholderColoniaComercial(): string {
+    if (this.localidadesComercial.length > 0) return 'Selecciona una colonia';
+    return this.cargandoLocalidadesComercial ? 'Cargando colonias...' : 'Sin colonias para este CP';
+  }
+
+  seleccionarColoniaFiscal(colonia: string): void {
+    const localidad = this.localidadesFiscal.find(item => item.colonia === colonia);
+    this.seleccionarLocalidadFiscal.emit(localidad?.idLocalidad ? String(localidad.idLocalidad) : '');
+  }
+
+  seleccionarColoniaComercial(colonia: string): void {
+    const localidad = this.localidadesComercial.find(item => item.colonia === colonia);
+    this.seleccionarLocalidadComercial.emit(localidad?.idLocalidad ? String(localidad.idLocalidad) : '');
+  }
 
   esInvalido(campo: string): boolean {
     const c = this.form.get(campo);

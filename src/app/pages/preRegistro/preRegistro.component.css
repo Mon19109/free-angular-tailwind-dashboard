@@ -116,6 +116,10 @@
   font-weight: 750;
 }
 
+.draft-button-hidden {
+  display: none;
+}
+
 .tool-button:hover,
 .back-link:hover,
 .button:hover {
@@ -280,13 +284,16 @@ label b,
 input,
 select {
   width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 13px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: 12px;
   outline: none;
   color: var(--pre-text);
   background: var(--app-input-bg);
+  font-size: 14px;
+  font-weight: 650;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease,
@@ -295,6 +302,18 @@ select {
 
 input::placeholder {
   color: rgba(246, 247, 251, 0.4);
+}
+
+input[readonly] {
+  cursor: default;
+  color: rgba(246, 247, 251, 0.82);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
+    var(--app-input-bg);
+}
+
+input[readonly]::placeholder {
+  color: rgba(246, 247, 251, 0.46);
 }
 
 input:focus,
@@ -307,6 +326,42 @@ input.invalid,
 select.invalid {
   border-color: rgba(239, 68, 68, 0.7);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+:host ::ng-deep app-select {
+  display: block;
+  width: 100%;
+}
+
+:host ::ng-deep app-select select.preregistro-select {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0 13px;
+  color: var(--pre-text);
+  background: var(--app-input-bg);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.2;
+  box-shadow: none;
+}
+
+:host ::ng-deep app-select select.preregistro-select-arrow {
+  appearance: auto;
+  -webkit-appearance: menulist;
+  padding-right: 14px;
+}
+
+:host ::ng-deep app-select select.preregistro-select:focus {
+  border-color: rgba(241, 178, 61, 0.42) !important;
+  box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12) !important;
+}
+
+:host ::ng-deep app-select select.preregistro-select.invalid {
+  border-color: rgba(239, 68, 68, 0.7) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
 }
 
 small {
@@ -1124,7 +1179,8 @@ small {
 
 .form-grid {
   display: grid;
-  gap: 16px;
+  gap: 14px 18px;
+  align-items: start;
 }
 
 .form-grid.cols-2 {
@@ -1137,6 +1193,8 @@ small {
 
 .field {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .text-button {
@@ -1234,83 +1292,146 @@ small {
   cursor: pointer;
 }
 
+.documents-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.documents-panel-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  align-items: center;
+  gap: 24px;
+}
+
 .docs-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .docs-summary article {
-  padding: 16px 18px;
+  min-height: 74px;
+  padding: 14px 16px;
   display: grid;
-  gap: 4px;
+  align-content: center;
+  gap: 2px;
+  border-radius: 14px;
 }
 
 .docs-summary strong {
   color: var(--pre-text);
-  font-size: 24px;
+  font-size: 26px;
+  line-height: 1;
 }
 
-.documents-list {
-  display: grid;
-  gap: 12px;
+.docs-summary span {
+  color: var(--pre-muted);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.document-row {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 180px minmax(170px, 1fr);
-  gap: 14px;
-  align-items: center;
-  padding: 16px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.documents-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--pre-muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.documents-table {
+  overflow: hidden;
+  border: 1px solid var(--pre-line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.02);
 }
 
+.documents-table-head,
+.document-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 170px 180px;
+  column-gap: 16px;
+  align-items: center;
+}
+
+.documents-table-head {
+  min-height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--pre-line);
+  color: var(--pre-muted);
+  background: linear-gradient(90deg, rgba(8, 12, 19, 0.92), rgba(14, 20, 31, 0.92));
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.documents-table-head span:nth-child(3),
+.documents-table-head span:nth-child(4) {
+  text-align: center;
+}
+
+.document-row {
+  min-height: 58px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--pre-line);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.document-row:last-child {
+  border-bottom: 0;
+}
+
+.document-row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
 .document-row.uploaded {
-  border-color: rgba(34, 197, 94, 0.26);
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.06), rgba(255, 255, 255, 0.018));
 }
 
 .document-number {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   color: #140e02;
   background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .document-copy {
-  display: grid;
-  gap: 6px;
+  min-width: 0;
+  display: block;
   color: var(--pre-muted);
   font-size: 13px;
 }
 
 .document-copy strong {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
   color: var(--pre-text);
   font-size: 14px;
+  font-weight: 850;
+  line-height: 1.25;
 }
 
-.required-tag {
-  width: fit-content;
-  padding: 4px 10px;
-  border: 1px solid rgba(241, 178, 61, 0.34);
-  border-radius: 999px;
+.document-copy b {
   color: var(--pre-gold-strong);
-  background: rgba(241, 178, 61, 0.08);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 16px;
 }
 
 .file-picker {
+  width: 160px;
   margin: 0;
   cursor: pointer;
+  justify-self: center;
 }
 
 .file-picker input {
@@ -1323,18 +1444,20 @@ small {
 }
 
 .file-picker span {
-  min-height: 40px;
-  padding: 0 14px;
+  width: 160px;
+  min-height: 28px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(241, 178, 61, 0.68);
-  border-radius: 12px;
+  border: 1px solid rgba(241, 178, 61, 0.82);
+  border-radius: 8px;
   color: #140e02;
   background: linear-gradient(180deg, #ffe08a 0%, #f1b23d 100%);
-  box-shadow: 0 10px 20px rgba(241, 178, 61, 0.18);
-  font-size: 12px;
-  font-weight: 900;
+  box-shadow: 0 6px 14px rgba(241, 178, 61, 0.14);
+  font-size: 11.5px;
+  font-weight: 950;
+  white-space: nowrap;
 }
 
 .file-picker:hover span {
@@ -1343,13 +1466,46 @@ small {
 }
 
 .file-name {
+  justify-self: center;
+  text-align: center;
+  min-width: 0;
   margin-top: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--pre-gold-strong);
-  font-size: 12px;
+  color: var(--pre-muted);
+  font-size: 12.5px;
+  font-weight: 850;
 }
+
+.document-row.uploaded .file-name {
+  color: var(--pre-gold-strong);
+}
+
+:host-context(html:not(.dark)) .documents-table {
+  border-color: rgba(209, 219, 233, 0.95);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+:host-context(html:not(.dark)) .documents-table-head {
+  color: #344054;
+  border-bottom-color: rgba(190, 205, 225, 0.95);
+  background: linear-gradient(90deg, rgba(241, 245, 249, 0.98), rgba(248, 250, 252, 0.98));
+}
+
+:host-context(html:not(.dark)) .document-row {
+  border-bottom-color: rgba(209, 219, 233, 0.82);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+:host-context(html:not(.dark)) .document-row:hover {
+  background: rgba(248, 250, 252, 0.95);
+}
+
+:host-context(html:not(.dark)) .document-row.uploaded {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.08), rgba(255, 255, 255, 0.82));
+}
+
 
 .consent {
   margin-top: 18px;
@@ -1559,12 +1715,17 @@ small {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .document-row {
-    grid-template-columns: 44px minmax(0, 1fr) 180px;
+  .documents-panel-header {
+    grid-template-columns: 1fr;
   }
 
-  .file-name {
-    grid-column: 2 / -1;
+  .documents-table {
+    overflow-x: auto;
+  }
+
+  .documents-table-head,
+  .document-row {
+    min-width: 0;
   }
 }
 
@@ -1631,13 +1792,42 @@ small {
     flex-direction: column;
   }
 
-  .document-row {
-    grid-template-columns: 38px 1fr;
+  .documents-table {
+    display: grid;
+    gap: 12px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
   }
 
+  .documents-table-head {
+    display: none;
+  }
+
+  .document-row {
+    min-width: 0;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--pre-line);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .document-copy,
   .file-picker,
   .file-name {
     grid-column: 2 / -1;
+  }
+
+  .document-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .document-copy strong {
+    white-space: normal;
   }
 
   .actions,
@@ -1754,14 +1944,36 @@ small {
   background: rgba(255, 255, 255, 0.96);
 }
 
+:host-context(html:not(.dark)) ::ng-deep app-select select.preregistro-select {
+  border-color: var(--pre-border);
+  color: var(--pre-text);
+  background: rgba(255, 255, 255, 0.96);
+}
+
 :host-context(html:not(.dark)) input::placeholder {
   color: rgba(102, 112, 133, 0.62);
+}
+
+:host-context(html:not(.dark)) input[readonly] {
+  color: #344054;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.95)),
+    #ffffff;
+}
+
+:host-context(html:not(.dark)) input[readonly]::placeholder {
+  color: rgba(102, 112, 133, 0.72);
 }
 
 :host-context(html:not(.dark)) input:focus,
 :host-context(html:not(.dark)) select:focus {
   border-color: rgba(241, 178, 61, 0.42);
   box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.1);
+}
+
+:host-context(html:not(.dark)) ::ng-deep app-select select.preregistro-select:focus {
+  border-color: rgba(241, 178, 61, 0.42) !important;
+  box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.1) !important;
 }
 
 :host-context(html:not(.dark)) .button.ghost,
@@ -2008,24 +2220,24 @@ small {
 /* ── Botón Búsqueda Avanzada ─────────────────────────────────────────────── */
 .btn-busqueda-avanzada {
   margin-top: 0px;
-  min-height: 36px;
-  padding: 0 18px;
+  min-height: 44px;
+  padding: 0 26px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  border: none;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid rgba(248, 216, 119, 0.48);
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  width: fit-content;          /* ← ya no ocupa todo el ancho */
-  align-self: flex-end;        /* ← se pega a la derecha dentro del flex */
-
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  width: min(100%, 260px);
+  align-self: flex-end;
   background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
   color: #140e02;
-  box-shadow: 0 8px 20px rgba(241, 178, 61, 0.28);
+  box-shadow: 0 14px 30px rgba(241, 178, 61, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.36);
 }
 
 /* ── Celda del botón alineada con MCC ────────────────────────────────────── */
@@ -2033,13 +2245,14 @@ small {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  align-items: flex-end;       /* ← empuja el botón a la derecha */
+  align-items: flex-end;
 }
 
 
 .btn-busqueda-avanzada:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 26px rgba(241, 178, 61, 0.38);
+  filter: brightness(1.03);
+  box-shadow: 0 18px 34px rgba(241, 178, 61, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* MODO CLARO → azul */
@@ -2213,13 +2426,6 @@ small {
   color: #140e02;
   background: linear-gradient(180deg, #ffe08a 0%, #f1b23d 100%);
   box-shadow: 0 10px 20px rgba(241, 178, 61, 0.2);
-}
-
-:host-context(html:not(.dark)) .required-tag {
-  border-color: rgba(190, 120, 10, 0.55);
-  color: #8a4f00;
-  background: #fff3cf;
-  box-shadow: 0 6px 14px rgba(190, 120, 10, 0.12);
 }
 
 .liquidacion-form {
