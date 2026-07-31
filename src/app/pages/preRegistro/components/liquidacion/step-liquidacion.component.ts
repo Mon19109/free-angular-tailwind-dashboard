@@ -44,6 +44,12 @@ export class StepLiquidacionComponent {
     const control = this.form.get(campo);
     if (control?.hasError('required')) return 'Debes llenar este campo.';
     if (control?.hasError('email')) return 'Ingresa un correo válido.';
+    if (control?.hasError('rfcInvalido')) return 'Ingresa un RFC válido.';
+    if (control?.hasError('minlength') || control?.hasError('maxlength')) {
+      if (campo === 'rfcBeneficiario') return 'Ingresa un RFC de 12 o 13 caracteres.';
+      if (campo === 'digitoVerificador') return 'Ingresa un dígito verificador de 5 dígitos.';
+      if (campo.toLowerCase().includes('telefono')) return 'Ingresa un teléfono de 10 dígitos.';
+    }
     if (control?.hasError('clabeInvalida')) return 'Ingresa una CLABE válida de 18 dígitos.';
     if (control?.hasError('tarjetaInvalida')) return 'Ingresa un número de tarjeta de 16 dígitos.';
     if (control?.hasError('pattern')) return 'El formato no es válido.';

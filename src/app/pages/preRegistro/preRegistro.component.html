@@ -431,7 +431,7 @@
       @if (comisionistaForm.value.tipo === 'existente') {
       <div class="field">
         <label for="comisionistaAfiliacion">Número de afiliación</label>
-        <input id="comisionistaAfiliacion" formControlName="afiliacion"
+        <input id="comisionistaAfiliacion" maxlength="8" inputmode="numeric" formControlName="afiliacion"
           [class.invalid]="esInvalido('comisionista', 'afiliacion')" />
         @if (esInvalido('comisionista', 'afiliacion')) {
         <small>Captura la afiliación del comisionista.</small>
@@ -453,7 +453,7 @@
           }
         </div>
         <div class="field"><label for="comisionistaTelefono">Teléfono</label>
-          <input id="comisionistaTelefono" formControlName="telefono" />
+          <input id="comisionistaTelefono" maxlength="10" inputmode="numeric" formControlName="telefono" />
         </div>
         <div class="field"><label for="comisionistaNombre">Nombre</label>
           <input id="comisionistaNombre" formControlName="nombre" />
@@ -465,7 +465,7 @@
           <input id="comisionistaMaterno" formControlName="materno" />
         </div>
         <div class="field"><label for="comisionistaRfc">RFC</label>
-          <input id="comisionistaRfc" formControlName="rfc" />
+          <input id="comisionistaRfc" maxlength="13" formControlName="rfc" />
         </div>
       </div>
       }

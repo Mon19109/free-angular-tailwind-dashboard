@@ -1,4 +1,5 @@
 :host {
+  --pre-topbar-height: 82px;
   --pre-bg: #05070b;
   --pre-bg-alt: #0b111a;
   --pre-surface: rgba(9, 13, 20, 0.94);
@@ -26,6 +27,7 @@
 
 .preregistro-shell {
   min-height: 100vh;
+  padding-top: var(--pre-topbar-height);
   background:
     radial-gradient(circle at top left, rgba(241, 178, 61, 0.18), transparent 30%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 24%),
@@ -33,9 +35,12 @@
 }
 
 .topbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 20;
+  min-height: var(--pre-topbar-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1730,6 +1735,10 @@ small {
 }
 
 @media (max-width: 760px) {
+  :host {
+    --pre-topbar-height: 132px;
+  }
+
   .topbar {
     align-items: flex-start;
     flex-direction: column;
@@ -1846,6 +1855,10 @@ small {
 }
 
 @media (max-width: 520px) {
+  :host {
+    --pre-topbar-height: 124px;
+  }
+
   .brand-logo {
     width: 132px;
   }

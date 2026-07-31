@@ -104,7 +104,8 @@
       </div>
       <div class="field">
         <label for="rfcBeneficiario">RFC <b>*</b></label>
-        <input id="rfcBeneficiario" formControlName="rfcBeneficiario" placeholder="Ingrese RFC"
+        <input id="rfcBeneficiario" [attr.maxlength]="tipoPersonaBeneficiario === 'moral' ? 12 : 13"
+          formControlName="rfcBeneficiario" placeholder="Ingrese RFC"
           [class.invalid]="esInvalido('rfcBeneficiario')" />
         @if (esInvalido('rfcBeneficiario')) { <small>{{ mensajeCampo('rfcBeneficiario') }}</small> }
       </div>

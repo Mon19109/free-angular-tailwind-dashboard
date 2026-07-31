@@ -441,7 +441,7 @@ export class PreRegistroComponent {
     nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''], actividadId: [''],
     tipoPersona: ['', Validators.required],
     correo: ['', [Validators.required, Validators.email]],
-    telefono: ['', [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)]],
+    telefono: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
     departamento: ['', Validators.required],
     ciudad: ['', Validators.required],
     direccionComercial: ['', Validators.required],
@@ -461,7 +461,7 @@ export class PreRegistroComponent {
 
 
 
-    codigoPostalComercial: ['', Validators.required],
+    codigoPostalComercial: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(5), Validators.pattern(/^\d{5}$/)]],
     tipoVialidadComercial: ['', Validators.required],
     nombreVialidadComercial: ['', Validators.required],
     numeroExteriorComercial: [''],
@@ -478,8 +478,8 @@ export class PreRegistroComponent {
     nombreContactoComercial: ['', Validators.required],
     apellidoPaternoContactoComercial: ['', Validators.required],
     apellidoMaternoContactoComercial: ['', Validators.required],
-    telefonoComercial: ['', [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)]],
-    telefonoAdicionalComercial: [''],
+    telefonoComercial: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
+    telefonoAdicionalComercial: ['', [Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
 
 
 
@@ -522,7 +522,7 @@ export class PreRegistroComponent {
       const control = this.datosForm.get(nombre);
       if (!control) return;
       const debeSerObligatorio = activos.has(nombre) && !this.camposDinamicosOpcionales.includes(nombre);
-      control.setValidators(debeSerObligatorio ? [Validators.required] : []);
+      control.setValidators(this.validadoresDatosPorCampo(nombre, debeSerObligatorio));
       control.updateValueAndValidity({ emitEvent: false });
     });
 
@@ -548,7 +548,7 @@ export class PreRegistroComponent {
 
       const obligatorio = this.camposDatosGenerales.includes(nombre);
 
-      control.setValidators(obligatorio ? [Validators.required] : []);
+      control.setValidators(this.validadoresDatosPorCampo(nombre, obligatorio));
 
       control.updateValueAndValidity({ emitEvent: false });
 
@@ -569,7 +569,7 @@ export class PreRegistroComponent {
     this.camposRepresentanteObligatorios.forEach(nombre => {
       const control = this.datosForm.get(nombre);
       if (!control) return;
-      control.setValidators(mostrarRep ? [Validators.required] : []);
+      control.setValidators(this.validadoresDatosPorCampo(nombre, mostrarRep));
       control.updateValueAndValidity({ emitEvent: false });
     });
 
@@ -578,7 +578,7 @@ export class PreRegistroComponent {
     correoRep?.updateValueAndValidity({ emitEvent: false });
 
     const telRep = this.datosForm.get('telefonoRepresentante');
-    telRep?.setValidators(mostrarRep ? [Validators.required, Validators.pattern(/^[0-9\s()+-]{7,20}$/)] : []);
+    telRep?.setValidators(this.validadoresDatosPorCampo('telefonoRepresentante', mostrarRep));
     telRep?.updateValueAndValidity({ emitEvent: false });
 
     this.actualizarValidadoresActividadYGiro();
@@ -599,7 +599,7 @@ export class PreRegistroComponent {
       const control = this.datosForm.get(nombre);
       if (!control) return;
       const obligatorio = esPersonaMoral && this.camposDatosGenerales.includes(nombre);
-      control.setValidators(obligatorio ? [Validators.required] : []);
+      control.setValidators(this.validadoresDatosPorCampo(nombre, obligatorio));
       if (!esPersonaMoral) control.setValue('', { emitEvent: false });
       control.updateValueAndValidity({ emitEvent: false });
     });
@@ -620,14 +620,14 @@ export class PreRegistroComponent {
       const control = this.datosForm.get(nombre);
       if (!control) return;
       const obligatorio = esPersonaFisica && this.camposDatosGenerales.includes(nombre);
-      control.setValidators(obligatorio ? [Validators.required] : []);
+      control.setValidators(this.validadoresDatosPorCampo(nombre, obligatorio));
       if (!esPersonaFisica) control.setValue('', { emitEvent: false });
       control.updateValueAndValidity({ emitEvent: false });
     });
 
     const razonSocial = this.datosForm.controls.razonSocial;
     const razonSocialObligatoria = esPersonaMoral && this.camposDatosGenerales.includes('razonSocial');
-    razonSocial.setValidators(razonSocialObligatoria ? [Validators.required] : []);
+    razonSocial.setValidators(this.validadoresDatosPorCampo('razonSocial', razonSocialObligatoria));
     if (!esPersonaMoral) razonSocial.setValue('', { emitEvent: false });
     razonSocial.updateValueAndValidity({ emitEvent: false });
   }
@@ -655,25 +655,27 @@ export class PreRegistroComponent {
 
   readonly liquidacionForm = this.fb.nonNullable.group({
     cuentaFueraRed: ['no', Validators.required],
-    digitoVerificador: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]],
+    digitoVerificador: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(5), Validators.pattern(/^\d{5}$/)]],
     tipoPersonaBeneficiario: ['fisica' as TipoPersonaBeneficiario, Validators.required],
     beneficiarioIgualComercio: [false],
     nombreBeneficiario: ['', Validators.required], apellidoPaternoBeneficiario: ['', Validators.required],
     apellidoMaternoBeneficiario: ['', Validators.required],
     correoBeneficiario: ['', [Validators.required, Validators.email]],
-    direccionBeneficiario: ['', Validators.required], rfcBeneficiario: ['', Validators.required],
+    direccionBeneficiario: ['', Validators.required], rfcBeneficiario: ['', [Validators.required, Validators.maxLength(13), this.rfcValidator()]],
     actividadBeneficiario: ['', Validators.required], giroBeneficiario: ['', Validators.required],
     tipoCuenta: ['', Validators.required],
     cuentaClabe: ['', Validators.required],
     nombreBanco: ['', Validators.required], direccionBanco: ['', Validators.required],
-    telefonoBanco: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    telefonoBanco: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
     emailBanco: ['', [Validators.required, Validators.email]],
   });
 
   readonly comisionistaForm = this.fb.nonNullable.group({
     tipo: ['existente' as TipoComisionista, Validators.required],
     afiliacion: [''], correo: [''], confirmarCorreo: [''],
-    telefono: [''], nombre: [''], paterno: [''], materno: [''], rfc: [''],
+    telefono: ['', [Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
+    nombre: [''], paterno: [''], materno: [''],
+    rfc: ['', [Validators.maxLength(13), this.rfcValidator()]],
   }, {
     validators: [this.camposCoincidenValidator('correo', 'confirmarCorreo', 'comisionistaCorreosDistintos')],
   });
@@ -782,7 +784,7 @@ export class PreRegistroComponent {
           this.regimenesFiscales = regimenes;
         },
         error: error => {
-          console.error('No se pudieron cargar los regímenes fiscales', error);
+        void error;
           this.regimenesFiscales = [];
         }
       });
@@ -804,8 +806,6 @@ export class PreRegistroComponent {
     this.localidadesService.obtenerPorCodigoPostal(cp).subscribe({
       next: response => {
         const localidades = [...response];
-        console.log(`[Localidades ${addressType} CP ${cp}]:`, localidades);
-        console.log(`[Localidades ${addressType} opciones]:`, localidades.length);
         if (addressType === 'DF') {
           this.localidadesFiscal = localidades;
           this.cargandoLocalidadesFiscal = false;
@@ -819,7 +819,7 @@ export class PreRegistroComponent {
         this.cdr.detectChanges();
       },
       error: error => {
-        console.error(`[Localidades ${addressType} CP ${cp} error]:`, error);
+        void error;
         if (addressType === 'DF') this.localidadesFiscal = [];
         if (addressType === 'DC') this.localidadesComercial = [];
         if (addressType === 'DF') this.cargandoLocalidadesFiscal = false;
@@ -905,7 +905,9 @@ export class PreRegistroComponent {
     const tipo = this.comercioForm.getRawValue().tipoComercio;
     const nivel = this.comercioForm.getRawValue().nivel;
     const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel);
-    return this.datosGeneralesPorTipo[esSinTipo ? nivel : tipo] ?? [];
+    const campos = this.datosGeneralesPorTipo[esSinTipo ? nivel : tipo] ?? [];
+    if (campos.length === 0) return campos;
+    return Array.from(new Set([...campos, 'correo', 'telefono']));
   }
 
   get pasoGeneralesDebeSaltarse(): boolean {
@@ -1316,46 +1318,28 @@ export class PreRegistroComponent {
     try {
       localStorage.setItem(this.payloadKey, payloadJson);
     } catch { /* no-op */ }
-    console.log('[PreRegistro payload JSON]:\n' + payloadJson);
     return payload;
   }
 
   private enviarPreRegistroCompleto(payload: { entitys: Array<{ branchOficces: any[] }> }): void {
     this.preregistroCompletoService.enviarPreRegistro(payload).subscribe({
-      next: response => {
-        console.log('[PreRegistro completo response]:', response);
+      next: () => {
         this.marcarPasoCompletado(5);
         this.registroTerminado = true;
         this.errorEnvioPreRegistro = '';
         this.guardarBorradorSilencioso();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
-      error: error => {
-        console.error('[PreRegistro completo error]:', error);
+      error: () => {
         this.registroTerminado = false;
-        this.errorEnvioPreRegistro = this.obtenerMensajeErrorPreRegistro(error);
+        this.errorEnvioPreRegistro = this.obtenerMensajeErrorPreRegistro();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     });
   }
 
-  private obtenerMensajeErrorPreRegistro(error: unknown): string {
-    const fallback = 'No se pudo enviar el preregistro. Revisa la información e intenta nuevamente.';
-    if (!error || typeof error !== 'object') return fallback;
-
-    const response = error as { error?: unknown; message?: unknown };
-    const body = response.error;
-    if (body && typeof body === 'object') {
-      const payload = body as Record<string, unknown>;
-      const nested = payload['error'];
-      if (nested && typeof nested === 'object') {
-        const nestedPayload = nested as Record<string, unknown>;
-        if (nestedPayload['message']) return String(nestedPayload['message']);
-      }
-      if (payload['message']) return String(payload['message']);
-    }
-
-    return response.message ? String(response.message) : fallback;
+  private obtenerMensajeErrorPreRegistro(): string {
+    return 'No se pudo completar el registro. Intenta nuevamente en unos minutos.';
   }
 
   private construirPayloadPreRegistro(): { entitys: Array<{ branchOficces: any[] }> } {
@@ -1367,6 +1351,8 @@ export class PreRegistroComponent {
     const comercio = this.comercioForm.getRawValue();
     const tipoComercioPayload = this.tipoComercioPayload(nodoId, comercio.tipoComercio);
     const liquidacion = this.liquidacionForm.getRawValue() as Record<string, string | boolean>;
+    const tipoPersona = this.tipoPersonaPayload(datos['tipoPersona']);
+    const esPersonaFisica = tipoPersona === 'PF';
 
     return {
       entitys: [
@@ -1377,16 +1363,16 @@ export class PreRegistroComponent {
               businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
               idBussinesLine: this.valorNumero(datos['mcc']),
               idActivity: this.valorNumero(datos['actividadId']),
-              email: this.valorTexto(accesos['adminCorreo']),
+              email: this.valorTexto(datos['correo']) || this.valorTexto(accesos['adminCorreo']),
               password: this.valorTexto(accesos['pinContrasena']),
-              name: this.valorTexto(accesos['adminNombre']),
-              paternalSurname: this.valorTexto(accesos['adminPaterno']),
-              maternalSurname: this.valorTexto(accesos['adminMaterno']),
-              phoneNumber: this.valorTexto(accesos['adminTelefono']),
+              name: esPersonaFisica ? this.valorTexto(datos['nombre']) : this.valorTexto(accesos['adminNombre']),
+              paternalSurname: esPersonaFisica ? this.valorTexto(datos['apellidoPaterno']) : this.valorTexto(accesos['adminPaterno']),
+              maternalSurname: esPersonaFisica ? this.valorTexto(datos['apellidoMaterno']) : this.valorTexto(accesos['adminMaterno']),
+              phoneNumber: this.valorTexto(datos['telefono']) || this.valorTexto(accesos['adminTelefono']),
               rfc: this.valorTexto(datos['rfc']),
               curp: this.valorTexto(datos['curp']),
               fiscalRegime: this.codigoRegimenFiscal(datos['regimenFiscal']),
-              typePerson: this.tipoPersonaPayload(datos['tipoPersona']),
+              typePerson: tipoPersona,
               businessActivityCode: this.valorTexto(datos['mcc']),
               bussinesLineDescription: this.valorTexto(datos['descripcionGiro']),
               typeOfBusiness: 6,
@@ -1874,7 +1860,8 @@ export class PreRegistroComponent {
     if (!datos) return false;
 
     const tipoPersona = `${datos['tipoPersona'] || ''}`;
-    const camposRequeridos = (this.datosGeneralesPorTipo[tipoComercio] ?? [])
+    const baseCampos = this.datosGeneralesPorTipo[tipoComercio] ?? [];
+    const camposRequeridos = (baseCampos.length ? Array.from(new Set([...baseCampos, 'correo', 'telefono'])) : [])
       .filter(campo => !this.camposDinamicosOpcionales.includes(campo))
       .filter(campo => {
         if (tipoPersona === 'PF') return !['razonSocial', 'giroComercial', 'descripcionGiro', 'mcc'].includes(campo);
@@ -2361,6 +2348,43 @@ export class PreRegistroComponent {
     };
   }
 
+  private rfcValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const valor = `${control.value ?? ''}`.trim().toUpperCase();
+      if (!valor) return null;
+      if (valor.length < 12 || valor.length > 13) return { rfcInvalido: true };
+      return /^([A-ZÑ&]{3,4})\d{6}[A-Z0-9]{3}$/.test(valor) ? null : { rfcInvalido: true };
+    };
+  }
+
+  private curpValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const valor = `${control.value ?? ''}`.trim().toUpperCase();
+      if (!valor) return null;
+      if (valor.length !== 18) return { curpInvalida: true };
+      const patron = /^[A-Z][AEIOUX][A-Z]{2}\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[HM](AS|BC|BS|CC|CL|CM|CS|CH|DF|DG|GT|GR|HG|JC|MC|MN|MS|NT|NL|OC|PL|QT|QR|SP|SL|SR|TC|TS|TL|VZ|YN|ZS|NE)[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\d$/;
+      return patron.test(valor) ? null : { curpInvalida: true };
+    };
+  }
+
+  private validadoresDatosPorCampo(nombre: string, requerido: boolean): ValidatorFn[] {
+    const validadores: ValidatorFn[] = requerido ? [Validators.required] : [];
+    const telefonoPattern = /^\d{10}$/;
+    const codigoPostalPattern = /^\d{5}$/;
+
+    if (['rfc'].includes(nombre)) validadores.push(Validators.maxLength(13), this.rfcValidator());
+    if (['curp'].includes(nombre)) validadores.push(Validators.minLength(18), Validators.maxLength(18), this.curpValidator());
+    if (['correo', 'correoComercial', 'correoRepresentante'].includes(nombre)) validadores.push(Validators.email);
+    if (['telefono', 'telefonoComercial', 'telefonoRepresentante', 'telefonoAdicionalComercial', 'telefonoAdicionalRepresentante'].includes(nombre)) {
+      validadores.push(Validators.minLength(10), Validators.maxLength(10), Validators.pattern(telefonoPattern));
+    }
+    if (['codigoPostal', 'codigoPostalComercial', 'codigoPostalRepresentante'].includes(nombre)) {
+      validadores.push(Validators.minLength(5), Validators.maxLength(5), Validators.pattern(codigoPostalPattern));
+    }
+
+    return validadores;
+  }
+
   private actualizarValidadorCuentaLiquidacion(tipoCuenta: string): void {
     const cuenta = this.liquidacionForm.controls.cuentaClabe;
     const longitudEsperada = tipoCuenta === 'Tarjeta' ? 16 : 18;
@@ -2459,6 +2483,7 @@ export class PreRegistroComponent {
     this.setValidators(this.liquidacionForm.controls.nombreBeneficiario, [Validators.required]);
     this.setValidators(this.liquidacionForm.controls.apellidoPaternoBeneficiario, apellidosRequeridos ? [Validators.required] : []);
     this.setValidators(this.liquidacionForm.controls.apellidoMaternoBeneficiario, apellidosRequeridos ? [Validators.required] : []);
+    this.setValidators(this.liquidacionForm.controls.rfcBeneficiario, [Validators.required, Validators.maxLength(13), this.rfcValidator()]);
     if (tipo !== 'fisica' && !this.datosBeneficiarioIgualComercio) {
       this.liquidacionForm.patchValue({
         apellidoPaternoBeneficiario: '',

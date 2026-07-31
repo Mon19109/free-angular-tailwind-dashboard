@@ -134,7 +134,7 @@ export class StepDatosComponent implements OnInit {
         this.cargandoGiros = false;
       },
       error: error => {
-        console.error('Error al cargar giros comerciales:', error);
+        void error;
         this.errorGiros = 'No se pudieron cargar los giros, intenta nuevamente.';
         this.cargandoGiros = false;
       }
@@ -231,12 +231,11 @@ export class StepDatosComponent implements OnInit {
 
     this.actividadesService.getActividades().subscribe({
       next: response => {
-        console.log('[Actividades getActividades response]:', response);
         this.actividadesBusqueda = this.normalizarActividades(response);
         this.cargandoActividades = false;
       },
       error: error => {
-        console.error('Error al cargar actividades:', error);
+        void error;
         this.errorActividades = 'No se pudieron cargar las actividades, intenta nuevamente.';
         this.cargandoActividades = false;
       }
@@ -309,6 +308,26 @@ export class StepDatosComponent implements OnInit {
     return !!(c?.invalid && c.touched);
   }
 
+  mensajeCampo(campo: string): string {
+    const control = this.form.get(campo);
+    if (control?.hasError('required')) return 'Debes llenar este campo.';
+    if (control?.hasError('email')) return 'Ingresa un correo válido.';
+    if (control?.hasError('rfcInvalido')) return 'Ingresa un RFC válido.';
+    if (control?.hasError('curpInvalida')) return 'Ingresa una CURP válida.';
+    if (control?.hasError('minlength') || control?.hasError('maxlength')) {
+      if (campo === 'rfc') return 'Ingresa un RFC de 12 o 13 caracteres.';
+      if (campo === 'curp') return 'Ingresa una CURP de 18 caracteres.';
+      if (campo.toLowerCase().includes('telefono')) return 'Ingresa un teléfono de 10 dígitos.';
+      if (campo.toLowerCase().includes('codigopostal')) return 'Ingresa un código postal de 5 dígitos.';
+    }
+    if (control?.hasError('pattern')) {
+      if (campo.toLowerCase().includes('telefono')) return 'Ingresa un teléfono de 10 dígitos.';
+      if (campo.toLowerCase().includes('codigopostal')) return 'Ingresa un código postal de 5 dígitos.';
+      return 'El formato no es válido.';
+    }
+    return 'Debes llenar este campo.';
+  }
+
   get seccionesVisibles() {
     const tipo = this.tipoComercio;
     const sinRepresentante = [
@@ -335,28 +354,9 @@ export class StepDatosComponent implements OnInit {
   this.form.markAllAsTouched();
 
   if (this.form.invalid) {
-
-    console.log('====== FORMULARIO INVÁLIDO ======');
-
-    Object.keys(this.form.controls).forEach(nombre => {
-
-      const control = this.form.get(nombre);
-
-      if (control?.invalid) {
-        console.log(
-          nombre,
-          control.errors,
-          control.value
-        );
-      }
-
-    });
-
     this.irAlPrimerError();
     return;
   }
-
-  console.log('Formulario válido');
 
   this.continuar.emit();
 }
