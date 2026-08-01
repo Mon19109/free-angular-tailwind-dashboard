@@ -487,15 +487,11 @@ export class PreRegistroComponent {
 
   private readonly camposDinamicosOpcionales = ['numeroExterior', 'numeroInterior', 'entreCalle', 'yCalle'];
   private readonly camposInfoFiscalEntidad = [
-    'razonSocial', 'nombreComercial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
+    'razonSocial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
     'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad',
-    'tipoPersona', 'correo', 'telefono', 'departamento', 'ciudad', 'direccionComercial',
+    'tipoPersona',
     'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior',
     'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle',
-    'nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante',
-    'calleRepresentante', 'numeroExteriorRepresentante', 'numeroInteriorRepresentante',
-    'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante',
-    'correoRepresentante', 'telefonoRepresentante', 'telefonoAdicionalRepresentante',
   ];
   private readonly todosCamposDinamicos: string[] = Array.from(
     new Set(Object.values(this.datosGeneralesPorTipo).flat())
@@ -878,10 +874,8 @@ export class PreRegistroComponent {
 
   // ── Getters ──────────────────────────────────────────────────────────────────
   get progresoWizard(): number {
-    if (this.pasoActual === 0) return 0;
-    const indiceActual = this.pasosVisibles.findIndex(paso => paso.numero === this.pasoActual);
-    const indice = indiceActual >= 0 ? indiceActual : this.pasosVisibles.length - 1;
-    return (indice / Math.max(this.pasosVisibles.length - 1, 1)) * 100;
+    const progreso = this.calcularProgresoPreregistro();
+    return Math.min(100, Math.max(0, progreso));
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
@@ -949,7 +943,7 @@ export class PreRegistroComponent {
   }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
   get documentosCargados(): number { return this.documentosVisibles.filter(d => !!(d.archivo || d.archivoNombre)).length; }
-  get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo).length; }
+  get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo && !d.archivoNombre).length; }
   get mostrarArbolWizard(): boolean { return this.requiereArbolNegocio(); }
   get textoBotonDocumentos(): string {
     return this.mostrarArbolWizard && this.hayNodoSiguienteArbol() ? 'Siguiente' : 'Enviar preregistro';
@@ -1014,6 +1008,9 @@ export class PreRegistroComponent {
   irAlPaso(paso: number): void {
     if (paso === 3 && !this.mostrarPasoAccesos) {
       paso = this.mostrarCuentaLiquidacion ? 4 : this.mostrarPasoDocumentos ? 5 : 2;
+    }
+    if (paso === 5) {
+      this.cargarDocumentosNodo(this.nodoDocumentosActualId());
     }
     this.pasoActual = paso as PasoWizard;
     this.registroTerminado = false;
@@ -1287,7 +1284,8 @@ export class PreRegistroComponent {
     this.errorEnvioPreRegistro = '';
     const pasoInvalido = this.primerPasoInvalido();
     if (pasoInvalido !== null) { this.pasoActual = pasoInvalido; this.registroTerminado = false; return; }
-    const faltantes = this.documentosVisibles.filter(d => d.obligatorio && !d.archivo);
+    this.cargarDocumentosNodo(this.nodoDocumentosActualId());
+    const faltantes = this.documentosVisibles.filter(d => d.obligatorio && !d.archivo && !d.archivoNombre);
     this.archivosInvalidos = faltantes.length > 0;
     if (this.archivosInvalidos) { this.pasoActual = 5; return; }
     this.guardarDocumentosNodoActual();
@@ -1309,7 +1307,7 @@ export class PreRegistroComponent {
     this.guardarBorradorSilencioso();
   }
 
-  private imprimirPayloadPreRegistro(): { entitys: Array<{ branchOficces: any[] }> } {
+  private imprimirPayloadPreRegistro(): { entitys: any[] } {
     this.guardarDatosSucursalActual();
     this.guardarAccesosNodoActual();
     this.guardarDocumentosNodoActual();
@@ -1321,7 +1319,7 @@ export class PreRegistroComponent {
     return payload;
   }
 
-  private enviarPreRegistroCompleto(payload: { entitys: Array<{ branchOficces: any[] }> }): void {
+  private enviarPreRegistroCompleto(payload: { entitys: any[] }): void {
     this.preregistroCompletoService.enviarPreRegistro(payload).subscribe({
       next: () => {
         this.marcarPasoCompletado(5);
@@ -1342,66 +1340,93 @@ export class PreRegistroComponent {
     return 'No se pudo completar el registro. Intenta nuevamente en unos minutos.';
   }
 
-  private construirPayloadPreRegistro(): { entitys: Array<{ branchOficces: any[] }> } {
+  private construirPayloadPreRegistro(): { entitys: any[] } {
+    if (this.tipoNegocioSeleccionado?.id === 'sucursales-multiples') {
+      return this.construirPayloadPaqueteSucursalesMultiples();
+    }
+
     const nodoId = this.nodoBranchOfficeActualId();
+    return {
+      entitys: [
+        {
+          branchOficces: [
+            this.construirComercioPayload(nodoId),
+          ],
+        },
+      ],
+    };
+  }
+
+  private construirPayloadPaqueteSucursalesMultiples(): { entitys: any[] } {
+    const entidad = this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.nivel === 'entidad');
+    const entidadId = entidad?.id || 'entidad-1';
+    const sucursales = (entidad?.hijos ?? this.aplanarArbolNegocio(this.arbolNegocioWizard))
+      .filter(nodo => nodo.nivel === 'sucursal');
+
+    const { poss: _possEntidad, ...payloadEntidad } = this.construirComercioPayload(entidadId);
+
+    return {
+      entitys: [
+        {
+          ...payloadEntidad,
+          branchOficces: sucursales.map(sucursal => this.construirComercioPayload(sucursal.id)),
+        },
+      ],
+    };
+  }
+
+  private construirComercioPayload(nodoId: string): any {
     const datosPorSucursal = this.obtenerDatosPorSucursal();
     const accesosPorSucursal = this.obtenerAccesosPorSucursal();
     const datos = this.combinarPreferirLlenos(datosPorSucursal[nodoId] ?? {}, this.datosForm.getRawValue());
     const accesos = this.combinarPreferirLlenos(accesosPorSucursal[nodoId] ?? {}, this.accesosForm.getRawValue());
-    const comercio = this.comercioForm.getRawValue();
+    const comercioGuardado = this.obtenerComercioPorNodo()[nodoId];
+    const comercio = comercioGuardado ?? this.comercioForm.getRawValue();
     const tipoComercioPayload = this.tipoComercioPayload(nodoId, comercio.tipoComercio);
     const liquidacion = this.liquidacionForm.getRawValue() as Record<string, string | boolean>;
     const tipoPersona = this.tipoPersonaPayload(datos['tipoPersona']);
     const esPersonaFisica = tipoPersona === 'PF';
 
     return {
-      entitys: [
+      nameCommerce: this.valorTexto(datos['nombreComercial']) || this.valorTexto(datos['razonSocial']),
+      businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
+      idBussinesLine: this.valorNumero(datos['mcc']),
+      idActivity: this.valorNumero(datos['actividadId']),
+      email: this.valorTexto(datos['correo']) || this.valorTexto(accesos['adminCorreo']),
+      password: this.valorTexto(accesos['pinContrasena']),
+      name: esPersonaFisica ? this.valorTexto(datos['nombre']) : this.valorTexto(accesos['adminNombre']),
+      paternalSurname: esPersonaFisica ? this.valorTexto(datos['apellidoPaterno']) : this.valorTexto(accesos['adminPaterno']),
+      maternalSurname: esPersonaFisica ? this.valorTexto(datos['apellidoMaterno']) : this.valorTexto(accesos['adminMaterno']),
+      phoneNumber: this.valorTexto(datos['telefono']) || this.valorTexto(accesos['adminTelefono']),
+      rfc: this.valorTexto(datos['rfc']),
+      curp: this.valorTexto(datos['curp']),
+      fiscalRegime: this.codigoRegimenFiscal(datos['regimenFiscal']),
+      typePerson: tipoPersona,
+      businessActivityCode: this.valorTexto(datos['mcc']),
+      bussinesLineDescription: this.valorTexto(datos['descripcionGiro']),
+      typeOfBusiness: this.typeOfBusinessComercio(tipoComercioPayload),
+      commerceAddress: [
+        this.construirDireccionPayload('DF', datos, ''),
+        this.construirDireccionPayload('DC', datos, 'Comercial'),
+      ],
+      tradeBilling: {
+        period: this.valorTexto(liquidacion['period']),
+        days: this.valorTexto(liquidacion['days']),
+        amount: this.valorNumero(liquidacion['amount']),
+      },
+      contacts: [
         {
-          branchOficces: [
-            {
-              nameCommerce: this.valorTexto(datos['nombreComercial']) || this.valorTexto(datos['razonSocial']),
-              businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
-              idBussinesLine: this.valorNumero(datos['mcc']),
-              idActivity: this.valorNumero(datos['actividadId']),
-              email: this.valorTexto(datos['correo']) || this.valorTexto(accesos['adminCorreo']),
-              password: this.valorTexto(accesos['pinContrasena']),
-              name: esPersonaFisica ? this.valorTexto(datos['nombre']) : this.valorTexto(accesos['adminNombre']),
-              paternalSurname: esPersonaFisica ? this.valorTexto(datos['apellidoPaterno']) : this.valorTexto(accesos['adminPaterno']),
-              maternalSurname: esPersonaFisica ? this.valorTexto(datos['apellidoMaterno']) : this.valorTexto(accesos['adminMaterno']),
-              phoneNumber: this.valorTexto(datos['telefono']) || this.valorTexto(accesos['adminTelefono']),
-              rfc: this.valorTexto(datos['rfc']),
-              curp: this.valorTexto(datos['curp']),
-              fiscalRegime: this.codigoRegimenFiscal(datos['regimenFiscal']),
-              typePerson: tipoPersona,
-              businessActivityCode: this.valorTexto(datos['mcc']),
-              bussinesLineDescription: this.valorTexto(datos['descripcionGiro']),
-              typeOfBusiness: 6,
-              commerceAddress: [
-                this.construirDireccionPayload('DF', datos, ''),
-                this.construirDireccionPayload('DC', datos, 'Comercial'),
-              ],
-              tradeBilling: {
-                period: this.valorTexto(liquidacion['period']),
-                days: this.valorTexto(liquidacion['days']),
-                amount: this.valorNumero(liquidacion['amount']),
-              },
-              contacts: [
-                {
-                  type: 1,
-                  name: this.valorTexto(datos['nombreRepresentante']) || this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(datos['nombre']),
-                  paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']) || this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(datos['apellidoPaterno']),
-                  maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']) || this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(datos['apellidoMaterno']),
-                  phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']),
-                  additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']) || this.valorTexto(datos['telefonoAdicionalComercial']),
-                  email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']),
-                  address: null,
-                },
-              ],
-              poss: this.construirPossPayload(accesos),
-            },
-          ],
+          type: 1,
+          name: this.valorTexto(datos['nombreRepresentante']) || this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(datos['nombre']),
+          paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']) || this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(datos['apellidoPaterno']),
+          maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']) || this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(datos['apellidoMaterno']),
+          phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']),
+          additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']) || this.valorTexto(datos['telefonoAdicionalComercial']),
+          email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']),
+          address: null,
         },
       ],
+      poss: this.construirPossPayload(accesos),
     };
   }
 
@@ -1470,12 +1495,12 @@ export class PreRegistroComponent {
       .filter((documento): documento is DocumentoRequerido => !!documento)
       .map(documento => {
       const guardado = documentosNodo[documento.numero];
-      const archivo = guardado?.archivo || documento.archivo;
+      const archivo = guardado?.archivo;
       return {
         number: documento.numero,
         name: documento.nombre,
         required: documento.obligatorio,
-        fileName: guardado?.archivoNombre || documento.archivoNombre || archivo?.name || '',
+        fileName: guardado?.archivoNombre || archivo?.name || '',
         size: archivo?.size ?? null,
         type: archivo?.type || '',
         hasFile: !!archivo,
@@ -1596,6 +1621,7 @@ export class PreRegistroComponent {
     }
     documento.archivo = archivo; documento.archivoNombre = archivo.name;
     this.archivosInvalidos = false;
+    this.guardarDocumentosNodoActual();
     this.guardarBorradorSilencioso();
   }
 
@@ -1855,6 +1881,56 @@ export class PreRegistroComponent {
     return this.obtenerNodosCompletados().includes(id);
   }
 
+  private calcularProgresoPreregistro(): number {
+    const unidadesIniciales = 2; // afiliación + selección/configuración del paquete
+    const nodos = this.mostrarArbolWizard ? this.nodosCapturablesParaFlujo() : [];
+    const pasosPorNodo = this.pasosVisibles.length || 1;
+    const total = unidadesIniciales + Math.max(nodos.length, 1) * pasosPorNodo;
+    let completadas = 0;
+
+    if (this.afiliacionForm.valid && this.pasoActual !== 0) completadas += 1;
+    if (this.tipoNegocioSeleccionado || this.pasosCompletados.has(1)) completadas += 1;
+
+    if (nodos.length) {
+      nodos.forEach(nodo => {
+        completadas += this.unidadesCompletadasNodo(nodo, pasosPorNodo);
+      });
+    } else {
+      completadas += this.unidadesCompletadasFlujoActual(pasosPorNodo);
+    }
+
+    return (completadas / total) * 100;
+  }
+
+  private unidadesCompletadasNodo(nodo: NodoArbolNegocio, pasosPorNodo: number): number {
+    if (this.nodoArbolCompletado(nodo.id)) return pasosPorNodo;
+
+    const actualId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    if (nodo.id === actualId) return this.unidadesCompletadasFlujoActual(pasosPorNodo);
+
+    const tipoComercio = this.obtenerComercioPorNodo()[nodo.id]?.tipoComercio || this.tipoComercioAutomaticoPorNodo(nodo);
+    let unidades = 0;
+    if (tipoComercio) unidades += 1;
+    if (this.datosNodoCompletos(nodo.id, tipoComercio)) unidades += 1;
+    if (this.mostrarPasoAccesos && this.accesosNodoCompletos(nodo.id)) unidades += 1;
+    if (this.mostrarCuentaLiquidacion) unidades += this.pasosCompletados.has(4) ? 1 : 0;
+    if (this.mostrarPasoDocumentos && this.documentosNodoCompletos(nodo.id, tipoComercio)) unidades += 1;
+
+    return Math.min(unidades, pasosPorNodo);
+  }
+
+  private unidadesCompletadasFlujoActual(pasosPorNodo: number): number {
+    let unidades = 0;
+    this.pasosVisibles.forEach(paso => {
+      if (this.pasosCompletados.has(paso.numero)) unidades += 1;
+    });
+
+    const indicePasoActual = this.pasosVisibles.findIndex(paso => paso.numero === this.pasoActual);
+    if (indicePasoActual > 0) unidades = Math.max(unidades, indicePasoActual);
+
+    return Math.min(unidades, pasosPorNodo);
+  }
+
   private datosNodoCompletos(id: string, tipoComercio: string): boolean {
     const datos = this.obtenerDatosPorSucursal()[id];
     if (!datos) return false;
@@ -2055,7 +2131,9 @@ export class PreRegistroComponent {
     if (!datosEntidad) return;
 
     const valores = Object.fromEntries(
-      this.camposInfoFiscalEntidad.map(campo => [campo, datosEntidad[campo] ?? ''])
+      this.camposInfoFiscalEntidad
+        .filter(campo => this.valorTexto(datosEntidad[campo]))
+        .map(campo => [campo, datosEntidad[campo] ?? ''])
     );
     this.datosForm.patchValue(valores as any, { emitEvent: false });
   }
@@ -2077,10 +2155,15 @@ export class PreRegistroComponent {
 
   private actualizarEstadoInfoFiscalEntidad(): void {
     const debeBloquear = this.mostrarInfoFiscalEntidadSucursal && this.datosForm.controls.mismaInfoFiscalEntidad.value;
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    const entidad = nodo ? this.buscarEntidadPadre(nodo.id) : undefined;
+    const datosEntidad = entidad ? this.obtenerDatosPorSucursal()[entidad.id] : undefined;
+
     this.camposInfoFiscalEntidad.forEach(campo => {
       const control = this.datosForm.get(campo);
       if (!control) return;
-      if (debeBloquear) {
+      const entidadTieneValor = !!datosEntidad && !!this.valorTexto(datosEntidad[campo]);
+      if (debeBloquear && entidadTieneValor) {
         control.disable({ emitEvent: false });
       } else {
         control.enable({ emitEvent: false });
@@ -2133,10 +2216,9 @@ export class PreRegistroComponent {
   }
 
   private guardarDocumentosNodoActual(): void {
-    if (!this.mostrarArbolWizard) return;
-    const nodoId = this.nodoBranchOfficeActualId();
+    const nodoId = this.nodoDocumentosActualId();
     this.documentosPorNodo[nodoId] = Object.fromEntries(
-      this.documentos.map(documento => [documento.numero, {
+      this.documentosVisibles.map(documento => [documento.numero, {
         archivo: documento.archivo,
         archivoNombre: documento.archivoNombre,
       }])
@@ -2151,6 +2233,13 @@ export class PreRegistroComponent {
       documento.archivoNombre = guardado?.archivoNombre;
     });
     this.archivosInvalidos = false;
+  }
+
+  private nodoDocumentosActualId(): string {
+    if (!this.mostrarArbolWizard) return 'preregistro';
+    return this.arbolNegocioForm.controls.nodoSeleccionado.value
+      || this.primerNodoCapturableArbol()?.id
+      || 'sucursal-1';
   }
 
   private avanzarASiguienteSucursal(): boolean {

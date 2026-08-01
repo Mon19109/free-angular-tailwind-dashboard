@@ -1230,6 +1230,10 @@ small {
   gap: 18px;
 }
 
+.callout.hidden {
+  display: none;
+}
+
 .callout p {
   margin-bottom: 0;
   line-height: 1.55;

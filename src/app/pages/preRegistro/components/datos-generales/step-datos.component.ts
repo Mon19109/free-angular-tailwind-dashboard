@@ -340,10 +340,10 @@ export class StepDatosComponent implements OnInit {
     ].includes(tipo);
     return {
       datosGenerales:     !esCaja,
-      domicilioFiscal:    !esCaja && !this.infoFiscalEntidadActiva,
-      representante:      !esCaja && !this.infoFiscalEntidadActiva && !sinRepresentante.includes(tipo),
-      dirRepresentante:   !esCaja && !this.infoFiscalEntidadActiva && !sinRepresentante.includes(tipo),
-      contactoRep:        !esCaja && !this.infoFiscalEntidadActiva && !sinRepresentante.includes(tipo),
+      domicilioFiscal:    !esCaja,
+      representante:      !esCaja && !sinRepresentante.includes(tipo),
+      dirRepresentante:   !esCaja && !sinRepresentante.includes(tipo),
+      contactoRep:        !esCaja && !sinRepresentante.includes(tipo),
       domicilioComercial: true,
       contactoComercial:  true,
     };
