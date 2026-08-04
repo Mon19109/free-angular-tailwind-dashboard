@@ -2,7 +2,7 @@
   <div class="documents-panel-header">
     <div class="section-title">
       <h3>Documentación requerida</h3>
-      <span>Formatos permitidos: PDF, JPG o PNG. Máximo 10 MB por archivo.</span>
+      <span>Documentos en PDF e imágenes en PNG. Máximo 10 MB por archivo.</span>
     </div>
     <div class="docs-summary">
       <article><strong>{{ documentosCargados }}</strong><span>Cargados</span></article>
@@ -16,7 +16,7 @@
 </section>
 
 @if (archivosInvalidos) {
-  <div class="alert-error">Carga todos los documentos marcados como obligatorios.</div>
+  <div class="alert-error">Carga los archivos requeridos con el formato correcto: documentos en PDF e imágenes en PNG.</div>
 }
 
 <div class="documents-table">
@@ -34,7 +34,7 @@
         <strong>{{ documento.nombre }}@if (documento.obligatorio) { <b>*</b> }</strong>
       </div>
       <label class="file-picker">
-        <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+        <input type="file" [accept]="documento.nombre.startsWith('Imagen') ? '.png,image/png' : '.pdf,application/pdf'"
           (change)="seleccionarArchivo.emit({ event: $event, documento })" />
         <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>
       </label>

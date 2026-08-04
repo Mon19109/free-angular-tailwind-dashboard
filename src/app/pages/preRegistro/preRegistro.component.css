@@ -1361,7 +1361,7 @@ small {
 .documents-table-head,
 .document-row {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 170px 180px;
+  grid-template-columns: 56px minmax(0, 1fr) 180px minmax(220px, 0.56fr);
   column-gap: 16px;
   align-items: center;
 }
@@ -1477,8 +1477,13 @@ small {
 .file-name {
   justify-self: center;
   text-align: center;
+  width: 100%;
+  max-width: 320px;
   min-width: 0;
   margin-top: 0;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1488,7 +1493,9 @@ small {
 }
 
 .document-row.uploaded .file-name {
+  border-color: rgba(241, 178, 61, 0.22);
   color: var(--pre-gold-strong);
+  background: rgba(241, 178, 61, 0.08);
 }
 
 :host-context(html:not(.dark)) .documents-table {
@@ -1513,6 +1520,12 @@ small {
 
 :host-context(html:not(.dark)) .document-row.uploaded {
   background: linear-gradient(90deg, rgba(34, 197, 94, 0.08), rgba(255, 255, 255, 0.82));
+}
+
+:host-context(html:not(.dark)) .document-row.uploaded .file-name {
+  color: #7a4b00;
+  border-color: rgba(180, 121, 16, 0.24);
+  background: rgba(255, 247, 230, 0.9);
 }
 
 

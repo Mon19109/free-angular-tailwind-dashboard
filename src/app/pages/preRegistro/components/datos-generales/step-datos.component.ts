@@ -45,6 +45,8 @@ export class StepDatosComponent implements OnInit {
   @Input() tipoComercio: string = '';
   @Input() mostrarInfoFiscalEntidad = false;
   @Input() infoFiscalEntidadActiva = false;
+  @Input() mostrarMismoDomicilio = true;
+  @Input() bloquearTipoPersona = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();

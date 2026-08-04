@@ -15,6 +15,7 @@ import { ThemeToggleButtonComponent } from '../../shared/components/common/theme
 import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
 import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/localidades.service';
 import { PreregistroCompletoService } from '../../services/preregistro-completo.service';
+import { DocumentoPreregistroUpload, PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
 import { DocumentoRequerido } from './models/preregistro.models';
 
 
@@ -35,6 +36,7 @@ type TipoPersonaBeneficiario = 'fisica' | 'moral';
 type TipoComisionista = 'existente' | 'nuevo';
 type ReglaDocumento = Pick<DocumentoRequerido, 'numero' | 'obligatorio'>;
 type NivelArbolNegocio = 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja';
+type ObjetoRespuestaPreregistro = Record<string, unknown>;
 
 interface NodoArbolNegocio {
   id: string;
@@ -98,6 +100,7 @@ export class PreRegistroComponent {
   private readonly regimenFiscalService = inject(RegimenFiscalService);
   private readonly localidadesService = inject(LocalidadesService);
   private readonly preregistroCompletoService = inject(PreregistroCompletoService);
+  private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
   private readonly payloadKey = 'kashpay.preregistro.payload.v1';
 
@@ -121,6 +124,22 @@ export class PreRegistroComponent {
   cargandoLocalidadesComercial = false;
   private documentosPorNodo: Record<string, Record<number, DocumentoNodo>> = {};
   private contextoComercio: 'paquete' | 'caja' = 'paquete';
+  private readonly sufijosDocumentos: Record<number, { sufijo: string; extension: 'pdf' | 'png' }> = {
+    1: { sufijo: 'COMP_DOM', extension: 'pdf' },
+    2: { sufijo: 'ACTA_CONST', extension: 'pdf' },
+    3: { sufijo: 'INE', extension: 'pdf' },
+    4: { sufijo: 'CONTRATO', extension: 'pdf' },
+    5: { sufijo: 'IMGE', extension: 'png' },
+    6: { sufijo: 'IMGI', extension: 'png' },
+    7: { sufijo: 'IMGI2', extension: 'png' },
+    8: { sufijo: 'ESCRI', extension: 'pdf' },
+    9: { sufijo: 'PODER', extension: 'pdf' },
+    10: { sufijo: 'CONS', extension: 'pdf' },
+    11: { sufijo: 'EFIRMA', extension: 'pdf' },
+    12: { sufijo: 'INERL', extension: 'pdf' },
+    13: { sufijo: 'INETER', extension: 'pdf' },
+    14: { sufijo: 'CARATULA_EDO_CTA', extension: 'pdf' },
+  };
 
 
   // ── Datos estáticos (los consume el HTML y los steps vía [input]) ────────────
@@ -932,7 +951,10 @@ export class PreRegistroComponent {
   get mostrarBeneficiarioIgualComercio(): boolean { return !this.pasoGeneralesDebeSaltarse; }
   get esComercioUnico(): boolean { return this.tipoNegocioSeleccionado?.id === 'comercio-unico'; }
   get bloquearNivelComercio(): boolean { return !!this.tipoNegocioSeleccionado || this.contextoComercio === 'caja'; }
-  get bloquearTipoComercio(): boolean { return this.esComercioUnico && this.contextoComercio !== 'caja'; }
+  get bloquearTipoComercio(): boolean {
+    return (this.esComercioUnico && this.contextoComercio !== 'caja')
+      || (this.tipoNegocioSeleccionado?.id === 'sucursales-multiples' && this.esNodoSucursalActualConEntidad());
+  }
   get nivelesComercioVisibles(): string[] {
     const nivelActual = this.comercioForm.controls.nivel.value;
     return this.bloquearNivelComercio && nivelActual ? [nivelActual] : this.niveles;
@@ -940,6 +962,22 @@ export class PreRegistroComponent {
   get mostrarInfoFiscalEntidadSucursal(): boolean {
     const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
     return !this.esComercioUnico && nodo?.nivel === 'sucursal' && !!this.buscarEntidadPadre(nodo.id);
+  }
+  get bloquearTipoPersonaSucursal(): boolean {
+    return !!this.tipoPersonaForzadaPorComercio(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+  }
+  get mostrarCheckMismoDomicilio(): boolean {
+    if (this.tipoNegocioSeleccionado?.id !== 'sucursales-multiples') return true;
+
+    const nodoActual = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    if (nodoActual?.nivel !== 'sucursal') return true;
+    if (this.datosForm.controls.mismoDomicilio.value) return true;
+
+    const datosPorSucursal = this.obtenerDatosPorSucursal();
+    return !Object.entries(datosPorSucursal).some(([nodoId, datos]) => {
+      const nodo = this.buscarNodoArbol(nodoId);
+      return nodo?.nivel === 'sucursal' && nodoId !== nodoActual.id && datos['mismoDomicilio'] === true;
+    });
   }
   get pasoActualLabel(): string { return this.pasos[this.pasoActual - 1]?.titulo ?? 'Validación'; }
   get documentosCargados(): number { return this.documentosVisibles.filter(d => !!(d.archivo || d.archivoNombre)).length; }
@@ -1052,12 +1090,16 @@ export class PreRegistroComponent {
     const nivel = this.nivelClientePorNodo(nodo);
     const comercioGuardado = this.obtenerComercioPorNodo()[nodo.id];
     this.contextoComercio = nodo.nivel === 'caja' ? 'caja' : 'paquete';
-    this.tiposComercio = this.esComercioUnico && nodo.nivel !== 'caja'
+    const tipoForzado = this.tipoComercioForzadoPorEntidad(nodo);
+    this.tiposComercio = tipoForzado
+      ? [tipoForzado]
+      : this.esComercioUnico && nodo.nivel !== 'caja'
       ? [this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas']
       : this.tiposComercioPorNivel[nivel] ?? [];
     this.comercioForm.patchValue({
       nivel,
-      tipoComercio: comercioGuardado?.tipoComercio
+      tipoComercio: tipoForzado
+        || comercioGuardado?.tipoComercio
         || this.tipoComercioAutomaticoPorNodo(nodo),
     }, { emitEvent: false });
     this.comercioForm.controls.tipoComercio.setValidators([Validators.required]);
@@ -1321,12 +1363,26 @@ export class PreRegistroComponent {
 
   private enviarPreRegistroCompleto(payload: { entitys: any[] }): void {
     this.preregistroCompletoService.enviarPreRegistro(payload).subscribe({
-      next: () => {
-        this.marcarPasoCompletado(5);
-        this.registroTerminado = true;
-        this.errorEnvioPreRegistro = '';
-        this.guardarBorradorSilencioso();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+      next: (response) => {
+        const documentos = this.prepararDocumentosParaSubida(response);
+        console.info('[Preregistro] Registro exitoso. Documentos preparados para subida:', documentos.map(documento => ({
+          guid: documento.guid,
+          nombre: documento.fileName,
+          tipo: documento.file.type,
+          tamanoBytes: documento.file.size,
+        })));
+        this.preregistroDocumentosService.subirDocumentos(documentos).subscribe({
+          next: () => {
+            console.info('[Preregistro] Documentos subidos correctamente.');
+            this.completarRegistroExitoso();
+          },
+          error: () => {
+            console.error('[Preregistro] Error al subir documentos.');
+            this.registroTerminado = false;
+            this.errorEnvioPreRegistro = 'El registro se completó, pero no se pudieron subir los documentos. Intenta nuevamente.';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          },
+        });
       },
       error: () => {
         this.registroTerminado = false;
@@ -1336,8 +1392,117 @@ export class PreRegistroComponent {
     });
   }
 
+  private completarRegistroExitoso(): void {
+    this.marcarPasoCompletado(5);
+    this.registroTerminado = true;
+    this.errorEnvioPreRegistro = '';
+    this.guardarBorradorSilencioso();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   private obtenerMensajeErrorPreRegistro(): string {
     return 'No se pudo completar el registro. Intenta nuevamente en unos minutos.';
+  }
+
+  private prepararDocumentosParaSubida(response: unknown): DocumentoPreregistroUpload[] {
+    const guidsPorNodo = this.obtenerCommerceGuidsPorNodo(response);
+    console.info('[Preregistro documentos] GUIDs detectados por nodo:', guidsPorNodo);
+    console.info('[Preregistro documentos] Documentos guardados por nodo:', Object.entries(this.documentosPorNodo).map(([nodoId, documentos]) => ({
+      nodoId,
+      documentos: Object.entries(documentos)
+        .filter(([, documento]) => !!documento.archivo || !!documento.archivoNombre)
+        .map(([numero, documento]) => ({
+          numero: Number(numero),
+          nombre: documento.archivo?.name || documento.archivoNombre || '',
+          tieneArchivo: !!documento.archivo,
+        })),
+    })));
+    return Object.entries(this.documentosPorNodo).flatMap(([nodoId, documentos]) => {
+      const guids = guidsPorNodo[nodoId] ?? [];
+      if (!guids.length) return [];
+
+      return guids.flatMap(guid => Object.entries(documentos)
+          .map(([numeroDocumento, documento]) => {
+            const numero = Number(numeroDocumento);
+            const fileName = this.nombreArchivoDocumento(guid, numero);
+            if (!documento.archivo || !fileName) return undefined;
+
+            return { guid, fileName, file: documento.archivo };
+          })
+          .filter((documento): documento is DocumentoPreregistroUpload => !!documento)
+      );
+    });
+  }
+
+  private obtenerCommerceGuidsPorNodo(response: unknown): Record<string, string[]> {
+    const entitys = this.extraerEntitysRespuesta(response);
+    const entidadRespuesta = entitys[0];
+    const guids: Record<string, string[]> = {};
+
+    if (this.tipoNegocioSeleccionado?.id === 'sucursales-multiples') {
+      const entidad = this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.nivel === 'entidad');
+      const sucursales = (entidad?.hijos ?? this.aplanarArbolNegocio(this.arbolNegocioWizard))
+        .filter(nodo => nodo.nivel === 'sucursal');
+      const guidEntidad = this.extraerCommerceGuid(entidadRespuesta);
+
+      const sucursalesRespuesta = this.extraerBranchOficcesRespuesta(entidadRespuesta);
+      sucursales.forEach((sucursal, index) => {
+        const guid = this.extraerCommerceGuid(sucursalesRespuesta[index]);
+        if (guid) {
+          guids[sucursal.id] = [guid];
+        }
+      });
+      if (entidad?.id && guidEntidad) guids[entidad.id] = [guidEntidad];
+
+      return guids;
+    }
+
+    const guidPrincipal = this.extraerCommerceGuid(this.extraerBranchOficcesRespuesta(entidadRespuesta)[0])
+      || this.extraerCommerceGuid(entidadRespuesta)
+      || this.extraerCommerceGuid(response);
+    const nodoId = this.nodoBranchOfficeActualId();
+    if (guidPrincipal) guids[nodoId] = [guidPrincipal];
+
+    return guids;
+  }
+
+  private extraerEntitysRespuesta(response: unknown): ObjetoRespuestaPreregistro[] {
+    const root = this.extraerObjetoRespuesta(response);
+    const preRegistrationRequest = this.esObjetoRespuesta(root['preRegistrationRequest'])
+      ? root['preRegistrationRequest']
+      : this.esObjetoRespuesta(root['preRegistrationResponse'])
+        ? root['preRegistrationResponse']
+        : this.esObjetoRespuesta(root['rows'])
+          ? root['rows']
+          : root;
+    const entitys = preRegistrationRequest['entitys'];
+    return Array.isArray(entitys) ? entitys.filter(this.esObjetoRespuesta) : [];
+  }
+
+  private extraerBranchOficcesRespuesta(entity: unknown): ObjetoRespuestaPreregistro[] {
+    const objeto = this.extraerObjetoRespuesta(entity);
+    const branchOficces = objeto['branchOficces'] ?? objeto['branchOffices'];
+    return Array.isArray(branchOficces) ? branchOficces.filter(this.esObjetoRespuesta) : [];
+  }
+
+  private extraerCommerceGuid(response: unknown): string {
+    const objeto = this.extraerObjetoRespuesta(response);
+    const accountResponse = this.extraerObjetoRespuesta(objeto['accountResponse']);
+    return this.valorTexto(objeto['commerceGuid'])
+      || this.valorTexto(accountResponse['commerceGuid']);
+  }
+
+  private extraerObjetoRespuesta(response: unknown): ObjetoRespuestaPreregistro {
+    return this.esObjetoRespuesta(response) ? response : {};
+  }
+
+  private esObjetoRespuesta(response: unknown): response is ObjetoRespuestaPreregistro {
+    return typeof response === 'object' && response !== null && !Array.isArray(response);
+  }
+
+  private nombreArchivoDocumento(guid: string, numero: number): string | null {
+    const config = this.sufijosDocumentos[numero];
+    return config ? `${guid}_${config.sufijo}.${config.extension}` : null;
   }
 
   private construirPayloadPreRegistro(): { entitys: any[] } {
@@ -1613,8 +1778,9 @@ export class PreRegistroComponent {
   seleccionarArchivo(event: Event, documento: DocumentoRequerido): void {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
-    const valido = !!archivo && archivo.size <= 10 * 1024 * 1024 &&
-      ['application/pdf', 'image/jpeg', 'image/png'].includes(archivo.type);
+    const esImagen = this.esDocumentoImagen(documento);
+    const tiposPermitidos = esImagen ? ['image/png'] : ['application/pdf'];
+    const valido = !!archivo && archivo.size <= 10 * 1024 * 1024 && tiposPermitidos.includes(archivo.type);
     if (!valido) {
       documento.archivo = undefined; documento.archivoNombre = undefined;
       input.value = ''; this.archivosInvalidos = true; return;
@@ -1623,6 +1789,10 @@ export class PreRegistroComponent {
     this.archivosInvalidos = false;
     this.guardarDocumentosNodoActual();
     this.guardarBorradorSilencioso();
+  }
+
+  private esDocumentoImagen(documento: DocumentoRequerido): boolean {
+    return documento.nombre.trim().toLowerCase().startsWith('imagen');
   }
 
   // ── Comisionista ──────────────────────────────────────────────────────────────
@@ -2029,6 +2199,7 @@ export class PreRegistroComponent {
   private guardarDatosSucursalActual(): void {
     if (!this.mostrarArbolWizard) return;
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    this.aplicarTipoPersonaForzadaPorComercio(nodoId);
     const datos = this.obtenerDatosPorSucursal();
     const datosNodo = this.datosForm.getRawValue();
     datos[nodoId] = datosNodo;
@@ -2059,6 +2230,7 @@ export class PreRegistroComponent {
   private cargarDatosSucursal(sucursalId: string): void {
     const datos = this.obtenerDatosPorSucursal()[sucursalId];
     this.datosForm.reset({ ...this.crearDatosGeneralesVacios(), ...(datos ?? {}) } as any, { emitEvent: false });
+    this.aplicarTipoPersonaForzadaPorComercio(sucursalId);
     if (this.mostrarInfoFiscalEntidadSucursal && !this.datosForm.controls.mismaInfoFiscalEntidad.value) {
       this.limpiarInfoFiscalEntidad();
     }
@@ -2116,10 +2288,22 @@ export class PreRegistroComponent {
   }
 
   private tipoComercioAutomaticoPorNodo(nodo: NodoArbolNegocio): string {
+    const tipoForzado = this.tipoComercioForzadoPorEntidad(nodo);
+    if (tipoForzado) return tipoForzado;
     if (!this.esComercioUnico) return '';
     return nodo.nivel === 'caja'
       ? 'Cuenta Terminal Pin Rapido'
       : this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas';
+  }
+
+  private tipoComercioForzadoPorEntidad(nodo: NodoArbolNegocio): string {
+    if (this.tipoNegocioSeleccionado?.id !== 'sucursales-multiples' || nodo.nivel !== 'sucursal') return '';
+
+    const entidad = this.buscarEntidadPadre(nodo.id);
+    const comercioEntidad = entidad ? this.obtenerComercioPorNodo()[entidad.id]?.tipoComercio : '';
+    if (comercioEntidad === 'Persona Física') return 'Sucursal Persona Física';
+    if (comercioEntidad === 'Empresa Grupo') return 'Sucursales de Grupo';
+    return '';
   }
 
   private copiarInfoFiscalDesdeEntidad(): void {
@@ -2151,6 +2335,31 @@ export class PreRegistroComponent {
   private buscarEntidadPadre(nodoId: string): NodoArbolNegocio | undefined {
     const match = nodoId.match(/^(.*entidad-\d+)/);
     return match ? this.buscarNodoArbol(match[1]) : undefined;
+  }
+
+  private esNodoSucursalActualConEntidad(): boolean {
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    return nodo?.nivel === 'sucursal' && !!this.buscarEntidadPadre(nodo.id);
+  }
+
+  private aplicarTipoPersonaForzadaPorComercio(nodoId: string): void {
+    const tipoPersona = this.tipoPersonaForzadaPorComercio(nodoId);
+    if (!tipoPersona) return;
+
+    this.datosForm.controls.tipoPersona.setValue(tipoPersona, { emitEvent: false });
+  }
+
+  private tipoPersonaForzadaPorComercio(nodoId: string): string {
+    if (this.tipoNegocioSeleccionado?.id !== 'sucursales-multiples') return '';
+    const nodo = this.buscarNodoArbol(nodoId);
+    if (!nodo) return '';
+
+    const comercio = this.obtenerComercioPorNodo();
+    const tipoComercio = nodo.nivel === 'entidad'
+      ? this.valorTexto(comercio[nodo.id]?.tipoComercio || this.comercioForm.controls.tipoComercio.value)
+      : this.valorTexto(this.tipoComercioForzadoPorEntidad(nodo) || comercio[nodo.id]?.tipoComercio);
+
+    return tipoComercio === 'Persona Física' || tipoComercio === 'Sucursal Persona Física' ? 'PF' : '';
   }
 
   private actualizarEstadoInfoFiscalEntidad(): void {
