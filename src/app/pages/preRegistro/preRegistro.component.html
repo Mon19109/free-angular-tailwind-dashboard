@@ -324,8 +324,10 @@
               [departamentos]="datos.departamentos" [ciudades]="datos.ciudades"
               [localidadesFiscal]="localidadesFiscal"
               [localidadesComercial]="localidadesComercial"
+              [localidadesRepresentante]="localidadesRepresentante"
               [cargandoLocalidadesFiscal]="cargandoLocalidadesFiscal"
               [cargandoLocalidadesComercial]="cargandoLocalidadesComercial"
+              [cargandoLocalidadesRepresentante]="cargandoLocalidadesRepresentante"
               [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
               [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
               [mostrarMismoDomicilio]="mostrarCheckMismoDomicilio"
@@ -333,6 +335,7 @@
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
               (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
               (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"
+              (seleccionarLocalidadRepresentante)="seleccionarLocalidad($event, 'REP')"
               (continuar)="continuarDatos()"
               (volver)="volver(1)" />
             }

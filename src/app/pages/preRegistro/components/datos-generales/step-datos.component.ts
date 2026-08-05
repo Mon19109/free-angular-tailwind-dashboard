@@ -40,8 +40,10 @@ export class StepDatosComponent implements OnInit {
   @Input() ciudades: string[] = [];
   @Input() localidadesFiscal: CodigoPostalLocalizacion[] = [];
   @Input() localidadesComercial: CodigoPostalLocalizacion[] = [];
+  @Input() localidadesRepresentante: CodigoPostalLocalizacion[] = [];
   @Input() cargandoLocalidadesFiscal = false;
   @Input() cargandoLocalidadesComercial = false;
+  @Input() cargandoLocalidadesRepresentante = false;
   @Input() tipoComercio: string = '';
   @Input() mostrarInfoFiscalEntidad = false;
   @Input() infoFiscalEntidadActiva = false;
@@ -52,6 +54,7 @@ export class StepDatosComponent implements OnInit {
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
   @Output() seleccionarLocalidadFiscal = new EventEmitter<string>();
   @Output() seleccionarLocalidadComercial = new EventEmitter<string>();
+  @Output() seleccionarLocalidadRepresentante = new EventEmitter<string>();
 
   // ── Búsqueda avanzada ──────────────────────────────────────────────────────
   readonly minimoCaracteresBusqueda = 2;
@@ -285,6 +288,18 @@ export class StepDatosComponent implements OnInit {
       .filter(option => option.value);
   }
 
+  get localidadesRepresentanteOptions(): Option[] {
+    return this.localidadesRepresentante
+      .map(localidad => {
+        const colonia = localidad.colonia ?? '';
+        return {
+          label: colonia,
+          value: colonia
+        };
+      })
+      .filter(option => option.value);
+  }
+
   get placeholderColoniaFiscal(): string {
     if (this.localidadesFiscal.length > 0) return 'Selecciona una colonia';
     return this.cargandoLocalidadesFiscal ? 'Cargando colonias...' : 'Sin colonias para este CP';
@@ -293,6 +308,11 @@ export class StepDatosComponent implements OnInit {
   get placeholderColoniaComercial(): string {
     if (this.localidadesComercial.length > 0) return 'Selecciona una colonia';
     return this.cargandoLocalidadesComercial ? 'Cargando colonias...' : 'Sin colonias para este CP';
+  }
+
+  get placeholderColoniaRepresentante(): string {
+    if (this.localidadesRepresentante.length > 0) return 'Selecciona una colonia';
+    return this.cargandoLocalidadesRepresentante ? 'Cargando colonias...' : 'Sin colonias para este CP';
   }
 
   seleccionarColoniaFiscal(colonia: string): void {
@@ -305,6 +325,11 @@ export class StepDatosComponent implements OnInit {
     this.seleccionarLocalidadComercial.emit(localidad?.idLocalidad ? String(localidad.idLocalidad) : '');
   }
 
+  seleccionarColoniaRepresentante(colonia: string): void {
+    const localidad = this.localidadesRepresentante.find(item => item.colonia === colonia);
+    this.seleccionarLocalidadRepresentante.emit(localidad?.idLocalidad ? String(localidad.idLocalidad) : '');
+  }
+
   esInvalido(campo: string): boolean {
     const c = this.form.get(campo);
     return !!(c?.invalid && c.touched);
@@ -313,6 +338,7 @@ export class StepDatosComponent implements OnInit {
   mensajeCampo(campo: string): string {
     const control = this.form.get(campo);
     if (control?.hasError('required')) return 'Debes llenar este campo.';
+    if (control?.hasError('emailDuplicado')) return 'Este correo ya existe. Verifica el campo o reporta al Administrador.';
     if (control?.hasError('email')) return 'Ingresa un correo válido.';
     if (control?.hasError('rfcInvalido')) return 'Ingresa un RFC válido.';
     if (control?.hasError('curpInvalida')) return 'Ingresa una CURP válida.';
@@ -333,19 +359,23 @@ export class StepDatosComponent implements OnInit {
   get seccionesVisibles() {
     const tipo = this.tipoComercio;
     const sinRepresentante = [
-      'Persona Física', 'Sucursal Persona Física', 'Sucursales Únicas',
+      'Persona Física', 'Sucursal Persona Física',
       'Referenciador', 'Comisionista'
     ];
     const esCaja = [
       'Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI',
       'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
     ].includes(tipo);
+    const mostrarRepresentante = !esCaja
+      && !sinRepresentante.includes(tipo)
+      && !(tipo === 'Sucursales Únicas' && this.form.get('tipoPersona')?.value === 'PF');
+
     return {
       datosGenerales:     !esCaja,
       domicilioFiscal:    !esCaja,
-      representante:      !esCaja && !sinRepresentante.includes(tipo),
-      dirRepresentante:   !esCaja && !sinRepresentante.includes(tipo),
-      contactoRep:        !esCaja && !sinRepresentante.includes(tipo),
+      representante:      mostrarRepresentante,
+      dirRepresentante:   mostrarRepresentante,
+      contactoRep:        mostrarRepresentante,
       domicilioComercial: true,
       contactoComercial:  true,
     };

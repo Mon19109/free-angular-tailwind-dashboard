@@ -66,6 +66,22 @@ export interface GiroComercial {
   [key: string]: unknown;
 }
 
+export interface TipoComercioCatalogo {
+  id?: number | string;
+  idTypeOfBusiness?: number | string;
+  typeOfBusiness?: number | string;
+  value?: number | string;
+  code?: number | string;
+  name?: string;
+  nombre?: string;
+  description?: string;
+  descripcion?: string;
+  label?: string;
+  businessType?: string;
+  typeBusiness?: string;
+  [key: string]: unknown;
+}
+
 
 @Injectable({
   providedIn: 'root'
@@ -85,6 +101,17 @@ export class PreRegistroService {
     });
 
     return this.http.get<unknown>(`${this.apiV1Url}getGirosByFamily`, { headers, params });
+  }
+
+  getTiposComercio(idAffiliationType: number): Observable<unknown> {
+    const params = new HttpParams().set('idAffiliationType', String(idAffiliationType));
+    const headers = new HttpHeaders({
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${this.girosBearerToken}`,
+      'versionApp': '3',
+    });
+
+    return this.http.get<unknown>(`${this.apiV1Url}catTypeOfBusinesses`, { headers, params });
   }
 
   

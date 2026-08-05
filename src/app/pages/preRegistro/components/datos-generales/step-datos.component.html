@@ -75,7 +75,7 @@
         @if (esInvalido('curp')) { <small>{{ mensajeCampo('curp') }}</small> }
       </div>
       }
-      @if (tiene('nombreComercial')) {
+      @if (tiene('nombreComercial') && !esPersonaFisica) {
       <div class="field">
         <label for="nombreComercial">Nombre comercial <b>*</b></label>
         <input id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
@@ -101,6 +101,14 @@
         <input id="actividad" formControlName="actividad" readonly placeholder="Selecciona una actividad"
           (click)="abrirModalActividad()" (focus)="abrirModalActividad()" [class.invalid]="esInvalido('actividad')" />
         @if (esInvalido('actividad')) { <small>{{ mensajeCampo('actividad') }}</small> }
+      </div>
+      }
+
+      @if (tiene('nombreComercial') && esPersonaFisica) {
+      <div class="field">
+        <label for="nombreComercial">Nombre comercial <b>*</b></label>
+        <input id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
+        @if (esInvalido('nombreComercial')) { <small>{{ mensajeCampo('nombreComercial') }}</small> }
       </div>
       }
 
@@ -301,18 +309,29 @@
         @if (esInvalido('codigoPostalRepresentante')) { <small>{{ mensajeCampo('codigoPostalRepresentante') }}</small> }
       </div>
       <div class="field"><label for="coloniaRepresentante">Colonia <b>*</b></label>
+        @if ((form.get('codigoPostalRepresentante')?.value || '').length === 5) {
+        <app-select
+          [placeholder]="placeholderColoniaRepresentante"
+          [options]="localidadesRepresentanteOptions"
+          formControlName="coloniaRepresentante"
+          [disabled]="localidadesRepresentante.length === 0"
+          [className]="esInvalido('coloniaRepresentante') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+          (valueChange)="seleccionarColoniaRepresentante($event)"
+        />
+        } @else {
         <input id="coloniaRepresentante" formControlName="coloniaRepresentante"
           [class.invalid]="esInvalido('coloniaRepresentante')" />
+        }
         @if (esInvalido('coloniaRepresentante')) { <small>{{ mensajeCampo('coloniaRepresentante') }}</small> }
       </div>
       <div class="field"><label for="municipioRepresentante">Municipio / Alcaldía <b>*</b></label>
         <input id="municipioRepresentante" formControlName="municipioRepresentante"
-          [class.invalid]="esInvalido('municipioRepresentante')" />
+          [class.invalid]="esInvalido('municipioRepresentante')" readonly />
         @if (esInvalido('municipioRepresentante')) { <small>{{ mensajeCampo('municipioRepresentante') }}</small> }
       </div>
       <div class="field"><label for="estadoRepresentante">Estado <b>*</b></label>
         <input id="estadoRepresentante" formControlName="estadoRepresentante"
-          [class.invalid]="esInvalido('estadoRepresentante')" />
+          [class.invalid]="esInvalido('estadoRepresentante')" readonly />
         @if (esInvalido('estadoRepresentante')) { <small>{{ mensajeCampo('estadoRepresentante') }}</small> }
       </div>
     </div>
