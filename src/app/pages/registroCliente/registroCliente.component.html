@@ -8,25 +8,44 @@
     </header>
 
     <nav class="flow-stepper" aria-label="Progreso del registro">
-      <div class="flow-step" *ngFor="let paso of pasosVisiblesRegistro; let i = index" [class.active]="paso.numero === pasoActual" [class.done]="paso.numero < pasoActual">
-        <span>{{ paso.numero }}</span>
+      <div class="flow-step" *ngFor="let paso of pasosVisiblesRegistro; let i = index" [class.active]="paso.numero === pasoActual" [class.done]="estadoPaso(paso.id) === 'Completado'">
+        <span>{{ estadoPaso(paso.id) === 'Completado' ? '✓' : paso.numero }}</span>
         <strong>{{ paso.titulo }}</strong>
       </div>
     </nav>
 
-    <div class="registro-layout">
-      <aside class="tree-panel">
+    <div class="registro-layout" [class.tree-collapsed]="arbolMinimizado">
+      <aside class="tree-panel" [class.collapsed]="arbolMinimizado">
         <div class="panel-heading">
-          <h2>Niveles de Ubicación</h2>
-          <h3>Árbol de negocio</h3>
-          <p>Selecciona la sucursal o caja que vas a capturar.</p>
+          <div>
+            <h2>Niveles de Ubicación</h2>
+            <h3>Árbol de negocio</h3>
+            <p>Selecciona la sucursal o caja que vas a capturar.</p>
+          </div>
+          <button
+            type="button"
+            class="tree-collapse-btn"
+            (click)="arbolMinimizado = !arbolMinimizado"
+            [title]="arbolMinimizado ? 'Mostrar árbol' : 'Minimizar árbol'">
+            <i class="fa-solid" [ngClass]="arbolMinimizado ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+          </button>
         </div>
 
-        <div class="tree-list">
+        <button
+          type="button"
+          class="tree-collapsed-card"
+          *ngIf="arbolMinimizado"
+          (click)="arbolMinimizado = false"
+          title="Mostrar árbol">
+          <i class="fa-solid fa-location-dot"></i>
+          <span>{{ rutaSeleccionada() }}</span>
+        </button>
+
+        <div class="tree-list" *ngIf="!arbolMinimizado">
           <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: arbol, nivel: 0 }"></ng-container>
         </div>
 
-        <section class="selected-box">
+        <section class="selected-box" *ngIf="!arbolMinimizado">
           <span>Ubicación seleccionada</span>
           <strong><i class="fa-solid fa-location-dot"></i>{{ rutaSeleccionada() }}</strong>
         </section>
@@ -39,10 +58,6 @@
             <strong>{{ contextoSeleccionado.nombreComercial }}</strong>
           </div>
           <small>{{ contextoSeleccionado.nivel }} · {{ contextoSeleccionado.rfc || 'RFC pendiente' }}</small>
-        </div>
-
-        <div class="location-context-strip">
-          Datos de {{ contextoSeleccionado.nombreComercial || rutaSeleccionada() }}
         </div>
 
         <article
@@ -58,7 +73,7 @@
               <small>{{ seccion.descripcion }}</small>
             </span>
             <span class="step-status">{{ estadoPaso(seccion.id) }}</span>
-            <i class="fa-solid fa-chevron-down"></i>
+            <i class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
           <div class="section-body" *ngIf="seccionAbierta === seccion.id">
@@ -112,6 +127,7 @@
               [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes"
               [archivosInvalidos]="archivosInvalidos"
+              [mostrarMesaDigital]="esNodoExistente"
               textoFinalizar="Guardar registro"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (finalizar)="completarPaso('documentos'); finalizar()"

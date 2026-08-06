@@ -141,11 +141,9 @@
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
               <div class="actions-menu" *ngIf="accionesAbiertas === comercio.idComercio">
-                <button type="button" (click)="ejecutarAccion('registrar-informacion', comercio)">Registrar Información</button>
                 <button type="button" (click)="ejecutarAccion('editar', comercio)">Editar</button>
                 <button type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
                 <button type="button" (click)="ejecutarAccion('baja', comercio)">Baja</button>
-                <button type="button" (click)="ejecutarAccion('revision-mesa-digital', comercio)">Revisión Mesa Digital</button>
                 <button type="button" [disabled]="!puedeConsultarPassword(comercio)" (click)="ejecutarAccion('password', comercio)">Consulta Contraseña</button>
               </div>
             </td>

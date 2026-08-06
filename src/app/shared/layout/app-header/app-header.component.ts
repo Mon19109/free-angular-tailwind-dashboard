@@ -71,20 +71,18 @@ constructor(
     .pipe(
       filter(event => event instanceof NavigationEnd)
     )
-   .subscribe(() => {
+   .subscribe(() => this.actualizarTitulo());
 
-  const url = this.router.url;
+  this.actualizarTitulo();
+}
 
-  const rutaEncontrada =
-    Object.keys(this.titulosPaginas)
-      .find(ruta => url.includes(ruta));
+private actualizarTitulo(): void {
+  const rutaActual = this.router.url.split('?')[0].split('#')[0].split('/').filter(Boolean)[0] ?? '';
 
   this.tituloPagina =
-    rutaEncontrada
-      ? this.titulosPaginas[rutaEncontrada]
+    rutaActual
+      ? this.titulosPaginas[rutaActual] ?? ''
       : '';
-
-});
 }
 
 

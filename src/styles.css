@@ -346,6 +346,20 @@ app-header > .border-b {
   margin-top: 74px;
 }
 
+app-header > .app-page-title-bar {
+  position: relative;
+  z-index: 1;
+}
+
+app-header > .app-page-title-bar > div {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+app-header > .app-page-title-bar h2 {
+  overflow-wrap: anywhere;
+}
+
 html.dark app-header > .app-page-title-bar {
   background:
     linear-gradient(90deg, #121a27 0%, #101722 56%, #0c121b 100%) !important;
@@ -379,6 +393,21 @@ html.dark app-header > .app-page-title-bar span:last-child {
 @media (max-width: 1279px) {
   .app-content {
     max-width: 100%;
+  }
+
+  app-header > header a img {
+    width: auto;
+    height: clamp(68px, 14vw, 148px);
+    max-width: min(78vw, 980px);
+    object-fit: contain;
+  }
+
+  app-header > .border-b {
+    margin-top: calc(clamp(68px, 14vw, 148px) + 24px);
+  }
+
+  app-header > .app-page-title-bar {
+    padding: 18px 32px;
   }
 }
 

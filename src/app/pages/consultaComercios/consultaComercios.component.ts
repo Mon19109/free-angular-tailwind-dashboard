@@ -216,10 +216,10 @@ export class ConsultaComerciosComponent {
     this.accionesAbiertas = this.accionesAbiertas === idComercio ? null : idComercio;
   }
 
-  ejecutarAccion(accion: 'editar' | 'inactivar' | 'baja' | 'revision-mesa-digital' | 'password' | 'registrar-informacion', comercio: Comercio): void {
+  ejecutarAccion(accion: 'editar' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
     this.accionesAbiertas = null;
 
-    if (accion === 'registrar-informacion') {
+    if (accion === 'editar') {
       this.router.navigate(['/registro_cliente'], {
         queryParams: {
           id: comercio.idComercio,
@@ -235,16 +235,6 @@ export class ConsultaComerciosComponent {
           selectedNode: this.nodoRegistroPorComercio(comercio)
         }
       });
-      return;
-    }
-
-    if (accion === 'editar') {
-      console.log('Consultar/editar comercio:', comercio);
-      return;
-    }
-
-    if (accion === 'revision-mesa-digital') {
-      this.router.navigate(['/revision_mesa_digital']);
       return;
     }
 

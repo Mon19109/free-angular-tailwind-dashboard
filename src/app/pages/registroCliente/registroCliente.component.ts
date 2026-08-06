@@ -58,7 +58,7 @@ export class RegistroClienteComponent {
   private readonly registroLocalKey = 'kashpay.registro_cliente.local.v1';
 
   pasoActual = 1;
-  seccionAbierta: SeccionRegistro['id'] = 'comercio';
+  seccionAbierta: SeccionRegistro['id'] | null = 'comercio';
   pasosCompletados = new Set<string>();
   nodoSeleccionado = 'entidad-1-sucursal-1-caja-3';
   nodosColapsados = new Set<string>();
@@ -67,6 +67,7 @@ export class RegistroClienteComponent {
   modoReservaActual: ModoReserva = 'NINGUNO';
   archivosInvalidos = false;
   tiposComercio: string[] = [];
+  arbolMinimizado = false;
   private comercioPorNodo: Record<string, ReturnType<typeof this.comercioForm.getRawValue>> = {};
   private datosPorNodo: Record<string, ReturnType<typeof this.datosForm.getRawValue>> = {};
   private accesosPorNodo: Record<string, ReturnType<typeof this.accesosForm.getRawValue>> = {};
@@ -306,6 +307,7 @@ export class RegistroClienteComponent {
 
   get pasosVisiblesRegistro() {
     return this.seccionesVisibles.map((seccion, index) => ({
+      id: seccion.id,
       numero: index + 1,
       titulo: seccion.titulo
     }));
@@ -432,8 +434,8 @@ export class RegistroClienteComponent {
       rfc: registro.rfc || this.rfcFake(nodo.id)
     };
     this.cargarCapturaNodo(nodo.id);
-    this.seccionAbierta = this.resolverSeccionVisible(this.seccionAbierta);
-    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+    this.seccionAbierta = this.resolverSeccionVisible(this.seccionAbierta ?? 'comercio');
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta ?? 'comercio');
   }
 
   alternarNodo(id: string): void {
@@ -447,10 +449,13 @@ export class RegistroClienteComponent {
     if (nivel === 'referenciador') return 'fa-user-tag';
     return 'fa-folder';
   }
-  alternarSeccion(id: SeccionRegistro['id']): void { this.seccionAbierta = this.seccionAbierta === id ? id : id; }
+  alternarSeccion(id: SeccionRegistro['id']): void {
+    this.seccionAbierta = this.seccionAbierta === id ? null : id;
+    if (this.seccionAbierta) this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+  }
   continuarSeccion(siguiente: SeccionRegistro['id']): void {
     this.seccionAbierta = this.resolverSeccionVisible(siguiente);
-    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta ?? 'comercio');
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   finalizar(): void {
@@ -459,7 +464,7 @@ export class RegistroClienteComponent {
     this.guardarLiquidacionActual();
     this.consolidarNodoActual();
     if (this.seleccionarPrimerHijoNuevo(nodoGuardado)) return;
-    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta ?? 'comercio');
   }
 
   pasoCompletado(id: SeccionRegistro['id']): boolean {
@@ -489,9 +494,11 @@ export class RegistroClienteComponent {
   }
 
   estadoPaso(id: SeccionRegistro['id']): string {
-    if (this.esNodoExistente && id !== 'liquidacion') return 'Completado';
+    if (this.esNodoExistente && id !== 'liquidacion' && id !== 'accesos') return 'Completado';
     if (id === 'liquidacion' && this.tieneLiquidacion(this.nodoSeleccionado)) return 'Completado';
+    if (id === 'accesos' && this.pasoCompletado(id) && this.accesosTieneContenido(this.accesosForm.getRawValue())) return 'Completado';
     if (this.seccionAbierta === id) return 'En curso';
+    if (id === 'accesos') return 'Pendiente';
     if (this.pasoCompletado(id)) return 'Completado';
     return 'Pendiente';
   }
@@ -565,7 +572,12 @@ export class RegistroClienteComponent {
   private guardarCapturaNodoActual(): void {
     this.comercioPorNodo[this.nodoSeleccionado] = this.comercioForm.getRawValue();
     this.datosPorNodo[this.nodoSeleccionado] = this.datosForm.getRawValue();
-    this.accesosPorNodo[this.nodoSeleccionado] = this.accesosForm.getRawValue();
+    const accesos = this.accesosForm.getRawValue();
+    if (this.accesosTieneContenido(accesos)) {
+      this.accesosPorNodo[this.nodoSeleccionado] = accesos;
+    } else {
+      delete this.accesosPorNodo[this.nodoSeleccionado];
+    }
   }
 
   private guardarLiquidacionActual(): void {
@@ -582,7 +594,13 @@ export class RegistroClienteComponent {
     this.guardarComercioLocal();
     this.guardarEstadoRegistroLocal();
     this.seccionesVisibles.forEach(seccion => {
-      if (seccion.id !== 'liquidacion' || this.tieneLiquidacion(this.nodoSeleccionado)) {
+      if (
+        seccion.id === 'liquidacion'
+          ? this.tieneLiquidacion(this.nodoSeleccionado)
+          : seccion.id === 'accesos'
+            ? this.accesosTieneContenido(this.accesosForm.getRawValue())
+            : true
+      ) {
         this.pasosCompletados.add(this.clavePasoNodo(seccion.id));
       }
     });
@@ -671,7 +689,10 @@ export class RegistroClienteComponent {
       this.cajasPorSucursal = { ...this.cajasPorSucursal, ...(estado.cajasPorSucursal ?? {}) };
       this.comercioPorNodo = { ...this.comercioPorNodo, ...(estado.comercioPorNodo ?? {}) };
       this.datosPorNodo = { ...this.datosPorNodo, ...(estado.datosPorNodo ?? {}) };
-      this.accesosPorNodo = { ...this.accesosPorNodo, ...(estado.accesosPorNodo ?? {}) };
+      const accesosGuardados = Object.fromEntries(
+        Object.entries(estado.accesosPorNodo ?? {}).filter(([, accesos]) => this.accesosTieneContenido(accesos))
+      ) as Record<string, ReturnType<RegistroClienteComponent['accesosForm']['getRawValue']>>;
+      this.accesosPorNodo = { ...this.accesosPorNodo, ...accesosGuardados };
       this.liquidacionPorNodo = { ...this.liquidacionPorNodo, ...(estado.liquidacionPorNodo ?? {}) };
     } catch {
       return;
@@ -692,10 +713,7 @@ export class RegistroClienteComponent {
     } else {
       this.datosForm.reset();
     }
-    if (!this.nodosNuevos.has(nodoId)) {
-      this.accesosForm.reset();
-      this.accesosForm.patchValue({ ...this.accesosFakeNodo(nodoId), ...this.valoresConContenido(accesos) }, { emitEvent: false });
-    } else if (accesos) {
+    if (accesos) {
       this.accesosForm.patchValue(accesos, { emitEvent: false });
     } else {
       this.accesosForm.reset();
@@ -953,6 +971,16 @@ export class RegistroClienteComponent {
         return valor !== null && valor !== undefined;
       })
     ) as Partial<T>;
+  }
+
+  private accesosTieneContenido(accesos: ReturnType<typeof this.accesosForm.getRawValue>): boolean {
+    return Object.entries(accesos).some(([campo, valor]) => {
+      if (campo === 'modoReserva') return typeof valor === 'string' && valor.trim() !== '' && valor !== 'NINGUNO';
+      if (campo === 'tieneSupervisor') return typeof valor === 'string' && valor.trim() !== '' && valor !== 'si';
+      if (campo === 'cajasTPV') return typeof valor === 'string' && valor.trim() !== '' && valor !== '1';
+      if (typeof valor === 'string') return valor.trim() !== '';
+      return Boolean(valor);
+    });
   }
 
   private accesosFakeNodo(nodoId: string): Partial<ReturnType<typeof this.accesosForm.getRawValue>> {

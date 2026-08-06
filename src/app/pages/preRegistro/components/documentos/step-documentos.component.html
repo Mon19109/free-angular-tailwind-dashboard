@@ -1,56 +1,125 @@
-<section class="step-section documents-panel">
-  <div class="documents-panel-header">
-    <div class="section-title">
-      <h3>Documentación requerida</h3>
-      <span>Documentos en PDF e imágenes en PNG. Máximo 10 MB por archivo.</span>
+@if (mostrarMesaDigital) {
+  <section class="mesa-review">
+    <h3>Revisión de Mesa Digital</h3>
+
+    <div class="mesa-results">
+      <span><i class="fa-solid fa-folder-open"></i> Documentos Totales: <strong>{{ documentos.length }}</strong></span>
+      <span>Aprobados: <strong>{{ documentosAprobados }}</strong></span>
+      <span>Rechazados: <strong>{{ documentosRechazados }}</strong></span>
+      <span>Pendientes: <strong>{{ documentosSinValidar }}</strong></span>
+      <span><i class="fa-solid fa-circle-exclamation"></i> Estado General: <strong>{{ estadoGeneralMesaDigital }}</strong></span>
     </div>
-    <div class="docs-summary">
-      <article><strong>{{ documentosCargados }}</strong><span>Cargados</span></article>
-      <article><strong>{{ documentosPendientes }}</strong><span>Pendientes</span></article>
-    </div>
-  </div>
 
-  <div class="callout subtle documents-note">
-    <p>Los documentos marcados con * son obligatorios.</p>
-  </div>
-</section>
-
-@if (archivosInvalidos) {
-  <div class="alert-error">Carga los archivos requeridos con el formato correcto: documentos en PDF e imágenes en PNG.</div>
-}
-
-<div class="documents-table">
-  <div class="documents-table-head" aria-hidden="true">
-    <span>#</span>
-    <span>Tipo de documento</span>
-    <span>Subir archivo</span>
-    <span>Archivo</span>
-  </div>
-
-  @for (documento of documentos; track documento.numero; let i = $index) {
-    <div class="document-row" [class.uploaded]="documento.archivo || documento.archivoNombre">
-      <div class="document-number">{{ i + 1 }}</div>
-      <div class="document-copy">
-        <strong>{{ documento.nombre }}@if (documento.obligatorio) { <b>*</b> }</strong>
+    <div class="mesa-table">
+      <div class="mesa-table-head" aria-hidden="true">
+        <span>#</span>
+        <span>Nombre del Documento</span>
+        <span>Estado</span>
+        <span>Ver Archivo</span>
+        <span>Validación</span>
       </div>
-      <label class="file-picker">
-        <input type="file" [accept]="documento.nombre.startsWith('Imagen') ? '.png,image/png' : '.pdf,application/pdf'"
-          (change)="seleccionarArchivo.emit({ event: $event, documento })" />
-        <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>
-      </label>
-      <small class="file-name">
-        @if (documento.archivo) { {{ documento.archivo.name }}
-        } @else if (documento.archivoNombre) { {{ documento.archivoNombre }}
-        } @else { Sin archivo }
-      </small>
-    </div>
-  }
-</div>
 
-<div class="consent">
-  <span class="consent-icon">Seguro</span>
-  <p>Tu información se almacenará de forma segura y será utilizada únicamente para validar el alta del comercio.</p>
-</div>
+      @for (documento of documentos; track documento.numero; let i = $index) {
+        <div class="mesa-row">
+          <span class="mesa-number">{{ i + 1 }}</span>
+          <strong>{{ documento.nombre }}@if (documento.obligatorio) { <b>*</b> }</strong>
+          <span>Subido</span>
+          <button type="button" class="mesa-view"><i class="fa-solid fa-file-arrow-down"></i> Ver</button>
+          <div class="mesa-switch" role="group" aria-label="Validación de documento">
+            <button
+              type="button"
+              [class.active]="estadoDocumento(documento) === 'cumple'"
+              (click)="validarDocumento(documento, 'cumple')">
+              Válido
+            </button>
+            <button
+              type="button"
+              class="off"
+              [class.active]="estadoDocumento(documento) === 'no-cumple'"
+              (click)="validarDocumento(documento, 'no-cumple')">
+              No válido
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="mesa-observations">
+      <label>
+        <span>Observaciones al Cliente</span>
+        <input type="text">
+      </label>
+      <label>
+        <span>Observaciones Internas</span>
+        <input type="text">
+      </label>
+      <label>
+        <span>Enviar por Email</span>
+        <input type="email" placeholder="Email del Cliente">
+      </label>
+      <button type="button"><i class="fa-solid fa-envelope"></i> Enviar Notificación</button>
+    </div>
+
+    <div class="mesa-footer">
+      <button type="button" class="button ghost"><i class="fa-regular fa-folder"></i> Guardar Borrador</button>
+      <button type="button" class="button primary">Siguiente <i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  </section>
+} @else {
+  <section class="step-section documents-panel">
+    <div class="documents-panel-header">
+      <div class="section-title">
+        <h3>Documentación requerida</h3>
+        <span>Documentos en PDF e imágenes en PNG. Máximo 10 MB por archivo.</span>
+      </div>
+      <div class="docs-summary">
+        <article><strong>{{ documentosCargados }}</strong><span>Cargados</span></article>
+        <article><strong>{{ documentosPendientes }}</strong><span>Pendientes</span></article>
+      </div>
+    </div>
+
+    <div class="callout subtle documents-note">
+      <p>Los documentos marcados con * son obligatorios.</p>
+    </div>
+  </section>
+
+  @if (archivosInvalidos) {
+    <div class="alert-error">Carga los archivos requeridos con el formato correcto: documentos en PDF e imágenes en PNG.</div>
+  }
+
+  <div class="documents-table">
+    <div class="documents-table-head" aria-hidden="true">
+      <span>#</span>
+      <span>Tipo de documento</span>
+      <span>Subir archivo</span>
+      <span>Archivo</span>
+    </div>
+
+    @for (documento of documentos; track documento.numero; let i = $index) {
+      <div class="document-row" [class.uploaded]="documento.archivo || documento.archivoNombre">
+        <div class="document-number">{{ i + 1 }}</div>
+        <div class="document-copy">
+          <strong>{{ documento.nombre }}@if (documento.obligatorio) { <b>*</b> }</strong>
+        </div>
+        <label class="file-picker">
+          <input type="file" [accept]="documento.nombre.startsWith('Imagen') ? '.png,image/png' : '.pdf,application/pdf'"
+            (change)="seleccionarArchivo.emit({ event: $event, documento })" />
+          <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>
+        </label>
+        <small class="file-name">
+          @if (documento.archivo) { {{ documento.archivo.name }}
+          } @else if (documento.archivoNombre) { {{ documento.archivoNombre }}
+          } @else { Sin archivo }
+        </small>
+      </div>
+    }
+  </div>
+
+  <div class="consent">
+    <span class="consent-icon">Seguro</span>
+    <p>Tu información se almacenará de forma segura y será utilizada únicamente para validar el alta del comercio.</p>
+  </div>
+}
 
 <div class="step-actions">
   <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>

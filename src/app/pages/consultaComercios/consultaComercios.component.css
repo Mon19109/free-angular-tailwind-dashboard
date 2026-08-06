@@ -13,6 +13,7 @@
   display: block;
   margin: -1rem;
   color: var(--consulta-text);
+  font-family: Outfit, sans-serif;
 }
 
 :host-context(html.dark) {
@@ -41,6 +42,12 @@
   min-height: calc(100vh - 96px);
   padding: clamp(16px, 2.2vw, 26px);
   background: var(--consulta-bg);
+  font-family: Outfit, sans-serif;
+}
+
+.consulta-shell *:not(i):not(.fa):not(.fa-solid):not(.fa-regular):not(.fa-brands),
+.modal-backdrop *:not(i):not(.fa):not(.fa-solid):not(.fa-regular):not(.fa-brands) {
+  font-family: Outfit, sans-serif;
 }
 
 :host-context(html.dark) .consulta-shell {
@@ -121,19 +128,20 @@
 
 .page-eyebrow {
   display: inline-block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--consulta-gold);
   font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.18em;
+  font-weight: 800;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .page-header h1 {
   margin: 0;
   color: var(--consulta-text);
-  font-size: clamp(24px, 2.4vw, 32px);
-  font-weight: 850;
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.15;
+  font-weight: 800;
 }
 
 :host-context(html:not(.dark)) .page-header h1 {
@@ -141,9 +149,10 @@
 }
 
 .page-header p {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
   color: var(--consulta-muted);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 650;
 }
 
 :host-context(html:not(.dark)) .page-header p {
@@ -180,8 +189,9 @@
   justify-content: space-between;
   margin-bottom: 14px;
   color: var(--consulta-gold);
-  font-size: 13px;
-  font-weight: 850;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -203,8 +213,8 @@
   grid-column: 1 / -1;
   margin-bottom: 2px;
   color: var(--consulta-text);
-  font-weight: 800;
-  font-size: 14px;
+  font-weight: 750;
+  font-size: 13px;
 }
 
 .level-option {
@@ -220,7 +230,7 @@
   background: var(--consulta-surface-alt);
   color: var(--consulta-muted);
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 650;
   overflow: hidden;
 }
 
@@ -258,7 +268,8 @@
   min-width: 0;
   overflow: hidden;
   color: inherit;
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: inherit;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -282,10 +293,12 @@
 .table-tools span,
 .modal-card label span {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 9px;
   color: var(--consulta-text);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .info-grid i,
@@ -300,14 +313,15 @@
 input,
 select {
   width: 100%;
-  min-height: 38px;
+  min-height: 48px;
   border: 1px solid var(--consulta-border);
-  border-radius: 8px;
-  padding: 0 12px;
+  border-radius: 14px;
+  padding: 0 14px;
   outline: 0;
   color: var(--consulta-text);
   background: var(--app-input-bg);
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 650;
 }
 
 .info-grid input,
@@ -345,9 +359,11 @@ select:focus {
 }
 
 .btn {
-  min-height: 38px;
-  padding: 0 14px;
-  font-size: 12px;
+  min-height: 46px;
+  padding: 0 24px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -504,6 +520,8 @@ td {
 th {
   color: var(--consulta-gold);
   font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -513,8 +531,8 @@ th {
 
 td {
   color: var(--consulta-text);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .badge {
@@ -524,7 +542,8 @@ td {
   border-radius: 6px;
   padding: 5px 9px;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .badge.caja { background: #8a6a0a; }
@@ -585,6 +604,8 @@ td {
   gap: 14px;
   padding-top: 16px;
   color: var(--consulta-muted);
+  font-size: 14px;
+  font-weight: 650;
 }
 
 .pagination > div {
@@ -742,4 +763,30 @@ td {
   .table-search {
     min-width: 0;
   }
+}
+
+.consulta-shell .consulta-card .page-header .page-eyebrow {
+  margin-bottom: 4px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.16em !important;
+  line-height: 1.2 !important;
+}
+
+.consulta-shell .consulta-card .page-header h1 {
+  margin: 0 !important;
+  font-family: Outfit, sans-serif !important;
+  font-size: clamp(22px, 2.4vw, 28px) !important;
+  font-weight: 600 !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0 !important;
+}
+
+.consulta-shell .consulta-card .page-header p {
+  margin: 10px 0 0 !important;
+  font-family: Outfit, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+  letter-spacing: 0 !important;
 }

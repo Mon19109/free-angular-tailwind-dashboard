@@ -67,10 +67,16 @@ cardNameDisplay = '';
       console.log('Formulario enviado:', formValues);
       
       // Aquí puedes llamar a otro servicio para enviar los datos
-      this.tarjetaService.enviarFormulario(formValues).subscribe({
+this.tarjetaService.enviarFormulario(formValues).subscribe({
        next: (response: any) => {
 
   console.log('Formulario enviado exitosamente:', response);
+
+  if (response?.success === false) {
+    this.mostrarTarjeta = false;
+    this.mensaje = this.obtenerMensajeError(response);
+    return;
+  }
 
   this.tarjeta = response;
 
@@ -94,7 +100,7 @@ cardNameDisplay = '';
   } else {
 
     this.mostrarTarjeta = false;
-    this.mensaje = 'Datos no encontrados';
+    this.mensaje = this.obtenerMensajeError(response);
 
   }
 
@@ -105,7 +111,7 @@ cardNameDisplay = '';
 
   this.mostrarTarjeta = false;
 
-  this.mensaje = 'Datos no encontrados';
+  this.mensaje = this.obtenerMensajeError(error);
 
 }
       });
@@ -114,6 +120,18 @@ cardNameDisplay = '';
 
   limpiarFormulario(): void {
     this.formulario.reset();
+  }
+
+  private obtenerMensajeError(error: any): string {
+    return (
+      error?.error?.error?.message ||
+      error?.error?.message ||
+      error?.error?.rows ||
+      error?.error?.detail ||
+      error?.message ||
+      error?.rows ||
+      'Datos no encontrados'
+    );
   }
  
 }
