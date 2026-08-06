@@ -46,6 +46,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   loading = signal<boolean>(false);
   showTable = signal<boolean>(false);
   errorMessage = signal<string>('');
+  sucursalSesionBloqueada = false;
   // Filtros
   filtros: FiltrosTransaccion = {
     subafiliado: '',
@@ -88,14 +89,6 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     this.rolId = localStorage.getItem('idRol') || this.rolId;
     this.contId = localStorage.getItem('idContext') || this.contId;
     this.entiId = localStorage.getItem('idEntity') || this.entiId;
-
-    if (this.contId && this.contId !== '0') {
-      this.subAfSelect = this.getOptionValue(this.contId, localStorage.getItem('nodeID') || undefined);
-    }
-
-    if (this.entiId && this.entiId !== '0') {
-      this.entidadSelect = this.entiId;
-    }
   }
 
   onFechaInicioChange(event: any) {
@@ -202,28 +195,18 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   cargarDependenciasIniciales() {
+    const nodeIDSesion = localStorage.getItem('nodeID') || '';
     this.cargarSubafiliados();
-    if (this.subAfSelect !== '0') {
-      this.cargarEntidades(this.getSelectedId(this.subAfSelect));
-    }
-    if (this.entidadSelect !== '0') {
-      this.cargarSucursales(this.getSelectedId(this.subAfSelect), this.getSelectedId(this.entidadSelect));
-    }
-    if (this.sucursalSelect !== '0') {
-      this.cargarCajas(this.getSelectedId(this.sucursalSelect));
-    }
+
+    if (!nodeIDSesion) return;
+
+    this.cargarEntidades(nodeIDSesion);
+    this.cargarSucursales(nodeIDSesion);
+    this.cargarCajas(nodeIDSesion);
   }
   
   onSubafiliadoChange() {
-    if (this.filtros.subafiliado) {
-      this.cargarEntidades(this.getSelectedId(this.filtros.subafiliado));
-      this.filtros.entidad = '';
-      this.filtros.sucursal = '';
-      this.filtros.caja = '';
-      this.entidades.set([]);
-      this.sucursales.set([]);
-      this.cajas.set([]);
-    }
+    this.cargarEntidades(this.getSelectedNodeID(this.filtros.subafiliado));
   }
 
   cargarSubafiliados() {
@@ -257,13 +240,13 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   private cargarSubafiliadoSesion() {
-    const idContext = Number(localStorage.getItem('idContext') || this.contId || 0);
-    if (!idContext) {
+    const nodeID = localStorage.getItem('nodeID');
+    if (!nodeID) {
       this.subafiliados.set([]);
       return;
     }
 
-    this.transaccionesAdquirenciaService.getSubafiliadoById(idContext).subscribe({
+    this.transaccionesAdquirenciaService.getSubafiliadoById().subscribe({
       next: (res) => {
         const contextResponse = res.contextResponse;
         const subafiliadoList = Array.isArray(contextResponse)
@@ -274,23 +257,15 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
         this.subafiliados.set(subafiliadoList);
 
-        if (subafiliadoList.length > 0) {
-          const subafiliado = subafiliadoList[0];
-          this.filtros.subafiliado = this.getOptionValue(
-            subafiliado.idContext,
-            subafiliado.nodeID || localStorage.getItem('nodeID') || undefined
-          );
-          this.cargarEntidades(subafiliado.idContext);
-        }
       },
       error: (err) => console.error('Error al cargar subafiliado por sesión:', err)
     });
   }
   
-  cargarEntidades(subafiliadoId: number) {
-    this.transaccionesAdquirenciaService.getEntidades(subafiliadoId).subscribe({
+  cargarEntidades(nodeID: string) {
+    this.transaccionesAdquirenciaService.getEntidades(nodeID).subscribe({
       next: (res) => {
-        const entidadesList = res.entitiesResponse || res.rows?.entitiesResponse || res.rows || [];
+        const entidadesList = res || res.rows || res.rows || [];
         if (Array.isArray(entidadesList) && entidadesList.length > 0) {
           this.entidades.set(entidadesList);
         } else {
@@ -310,25 +285,18 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   onEntidadChange() {
-    if (this.filtros.entidad && this.filtros.subafiliado) {
-      this.cargarSucursales(
-        this.getSelectedId(this.filtros.subafiliado),
-        this.getSelectedId(this.filtros.entidad)
-      );
-      this.filtros.sucursal = '';
-      this.filtros.caja = '';
-      this.sucursales.set([]);
-      this.cajas.set([]);
-    }
+    this.cargarSucursales(this.getSelectedNodeID(this.filtros.entidad));
   }
   
-  cargarSucursales(subafiliadoId: number, entidadId: number) {
-    this.transaccionesAdquirenciaService.getSucursales(subafiliadoId, entidadId).subscribe({
+  cargarSucursales(nodeID: string) {
+    this.transaccionesAdquirenciaService.getSucursales(nodeID).subscribe({
       next: (res) => {
-        const sucursalesList = res.branchOfficeResponse || res.rows?.branchOfficeResponse || res.rows || [];
+        const sucursalesList = res || res.rows || res.rows || [];
         if (Array.isArray(sucursalesList) && sucursalesList.length > 0) {
           this.sucursales.set(sucursalesList);
+          this.seleccionarSucursalSesion(sucursalesList);
         } else {
+          this.seleccionarSucursalSesion([]);
           /*bootbox.alert({
             message: "La entidad seleccionada no tiene sucursales relacionadas.",
             locale: 'mx'
@@ -336,6 +304,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
         }
       },
       error: () => {
+        this.seleccionarSucursalSesion([]);
         /*bootbox.alert({
           message: "Error al cargar sucursales.",
           locale: 'mx'
@@ -345,17 +314,13 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   onSucursalChange() {
-    if (this.filtros.sucursal) {
-      this.cargarCajas(this.getSelectedId(this.filtros.sucursal));
-      this.filtros.caja = '';
-      this.cajas.set([]);
-    }
+    this.cargarCajas(this.getSelectedNodeID(this.filtros.sucursal));
   }
   
-  cargarCajas(idTerminal: number) {
-    this.transaccionesAdquirenciaService.getCajas(idTerminal).subscribe({
+  cargarCajas(nodeID: string) {
+    this.transaccionesAdquirenciaService.getCajas(nodeID).subscribe({
       next: (res) => {
-        const cajasList = res.collaborators || res.rows?.collaborators || res.rows || [];
+        const cajasList = res || res.rows || res.rows || [];
         if (Array.isArray(cajasList) && cajasList.length > 0) {
           this.cajas.set(cajasList);
         } else {
@@ -446,19 +411,33 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     }
   }
 
-  getOptionValue(id: string | number, nodeID?: string | number): string {
-    return nodeID ? `${id}|${nodeID}` : String(id);
+  private getSelectedNodeID(value?: string): string {
+    return value || localStorage.getItem('nodeID') || '';
   }
 
-  private getSelectedId(value?: string): number {
-    return Number((value || '').split('|')[0] || 0);
+  private seleccionarSucursalSesion(sucursales: any[]): void {
+    this.sucursalSesionBloqueada = false;
+
+    if (this.rolId !== '5') return;
+
+    this.filtros.sucursal = '';
+    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const existeSucursalSesion = sucursales.some(
+      sucursal => String(sucursal.idNode ?? sucursal.nodeID ?? '') === nodeIDSesion
+    );
+
+    if (existeSucursalSesion) {
+      this.filtros.sucursal = nodeIDSesion;
+      this.sucursalSesionBloqueada = true;
+    }
   }
   
   limpiarFiltros() {
+    const nodeIDSesion = localStorage.getItem('nodeID') || '';
     this.filtros = {
-      subafiliado: this.filtros.subafiliado || '',
+      subafiliado: '',
       entidad: '',
-      sucursal: '',
+      sucursal: this.sucursalSesionBloqueada ? nodeIDSesion : '',
       caja: '',
       operacion: '',
       monto: '',

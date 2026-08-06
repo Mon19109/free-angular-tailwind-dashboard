@@ -156,11 +156,12 @@ getOperaciones(): Observable<any> {
     );
   }
 
-  getSubafiliadoById(id: number): Observable<any> {
+  getSubafiliadoById(): Observable<any> {
     const headers = this.getCommonHeaders();
+    const nodeID = localStorage.getItem('nodeID') || '';
 
     return this.http.get<any>(
-      `${this.apiV1Url}subAffiliation/getById?idSubAffiliation=${id}`, { 
+      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`, {
           headers: headers,
           withCredentials: true
         }
@@ -171,29 +172,29 @@ getOperaciones(): Observable<any> {
     return this.http.get(`${this.baseUrl}/transacciones/getSubafiliados`);
   }*/
 
- getEntidades(subafiliadoId: number): Observable<any> {
+ getEntidades(nodeID: string): Observable<any> {
   const headers = this.getCommonHeaders();
 
   return this.http.get(
-    `${this.apiV1Url}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
+    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4`,
     { headers }
   );
 }
 
-  getSucursales(subafiliadoId: number, entidadId: number): Observable<any> {
+  getSucursales(nodeID: string): Observable<any> {
     const headers = this.getCommonHeaders();
 
     return this.http.get(
-      `${this.apiV1Url}branchOffice/getBranchOfficeByAffiliationAndEntity?idSubAffiliation=${subafiliadoId}&idEntity=${entidadId}`,
+      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5`,
       { headers }
     );
   }
 
-  getCajas(idTerminal: number): Observable<any> {
+  getCajas(nodeID: string): Observable<any> {
     const headers = this.getCommonHeaders();
 
     return this.http.get(
-      `${this.apiV1Url}collaborator/getCollaboratorByBranchOffice?idTerminal=${idTerminal}`,
+      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6`,
       { headers }
     );
   }
@@ -249,6 +250,6 @@ getOperaciones(): Observable<any> {
   private getNodeID(value?: string): string {
     if (!value) return '';
     const [, nodeID] = value.split('|');
-    return nodeID || '';
+    return nodeID || value;
   }
 }

@@ -41,8 +41,8 @@
               <span>SubAfiliado</span>
               <select name="subafiliado" [(ngModel)]="filtros.subafiliado" (change)="onSubafiliadoChange()">
                 <option value="">Todos los subafiliados</option>
-                @for (item of subafiliados(); track item.idContext) {
-                  <option [value]="getOptionValue(item.idContext, item.nodeID)">{{ item.contextDescription }}</option>
+                @for (item of subafiliados(); track item.nodeID) {
+                  <option [value]="item.nodeID">{{ item.contextDescription }}</option>
                 }
               </select>
             </label>
@@ -51,28 +51,28 @@
               <span>Entidad</span>
               <select name="entidad" [(ngModel)]="filtros.entidad" (change)="onEntidadChange()">
                 <option value="">Todas las entidades</option>
-                @for (item of entidades(); track item.idEntity) {
-                  <option [value]="getOptionValue(item.idEntity, item.nodeID)">{{ item.entityDescription }}</option>
+                @for (item of entidades(); track item.idNode) {
+                  <option [value]="item.idNode">{{ item.name }}</option>
                 }
               </select>
             </label>
 
-            <label *ngIf="mostrarFiltroSucursal">
+            <label>
               <span>Sucursal</span>
-              <select name="sucursal" [(ngModel)]="filtros.sucursal" (change)="onSucursalChange()">
+              <select name="sucursal" [(ngModel)]="filtros.sucursal" (change)="onSucursalChange()" [disabled]="sucursalSesionBloqueada">
                 <option value="">Todas las sucursales</option>
-                @for (item of sucursales(); track item.idTerminal) {
-                  <option [value]="getOptionValue(item.idTerminal, item.nodeID)">{{ item.businessName }}</option>
+                @for (item of sucursales(); track item.idNode) {
+                  <option [value]="item.idNode">{{ item.name }}</option>
                 }
               </select>
             </label>
 
-            <label *ngIf="mostrarFiltroCaja">
+            <label>
               <span>Caja</span>
               <select name="caja" [(ngModel)]="filtros.caja">
                 <option value="">Todas las cajas</option>
-                @for (item of cajas(); track item.idTerminalUser) {
-                  <option [value]="getOptionValue(item.idTerminalUser, item.nodeID)">{{ item.tuName }}</option>
+                @for (item of cajas(); track item.idNode) {
+                  <option [value]="item.idNode">{{ item.name }}</option>
                 }
               </select>
             </label>
