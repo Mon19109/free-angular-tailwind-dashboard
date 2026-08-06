@@ -28,6 +28,15 @@
           </div>
         </nav>
 
+        <div
+          *ngIf="mensajeEnvio"
+          class="envio-feedback"
+          [class.error]="tipoMensajeEnvio === 'error'"
+          role="status"
+          aria-live="polite">
+          {{ mensajeEnvio }}
+        </div>
+
         <section *ngIf="pasoActual === 1" class="operation-section">
           <div class="section-heading">
             <h3>Tipo de envío</h3>
@@ -187,8 +196,8 @@
             <button type="button" class="button secondary" (click)="atras()">
               Atrás
             </button>
-            <button type="button" class="button primary" (click)="finalizar()">
-              Finalizar
+            <button type="button" class="button primary" (click)="finalizar()" [disabled]="finalizandoEnvio">
+              {{ finalizandoEnvio ? 'Enviando...' : 'Finalizar' }}
             </button>
           </div>
         </section>

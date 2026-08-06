@@ -25,10 +25,10 @@ export class OrdenPagoService {
     }
 
 
-    obtenerContactos(idUser: number): Observable<any> {
-        const url = `${this.baseUrl}api/v1/contact/getContacts`;
+    obtenerContactos(idUser: string): Observable<any> {
+        const url = `${this.baseUrl}api/v1/svc-8a7f3c/v2/h7q2_x91`;
         const params = new HttpParams()
-            .set('idUser', String(idUser))
+            .set('idUser', idUser)
             .set('type', 'TR');
 
         console.log('GET beneficiarios:', url);

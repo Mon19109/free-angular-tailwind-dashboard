@@ -30,6 +30,9 @@ export class OrdenPagoComponent implements OnInit {
     mostrarModalToken = false;
     token = '';
     payloadPendiente: any = null;
+    finalizandoEnvio = false;
+    mensajeEnvio = '';
+    tipoMensajeEnvio: 'success' | 'error' = 'success';
 
     cuentas: any[] = [];
     beneficiarios: any[] = [];
@@ -85,6 +88,7 @@ export class OrdenPagoComponent implements OnInit {
     cambiarTipoEnvio(valor: string): void {
 
         this.tipoEnvio = valor;
+        this.limpiarMensajeEnvio();
         /*
          this.formulario.patchValue({
           tipoEnvio: valor
@@ -127,7 +131,11 @@ export class OrdenPagoComponent implements OnInit {
 
     cargarBeneficiarios(): void {
 
-        const idUser = this.sesion?.idUser || localStorage.getItem('idUser');
+        const idUser =
+            this.sesion?.validate ||
+            localStorage.getItem('validate') ||
+            this.sesion?.idUser ||
+            localStorage.getItem('idUser');
 
         if (!idUser) {
             console.warn('No hay idUser para cargar beneficiarios');
@@ -137,7 +145,7 @@ export class OrdenPagoComponent implements OnInit {
         console.log('Cargando beneficiarios con idUser:', idUser);
 
         this.ordenPagoService
-            .obtenerContactos(Number(idUser))
+            .obtenerContactos(String(idUser))
             .subscribe({
                 next: (resp) => {
 
@@ -273,6 +281,7 @@ export class OrdenPagoComponent implements OnInit {
 
 
     siguiente(): void {
+        this.limpiarMensajeEnvio();
 
         if (this.pasoActual === 2) {
 
@@ -298,6 +307,9 @@ export class OrdenPagoComponent implements OnInit {
     }
 
     finalizar(): void {
+        if (this.finalizandoEnvio) {
+            return;
+        }
 
         const beneficiario = this.beneficiarios.find(
             x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
@@ -350,27 +362,39 @@ export class OrdenPagoComponent implements OnInit {
                 }
             });*/
 
-            // TEMPORALMENTE SIN TOKEN
-this.ordenPagoService
-    .realizarSpei(payload)
-    .subscribe({
-        next: (resp) => {
+        // TEMPORALMENTE SIN TOKEN
+        this.finalizandoEnvio = true;
+        this.limpiarMensajeEnvio();
 
-            console.log(
-                'SPEI ENVIADO',
-                resp
-            );
+        this.ordenPagoService
+            .realizarSpei(payload)
+            .subscribe({
+                next: (resp) => {
 
-        },
-        error: (err) => {
+                    console.log(
+                        'SPEI ENVIADO',
+                        resp
+                    );
 
-            console.error(
-                'ERROR SPEI',
-                err
-            );
+                    this.finalizandoEnvio = false;
+                    this.tipoMensajeEnvio = 'success';
+                    this.mensajeEnvio = 'Envío realizado correctamente.';
+                    this.reiniciarFlujo();
 
-        }
-     });
+                },
+                error: (err) => {
+
+                    console.error(
+                        'ERROR SPEI',
+                        err
+                    );
+
+                    this.finalizandoEnvio = false;
+                    this.tipoMensajeEnvio = 'error';
+                    this.mensajeEnvio = 'No fue posible realizar el envío. Intenta nuevamente.';
+
+                }
+            });
 
     }
 
@@ -482,6 +506,26 @@ this.ordenPagoService
 
         return beneficiario?.cardNumberMask || '';
 
+    }
+
+    private reiniciarFlujo(): void {
+        this.pasoActual = 1;
+        this.saldo = 0;
+        this.mostrarErrorImporte = false;
+        this.payloadPendiente = null;
+        this.token = '';
+        this.mostrarModalToken = false;
+        this.formulario.reset({
+            cuentaOr: '',
+            cuentaD: '',
+            importe: '',
+            concepto: '',
+            referencia: ''
+        });
+    }
+
+    private limpiarMensajeEnvio(): void {
+        this.mensajeEnvio = '';
     }
 
 }
