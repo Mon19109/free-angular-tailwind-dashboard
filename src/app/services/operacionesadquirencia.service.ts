@@ -221,20 +221,19 @@ getCajas(idTerminal:number) {
    */
   enviarFormulario(formData: FormularioData): Observable<any> {
     const sirioId = formData.caja || formData.sucursal || formData.entidad || formData.idEntidad || formData.cuenta;
-
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('type_operation', this.emptyParam(formData.tipoOperacion))
       .set('id_status', this.emptyParam(formData.estatus))
       .set('sirioId', this.emptyParam(sirioId))
-      .set('amount', this.emptyParam(formData.monto))
-      .set('auth_number', this.emptyParam(formData.numAuto))
-      .set('num_cuenta', this.emptyParam(formData.cuenta))
       .set('init_date', this.emptyParam(formData.fechaInicio))
       .set('end_date', this.emptyParam(formData.fechaFin))
-      .set('email', this.emptyParam(formData.email))
-      .set('telephoneNumber', this.emptyParam(formData.tel))
       .set('page', '0')
       .set('size', '10');
+
+    params = this.setOptionalParam(params, 'amount', formData.monto);
+    params = this.setOptionalParam(params, 'auth_number', formData.numAuto);
+    params = this.setOptionalParam(params, 'email', formData.email);
+    params = this.setOptionalParam(params, 'telephoneNumber', formData.tel);
 
     return this.http.get(`${this.apiAldebaran}getOperations`, { params });
   }
@@ -259,5 +258,10 @@ getCajas(idTerminal:number) {
     if (value === null || value === undefined) return '';
     if (Array.isArray(value)) return value.join(',');
     return String(value);
+  }
+
+  private setOptionalParam(params: HttpParams, key: string, value: unknown): HttpParams {
+    const normalized = this.emptyParam(value).trim();
+    return normalized ? params.set(key, normalized) : params;
   }
 }

@@ -119,8 +119,8 @@ onFechaFinChange(event: any) {
   sucursal: [''],
   caja: [''],
   clasificacion: [''],
-  tipoOperacion: [[]],
-estatus: [[]],
+  tipoOperacion: [this.defaultTipoOperacion],
+estatus: [this.defaultEstatus],
   fechaInicio: [''],
   fechaFin: ['']
 });
@@ -138,6 +138,7 @@ estatus: [[]],
   this.cargarDatosIniciales();
 
   this.formulario.patchValue({
+  tipoOperacion: this.defaultTipoOperacion,
   estatus: this.defaultEstatus
 });
 }
@@ -314,6 +315,10 @@ mostrarResultados = false;
       this.tipoOperacionOptions
         .slice(0, 3)
         .map(x => x.value);
+
+      this.formulario.patchValue({
+        tipoOperacion: this.defaultTipoOperacion
+      });
 
     },
 
