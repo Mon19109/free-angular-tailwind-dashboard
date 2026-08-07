@@ -358,22 +358,19 @@ export class StepDatosComponent implements OnInit {
 
   get seccionesVisibles() {
     const tipo = this.tipoComercio;
-    const sinRepresentante = [
-      'Persona Física', 'Sucursal Persona Física',
-      'Referenciador', 'Comisionista'
-    ];
     const esCaja = [
       'Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI',
       'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
     ].includes(tipo);
-    const mostrarRepresentante = !esCaja
-      && !sinRepresentante.includes(tipo)
-      && !(tipo === 'Sucursales Únicas' && this.form.get('tipoPersona')?.value === 'PF');
+    const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'];
+    const esEmpresaGrupoPersonaFisica = tipo === 'Empresa Grupo' && this.form.get('tipoPersona')?.value === 'PF';
+    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esEmpresaGrupoPersonaFisica;
+    const mostrarNombreRepresentante = mostrarRepresentante && this.form.get('tipoPersona')?.value !== 'PF';
 
     return {
       datosGenerales:     !esCaja,
       domicilioFiscal:    !esCaja,
-      representante:      mostrarRepresentante,
+      representante:      mostrarNombreRepresentante,
       dirRepresentante:   mostrarRepresentante,
       contactoRep:        mostrarRepresentante,
       domicilioComercial: true,

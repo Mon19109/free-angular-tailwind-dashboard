@@ -1,0 +1,32 @@
+.global-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #333f50;
+}
+
+.global-loader img {
+  width: min(78vw, 720px);
+  height: auto;
+  animation: kashpay-loader-spin 2s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes kashpay-loader-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .global-loader img {
+    width: 86vw;
+  }
+}

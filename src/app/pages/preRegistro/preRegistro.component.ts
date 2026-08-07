@@ -480,7 +480,7 @@ export class PreRegistroComponent {
     nombreRepresentante: [''], apellidoPaternoRepresentante: [''], apellidoMaternoRepresentante: [''],
     calleRepresentante: [''], numeroExteriorRepresentante: [''], numeroInteriorRepresentante: [''],
     codigoPostalRepresentante: [''], coloniaRepresentante: [''],
-    municipioRepresentante: [''], estadoRepresentante: [''],
+    municipioRepresentante: [''], estadoRepresentante: [''], locationIDRepresentante: [''],
     correoRepresentante: [''], telefonoRepresentante: [''], telefonoAdicionalRepresentante: [''],
 
     mismoDomicilio: [false],
@@ -520,25 +520,30 @@ export class PreRegistroComponent {
     'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior',
     'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle',
   ];
+  private readonly camposInfoFiscalCompartidaPersona = [
+    'regimenFiscal', 'nombreComercial',
+    'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior',
+    'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle',
+  ];
   private readonly todosCamposDinamicos: string[] = Array.from(
     new Set(Object.values(this.datosGeneralesPorTipo).flat())
   );
 
 
 
-  private readonly nivelesSinRepresentante = ['Persona Física', 'Sucursal Persona Física', 'Referenciador', 'Comisionista'];
+  private readonly tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'];
+  private readonly tiposSinRepresentante = ['Persona Física', 'Sucursal Persona Física', 'Sucursales Únicas', 'Referenciador', 'Comisionista'];
   private readonly tiposCaja = ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'];
-  private readonly camposRepresentanteObligatorios = ['nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante', 'calleRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante'];
+  private readonly camposNombreRepresentante = ['nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante'];
+  private readonly camposDireccionRepresentanteObligatorios = ['calleRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante'];
   private readonly emailValidator = Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
 
   private get mostrarRepresentante(): boolean {
-    const nivel = this.comercioForm.getRawValue().nivel;
-    const tipo = this.comercioForm.getRawValue().tipoComercio;
-    const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel);
-    const tipoEfectivo = esSinTipo ? nivel : tipo;
-    const esCaja = this.tiposCaja.includes(tipoEfectivo);
-    if (tipoEfectivo === 'Sucursales Únicas' && this.datosForm.controls.tipoPersona.value === 'PF') return false;
-    return !esCaja && !this.nivelesSinRepresentante.includes(tipoEfectivo);
+    return this.requiereDatosRepresentante(this.tipoComercioEfectivoActual(), this.datosForm.controls.tipoPersona.value);
+  }
+
+  private get mostrarNombreRepresentante(): boolean {
+    return this.mostrarRepresentante && this.datosForm.controls.tipoPersona.value !== 'PF';
   }
 
   private actualizarValidadoresDatos(): void {
@@ -591,7 +596,17 @@ export class PreRegistroComponent {
 
 
     const mostrarRep = this.mostrarRepresentante;
-    this.camposRepresentanteObligatorios.forEach(nombre => {
+    const mostrarNombreRep = this.mostrarNombreRepresentante;
+
+    this.camposNombreRepresentante.forEach(nombre => {
+      const control = this.datosForm.get(nombre);
+      if (!control) return;
+      control.setValidators(this.validadoresDatosPorCampo(nombre, mostrarNombreRep));
+      if (!mostrarNombreRep) control.setValue('', { emitEvent: false });
+      control.updateValueAndValidity({ emitEvent: false });
+    });
+
+    this.camposDireccionRepresentanteObligatorios.forEach(nombre => {
       const control = this.datosForm.get(nombre);
       if (!control) return;
       control.setValidators(this.validadoresDatosPorCampo(nombre, mostrarRep));
@@ -775,6 +790,8 @@ export class PreRegistroComponent {
 
         if (valor) {
           this.copiarDomicilioFiscal();
+        } else {
+          this.limpiarDomicilioComercial();
         }
 
       });
@@ -804,6 +821,7 @@ export class PreRegistroComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(tipoComercio => {
         this.comercioForm.controls.tipoComercioId.setValue(this.typeOfBusinessPorTipoComercio[tipoComercio] ?? 0, { emitEvent: false });
+        this.aplicarTipoPersonaPorTipoComercio(tipoComercio);
         this.actualizarValidadoresDatos();
       }); // 👈 antes no hacía nada
 
@@ -992,6 +1010,7 @@ export class PreRegistroComponent {
         coloniaRepresentante: '',
         municipioRepresentante: localidad.municipio || '',
         estadoRepresentante: localidad.estado || '',
+        locationIDRepresentante: '',
       }, { emitEvent: false });
       return;
     }
@@ -1030,6 +1049,7 @@ export class PreRegistroComponent {
         coloniaRepresentante: localidad.colonia || '',
         municipioRepresentante: localidad.municipio || '',
         estadoRepresentante: localidad.estado || '',
+        locationIDRepresentante: localidad.idLocalidad || '',
       });
       return;
     }
@@ -1106,8 +1126,7 @@ export class PreRegistroComponent {
   get bloquearNivelComercio(): boolean { return !!this.tipoNegocioSeleccionado || this.contextoComercio === 'caja'; }
   get bloquearTipoComercio(): boolean {
     return this.esComercioUnico
-      || this.tiposComercio.length === 1
-      || (this.tipoNegocioSeleccionado?.id === 'sucursales-multiples' && this.esNodoSucursalActualConEntidad());
+      || this.tiposComercio.length === 1;
   }
   get nivelesComercioVisibles(): string[] {
     const nivelActual = this.comercioForm.controls.nivel.value;
@@ -1118,7 +1137,8 @@ export class PreRegistroComponent {
     return !this.esComercioUnico && nodo?.nivel === 'sucursal' && !!this.buscarEntidadPadre(nodo.id);
   }
   get bloquearTipoPersonaSucursal(): boolean {
-    return !!this.tipoPersonaForzadaPorComercio(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    return !!this.tipoPersonaForzadaPorTexto(this.tipoComercioEfectivoActual())
+      || (this.mostrarInfoFiscalEntidadSucursal && this.datosForm.controls.mismaInfoFiscalEntidad.value);
   }
   get mostrarCheckMismoDomicilio(): boolean {
     if (this.tipoNegocioSeleccionado?.id !== 'sucursales-multiples') return true;
@@ -1842,15 +1862,14 @@ export class PreRegistroComponent {
   private construirComercioPayload(nodoId: string): any {
     const datosPorSucursal = this.obtenerDatosPorSucursal();
     const accesosPorSucursal = this.obtenerAccesosPorSucursal();
-    const datos = this.sincronizarRepresentanteDesdePersonaFisica(
-      this.combinarPreferirLlenos(datosPorSucursal[nodoId] ?? {}, this.datosForm.getRawValue())
-    );
+    let datos = this.combinarPreferirLlenos(datosPorSucursal[nodoId] ?? {}, this.datosForm.getRawValue());
     const accesos = this.combinarPreferirLlenos(accesosPorSucursal[nodoId] ?? {}, this.accesosForm.getRawValue());
     const comercioGuardado = this.obtenerComercioPorNodo()[nodoId];
     const comercio = comercioGuardado ?? this.comercioForm.getRawValue();
     const tipoComercioPayload = this.tipoComercioPayload(nodoId, comercio.tipoComercio);
     const typeOfBusiness = this.typeOfBusinessPayload(nodoId, tipoComercioPayload, comercio.tipoComercioId);
     const liquidacion = this.liquidacionForm.getRawValue() as Record<string, string | boolean>;
+    datos = this.sincronizarRepresentanteDesdePersonaFisica(datos, tipoComercioPayload);
     const tipoPersona = this.tipoPersonaPayload(datos['tipoPersona']);
 
     return {
@@ -1881,23 +1900,25 @@ export class PreRegistroComponent {
         amount: this.valorNumero(liquidacion['amount']),
       },
       contacts: [
-        this.construirContactoPayload(datos, tipoPersona),
+        this.construirContactoPayload(datos, tipoPersona, tipoComercioPayload),
       ],
       poss: this.construirPossPayload(accesos, nodoId),
     };
   }
 
-  private construirContactoPayload(datos: Record<string, string | boolean>, tipoPersona: string): any {
-    if (tipoPersona === 'PF') {
+  private construirContactoPayload(datos: Record<string, string | boolean>, tipoPersona: string, tipoComercio: string): any {
+    const requiereRepresentante = this.requiereDatosRepresentante(tipoComercio, tipoPersona);
+
+    if (tipoPersona === 'PF' || !requiereRepresentante) {
       return {
         type: 1,
         name: this.valorTexto(datos['nombre']),
         paternalSurname: this.valorTexto(datos['apellidoPaterno']),
         maternalSurname: this.valorTexto(datos['apellidoMaterno']),
-        phoneNumber: this.valorTexto(datos['telefono']),
+        phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefono']),
         additionaPhoneNumber: '',
-        email: this.valorTexto(datos['correo']),
-        address: null,
+        email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correo']),
+        address: requiereRepresentante ? this.construirDireccionRepresentantePayload(datos) : null,
       };
     }
 
@@ -1909,7 +1930,16 @@ export class PreRegistroComponent {
       phoneNumber: this.valorTexto(datos['telefonoRepresentante']),
       additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']),
       email: this.valorTexto(datos['correoRepresentante']),
-      address: null,
+      address: this.construirDireccionRepresentantePayload(datos),
+    };
+  }
+
+  private construirDireccionRepresentantePayload(datos: Record<string, string | boolean>): Record<string, string> {
+    return {
+      street: this.valorTexto(datos['calleRepresentante']),
+      exteriorNumber: this.valorTexto(datos['numeroExteriorRepresentante']),
+      interiorNumber: this.valorTexto(datos['numeroInteriorRepresentante']),
+      idLocation: this.valorTexto(datos['locationIDRepresentante']) || this.valorTexto(datos['coloniaRepresentante']),
     };
   }
 
@@ -2622,6 +2652,24 @@ export class PreRegistroComponent {
       tipoComercioId: this.typeOfBusinessPayload(nodoId, comercioActual.tipoComercio, comercioActual.tipoComercioId),
     };
     this.arbolNegocioForm.controls.comercioPorNodo.setValue(JSON.stringify(comercio), { emitEvent: false });
+    this.guardarTipoPersonaAutomaticoPorComercio(nodoId, comercioActual.tipoComercio);
+  }
+
+  private guardarTipoPersonaAutomaticoPorComercio(nodoId: string, tipoComercio: string): void {
+    const tipoPersona = this.tipoPersonaForzadaPorTexto(tipoComercio);
+    if (!tipoPersona) return;
+
+    const datos = this.obtenerDatosPorSucursal();
+    datos[nodoId] = {
+      ...(datos[nodoId] ?? {}),
+      tipoPersona,
+    };
+    this.arbolNegocioForm.controls.datosPorSucursal.setValue(JSON.stringify(datos), { emitEvent: false });
+
+    if (this.arbolNegocioForm.controls.nodoSeleccionado.value === nodoId) {
+      this.datosForm.controls.tipoPersona.setValue(tipoPersona, { emitEvent: false });
+      this.actualizarValidadoresDatos();
+    }
   }
 
   private guardarComercioAutomaticoComercioUnico(): void {
@@ -2673,13 +2721,28 @@ export class PreRegistroComponent {
   }
 
   private tipoComercioForzadoPorEntidad(nodo: NodoArbolNegocio): string {
-    if (this.tipoNegocioSeleccionado?.id !== 'sucursales-multiples' || nodo.nivel !== 'sucursal') return '';
-
-    const entidad = this.buscarEntidadPadre(nodo.id);
-    const comercioEntidad = entidad ? this.obtenerComercioPorNodo()[entidad.id]?.tipoComercio : '';
-    if (comercioEntidad === 'Persona Física') return 'Sucursal Persona Física';
-    if (comercioEntidad === 'Empresa Grupo') return 'Sucursales de Grupo';
     return '';
+  }
+
+  private tipoComercioEfectivoActual(): string {
+    const nivel = this.comercioForm.getRawValue().nivel;
+    if (['Referenciador', 'Comisionista'].includes(nivel)) return nivel;
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value;
+    const tipoNodo = nodoId ? this.obtenerComercioPorNodo()[nodoId]?.tipoComercio : '';
+    if (tipoNodo) return this.valorTexto(tipoNodo);
+    return this.valorTexto(this.comercioForm.getRawValue().tipoComercio);
+  }
+
+  private requiereRepresentantePorTipo(tipoComercio: string): boolean {
+    if (this.tiposCaja.includes(tipoComercio)) return false;
+    if (this.tiposSinRepresentante.includes(tipoComercio)) return false;
+    return this.tiposConRepresentante.includes(tipoComercio);
+  }
+
+  private requiereDatosRepresentante(tipoComercio: string, tipoPersona: unknown): boolean {
+    if (!this.requiereRepresentantePorTipo(tipoComercio)) return false;
+    if (tipoComercio === 'Empresa Grupo' && this.tipoPersonaPayload(tipoPersona) === 'PF') return false;
+    return true;
   }
 
   private copiarInfoFiscalDesdeEntidad(): void {
@@ -2689,18 +2752,24 @@ export class PreRegistroComponent {
 
     const datosEntidad = this.obtenerDatosPorSucursal()[entidad.id];
     if (!datosEntidad) return;
+    const tipoPersonaEntidad = this.tipoPersonaPayload(datosEntidad['tipoPersona']);
+    const tipoPersonaActual = this.tipoPersonaPayload(this.datosForm.controls.tipoPersona.value);
+    const camposCopiables = tipoPersonaEntidad && tipoPersonaActual && tipoPersonaEntidad !== tipoPersonaActual
+      ? this.camposInfoFiscalCompartidaPersona
+      : this.camposInfoFiscalEntidad;
 
     const valores = Object.fromEntries(
-      this.camposInfoFiscalEntidad
+      camposCopiables
         .filter(campo => typeof datosEntidad[campo] === 'boolean' || this.valorTexto(datosEntidad[campo]) || this.valorNumero(datosEntidad[campo]) > 0)
         .map(campo => [campo, datosEntidad[campo] ?? ''])
     );
     this.datosForm.patchValue(valores as any, { emitEvent: false });
+    if (nodo) this.aplicarTipoPersonaForzadaPorComercio(nodo.id);
   }
 
   private limpiarInfoFiscalEntidad(): void {
     const valores = Object.fromEntries(
-      this.camposInfoFiscalEntidad.map(campo => {
+      this.camposInfoFiscalEntidad.filter(campo => campo !== 'tipoPersona').map(campo => {
         const actual = this.datosForm.get(campo)?.value;
         return [campo, typeof actual === 'boolean' ? false : ''];
       })
@@ -2725,6 +2794,13 @@ export class PreRegistroComponent {
     this.datosForm.controls.tipoPersona.setValue(tipoPersona, { emitEvent: false });
   }
 
+  private aplicarTipoPersonaPorTipoComercio(tipoComercio: string): void {
+    if (this.tipoPersonaForzadaPorTexto(tipoComercio) !== 'PF') return;
+
+    this.datosForm.controls.tipoPersona.setValue('PF', { emitEvent: false });
+    this.actualizarValidadoresDatos();
+  }
+
   private tipoPersonaForzadaPorComercio(nodoId: string): string {
     const nodo = this.buscarNodoArbol(nodoId);
     if (!nodo) return '';
@@ -2738,31 +2814,32 @@ export class PreRegistroComponent {
       || this.tipoComercioAutomaticoPorNodo(nodo)
     );
 
-    if (tipoComercio === 'Persona Física' || tipoComercio === 'Sucursal Persona Física') return 'PF';
-    if ([
-      'Sucursales de Grupo',
-    ].includes(tipoComercio)) return 'PM';
+    return this.tipoPersonaForzadaPorTexto(tipoComercio);
+  }
+
+  private tipoPersonaForzadaPorTexto(tipoComercio: string): string {
+    const tipo = tipoComercio.toLowerCase();
+    if (tipo.includes('persona física') || tipo.includes('persona fisica')) return 'PF';
 
     return '';
   }
 
-  private sincronizarRepresentanteDesdePersonaFisica(datos: Record<string, string | boolean>): Record<string, string | boolean> {
+  private sincronizarRepresentanteDesdePersonaFisica(datos: Record<string, string | boolean>, tipoComercioActual?: string): Record<string, string | boolean> {
     if (`${datos['tipoPersona'] || ''}` !== 'PF') return datos;
 
     const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
     const tipoComercio = this.valorTexto(
-      (nodo ? this.obtenerComercioPorNodo()[nodo.id]?.tipoComercio : '')
+      tipoComercioActual
+      || (nodo ? this.obtenerComercioPorNodo()[nodo.id]?.tipoComercio : '')
       || this.comercioForm.controls.tipoComercio.value
     );
-    if (tipoComercio !== 'Persona Física') return datos;
+    if (!this.requiereDatosRepresentante(tipoComercio, datos['tipoPersona']) && tipoComercio !== 'Persona Física') return datos;
 
     return {
       ...datos,
       nombreRepresentante: datos['nombre'] || '',
       apellidoPaternoRepresentante: datos['apellidoPaterno'] || '',
       apellidoMaternoRepresentante: datos['apellidoMaterno'] || '',
-      correoRepresentante: datos['correo'] || '',
-      telefonoRepresentante: datos['telefono'] || '',
     };
   }
 
@@ -2772,11 +2849,19 @@ export class PreRegistroComponent {
     const entidad = nodo ? this.buscarEntidadPadre(nodo.id) : undefined;
     const datosEntidad = entidad ? this.obtenerDatosPorSucursal()[entidad.id] : undefined;
 
+    const tipoPersonaEntidad = datosEntidad ? this.tipoPersonaPayload(datosEntidad['tipoPersona']) : '';
+    const tipoPersonaActual = this.tipoPersonaPayload(this.datosForm.controls.tipoPersona.value);
+    const camposBloqueables = tipoPersonaEntidad && tipoPersonaActual && tipoPersonaEntidad !== tipoPersonaActual
+      ? new Set(this.camposInfoFiscalCompartidaPersona)
+      : new Set(this.camposInfoFiscalEntidad);
+
     this.camposInfoFiscalEntidad.forEach(campo => {
       const control = this.datosForm.get(campo);
       if (!control) return;
       const entidadTieneValor = !!datosEntidad && !!this.valorTexto(datosEntidad[campo]);
-      if (debeBloquear && entidadTieneValor) {
+      if (campo === 'tipoPersona' && this.tipoPersonaForzadaPorTexto(this.tipoComercioEfectivoActual())) {
+        control.disable({ emitEvent: false });
+      } else if (debeBloquear && camposBloqueables.has(campo) && entidadTieneValor) {
         control.disable({ emitEvent: false });
       } else {
         control.enable({ emitEvent: false });
@@ -3025,6 +3110,26 @@ export class PreRegistroComponent {
 
     }, { emitEvent: false });
 
+  }
+
+  private limpiarDomicilioComercial(): void {
+    this.localidadesComercial = [];
+    this.cargandoLocalidadesComercial = false;
+
+    this.datosForm.patchValue({
+      codigoPostalComercial: '',
+      tipoVialidadComercial: '',
+      nombreVialidadComercial: '',
+      numeroExteriorComercial: '',
+      numeroInteriorComercial: '',
+      coloniaComercial: '',
+      localidadComercial: '',
+      municipioComercial: '',
+      entidadFederativaComercial: '',
+      locationIDComercial: '',
+      entreCalleComercial: '',
+      yCalleComercial: '',
+    }, { emitEvent: false });
   }
 
 

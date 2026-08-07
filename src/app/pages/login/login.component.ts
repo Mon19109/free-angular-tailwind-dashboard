@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { GeolocationService } from '../../services/geolocation.service';
 import { NgxTailwindModalService } from '@dotted-labs/ngx-tailwind-modal';
 import { FormularioModalComponent } from '../../pages/modals/modals.component';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-login',
@@ -114,11 +115,13 @@ export class LoginComponent implements OnInit {
     this.loading = true;
     this.tokenErrorMessage = '';
 
-    this.authService.validateSmsToken(this.tokenValue).subscribe({
-      next: (result: any) => {
+    this.authService.validateSmsToken(this.tokenValue).pipe(
+      finalize(() => {
         this.isLoading = false;
         this.loading = false;
-
+      })
+    ).subscribe({
+      next: (result: any) => {
         if (result.success) {
           this.router.navigate(['/dashboard']);
           this.errorMessage = '';
@@ -134,9 +137,6 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        this.isLoading = false;
-        this.loading = false;
-
         this.tokenValue = '';
         this.showTokenModal = true;
         this.tokenErrorMessage = 'Código incorrecto';
@@ -156,11 +156,13 @@ export class LoginComponent implements OnInit {
     const latitud = this.lat || '0';
     const longitud = this.lon || '0';
 
-    this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud).subscribe({
-      next: (result: any) => {
+    this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud).pipe(
+      finalize(() => {
         this.isLoading = false;
         this.loading = false;
-
+      })
+    ).subscribe({
+      next: (result: any) => {
         if (result.success) {
           //this.router.navigate(['/dashboard']);
           this.errorMessage = '';
@@ -175,9 +177,6 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        this.isLoading = false;
-        this.loading = false;
-
         if (error.status == 401) {
           this.errorMessage = 'Correo o contraseña incorrectos.';
           console.error('Login error:', error);
