@@ -81,9 +81,9 @@ Seleccione una sucursal
 
 <option
 *ngFor="let sucursal of sucursales"
-[value]="sucursal.idTerminal">
+[value]="sucursal.idNode || sucursal.nodeID || sucursal.idTerminal">
 
-{{ sucursal.businessName || sucursal.terminalDescription }}
+{{ sucursal.name || sucursal.businessName || sucursal.terminalDescription }}
 
 </option>
 
@@ -104,9 +104,9 @@ Seleccione una caja
 
 <option
 *ngFor="let caja of cajas"
-[value]="caja.idTerminalUser">
+[value]="caja.idNode || caja.nodeID || caja.idTerminalUser">
 
-{{ caja.tuName || caja.name }}
+{{ caja.name || caja.tuName }}
 
 </option>
 

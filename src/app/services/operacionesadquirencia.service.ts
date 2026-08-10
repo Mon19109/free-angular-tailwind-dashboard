@@ -185,9 +185,9 @@ export class OperacionesAdquirenciaService {
       );
     }
   
-    getCajas(idTerminal: number): Observable<any> {
+    getCajas(nodeID: string): Observable<any> {
       return this.http.get(
-        `${this.apiV1Url}collaborator/getCollaboratorByBranchOffice?idTerminal=${idTerminal}`,
+        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6`,
         { headers: this.getCommonHeaders() }
       );
     }

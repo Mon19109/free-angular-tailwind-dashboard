@@ -196,7 +196,7 @@ this.formulario.get('cuenta')?.valueChanges.subscribe(valor => {
 
   this.entidades = Array.isArray(resp)
     ? resp
-    : resp.entitiesResponse || resp.rows?.entitiesResponse || resp.rows || [];
+    : resp || resp.rows || resp.rows || [];
 
 },
 
@@ -228,7 +228,7 @@ this.formulario.get('entidad')?.valueChanges.subscribe(entidad => {
       next:(resp:any)=>{
 
         this.sucursales =
-        resp.branchOfficeResponse || resp.rows?.branchOfficeResponse || resp.rows || [];
+        resp || resp.rows || resp.rows || [];
 
       }
 
@@ -236,21 +236,22 @@ this.formulario.get('entidad')?.valueChanges.subscribe(entidad => {
 
 });
 
-this.formulario.get('sucursal')?.valueChanges.subscribe(idTerminal => {
+this.formulario.get('sucursal')?.valueChanges.subscribe(nodeID => {
 
   this.formulario.patchValue({ caja: '' }, { emitEvent: false });
   this.cajas = [];
 
-  if (!idTerminal) return;
+  if (!nodeID) return;
 
   this.opeAdquiService
-    .getCajas(idTerminal)
+    .getCajas(String(nodeID))
     .subscribe({
 
       next:(resp:any)=>{
 
-        this.cajas =
-        resp.collaborators || resp.rows?.collaborators || resp.rows || [];
+        this.cajas = Array.isArray(resp)
+          ? resp
+          : resp || resp.rows || resp.rows || [];
 
       }
 
