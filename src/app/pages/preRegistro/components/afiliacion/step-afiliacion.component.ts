@@ -12,6 +12,8 @@ import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 export class StepAfiliacionComponent {
   @Input() form!: FormGroup;
   @Input() requisitos: string[] = [];
+  @Input() validando = false;
+  @Input() errorValidacion = '';
   @Output() continuar = new EventEmitter<void>();
   @Output() abrirAyuda = new EventEmitter<void>();
 
@@ -21,6 +23,7 @@ export class StepAfiliacionComponent {
   }
 
   submit(): void {
+    if (this.validando) return;
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.continuar.emit();
   }

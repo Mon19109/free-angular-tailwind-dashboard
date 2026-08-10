@@ -9,16 +9,18 @@
     <form [formGroup]="form" (ngSubmit)="submit()">
       <div class="field">
         <label for="afiliacion">Número de afiliación <b>*</b></label>
-        <input id="afiliacion" type="text" inputmode="numeric" maxlength="8"
+        <input id="afiliacion" type="text" inputmode="numeric"
           formControlName="afiliacion" placeholder="Ej. 33359863"
           [class.invalid]="esInvalido('afiliacion')" />
         @if (esInvalido('afiliacion')) {
-          <small>Ingresa un número de afiliación de 8 dígitos.</small>
+          <small>{{ errorValidacion || 'Ingresa solo números en la afiliación.' }}</small>
         }
       </div>
       <div class="intro-actions">
         <button type="button" class="button ghost" (click)="abrirAyuda.emit()">Ver ayuda</button>
-        <button type="submit" class="button primary">Validar y continuar</button>
+        <button type="submit" class="button primary" [disabled]="validando">
+          {{ validando ? 'Validando...' : 'Validar y continuar' }}
+        </button>
       </div>
     </form>
   </article>
