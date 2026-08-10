@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
 import { EnviarInvitacionComercioService } from '../../services/enviar-invitacion-comercio.service';
 
 @Component({
@@ -12,6 +13,7 @@ import { EnviarInvitacionComercioService } from '../../services/enviar-invitacio
 })
 export class EnviarInvitacionComercioComponent {
   private readonly invitacionService = inject(EnviarInvitacionComercioService);
+  private readonly authService = inject(AuthService);
 
   correoElectronico = '';
   nombre = '';
@@ -25,9 +27,15 @@ export class EnviarInvitacionComercioComponent {
 
     const email = this.correoElectronico.trim();
     const name = this.nombre.trim();
+    const affiliationNumber = String(this.authService.getUserData()?.affiliationNumber ?? '').trim();
 
     if (!email || !name) {
       this.error = 'Captura el correo electrónico y el nombre del comercio.';
+      return;
+    }
+
+    if (!affiliationNumber) {
+      this.error = 'No se encontró el número de afiliación de la cuenta.';
       return;
     }
 
@@ -37,7 +45,7 @@ export class EnviarInvitacionComercioComponent {
     }
 
     this.cargando = true;
-    this.invitacionService.enviarInvitacion({ email, name }).subscribe({
+    this.invitacionService.enviarInvitacion({ email, name, affiliationNumber }).subscribe({
       next: () => {
         this.cargando = false;
         this.mensaje = 'Invitación enviada correctamente.';

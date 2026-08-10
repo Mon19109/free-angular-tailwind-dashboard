@@ -44,7 +44,8 @@ export class AuthService {
     'latitud',
     'longitud',
     'commerceDetailID',
-    'nodeID'
+    'nodeID',
+    'affiliationNumber'
   ];
   private isProcessing = false;
   
@@ -461,6 +462,7 @@ export class AuthService {
     return this.getBalance(accessToken, entS).pipe(
       map((balanceResult: any) => {
         const reserveId = terminalInfo.reserveId || '';
+        const affiliationNumber = loginResult?.affiliation ?? terminalInfo?.affiliation ?? '';
 
         const sessionData = {
           idUser: terminalInfo.userID,
@@ -496,7 +498,8 @@ export class AuthService {
           latitud: latitud,
           longitud: longitud,
           commerceDetailID: terminalInfo.commerceDetailID,
-          nodeID: terminalInfo.nodeID
+          nodeID: terminalInfo.nodeID,
+          affiliationNumber: affiliationNumber
         };
 
         this.movilEncrip = terminalInfo.phoneNumber.slice(-2);
