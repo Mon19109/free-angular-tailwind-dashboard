@@ -39,17 +39,17 @@
           <div class="info-grid">
             <label>
               <span>SubAfiliado</span>
-              <select name="subafiliado" [(ngModel)]="filtros.subafiliado" (change)="onSubafiliadoChange()">
+              <select name="subafiliado" [(ngModel)]="filtros.subafiliado" (change)="onSubafiliadoChange()" [disabled]="subafiliadoSesionBloqueado">
                 <option value="">Todos los subafiliados</option>
-                @for (item of subafiliados(); track item.nodeID) {
-                  <option [value]="item.nodeID">{{ item.contextDescription }}</option>
+                @for (item of subafiliados(); track item.idNode || item.nodeID) {
+                  <option [value]="item.idNode || item.nodeID">{{ item.name || item.contextDescription }}</option>
                 }
               </select>
             </label>
 
             <label>
               <span>Entidad</span>
-              <select name="entidad" [(ngModel)]="filtros.entidad" (change)="onEntidadChange()">
+              <select name="entidad" [(ngModel)]="filtros.entidad" (change)="onEntidadChange()" [disabled]="entidadSesionBloqueada">
                 <option value="">Todas las entidades</option>
                 @for (item of entidades(); track item.idNode) {
                   <option [value]="item.idNode">{{ item.name }}</option>
@@ -69,10 +69,10 @@
 
             <label>
               <span>Caja</span>
-              <select name="caja" [(ngModel)]="filtros.caja">
+              <select name="caja" [(ngModel)]="filtros.caja" [disabled]="cajaSesionBloqueada">
                 <option value="">Todas las cajas</option>
-                @for (item of cajas(); track item.idNode) {
-                  <option [value]="item.idNode">{{ item.name }}</option>
+                @for (item of cajas(); track item.idNode || item.nodeID) {
+                  <option [value]="item.idNode || item.nodeID">{{ item.name || item.tuName }}</option>
                 }
               </select>
             </label>
@@ -215,7 +215,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (t of transaccionesPaginadas; track t.idOperation) {
+              @for (t of transaccionesPaginadas; track $index) {
                 <tr>
                   <td>TXN-{{ t.idOperation }}</td>
                   <td>{{ t.authorizationDate || 'ND' }}</td>

@@ -24,6 +24,12 @@ export interface FiltrosTransaccion {
 
 export interface Transaccion {
   idOperation: number;
+  terminalId?: string | number;
+  idTerminal?: string | number;
+  rrcext?: string;
+  authorizationId?: string | number;
+  context?: string | number;
+  idContext?: string | number;
   amount: number;
   authorizationNumber: string;
   card: string;
@@ -59,6 +65,15 @@ export interface Transaccion {
   longitude: string;
   paymentLink: string;
   operationSirio?: any;
+}
+
+export interface TicketRequest {
+  terminalId: string | number;
+  rrcext: string;
+  authorizationNumber: string;
+  authorizationId: string | number;
+  user: string;
+  context: string | number;
 }
 
 export interface Subafiliado {
@@ -227,8 +242,27 @@ getOperaciones(): Observable<any> {
   }
 
   // Ver ticket
-  verTicket(data: any): Observable<any> {
-    return this.http.post(`${this.baseUrlTicket}/transacciones/verTicket`, data);
+  verTicket(data: TicketRequest): Observable<Blob> {
+    const body = new HttpParams()
+      .set('terminalId', String(data.terminalId ?? ''))
+      .set('rrcext', data.rrcext || '')
+      .set('authorizationNumber', data.authorizationNumber || '')
+      .set('authorizationId', String(data.authorizationId ?? ''))
+      .set('user', data.user || '')
+      .set('context', String(data.context ?? ''));
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'versionApp': '3',
+      'Entity-i': 'com.sub.tecs',
+      'terminalId': 'dddd',
+      'Authorization': 'Bearer '+localStorage.getItem('token')
+    });
+
+    return this.http.post(`http://10.15.5.167/KashPay/v2/voucher`, body.toString(), {
+      headers,
+      responseType: 'blob'
+    });
   }
 
   private getRootNodeID(filtros: FiltrosTransaccion): string {

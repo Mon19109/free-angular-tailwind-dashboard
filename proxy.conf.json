@@ -17,8 +17,12 @@
     "changeOrigin": true,
     "logLevel": "debug"
   },
-
-
+  "/KashPay/v2/": {
+    "target": "http://10.15.5.167",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/OrderReceiver": {
     "target": "http://10.15.5.160",
     "secure": false,
@@ -57,5 +61,11 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
-  }  
+  },
+  "/KashPay": {
+    "target": "http://10.15.5.160",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
 }

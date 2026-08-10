@@ -151,9 +151,12 @@ export class OperacionesAdquirenciaService {
       );
     }
   
-    getSubafiliadoById(id: number): Observable<{ contextResponse: Subafiliado }> {
-      return this.http.get<{ contextResponse: Subafiliado }>(
-        `${this.apiV1Url}subAffiliation/getById?idSubAffiliation=${id}`
+    getSubafiliadoById(): Observable<any> {
+      const nodeID = localStorage.getItem('nodeID') || '';
+
+      return this.http.get<any>(
+        `${this.apiV1Url}api/nodes/${nodeID}/tree?levels=3`,
+        { headers: this.getCommonHeaders() }
       );
     }
   
@@ -164,10 +167,10 @@ export class OperacionesAdquirenciaService {
     /*getEntidades(subafiliadoId: number): Observable<any> {
       return this.http.get(`${this.baseUrl}/transacciones/searchEntidad/${subafiliadoId}`);
     }*/
-  getEntidades(subafiliadoId: number): Observable<any> {
+  getEntidades(nodeID: string): Observable<any> {
 
   return this.http.get(
-    `${this.apiV1Url}entity/getEntitiesBySubAffiliation?idSubAffiliation=${subafiliadoId}`,
+    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4`,
     {
       headers: this.getCommonHeaders()
     }

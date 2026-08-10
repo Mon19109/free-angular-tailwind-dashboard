@@ -31,11 +31,11 @@
                 Seleccione un SubAfiliado
               </option>
 
-              <option
+  <option
   *ngFor="let cuenta of cuentas"
-  [value]="cuenta.affiliationId">
+  [value]="cuenta.idNode || cuenta.nodeID || cuenta.affiliationId">
 
-  {{ cuenta.bussinesName }}
+  {{ cuenta.name || cuenta.bussinesName }}
 
 </option>
 
@@ -57,9 +57,9 @@ Seleccione una entidad
 
 <option
 *ngFor="let entidad of entidades"
-[value]="entidad.idEntity">
+[value]="entidad.idNode || entidad.nodeID || entidad.idEntity">
 
-{{ entidad.entityDescription || entidad.businessName }}
+{{ entidad.name || entidad.entityDescription || entidad.businessName }}
 
 </option>
 

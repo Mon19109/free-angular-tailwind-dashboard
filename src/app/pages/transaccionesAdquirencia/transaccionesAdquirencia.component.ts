@@ -46,7 +46,10 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   loading = signal<boolean>(false);
   showTable = signal<boolean>(false);
   errorMessage = signal<string>('');
+  subafiliadoSesionBloqueado = false;
+  entidadSesionBloqueada = false;
   sucursalSesionBloqueada = false;
+  cajaSesionBloqueada = false;
   // Filtros
   filtros: FiltrosTransaccion = {
     subafiliado: '',
@@ -248,7 +251,11 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
     this.transaccionesAdquirenciaService.getSubafiliadoById().subscribe({
       next: (res) => {
-        const contextResponse = res.contextResponse;
+        const contextResponse = res.contextResponse
+          ?? res.rows?.contextResponse
+          ?? res.rows
+          ?? res.data
+          ?? res;
         const subafiliadoList = Array.isArray(contextResponse)
           ? contextResponse
           : contextResponse
@@ -256,19 +263,34 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
             : [];
 
         this.subafiliados.set(subafiliadoList);
+        this.seleccionarSubafiliadoSesion(subafiliadoList);
 
       },
-      error: (err) => console.error('Error al cargar subafiliado por sesión:', err)
+      error: (err) => {
+        this.seleccionarSubafiliadoSesion([]);
+        console.error('Error al cargar subafiliado por sesión:', err);
+      }
     });
   }
   
   cargarEntidades(nodeID: string) {
     this.transaccionesAdquirenciaService.getEntidades(nodeID).subscribe({
       next: (res) => {
-        const entidadesList = res || res.rows || res.rows || [];
+        const entidadesResponse = res
+          ?? res.rows
+          ?? res.rows
+          ?? res.data
+          ?? res;
+        const entidadesList = Array.isArray(entidadesResponse)
+          ? entidadesResponse
+          : entidadesResponse
+            ? [entidadesResponse]
+            : [];
         if (Array.isArray(entidadesList) && entidadesList.length > 0) {
           this.entidades.set(entidadesList);
+          this.seleccionarEntidadSesion(entidadesList);
         } else {
+          this.seleccionarEntidadSesion([]);
           /*bootbox.alert({
             message: "El subafiliado seleccionado no tiene entidades relacionadas.",
             locale: 'mx'
@@ -276,6 +298,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
         }
       },
       error: () => {
+        this.seleccionarEntidadSesion([]);
         /*bootbox.alert({
           message: "Error al cargar entidades.",
           locale: 'mx'
@@ -320,10 +343,21 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   cargarCajas(nodeID: string) {
     this.transaccionesAdquirenciaService.getCajas(nodeID).subscribe({
       next: (res) => {
-        const cajasList = res || res.rows || res.rows || [];
+        const cajasResponse = res
+          ?? res.rows
+          ?? res.rows
+          ?? res.data
+          ?? res;
+        const cajasList = Array.isArray(cajasResponse)
+          ? cajasResponse
+          : cajasResponse
+            ? [cajasResponse]
+            : [];
         if (Array.isArray(cajasList) && cajasList.length > 0) {
           this.cajas.set(cajasList);
+          this.seleccionarCajaSesion(cajasList);
         } else {
+          this.seleccionarCajaSesion([]);
           /*bootbox.alert({
             message: "La sucursal seleccionada no tiene cajas relacionadas.",
             locale: 'mx'
@@ -331,6 +365,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
         }
       },
       error: () => {
+        this.seleccionarCajaSesion([]);
         /*bootbox.alert({
           message: "Error al cargar cajas.",
           locale: 'mx'
@@ -398,21 +433,67 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   processTransactions(data: any) {
-    if (data.rows?.content?.length > 0) {
-      this.transacciones.set(data.rows.content);
-    } else if (data.rows?.totalElements > 0) {
-      this.transacciones.set(data.rows.content || []);
-    } else {
-      this.transacciones.set([]);
-      /*bootbox.alert({
-        message: data.rows?.error?.message || 'No se encontraron transacciones',
-        locale: 'mx'
-      });*/
-    }
+    const transacciones = this.obtenerTransaccionesRespuesta(data);
+    this.transacciones.set(transacciones);
+  }
+
+  private obtenerTransaccionesRespuesta(data: any): Transaccion[] {
+    const posiblesListas = [
+      data?.rows?.content,
+      data?.content,
+      data?.rows,
+      data?.data?.rows?.content,
+      data?.data?.content,
+      data?.data?.rows,
+      data?.data,
+      data?.operationsResponse,
+      data?.operations?.content,
+      data?.operations,
+      data?.result?.content,
+      data?.result,
+      data
+    ];
+
+    const lista = posiblesListas.find(Array.isArray);
+    return (lista || []) as Transaccion[];
   }
 
   private getSelectedNodeID(value?: string): string {
     return value || localStorage.getItem('nodeID') || '';
+  }
+
+  private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
+    this.subafiliadoSesionBloqueado = false;
+
+    if (this.rolId !== '3') return;
+
+    this.filtros.subafiliado = '';
+    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const existeSubafiliadoSesion = subafiliados.some(
+      subafiliado => String(subafiliado.idNode ?? subafiliado.nodeID ?? '') === nodeIDSesion
+    );
+
+    if (existeSubafiliadoSesion) {
+      this.filtros.subafiliado = nodeIDSesion;
+      this.subafiliadoSesionBloqueado = true;
+    }
+  }
+
+  private seleccionarEntidadSesion(entidades: any[]): void {
+    this.entidadSesionBloqueada = false;
+
+    if (this.rolId !== '4') return;
+
+    this.filtros.entidad = '';
+    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const existeEntidadSesion = entidades.some(
+      entidad => String(entidad.idNode ?? entidad.nodeID ?? '') === nodeIDSesion
+    );
+
+    if (existeEntidadSesion) {
+      this.filtros.entidad = nodeIDSesion;
+      this.entidadSesionBloqueada = true;
+    }
   }
 
   private seleccionarSucursalSesion(sucursales: any[]): void {
@@ -431,14 +512,31 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       this.sucursalSesionBloqueada = true;
     }
   }
+
+  private seleccionarCajaSesion(cajas: any[]): void {
+    this.cajaSesionBloqueada = false;
+
+    if (this.rolId !== '6') return;
+
+    this.filtros.caja = '';
+    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const existeCajaSesion = cajas.some(
+      caja => String(caja.idNode ?? caja.nodeID ?? '') === nodeIDSesion
+    );
+
+    if (existeCajaSesion) {
+      this.filtros.caja = nodeIDSesion;
+      this.cajaSesionBloqueada = true;
+    }
+  }
   
   limpiarFiltros() {
     const nodeIDSesion = localStorage.getItem('nodeID') || '';
     this.filtros = {
-      subafiliado: '',
-      entidad: '',
+      subafiliado: this.subafiliadoSesionBloqueado ? nodeIDSesion : '',
+      entidad: this.entidadSesionBloqueada ? nodeIDSesion : '',
       sucursal: this.sucursalSesionBloqueada ? nodeIDSesion : '',
-      caja: '',
+      caja: this.cajaSesionBloqueada ? nodeIDSesion : '',
       operacion: '',
       monto: '',
       montoDesde: '',
@@ -572,17 +670,110 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   verTicket(transaccion: Transaccion) {
-    const urlTicket = `${this.urlTi}${transaccion.authorizationRrcext}${transaccion.authorizationNumber}.pdf`;
-    
-    if (transaccion.status === 'APROBADA' || transaccion.status === 'Aprobada') {
-      if (transaccion.paymentLink && transaccion.paymentLink !== 'ND') {
-        window.open(transaccion.paymentLink, '_blank');
-      } else {
-        window.open(urlTicket, '_blank');
-      }
-    } else if (transaccion.status === 'DEVUELTA') {
-      this.mostrarModalDevolucion(transaccion);
+    const ventanaTicket = window.open('', '_blank');
+
+    if (!ventanaTicket) {
+      this.errorMessage.set('El navegador bloqueó la ventana del ticket. Habilita las ventanas emergentes e inténtalo nuevamente.');
+      return;
     }
+
+    ventanaTicket.document.title = 'Ticket';
+    ventanaTicket.document.body.textContent = 'Cargando ticket...';
+
+    const ticketRequest = {
+      terminalId: transaccion.terminalId ?? transaccion.idTerminal ?? localStorage.getItem('idTerminal') ?? '',
+      rrcext: transaccion.rrcext ?? transaccion.authorizationRrcext ?? '',
+      authorizationNumber: transaccion.authorizationNumber ?? '',
+      authorizationId: transaccion.authorizationId ?? transaccion.idOperation ?? '',
+      user: localStorage.getItem('mail') ?? '',
+      context: transaccion.context ?? transaccion.idContext ?? localStorage.getItem('idContext') ?? ''
+    };
+
+    this.transaccionesAdquirenciaService.verTicket(ticketRequest).subscribe({
+      next: (respuesta) => this.abrirRespuestaTicket(ventanaTicket, respuesta),
+      error: (err) => {
+        console.error('Error al consultar el ticket:', err);
+        ventanaTicket.close();
+        this.errorMessage.set('No fue posible obtener el ticket.');
+      }
+    });
+  }
+
+  private async abrirRespuestaTicket(ventanaTicket: Window, respuesta: Blob): Promise<void> {
+    if (respuesta.type.includes('application/json') || respuesta.type.includes('text/plain')) {
+      const contenido = await respuesta.text();
+
+      try {
+        const data = JSON.parse(contenido);
+
+        if (data?.voucher !== undefined && data?.voucher !== null) {
+          const voucherBase64 = this.convertirVoucherABase64(data.voucher);
+          const mimeType = data?.mimeType || data?.contentType || 'application/pdf';
+          ventanaTicket.location.href = `data:${mimeType};base64,${voucherBase64}`;
+          return;
+        }
+
+        const url = typeof data === 'string'
+          ? data
+          : data?.url || data?.ticketUrl || data?.voucherUrl || data?.data?.url;
+
+        if (url) {
+          ventanaTicket.location.href = url;
+          return;
+        }
+      } catch {
+        if (/^(https?:\/\/|\/)/i.test(contenido.trim())) {
+          ventanaTicket.location.href = contenido.trim();
+          return;
+        }
+      }
+    }
+
+    const urlRespuesta = URL.createObjectURL(respuesta);
+    ventanaTicket.location.href = urlRespuesta;
+    window.setTimeout(() => URL.revokeObjectURL(urlRespuesta), 60_000);
+  }
+
+  private convertirVoucherABase64(voucher: unknown): string {
+    if (typeof voucher === 'string') {
+      const contenido = voucher.trim();
+      const dataUrl = contenido.match(/^data:[^;]+;base64,(.+)$/i);
+      if (dataUrl) return dataUrl[1];
+
+      try {
+        const contenidoDecodificado = atob(contenido);
+        if (contenidoDecodificado.startsWith('%PDF')) return contenido;
+      } catch {
+        // El contenido todavía no está codificado en Base64.
+      }
+
+      return this.bytesABase64(new TextEncoder().encode(voucher));
+    }
+
+    if (voucher instanceof ArrayBuffer) {
+      return this.bytesABase64(new Uint8Array(voucher));
+    }
+
+    if (Array.isArray(voucher)) {
+      return this.bytesABase64(new Uint8Array(voucher));
+    }
+
+    if (voucher && typeof voucher === 'object' && Array.isArray((voucher as { data?: unknown }).data)) {
+      return this.bytesABase64(new Uint8Array((voucher as { data: number[] }).data));
+    }
+
+    return this.bytesABase64(new TextEncoder().encode(JSON.stringify(voucher ?? '')));
+  }
+
+  private bytesABase64(bytes: Uint8Array): string {
+    const chunkSize = 0x8000;
+    let contenidoBinario = '';
+
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+      contenidoBinario += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+    }
+
+    return btoa(contenidoBinario);
   }
   
   mostrarModalDevolucion(transaccion: Transaccion) {

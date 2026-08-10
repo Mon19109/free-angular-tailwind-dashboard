@@ -187,14 +187,16 @@ this.formulario.get('cuenta')?.valueChanges.subscribe(valor => {
   if (!valor) return;
 
   this.opeAdquiService
-    .getEntidades(Number(valor))
+    .getEntidades(String(valor))
     .subscribe({
 
      next: (resp:any) => {
 
   console.log('ENTIDADES RESP:', resp);
 
-  this.entidades = resp.entitiesResponse || resp.rows?.entitiesResponse || resp.rows || [];
+  this.entidades = Array.isArray(resp)
+    ? resp
+    : resp.entitiesResponse || resp.rows?.entitiesResponse || resp.rows || [];
 
 },
 
