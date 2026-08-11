@@ -18,6 +18,7 @@ import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/loc
 import { PreregistroCompletoService } from '../../services/preregistro-completo.service';
 import { DocumentoPreregistroUpload, PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
 import { PreRegistroService, TipoComercioCatalogo } from '../../services/preregistro.service';
+import { ValidarAfiliacionService } from '../../services/validar-afiliacion.service';
 import { DocumentoRequerido } from './models/preregistro.models';
 
 
@@ -105,6 +106,7 @@ export class PreRegistroComponent {
   private readonly preregistroCompletoService = inject(PreregistroCompletoService);
   private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly preRegistroService = inject(PreRegistroService);
+  private readonly validarAfiliacionService = inject(ValidarAfiliacionService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
   private readonly payloadKey = 'kashpay.preregistro.payload.v1';
 
@@ -117,6 +119,8 @@ export class PreRegistroComponent {
   archivosInvalidos = false;
   borradorGuardado = false;
   errorEnvioPreRegistro = '';
+  validandoAfiliacion = false;
+  errorAfiliacion = '';
   tipoPersonaBeneficiario: TipoPersonaBeneficiario = 'fisica';
   datosBeneficiarioIgualComercio = false;
   modoReservaActual: ModoReserva = 'NINGUNO';
@@ -434,7 +438,7 @@ export class PreRegistroComponent {
 
   // ── Formularios ──────────────────────────────────────────────────────────────
   readonly afiliacionForm = this.fb.nonNullable.group({
-    afiliacion: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
+    afiliacion: ['', [Validators.required, Validators.pattern(/^\d+$/)]],
   });
 
   readonly comercioForm = this.fb.nonNullable.group({
@@ -1344,8 +1348,29 @@ export class PreRegistroComponent {
 
   // ── Continuar ─────────────────────────────────────────────────────────────────
   continuarAfiliacion(): void {
+    this.errorAfiliacion = '';
     if (this.afiliacionForm.invalid) { this.afiliacionForm.markAllAsTouched(); return; }
-    this.guardarBorradorSilencioso(); this.irAlPaso(6);
+
+    const affiliationNumber = this.afiliacionForm.controls.afiliacion.value.trim();
+    this.validandoAfiliacion = true;
+
+    this.validarAfiliacionService.validar(affiliationNumber).subscribe({
+      next: response => {
+        this.validandoAfiliacion = false;
+        if (response?.success === false) {
+          this.afiliacionForm.controls.afiliacion.setErrors({ afiliacionInvalida: true });
+          this.errorAfiliacion = response.error?.message || 'No fue posible validar el número de afiliación.';
+          return;
+        }
+        this.guardarBorradorSilencioso();
+        this.irAlPaso(6);
+      },
+      error: error => {
+        this.validandoAfiliacion = false;
+        this.afiliacionForm.controls.afiliacion.setErrors({ afiliacionInvalida: true });
+        this.errorAfiliacion = this.extraerMensajeErrorHttp(error) || 'No fue posible validar el número de afiliación.';
+      },
+    });
   }
 
   seleccionarTipoNegocio(tipo: TipoNegocio): void {

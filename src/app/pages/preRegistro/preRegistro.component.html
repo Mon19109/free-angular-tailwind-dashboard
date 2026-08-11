@@ -35,7 +35,12 @@
 
     <!-- Paso 0: Afiliación -->
     } @else if (pasoActual === 0) {
-    <app-step-afiliacion [form]="afiliacionForm" [requisitos]="datos.requisitos" (continuar)="continuarAfiliacion()"
+    <app-step-afiliacion
+      [form]="afiliacionForm"
+      [requisitos]="datos.requisitos"
+      [validando]="validandoAfiliacion"
+      [errorValidacion]="errorAfiliacion"
+      (continuar)="continuarAfiliacion()"
       (abrirAyuda)="abrirAyuda()" />
 
     <!-- Pantalla: Tipos de negocio -->

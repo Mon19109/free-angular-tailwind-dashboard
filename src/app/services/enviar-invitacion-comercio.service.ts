@@ -6,6 +6,7 @@ import { environment } from '../environments/environments';
 export interface EnviarInvitacionComercioRequest {
   email: string;
   name: string;
+  affiliationNumber: string;
 }
 
 @Injectable({
