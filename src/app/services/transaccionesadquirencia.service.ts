@@ -76,6 +76,19 @@ export interface TicketRequest {
   context: string | number;
 }
 
+export interface TicketResponse {
+  success?: boolean;
+  voucher?: string;
+  mimeType?: string;
+  contentType?: string;
+  url?: string;
+  ticketUrl?: string;
+  voucherUrl?: string;
+  data?: {
+    url?: string;
+  };
+}
+
 export interface Subafiliado {
   idContext: number;
   contextDescription: string;
@@ -242,27 +255,28 @@ getOperaciones(): Observable<any> {
   }
 
   // Ver ticket
-  verTicket(data: TicketRequest): Observable<Blob> {
-    const body = new HttpParams()
-      .set('terminalId', String(data.terminalId ?? ''))
-      .set('rrcext', data.rrcext || '')
-      .set('authorizationNumber', data.authorizationNumber || '')
-      .set('authorizationId', String(data.authorizationId ?? ''))
-      .set('user', data.user || '')
-      .set('context', String(data.context ?? ''));
+  verTicket(data: TicketRequest): Observable<TicketResponse> {
+    const terminalId = String(data.terminalId ?? '');
+    const token = localStorage.getItem('token') || '';
+    const body = {
+      terminalId,
+      rrcext: data.rrcext || '',
+      authorizationNumber: data.authorizationNumber || '',
+      authorizationId: String(data.authorizationId ?? ''),
+      user: data.user || '',
+      context: String(data.context ?? '')
+    };
 
     const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/json',
       'versionApp': '3',
       'Entity-i': 'com.sub.tecs',
-      'terminalId': 'dddd',
-      'Authorization': 'Bearer '+localStorage.getItem('token')
+      'terminalId': terminalId,
+      'Authorization': `Bearer ${token}`,
+      'AuthorizationToken': `Bearer ${token}`
     });
 
-    return this.http.post(`http://10.15.5.167/KashPay/v2/voucher`, body.toString(), {
-      headers,
-      responseType: 'blob'
-    });
+    return this.http.post<TicketResponse>(`${this.baseUrlTicket}voucher`, body, { headers });
   }
 
   private getRootNodeID(filtros: FiltrosTransaccion): string {

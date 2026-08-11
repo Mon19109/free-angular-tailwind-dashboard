@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TransaccionesAdquirenciaService, FiltrosTransaccion, Transaccion } from '../../services/transaccionesadquirencia.service';
+import { TransaccionesAdquirenciaService, FiltrosTransaccion, Transaccion, TicketResponse } from '../../services/transaccionesadquirencia.service';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -76,6 +76,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   exportMenuAbierto = false;
   
   @ViewChild('map') mapElement!: ElementRef;
+  @ViewChild('alertaMensaje') alertaMensaje?: ElementRef<HTMLElement>;
+  @ViewChild('zonaMensajes') zonaMensajes?: ElementRef<HTMLElement>;
   
   ngOnInit() {
     this.cargarDatosSesion();
@@ -692,15 +694,10 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   verTicket(transaccion: Transaccion) {
-    const ventanaTicket = window.open('', '_blank');
-
-    if (!ventanaTicket) {
-      this.errorMessage.set('El navegador bloqueó la ventana del ticket. Habilita las ventanas emergentes e inténtalo nuevamente.');
+    if (this.normalizarTexto(transaccion.status) !== 'aprobada') {
+      this.mostrarErrorTicket();
       return;
     }
-
-    ventanaTicket.document.title = 'Ticket';
-    ventanaTicket.document.body.textContent = 'Cargando ticket...';
 
     const ticketRequest = {
       terminalId: transaccion.terminalId ?? transaccion.idTerminal ?? localStorage.getItem('idTerminal') ?? '',
@@ -711,49 +708,49 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       context: transaccion.context ?? transaccion.idContext ?? localStorage.getItem('idContext') ?? ''
     };
 
+    const ventanaTicket = window.open('', '_blank');
+
+    if (!ventanaTicket) {
+      this.errorMessage.set('El navegador bloqueó la ventana del ticket. Habilita las ventanas emergentes e inténtalo nuevamente.');
+      return;
+    }
+
+    ventanaTicket.document.title = 'Ticket';
+    ventanaTicket.document.body.textContent = 'Cargando ticket...';
+
     this.transaccionesAdquirenciaService.verTicket(ticketRequest).subscribe({
       next: (respuesta) => this.abrirRespuestaTicket(ventanaTicket, respuesta),
       error: (err) => {
         console.error('Error al consultar el ticket:', err);
         ventanaTicket.close();
-        this.errorMessage.set('No fue posible obtener el ticket.');
+        this.mostrarErrorTicket();
       }
     });
   }
 
-  private async abrirRespuestaTicket(ventanaTicket: Window, respuesta: Blob): Promise<void> {
-    if (respuesta.type.includes('application/json') || respuesta.type.includes('text/plain')) {
-      const contenido = await respuesta.text();
+  private mostrarErrorTicket(): void {
+    this.errorMessage.set('No fue posible obtener el ticket');
+    this.zonaMensajes?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
-      try {
-        const data = JSON.parse(contenido);
-
-        if (data?.voucher !== undefined && data?.voucher !== null) {
-          const voucherBase64 = this.convertirVoucherABase64(data.voucher);
-          const mimeType = data?.mimeType || data?.contentType || 'application/pdf';
-          ventanaTicket.location.href = `data:${mimeType};base64,${voucherBase64}`;
-          return;
-        }
-
-        const url = typeof data === 'string'
-          ? data
-          : data?.url || data?.ticketUrl || data?.voucherUrl || data?.data?.url;
-
-        if (url) {
-          ventanaTicket.location.href = url;
-          return;
-        }
-      } catch {
-        if (/^(https?:\/\/|\/)/i.test(contenido.trim())) {
-          ventanaTicket.location.href = contenido.trim();
-          return;
-        }
-      }
+  private abrirRespuestaTicket(ventanaTicket: Window, respuesta: TicketResponse): void {
+    if (respuesta?.voucher) {
+      const voucherBase64 = this.convertirVoucherABase64(respuesta.voucher);
+      const mimeType = respuesta.mimeType || respuesta.contentType || 'application/pdf';
+      const urlVoucher = URL.createObjectURL(this.base64ABlob(voucherBase64, mimeType));
+      ventanaTicket.location.href = urlVoucher;
+      window.setTimeout(() => URL.revokeObjectURL(urlVoucher), 60_000);
+      return;
     }
 
-    const urlRespuesta = URL.createObjectURL(respuesta);
-    ventanaTicket.location.href = urlRespuesta;
-    window.setTimeout(() => URL.revokeObjectURL(urlRespuesta), 60_000);
+    const url = respuesta?.url || respuesta?.ticketUrl || respuesta?.voucherUrl || respuesta?.data?.url;
+    if (url) {
+      ventanaTicket.location.href = url;
+      return;
+    }
+
+    ventanaTicket.close();
+    this.mostrarErrorTicket();
   }
 
   private convertirVoucherABase64(voucher: unknown): string {
@@ -796,6 +793,25 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     }
 
     return btoa(contenidoBinario);
+  }
+
+  private base64ABlob(base64: string, mimeType: string): Blob {
+    const contenidoBinario = atob(base64);
+    const chunkSize = 0x8000;
+    const partes: ArrayBuffer[] = [];
+
+    for (let offset = 0; offset < contenidoBinario.length; offset += chunkSize) {
+      const segmento = contenidoBinario.slice(offset, offset + chunkSize);
+      const bytes = new Uint8Array(segmento.length);
+
+      for (let index = 0; index < segmento.length; index++) {
+        bytes[index] = segmento.charCodeAt(index);
+      }
+
+      partes.push(bytes.buffer);
+    }
+
+    return new Blob(partes, { type: mimeType });
   }
   
   mostrarModalDevolucion(transaccion: Transaccion) {

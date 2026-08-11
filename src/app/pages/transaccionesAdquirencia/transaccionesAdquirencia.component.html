@@ -20,9 +20,9 @@
       </div>
     </header>
 
-    <div class="consulta-card-body">
+    <div class="consulta-card-body" #zonaMensajes>
       @if (errorMessage()) {
-        <div class="alert-message">
+        <div class="alert-message" #alertaMensaje>
           <i class="fa-solid fa-circle-exclamation"></i>
           <span>{{ errorMessage() }}</span>
           <button type="button" (click)="errorMessage.set('')"><i class="fa-solid fa-xmark"></i></button>
