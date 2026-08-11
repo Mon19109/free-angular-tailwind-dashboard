@@ -132,6 +132,30 @@
   color: var(--consulta-muted);
 }
 
+.pagination {
+  flex-wrap: wrap;
+}
+
+.pagination > div {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.pagination button {
+  flex: 0 0 auto;
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 36px;
+  color: var(--consulta-muted);
+  font-weight: 850;
+}
+
 .date-field {
   min-width: 0;
 }
@@ -157,5 +181,12 @@
 
   .table-search {
     min-width: 0;
+  }
+
+  .pagination,
+  .pagination > div {
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 100%;
   }
 }

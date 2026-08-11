@@ -193,8 +193,26 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     return Math.max(1, Math.ceil(this.transaccionesFiltradasTabla.length / this.elementosPorPagina));
   }
 
-  get paginas(): number[] {
-    return Array.from({ length: this.totalPaginas }, (_, index) => index + 1);
+  get paginas(): Array<number | string> {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+    const paginasVisibles = new Set<number>([1, total]);
+
+    for (let pagina = actual - 2; pagina <= actual + 2; pagina++) {
+      if (pagina > 1 && pagina < total) {
+        paginasVisibles.add(pagina);
+      }
+    }
+
+    const paginasOrdenadas = Array.from(paginasVisibles).sort((a, b) => a - b);
+    return paginasOrdenadas.reduce<Array<number | string>>((paginas, pagina, index) => {
+      const paginaAnterior = paginasOrdenadas[index - 1];
+      if (index > 0 && pagina - paginaAnterior > 1) {
+        paginas.push('...');
+      }
+      paginas.push(pagina);
+      return paginas;
+    }, []);
   }
   
   cargarDependenciasIniciales() {
@@ -552,11 +570,15 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     this.inicializarFechas();
     this.busquedaTabla = '';
     this.paginaActual = 1;
-    this.buscarTransacciones();
   }
 
   cambiarPagina(pagina: number): void {
     this.paginaActual = Math.min(Math.max(pagina, 1), this.totalPaginas);
+  }
+
+  cambiarPaginaPaginador(pagina: number | string): void {
+    if (typeof pagina !== 'number') return;
+    this.cambiarPagina(pagina);
   }
 
   formatCurrency(value: string | number): string {

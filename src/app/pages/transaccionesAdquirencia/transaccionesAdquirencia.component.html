@@ -252,7 +252,16 @@
           <span>Mostrando {{ transaccionesPaginadas.length }} de {{ transaccionesFiltradasTabla.length }} registros</span>
           <div>
             <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1"><i class="fa-solid fa-chevron-left"></i></button>
-            <button type="button" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+            <ng-container *ngFor="let pagina of paginas">
+              <span *ngIf="pagina === '...'" class="pagination-ellipsis">...</span>
+              <button
+                *ngIf="pagina !== '...'"
+                type="button"
+                [class.active]="pagina === paginaActual"
+                (click)="cambiarPaginaPaginador(pagina)">
+                {{ pagina }}
+              </button>
+            </ng-container>
             <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"><i class="fa-solid fa-chevron-right"></i></button>
           </div>
         </footer>
