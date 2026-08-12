@@ -38,7 +38,9 @@ export class PagoDistanciaService {
    */
 
   obtenerCuentas(): Observable<Cuenta[]> {
-    return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
+    return this.http.get<any>(
+      `${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`
+    );
   }
 
 

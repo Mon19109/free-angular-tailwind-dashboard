@@ -1,4 +1,9 @@
 <form id="formulario" [formGroup]="formulario" (ngSubmit)="enviarForm($event)">
+  @if (formulario.invalid && formulario.touched) {
+    <div class="form-validation-alert" role="alert">
+      Completa todos los campos requeridos. Productos es el único campo opcional.
+    </div>
+  }
   <div class="operations-shell page-container">
     <div [hidden]="!mostrarForm">
       <article class="operation-card intro-card">
@@ -31,19 +36,31 @@
             <div class="link-form-grid">
               <div class="form-field">
                 <app-label>Número de teléfono móvil*</app-label>
-                <input id="tel" name="tel" [maxLength]="10" class="form-control" type="text">
+                <input id="tel" formControlName="tel" [maxLength]="10" class="form-control" type="text">
+                @if (mostrarCampoObligatorio('tel')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Correo Electrónico*</app-label>
-                <app-input-field name="email" id="email" type="email"></app-input-field>
+                <app-input-field
+                  name="email"
+                  id="email"
+                  type="email"
+                  [value]="formulario.get('email')?.value"
+                  (valueChange)="actualizarControl('email', $event)">
+                </app-input-field>
+                @if (mostrarCampoObligatorio('email')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Tipo de notificación*</app-label>
                 <div class="select-wrap">
                   <app-select
-                    name="tipoNoti"
+                    formControlName="tipoNoti"
                     id="tipoNoti"
                     [options]="optionNoti()"
                     placeholder="Selecciona notificación"
@@ -52,46 +69,119 @@
                   ></app-select>
                   <span class="select-chevron" aria-hidden="true">⌄</span>
                 </div>
+                @if (mostrarCampoObligatorio('tipoNoti')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Nombre*</app-label>
-                <app-input-field type="text" name="nombre" id="nombre"></app-input-field>
+                <input
+                  type="text"
+                  name="nombre"
+                  id="nombre"
+                  class="form-control"
+                  [value]="formulario.get('nombre')?.value"
+                  (input)="procesarNombre('nombre', $event)">
+                @if (mostrarCampoObligatorio('nombre')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Apellido Paterno*</app-label>
-                <app-input-field type="text" name="aPaterno" id="aPaterno"></app-input-field>
+                <input
+                  type="text"
+                  name="aPaterno"
+                  id="aPaterno"
+                  class="form-control"
+                  [value]="formulario.get('aPaterno')?.value"
+                  (input)="procesarNombre('aPaterno', $event)">
+                @if (mostrarCampoObligatorio('aPaterno')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Apellido Materno*</app-label>
-                <app-input-field type="text" name="aMaterno" id="aMaterno"></app-input-field>
+                <input
+                  type="text"
+                  name="aMaterno"
+                  id="aMaterno"
+                  class="form-control"
+                  [value]="formulario.get('aMaterno')?.value"
+                  (input)="procesarNombre('aMaterno', $event)">
+                @if (mostrarCampoObligatorio('aMaterno')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Productos</app-label>
-                <app-input-field type="text" name="productos" id="productos"></app-input-field>
+                <div class="tags-input" (click)="productoInput.focus()">
+                  @for (producto of formulario.get('productos')?.value || []; track producto) {
+                    <span class="product-tag">
+                      {{ producto }}
+                      <button type="button" (click)="eliminarProducto(producto); $event.stopPropagation()" aria-label="Eliminar producto">
+                        &times;
+                      </button>
+                    </span>
+                  }
+                  <input
+                    #productoInput
+                    id="productos"
+                    name="productos"
+                    type="text"
+                    [value]="productoEntrada"
+                    placeholder="Escribe y separa con coma o Enter"
+                    (input)="procesarEntradaProductos($event)"
+                    (keydown)="procesarTeclaProducto($event)"
+                    (blur)="confirmarProductoPendiente()">
+                </div>
               </div>
 
               <div class="form-field">
                 <app-label>Referencia del comercio*</app-label>
-                <app-input-field type="text" name="refComercio" id="refComercio"></app-input-field>
+                <app-input-field type="text" name="refComercio" id="refComercio"
+                  [value]="formulario.get('refCom')?.value"
+                  (valueChange)="actualizarControl('refCom', $event)">
+                </app-input-field>
+                @if (mostrarCampoObligatorio('refCom')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Referencia 1*</app-label>
-                <app-input-field type="text" name="ref1" id="ref1"></app-input-field>
+                <app-input-field type="text" name="ref1" id="ref1"
+                  [value]="formulario.get('ref1')?.value"
+                  (valueChange)="actualizarControl('ref1', $event)">
+                </app-input-field>
+                @if (mostrarCampoObligatorio('ref1')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Referencia 2*</app-label>
-                <app-input-field type="text" name="ref2" id="ref2"></app-input-field>
+                <app-input-field type="text" name="ref2" id="ref2"
+                  [value]="formulario.get('ref2')?.value"
+                  (valueChange)="actualizarControl('ref2', $event)">
+                </app-input-field>
+                @if (mostrarCampoObligatorio('ref2')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Concepto*</app-label>
-                <app-input-field id="concepto" type="text" name="concepto"></app-input-field>
+                <app-input-field id="concepto" type="text" name="concepto"
+                  [value]="formulario.get('concepto')?.value"
+                  (valueChange)="actualizarControl('concepto', $event)">
+                </app-input-field>
+                @if (mostrarCampoObligatorio('concepto')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
@@ -101,13 +191,16 @@
                   placeholder="YYYY-MM-DD HH:mm"
                   (dateChange)="handleDateChange($event)">
                 </app-date-picker>
+                @if (mostrarCampoObligatorio('fechaVen')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Forma de pago*</app-label>
                 <div class="select-wrap">
                   <app-select
-                    name="tipoPago"
+                    formControlName="tipoPago"
                     id="tipoPago"
                     [options]="optionPago()"
                     placeholder="Selecciona forma de pago"
@@ -116,22 +209,36 @@
                   ></app-select>
                   <span class="select-chevron" aria-hidden="true">⌄</span>
                 </div>
+                @if (mostrarCampoObligatorio('tipoPago')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
               <div class="form-field">
                 <app-label>Monto*</app-label>
-                <app-input-field type="text" name="monto" id="monto"></app-input-field>
+                <input
+                  id="monto"
+                  name="monto"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control"
+                  placeholder="0.00"
+                  [value]="formulario.get('monto')?.value"
+                  (input)="procesarMonto($event)">
+                @if (mostrarCampoObligatorio('monto')) {
+                  <p class="required-error">Campo obligatorio</p>
+                }
               </div>
 
-              <div class="check-field">
-                <app-checkbox name="msi" id="msi"></app-checkbox>
-                <span>Habilitar MSI</span>
-              </div>
+              <label class="check-field" for="msi">
+                <input id="msi" type="checkbox" formControlName="msi">
+                <span>Meses sin intereses</span>
+              </label>
 
-              <div class="check-field">
-                <app-checkbox name="propina" id="propina"></app-checkbox>
-                <span>Habilitar Propina</span>
-              </div>
+              <label class="check-field" for="propina">
+                <input id="propina" type="checkbox" formControlName="propina">
+                <span>Propina</span>
+              </label>
             </div>
 
             <div class="form-actions">

@@ -244,6 +244,61 @@
   box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12);
 }
 
+.tags-input {
+  min-height: 48px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: var(--app-input-bg);
+  cursor: text;
+}
+
+:host-context(html:not(.dark)) .tags-input {
+  border-color: rgba(208, 213, 221, 0.92);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.tags-input:focus-within {
+  border-color: rgba(241, 178, 61, 0.42);
+  box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12);
+}
+
+.tags-input input {
+  min-width: 180px;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--ops-text);
+  background: transparent;
+  font-size: 14px;
+}
+
+.product-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #172033;
+  background: var(--ops-gold-strong);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.product-tag button {
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .select-wrap {
   position: relative;
 }
@@ -289,15 +344,20 @@
   background: rgba(2, 4, 7, 0.42);
   font-size: 14px;
   font-weight: 750;
+  cursor: pointer;
 }
 
 :host-context(html:not(.dark)) .check-field {
   background: rgba(255, 255, 255, 0.82);
 }
 
-:host ::ng-deep app-checkbox input {
+.check-field input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  accent-color: #f1b23d;
   border-color: rgba(241, 178, 61, 0.42);
-  background: transparent;
+  cursor: pointer;
 }
 
 .form-actions {
@@ -472,4 +532,20 @@
   .button {
     width: 100%;
   }
+}
+.form-validation-alert {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #fca5a5;
+  border-radius: 0.5rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.required-error {
+  margin: 0.35rem 0 0;
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 600;
 }

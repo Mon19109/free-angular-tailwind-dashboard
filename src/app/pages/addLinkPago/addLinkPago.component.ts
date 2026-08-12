@@ -1,5 +1,5 @@
 import { Component , inject, signal} from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AddLinkPagoService } from '../../services/addlinkpago.service';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
@@ -9,7 +9,6 @@ import { DefaultInputsComponent } from '../../shared/components/form/form-elemen
 import { LabelComponent } from '../../shared/components/form/label/label.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import { SelectComponent } from '../../shared/components/form/select/select.component';
-import { CheckboxComponent } from '../../shared/components/form/input/checkbox.component';
 //import { CheckboxComponentsComponent } from '../../shared/components/form/form-elements/checkbox-components/checkbox-components.component';
 
 
@@ -17,7 +16,7 @@ import { CheckboxComponent } from '../../shared/components/form/input/checkbox.c
   selector: 'app-addlinkpago',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule,LabelComponent,InputFieldComponent,
-    DefaultInputsComponent,DatePickerComponent,SelectComponent,CheckboxComponent],
+    DefaultInputsComponent,DatePickerComponent,SelectComponent],
   templateUrl: './addLinkPago.component.html',
   styleUrls: ['./addLinkPago.component.css']
 })
@@ -41,6 +40,7 @@ export class AddLinkPagoComponent {
     
     selectedOptionPago = '';
     selectedOptionNoti = '';
+    productoEntrada = '';
     dateValue: any;
     timeValue = '';
     cardNumber = '';
@@ -64,37 +64,127 @@ export class AddLinkPagoComponent {
     private fb: FormBuilder
   ) {
     this.formulario = this.fb.group({
-      nombre: [''],
-      aPaterno: [''],
-      aMaterno: [''],
-      tel: [''],
-      email: [''],
-      tipoNoti: [''],
-      tipoPago: [''],
-      ref1: [''],
-      ref2: [''],
-      monto: [''],
-      refCom: [''],
-      concepto: [''],
-      fechaVen: [''],
-      propina: [''],
-      msi: ['']
+      nombre: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
+      aPaterno: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
+      aMaterno: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
+      tel: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+      email: ['', [Validators.required, Validators.email]],
+      tipoNoti: ['', Validators.required],
+      tipoPago: ['', Validators.required],
+      productos: [[] as string[]],
+      ref1: ['', Validators.required],
+      ref2: ['', Validators.required],
+      monto: ['', [
+        Validators.required,
+        Validators.min(0.01),
+        Validators.pattern(/^\d+(\.\d{1,2})?$/)
+      ]],
+      refCom: ['', Validators.required],
+      concepto: ['', Validators.required],
+      fechaVen: ['', Validators.required],
+      propina: [false],
+      msi: [false]
 
     });
   }
   
   handleSelectChangePago(value: string) {
     this.selectedOptionPago = value;
+    this.actualizarControl('tipoPago', value);
     console.log('Selected value:', value);
   }
   handleSelectChangeNoti(value: string) {
     this.selectedOptionNoti = value;
+    this.actualizarControl('tipoNoti', value);
     console.log('Selected value:', value);
     //this.opcionSeleccionada = value
   }
   handleDateChange(event: any) {
     this.dateValue = event;
+    this.actualizarControl('fechaVen', event?.dateStr ?? event ?? '');
     console.log('Date changed:', event);
+  }
+
+  actualizarControl(nombre: string, valor: unknown): void {
+    this.formulario.get(nombre)?.setValue(valor);
+    this.formulario.get(nombre)?.markAsDirty();
+  }
+
+  mostrarCampoObligatorio(nombre: string): boolean {
+    const control = this.formulario.get(nombre);
+    return !!control?.hasError('required') && (control.touched || control.dirty);
+  }
+
+  procesarMonto(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const valorNormalizado = input.value.replace(',', '.').replace(/[^\d.]/g, '');
+    const partes = valorNormalizado.split('.');
+    const entero = partes.shift() || '';
+    const tieneDecimal = valorNormalizado.includes('.');
+    const decimales = partes.join('').slice(0, 2);
+    const monto = tieneDecimal ? `${entero || '0'}.${decimales}` : entero;
+
+    input.value = monto;
+    this.actualizarControl('monto', monto);
+  }
+
+  procesarNombre(campo: 'nombre' | 'aPaterno' | 'aMaterno', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const valor = input.value.replace(/[^A-Za-z ]/g, '');
+
+    input.value = valor;
+    this.actualizarControl(campo, valor);
+  }
+
+  procesarEntradaProductos(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const valor = input.value;
+
+    if (!/[,\n]/.test(valor)) {
+      this.productoEntrada = valor;
+      return;
+    }
+
+    const terminaConSeparador = /[,\n]\s*$/.test(valor);
+    const partes = valor.split(/[,\n]+/);
+    const pendiente = terminaConSeparador ? '' : partes.pop() || '';
+
+    this.agregarProductos(partes);
+    this.productoEntrada = pendiente;
+    input.value = pendiente;
+  }
+
+  procesarTeclaProducto(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ',') return;
+
+    event.preventDefault();
+    this.confirmarProductoPendiente();
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  confirmarProductoPendiente(): void {
+    this.agregarProductos([this.productoEntrada]);
+    this.productoEntrada = '';
+  }
+
+  eliminarProducto(producto: string): void {
+    const productos = (this.formulario.get('productos')?.value || []) as string[];
+    this.actualizarControl('productos', productos.filter(item => item !== producto));
+  }
+
+  private agregarProductos(valores: string[]): void {
+    const productosActuales = (this.formulario.get('productos')?.value || []) as string[];
+    const productos = [...productosActuales];
+
+    for (const valor of valores) {
+      const producto = valor.trim();
+      if (!producto) continue;
+
+      const yaExiste = productos.some(item => item.toLowerCase() === producto.toLowerCase());
+      if (!yaExiste) productos.push(producto);
+    }
+
+    this.actualizarControl('productos', productos);
   }
 
   ngOnInit(): void {
@@ -177,6 +267,13 @@ export class AddLinkPagoComponent {
 
   verBotones() {
     this.loading.set(false);
+    this.confirmarProductoPendiente();
+
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      return;
+    }
+
     console.log('selectedOptionNoti = '+this.selectedOptionNoti);
     if (this.selectedOptionNoti == '1') {
         this.mostrarDiv = true;
@@ -184,6 +281,7 @@ export class AddLinkPagoComponent {
     }else{
         this.mostrarDiv = false; 
         this.mostrarForm = true; 
+        this.enviarForm();
     }
     console.log('mostrarDiv = '+this.mostrarDiv);
   }
@@ -198,12 +296,31 @@ export class AddLinkPagoComponent {
     console.log('mostrarDiv = '+this.mostrarDiv);
   }
 
-  enviarForm(event: any){
-    if (this.formulario.valid) {
-      const formValues = this.formulario.value;
-      console.log('Formulario enviado:', formValues);
-      
+  enviarForm(event?: Event): void {
+    event?.preventDefault();
+    this.confirmarProductoPendiente();
+
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      return;
     }
+
+    if (this.loading()) return;
+
+    const formValues = this.formulario.getRawValue();
+    this.loading.set(true);
+    console.log('Formulario enviado:', formValues);
+
+    this.addlinkpagoService.enviarFormulario(formValues).subscribe({
+      next: (response) => {
+        this.loading.set(false);
+        console.log('Formulario enviado exitosamente:', response);
+      },
+      error: (error) => {
+        this.loading.set(false);
+        console.error('Error al enviar formulario:', error);
+      }
+    });
   }
 
   
