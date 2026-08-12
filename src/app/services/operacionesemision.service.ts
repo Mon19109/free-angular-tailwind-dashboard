@@ -47,6 +47,31 @@ export class OperacionesEmisionService {
       'Authorization': 'Basic YWRtaW46c2VjcmV0'
     });
   }
+
+  private getBearerHeaders(): HttpHeaders {
+    const token = this.getStoredToken();
+
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
+  private getStoredToken(): string {
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        if (session?.token) return session.token;
+      } catch {
+        localStorage.removeItem('auth_session');
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+  }
   /**
    * Obtiene la lista de cuentas del API
    */
@@ -61,14 +86,9 @@ export class OperacionesEmisionService {
 
 
 obtenerConcentratorAccounts(): Observable<any> {
-
-  const headers = new HttpHeaders({
-    Authorization: 'Basic YWRtaW46c2VjcmV0'
-  });
-
   return this.http.get<any>(
     `${this.apiV1Url}account/getConcentratorAccounts?sirioId=${localStorage.getItem('entitySonID')}`,
-    { headers }
+    { headers: this.getBearerHeaders() }
   );
 }
 

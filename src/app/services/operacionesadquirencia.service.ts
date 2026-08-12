@@ -73,12 +73,36 @@ export interface FormularioData {
   fechaFin?: string;
 }
 
+export interface TicketRequest {
+  terminalId: string | number;
+  rrcext: string;
+  authorizationNumber: string;
+  authorizationId: string | number;
+  user: string;
+  context: string | number;
+}
+
+export interface TicketResponse {
+  success?: boolean;
+  voucher?: string;
+  mimeType?: string;
+  contentType?: string;
+  url?: string;
+  ticketUrl?: string;
+  voucherUrl?: string;
+  data?: {
+    url?: string;
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class OperacionesAdquirenciaService {
   private apiAldebaran = environment.api.aldebaran;
   private baseUrl = environment.api.kashpay;
+  private apiSaldos = environment.api.saldos;
+  private baseUrlTicket = environment.api.voucher;
   private apiV1Url = `${this.baseUrl}api/v1/`;
   //private cuen = localStorage.getItem('issueId');
 
@@ -91,6 +115,31 @@ export class OperacionesAdquirenciaService {
       'Accept': 'application/json',
       'Authorization': 'Basic YWRtaW46c2VjcmV0'
     });
+  }
+
+  private getBearerHeaders(): HttpHeaders {
+    const token = this.getStoredToken();
+
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
+  private getStoredToken(): string {
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        if (session?.token) return session.token;
+      } catch {
+        localStorage.removeItem('auth_session');
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
   }
   /**
    * Obtiene la lista de cuentas del API
@@ -106,15 +155,9 @@ export class OperacionesAdquirenciaService {
 
 
 
-  obtenerCuentas(): Observable<Cuenta[]> {
-
-  return this.http.get<any>(
-    `${this.apiAldebaran}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`
-  ).pipe(
-    tap(resp => console.log('CUENTAS API:', resp))
-  );
-
-}
+  obtenerCuentas(): Observable<any> {
+    return this.getSubafiliados();
+  }
 
   /**
    * Obtiene la lista de tipos de operación del API
@@ -134,20 +177,28 @@ export class OperacionesAdquirenciaService {
 
     obtenerTiposOperacion(): Observable<any> {
 
-  const headers = this.getCommonHeaders();
-
   return this.http.get<any>(
     `${this.apiV1Url}catOperationType/getAll`,
     {
-      headers
+      headers: this.getBearerHeaders()
     }
   );
 
 }
 
   getSubafiliados(): Observable<{ contextResponse: Subafiliado[] }> {
+      const nodeID = localStorage.getItem('nodeID') || '';
+
+      if (nodeID) {
+        return this.http.get<{ contextResponse: Subafiliado[] }>(
+          `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`,
+          { headers: this.getBearerHeaders() }
+        );
+      }
+
       return this.http.get<{ contextResponse: Subafiliado[] }>(
-        `${this.apiV1Url}subAffiliation/getAll`
+        `${this.apiV1Url}subAffiliation/getAll`,
+        { headers: this.getBearerHeaders() }
       );
     }
   
@@ -155,8 +206,8 @@ export class OperacionesAdquirenciaService {
       const nodeID = localStorage.getItem('nodeID') || '';
 
       return this.http.get<any>(
-        `${this.apiV1Url}api/nodes/${nodeID}/tree?levels=3`,
-        { headers: this.getCommonHeaders() }
+        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`,
+        { headers: this.getBearerHeaders() }
       );
     }
   
@@ -172,23 +223,23 @@ export class OperacionesAdquirenciaService {
   return this.http.get(
     `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4`,
     {
-      headers: this.getCommonHeaders()
+      headers: this.getBearerHeaders()
     }
   );
 
 }
   
-    getSucursales(subafiliadoId: number, entidadId: number): Observable<any> {
+    getSucursales(nodeID: string): Observable<any> {
       return this.http.get(
-        `${this.apiV1Url}branchOffice/getBranchOfficeByAffiliationAndEntity?idSubAffiliation=${subafiliadoId}&idEntity=${entidadId}`,
-        { headers: this.getCommonHeaders() }
+        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5`,
+        { headers: this.getBearerHeaders() }
       );
     }
   
     getCajas(nodeID: string): Observable<any> {
       return this.http.get(
         `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6`,
-        { headers: this.getCommonHeaders() }
+        { headers: this.getBearerHeaders() }
       );
     }
 //ESE SERVCIO ES DE PHP 
@@ -223,22 +274,26 @@ getCajas(idTerminal:number) {
    * @param formData Datos del formulario
    */
   enviarFormulario(formData: FormularioData): Observable<any> {
-    const sirioId = formData.caja || formData.sucursal || formData.entidad || formData.idEntidad || formData.cuenta;
+    const validate = localStorage.getItem('acquiringId')
+      || localStorage.getItem('validate')
+      || localStorage.getItem('issueId')
+      || '';
+
     let params = new HttpParams()
-      .set('type_operation', this.emptyParam(formData.tipoOperacion))
-      .set('id_status', this.emptyParam(formData.estatus))
-      .set('sirioId', this.emptyParam(sirioId))
-      .set('init_date', this.emptyParam(formData.fechaInicio))
-      .set('end_date', this.emptyParam(formData.fechaFin))
+      .set('type', this.emptyParam(formData.tipoOperacion))
+      .set('status', this.emptyParam(formData.estatus))
       .set('page', '0')
-      .set('size', '10');
+      .set('size', '10')
+      .set('dateInit', this.emptyParam(formData.fechaInicio))
+      .set('dateFinish', this.emptyParam(formData.fechaFin));
 
-    params = this.setOptionalParam(params, 'amount', formData.monto);
-    params = this.setOptionalParam(params, 'auth_number', formData.numAuto);
-    params = this.setOptionalParam(params, 'email', formData.email);
-    params = this.setOptionalParam(params, 'telephoneNumber', formData.tel);
-
-    return this.http.get(`${this.apiAldebaran}getOperations`, { params });
+    return this.http.get(
+      `${this.apiSaldos}${encodeURIComponent(validate)}/getoperationbytypeandstatuscustom`,
+      {
+        headers: this.getCommonHeaders(),
+        params
+      }
+    );
   }
 
   /**
@@ -255,6 +310,30 @@ getCajas(idTerminal:number) {
     if (formData.fechaFin) params = params.set('fechaFin', formData.fechaFin);
     
     return this.http.get(`${this.apiAldebaran}/consultas`, { params });
+  }
+
+  verTicket(data: TicketRequest): Observable<TicketResponse> {
+    const terminalId = String(data.terminalId ?? '');
+    const token = this.getStoredToken();
+    const body = {
+      terminalId,
+      rrcext: data.rrcext || '',
+      authorizationNumber: data.authorizationNumber || '',
+      authorizationId: String(data.authorizationId ?? ''),
+      user: data.user || '',
+      context: String(data.context ?? '')
+    };
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'versionApp': '3',
+      'Entity-i': 'com.sub.tecs',
+      'terminalId': terminalId,
+      'Authorization': `Bearer ${token}`,
+      'AuthorizationToken': `Bearer ${token}`
+    });
+
+    return this.http.post<TicketResponse>(`${this.baseUrlTicket}voucher`, body, { headers });
   }
 
   private emptyParam(value: unknown): string {

@@ -24,6 +24,31 @@ export class OrdenPagoService {
 
     }
 
+    private getBearerHeaders(): HttpHeaders {
+        const token = this.getStoredToken();
+
+        return new HttpHeaders({
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+        });
+    }
+
+    private getStoredToken(): string {
+        const rawSession = localStorage.getItem('auth_session');
+
+        if (rawSession) {
+            try {
+                const session = JSON.parse(rawSession);
+                if (session?.token) return session.token;
+            } catch {
+                localStorage.removeItem('auth_session');
+            }
+        }
+
+        return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    }
+
 
     obtenerContactos(idUser: string): Observable<any> {
         const url = `${this.baseUrl}api/v1/svc-8a7f3c/v2/h7q2_x91`;
@@ -36,7 +61,7 @@ export class OrdenPagoService {
         return this.http.get(
             url,
             {
-                headers: this.getCommonHeaders(),
+                headers: this.getBearerHeaders(),
                 params
             }
         );
@@ -48,7 +73,7 @@ export class OrdenPagoService {
         return this.http.get(
             `${this.baseUrl}api/v1/account/getConcentratorAccounts?sirioId=${entitySonID}`,
             {
-                headers: this.getCommonHeaders()
+                headers: this.getBearerHeaders()
             }
         );
 
@@ -89,7 +114,7 @@ export class OrdenPagoService {
             `${this.baseUrl}api/v1/contact`,
             data,
             {
-                headers: this.getCommonHeaders()
+                headers: this.getBearerHeaders()
             }
         );
 
@@ -182,7 +207,7 @@ export class OrdenPagoService {
     `${this.baseUrl}api/v1/user/sendOperationTokenBySMS`,
     body,
     {
-      headers: this.getCommonHeaders()
+      headers: this.getBearerHeaders()
     }
   );
 }
@@ -193,7 +218,10 @@ export class OrdenPagoService {
 ): Observable<any> {
 
   return this.http.get(
-    `${this.baseUrl}api/v1/user/validateOperationWithSMSToken?idUser=${idUser}&idOperationType=1&token=${token}`
+    `${this.baseUrl}api/v1/user/validateOperationWithSMSToken?idUser=${idUser}&idOperationType=1&token=${token}`,
+    {
+      headers: this.getBearerHeaders()
+    }
   );
 
 }

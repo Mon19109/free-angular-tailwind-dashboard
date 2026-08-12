@@ -140,6 +140,31 @@ export class TransaccionesAdquirenciaService {
     });
   }
 
+  private getBearerHeaders(): HttpHeaders {
+    const token = this.getStoredToken();
+
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
+  private getStoredToken(): string {
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        if (session?.token) return session.token;
+      } catch {
+        localStorage.removeItem('auth_session');
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+  }
+
   // Catalogos
  /* getOperaciones(): Observable<any> {
     const headers = this.getCommonHeaders();
@@ -152,7 +177,7 @@ export class TransaccionesAdquirenciaService {
 
 getOperaciones(): Observable<any> {
 
-  const headers = this.getCommonHeaders();
+  const headers = this.getBearerHeaders();
 
   return this.http.get(
     `${this.apiV1Url}catTransactionType/getAll`,
@@ -166,7 +191,7 @@ getOperaciones(): Observable<any> {
 
 
  getEstadosTransaccion(): Observable<any> {
-  const headers = this.getCommonHeaders();
+  const headers = this.getBearerHeaders();
 
   return this.http.get(
     `${this.apiV1Url}catResponseCode/getAll`,
@@ -175,7 +200,7 @@ getOperaciones(): Observable<any> {
 }
 
   getSubafiliados(): Observable<any> {
-    const headers = this.getCommonHeaders();
+    const headers = this.getBearerHeaders();
     console.log('url = '+this.apiV1Url+'subAffiliation/getAll');
     return this.http.get<any>(
       `${this.apiV1Url}subAffiliation/getAll`, { 
@@ -185,7 +210,7 @@ getOperaciones(): Observable<any> {
   }
 
   getSubafiliadoById(): Observable<any> {
-    const headers = this.getCommonHeaders();
+    const headers = this.getBearerHeaders();
     const nodeID = localStorage.getItem('nodeID') || '';
 
     return this.http.get<any>(
@@ -201,7 +226,7 @@ getOperaciones(): Observable<any> {
   }*/
 
  getEntidades(nodeID: string): Observable<any> {
-  const headers = this.getCommonHeaders();
+  const headers = this.getBearerHeaders();
 
   return this.http.get(
     `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4`,
@@ -210,7 +235,7 @@ getOperaciones(): Observable<any> {
 }
 
   getSucursales(nodeID: string): Observable<any> {
-    const headers = this.getCommonHeaders();
+    const headers = this.getBearerHeaders();
 
     return this.http.get(
       `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5`,
@@ -219,7 +244,7 @@ getOperaciones(): Observable<any> {
   }
 
   getCajas(nodeID: string): Observable<any> {
-    const headers = this.getCommonHeaders();
+    const headers = this.getBearerHeaders();
 
     return this.http.get(
       `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6`,
@@ -229,7 +254,7 @@ getOperaciones(): Observable<any> {
 
   // Buscar transacciones
   buscarTransacciones(filtros: FiltrosTransaccion): Observable<any> {
-    const headers = this.getCommonHeaders();
+    const headers = this.getBearerHeaders();
     const rootNodeID = this.getRootNodeID(filtros);
     const params = new HttpParams()
       .set('userID', localStorage.getItem('idUser') || '')

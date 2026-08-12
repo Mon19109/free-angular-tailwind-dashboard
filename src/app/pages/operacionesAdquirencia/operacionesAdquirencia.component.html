@@ -33,9 +33,9 @@
 
   <option
   *ngFor="let cuenta of cuentas"
-  [value]="cuenta.idNode || cuenta.nodeID || cuenta.affiliationId">
+  [value]="cuenta.idNode || cuenta.nodeID || cuenta.affiliationId || cuenta.id">
 
-  {{ cuenta.name || cuenta.bussinesName }}
+  {{ cuenta.name || cuenta.contextDescription || cuenta.bussinesName || cuenta.businessName }}
 
 </option>
 
@@ -57,9 +57,9 @@ Seleccione una entidad
 
 <option
 *ngFor="let entidad of entidades"
-[value]="entidad.idNode || entidad.nodeID || entidad.idEntity">
+[value]="entidad.idNode || entidad.nodeID || entidad.idEntity || entidad.id">
 
-{{ entidad.name || entidad.entityDescription || entidad.businessName }}
+{{ entidad.name || entidad.entityDescription || entidad.businessName || entidad.bussinesName }}
 
 </option>
 
@@ -81,7 +81,7 @@ Seleccione una sucursal
 
 <option
 *ngFor="let sucursal of sucursales"
-[value]="sucursal.idNode || sucursal.nodeID || sucursal.idTerminal">
+[value]="sucursal.idNode || sucursal.nodeID || sucursal.idTerminal || sucursal.id">
 
 {{ sucursal.name || sucursal.businessName || sucursal.terminalDescription }}
 
@@ -104,9 +104,9 @@ Seleccione una caja
 
 <option
 *ngFor="let caja of cajas"
-[value]="caja.idNode || caja.nodeID || caja.idTerminalUser">
+[value]="caja.idNode || caja.nodeID || caja.idTerminalUser || caja.id">
 
-{{ caja.name || caja.tuName }}
+{{ caja.name || caja.tuName || caja.terminalUserName }}
 
 </option>
 
@@ -123,6 +123,10 @@ Seleccione una caja
             <select
               formControlName="clasificacion"
               class="form-select">
+
+             <option value="">
+               Sin clasificación
+             </option>
 
              <option
 *ngFor="let item of clasificaciones"
@@ -234,7 +238,8 @@ Seleccione una caja
     <div class="table-actions header-actions" *ngIf="operaciones && operaciones.length > 0">
       <button
         type="button"
-        class="button ghost btn-export">
+        class="button ghost btn-export"
+        (click)="exportarExcel()">
 
         Exportar Excel
 
@@ -316,10 +321,12 @@ Seleccione una caja
             <td>
 
               <button
-                class="button ghost btn-detail">
+                class="icon-btn btn-detail"
+                type="button"
+                (click)="verTicket(operacion)"
+                title="Ver ticket">
 
-                Ver
-
+                <i class="fa-regular fa-eye"></i>
               </button>
 
             </td>
@@ -338,5 +345,72 @@ Seleccione una caja
   </div>
 
 </article>
+
+<div class="voucher-backdrop" *ngIf="comprobanteOperacion">
+  <section class="voucher-modal" role="dialog" aria-modal="true" aria-label="Comprobante de operación">
+    <button class="voucher-close" type="button" (click)="cerrarComprobante()" title="Cerrar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="voucher-print-area">
+      <header class="voucher-brand">
+        <span>KASHPAY</span>
+      </header>
+
+      <div class="voucher-datetime">
+        <p><strong>Fecha:</strong> {{ comprobanteOperacion.fecha }}</p>
+        <p><strong>Hora:</strong> {{ comprobanteOperacion.hora }}</p>
+      </div>
+
+      <p class="voucher-message">
+        Su transferencia ha sido aplicada con número de autorización #{{ comprobanteOperacion.id }}
+      </p>
+
+      <div class="voucher-section">
+        <div class="voucher-section-title">Cuentas</div>
+        <div class="voucher-section-body">
+          <p><strong>Cuenta retiro</strong></p>
+          <p>KASHPAY</p>
+          <p>Clabe emisor **7854</p>
+          <p><strong>Cuenta deposito beneficiario</strong></p>
+          <p>{{ comprobanteOperacion.banco }} beneficiario</p>
+        </div>
+      </div>
+
+      <div class="voucher-divider"></div>
+
+      <div class="voucher-section">
+        <div class="voucher-section-title">Datos de la transferencia</div>
+        <div class="voucher-grid">
+          <span>Monto</span>
+          <strong>{{ comprobanteOperacion.monto }} {{ comprobanteOperacion.moneda }}</strong>
+
+          <span>Clave de rastreo</span>
+          <strong>{{ comprobanteOperacion.claveRastreo || 'NA' }}</strong>
+
+          <span>Tipo de cuenta</span>
+          <strong>Tarjeta</strong>
+
+          <span>Tipo de beneficiario**</span>
+          <strong>Persona fisica**</strong>
+
+          <span>Referencia numerica</span>
+          <strong>{{ comprobanteOperacion.referenciaNumerica || 'NA' }}</strong>
+
+          <span>Concepto de pago</span>
+          <strong>{{ comprobanteOperacion.concepto || 'NA' }}</strong>
+
+          <span>Plazo</span>
+          <strong>NA</strong>
+        </div>
+      </div>
+    </div>
+
+    <footer class="voucher-actions">
+      <button type="button" class="button ghost" (click)="imprimirComprobante()">Imprimir</button>
+      <button type="button" class="button ghost" (click)="cerrarComprobante()">OK</button>
+    </footer>
+  </section>
+</div>
 
 </div>

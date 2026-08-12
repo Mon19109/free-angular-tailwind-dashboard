@@ -23,7 +23,7 @@ export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
   }
 
   const currentAuthorization = request.headers.get('Authorization');
-  if (currentAuthorization?.startsWith('Bearer ')) {
+  if (currentAuthorization) {
     return next(request);
   }
 

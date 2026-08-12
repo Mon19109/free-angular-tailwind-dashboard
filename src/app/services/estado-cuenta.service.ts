@@ -29,12 +29,37 @@ export class EstadoCuentaService {
     });
   }
 
+  private getBearerHeaders(): HttpHeaders {
+    const token = this.getStoredToken();
+
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
+  private getStoredToken(): string {
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        if (session?.token) return session.token;
+      } catch {
+        localStorage.removeItem('auth_session');
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+  }
+
   obtenerCuentas(): Observable<any> {
     const sirioId = localStorage.getItem('entitySonID') || '';
 
     return this.http.get(
       `${this.apiV1Url}account/getConcentratorAccounts?sirioId=${sirioId}`,
-      { headers: this.getCommonHeaders() }
+      { headers: this.getBearerHeaders() }
     );
   }
 

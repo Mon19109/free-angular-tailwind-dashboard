@@ -330,6 +330,26 @@ html.dark .form-select option {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--ops-text);
+  background: rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(241, 178, 61, 0.42);
+  background: rgba(241, 178, 61, 0.16);
+}
+
 .table-actions {
   display: flex;
   align-items: center;
@@ -414,6 +434,142 @@ html.dark .form-select option {
   font-size: 18px;
 }
 
+.voucher-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 118px 24px 24px;
+  background: rgba(5, 7, 11, 0.72);
+}
+
+.voucher-modal {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 142px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
+}
+
+.voucher-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #ffffff;
+  background: rgba(17, 24, 39, 0.38);
+  font-size: 18px;
+}
+
+.voucher-close:hover {
+  background: rgba(17, 24, 39, 0.58);
+}
+
+.voucher-print-area {
+  overflow: auto;
+  padding: 22px 38px 34px;
+}
+
+.voucher-brand {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #344154;
+  color: #f4f6f8;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-shadow: 0 3px 5px rgba(0, 0, 0, 0.42);
+}
+
+.voucher-datetime {
+  margin-top: 22px;
+  color: #8a8f9d;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.voucher-datetime p,
+.voucher-section p {
+  margin: 0;
+}
+
+.voucher-message {
+  margin: 34px 0 42px;
+  color: #111827;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.voucher-section {
+  display: grid;
+  grid-template-columns: 145px 1fr;
+  gap: 24px;
+  margin-top: 16px;
+  color: #858b99;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.voucher-section-title {
+  align-self: center;
+  text-align: left;
+  font-weight: 750;
+}
+
+.voucher-section-body strong,
+.voucher-grid strong,
+.voucher-grid span {
+  color: #858b99;
+}
+
+.voucher-section-body strong,
+.voucher-grid span {
+  font-weight: 800;
+}
+
+.voucher-divider {
+  height: 1px;
+  margin: 24px 0 10px 145px;
+  background: #e5e7eb;
+}
+
+.voucher-grid {
+  display: grid;
+  grid-template-columns: 155px 1fr;
+  column-gap: 24px;
+  row-gap: 5px;
+}
+
+.voucher-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+  background: #f3f4f6;
+}
+
+.voucher-actions .button {
+  min-width: 82px;
+  min-height: 38px;
+  padding: 0 18px;
+  color: #ffffff;
+  background: #9ca3af;
+}
+
 @media (max-width: 900px) {
   .operations-form-grid {
     grid-template-columns: 1fr;
@@ -442,5 +598,66 @@ html.dark .form-select option {
 
   .button {
     width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .voucher-backdrop {
+    padding: 92px 12px 12px;
+  }
+
+  .voucher-print-area {
+    padding: 24px 24px 52px;
+  }
+
+  .voucher-brand {
+    font-size: 28px;
+  }
+
+  .voucher-section {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .voucher-divider {
+    margin-left: 0;
+  }
+
+  .voucher-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .voucher-backdrop,
+  .voucher-backdrop * {
+    visibility: visible !important;
+  }
+
+  .voucher-backdrop {
+    position: static;
+    display: block;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .voucher-modal {
+    width: 100%;
+    max-height: none;
+    box-shadow: none;
+  }
+
+  .voucher-close,
+  .voucher-actions {
+    display: none !important;
+  }
+
+  .voucher-print-area {
+    overflow: visible;
+    padding: 24px 48px;
   }
 }
