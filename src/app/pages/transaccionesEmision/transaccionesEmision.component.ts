@@ -81,8 +81,13 @@ export class TransaccionesEmisionComponent implements OnInit {
   }
 
   buscarTransacciones(): void {
-    this.loading = true;
     this.errorMessage = '';
+
+    if (!this.validarFechas()) {
+      return;
+    }
+
+    this.loading = true;
 
     const request: FormularioData = {
       ...this.filtros,
@@ -102,6 +107,36 @@ export class TransaccionesEmisionComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  private validarFechas(): boolean {
+    const fechaInicio = this.obtenerFechaFiltro(this.filtros.fechaInicio);
+    const fechaFin = this.obtenerFechaFiltro(this.filtros.fechaFin);
+
+    if (!this.filtros.fechaInicio || !this.filtros.fechaFin) {
+      this.errorMessage = 'Selecciona fecha inicio y fecha fin para buscar.';
+      return false;
+    }
+
+    if ((fechaInicio && fechaInicio.getTime() > Date.now()) || (fechaFin && fechaFin.getTime() > Date.now())) {
+      this.errorMessage = 'No puedes seleccionar una fecha mayor a la fecha actual.';
+      return false;
+    }
+
+    if (fechaInicio && fechaFin && fechaFin.getTime() < fechaInicio.getTime()) {
+      this.errorMessage = 'La fecha fin no puede ser anterior a la fecha inicio.';
+      return false;
+    }
+
+    return true;
+  }
+
+  private obtenerFechaFiltro(value: unknown): Date | null {
+    const texto = String(value ?? '').trim();
+    if (!texto) return null;
+
+    const fecha = new Date(texto.replace(' ', 'T'));
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
   }
 
   limpiarFiltros(): void {

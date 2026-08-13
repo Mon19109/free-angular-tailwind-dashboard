@@ -16,6 +16,7 @@ export class DatePickerComponent {
   @Input() mode: 'single' | 'multiple' | 'range' | 'time' = 'single';
   @Input() position: 'auto' | 'above' | 'below' | 'auto left' | 'auto center' | 'auto right' = 'auto';
   @Input() defaultDate?: string | Date | string[] | Date[];
+  @Input() maxDate?: string | Date;
   @Input() label?: string;
   @Input() placeholder?: string;
   @Output() dateChange = new EventEmitter<any>();
@@ -38,6 +39,7 @@ export class DatePickerComponent {
     dateFormat: 'Y-m-d H:i',
 
     defaultDate: this.defaultDate,
+    maxDate: this.maxDate,
 
     onChange: (selectedDates, dateStr, instance) => {
       this.dateChange.emit({ selectedDates, dateStr, instance });

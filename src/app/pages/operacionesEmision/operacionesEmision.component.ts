@@ -1,10 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
 import { MultiSelectComponent, Option }
 from '../../shared/components/form/multi-select/multi-select.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
+import * as XLSX from 'xlsx';
 
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
 
@@ -17,6 +18,7 @@ import { DatePickerComponent } from '../../shared/components/form/date-picker/da
 })
 export class OperacionesEmisionComponent implements OnInit {
   formulario: FormGroup;
+  fechaErrorMensaje = '';
   //cuentas: any[] = [];
   entidades: any[] = [];
   tiposOperacion: any[] = [];
@@ -100,12 +102,12 @@ onFechaFinChange(event: any) {
   constructor(
     private fb: FormBuilder
   ) {
-    this.formulario = this.fb.group({
+  this.formulario = this.fb.group({
   cuenta: [''],
   estatus: [[]],
   tipoOperacion: [[]],
-  fechaInicio: [''],
-  fechaFin: ['']
+  fechaInicio: ['', [Validators.required, this.fechaNoFuturaValidator]],
+  fechaFin: ['', [Validators.required, this.fechaNoFuturaValidator]]
 });
   }
 
@@ -151,6 +153,13 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
   }
 
   onSubmit(): void {
+    this.fechaErrorMensaje = this.obtenerMensajeValidacionFechas();
+
+    if (this.fechaErrorMensaje) {
+      this.formulario.markAllAsTouched();
+      return;
+    }
+
     if (this.formulario.valid) {
       const formValues = this.formulario.value;
       console.log('Formulario enviado:', formValues);
@@ -194,8 +203,145 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
     fechaInicio: '',
     fechaFin: ''
   });
+  this.fechaErrorMensaje = '';
 
 }
+
+  exportarExcel(): void {
+    if (!this.operaciones?.length) return;
+
+    const fecha = this.obtenerFechaArchivo();
+    const encabezados = [
+      'ID',
+      'TIPO',
+      'MONTO',
+      'ESTATUS',
+      'DESCRIPCION',
+      'FECHA',
+      'CODIGO DE RESPUESTA',
+      'REFERENCIA NUMERICA',
+      'REFERENCIA ALFANUMERICA',
+      'NOMBRE DEL DESTINATARIO',
+      'CUENTA DESTINATARIO',
+      'CODIGO DESTINATARIO',
+      'EMAIL DESTINATARIO',
+      'REFERENCIA INTERNA',
+      'REFERENCIA EXTERNA',
+      'TRANSACTIONBUNDLER',
+      'OBSERVACION',
+      'USUARIO',
+      'DETALLE'
+    ];
+
+    const filas = this.operaciones.map(operacion => [
+      operacion.id ?? '',
+      operacion.descriptionType ?? '',
+      this.formatoExcelMoneda(operacion.amount),
+      this.obtenerEstatusOperacion(operacion.status),
+      operacion.description ?? '',
+      this.formatoExcelFecha(operacion.createdAt),
+      operacion.responseCode ?? '',
+      operacion.numericReference ?? '',
+      operacion.alphanumericReference ?? '',
+      operacion.targetName ?? '',
+      operacion.targetID ?? '',
+      operacion.targetIDCode ?? '',
+      operacion.targetEmail ?? '',
+      operacion.internalReference ?? '',
+      operacion.externalReference ?? '',
+      operacion.transactionBundler ?? '',
+      operacion.observation ?? '',
+      operacion.originalUsername ?? '',
+      ''
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      [`Operaciones-Emision-${fecha}`],
+      encabezados,
+      ...filas
+    ]);
+    worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: encabezados.length - 1 } }];
+    worksheet['!cols'] = encabezados.map((encabezado) => ({ wch: Math.max(14, Math.min(34, encabezado.length + 4)) }));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Operaciones');
+    XLSX.writeFile(workbook, `Operaciones-Emision-${fecha}.xlsx`);
+  }
+
+  private obtenerFechaArchivo(): string {
+    const fecha = new Date();
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private formatoExcelMoneda(value: unknown): string {
+    const amount = Number(value || 0);
+    return `$ ${amount.toFixed(2)}`;
+  }
+
+  private formatoExcelFecha(value: unknown): string {
+    if (!value) return '';
+    const fecha = new Date(String(value));
+    if (Number.isNaN(fecha.getTime())) return String(value);
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const year = String(fecha.getFullYear()).slice(-2);
+    const hours = String(fecha.getHours()).padStart(2, '0');
+    const minutes = String(fecha.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  private obtenerEstatusOperacion(status: unknown): string {
+    const statusMap: Record<string, string> = {
+      '15': 'Aprobado',
+      '27': 'Enviado',
+      '31': 'Liquidado'
+    };
+
+    return statusMap[String(status ?? '')] || String(status ?? '');
+  }
+
+  private obtenerMensajeValidacionFechas(): string {
+    const fechaInicio = this.formulario.get('fechaInicio');
+    const fechaFin = this.formulario.get('fechaFin');
+
+    if (fechaInicio?.hasError('required') || fechaFin?.hasError('required')) {
+      return 'Selecciona fecha inicio y fecha fin para buscar.';
+    }
+
+    if (fechaInicio?.hasError('fechaFutura') || fechaFin?.hasError('fechaFutura')) {
+      return 'No puedes seleccionar una fecha mayor a la fecha actual.';
+    }
+
+    const inicio = this.obtenerFechaFormulario(fechaInicio?.value);
+    const fin = this.obtenerFechaFormulario(fechaFin?.value);
+
+    if (inicio && fin && fin.getTime() < inicio.getTime()) {
+      return 'La fecha fin no puede ser anterior a la fecha inicio.';
+    }
+
+    return '';
+  }
+
+  private fechaNoFuturaValidator(control: AbstractControl): ValidationErrors | null {
+    const value = String(control.value ?? '').trim();
+    if (!value) return null;
+
+    const fecha = new Date(value.replace(' ', 'T'));
+    if (Number.isNaN(fecha.getTime())) return null;
+
+    return fecha.getTime() > Date.now() ? { fechaFutura: true } : null;
+  }
+
+  private obtenerFechaFormulario(value: unknown): Date | null {
+    const texto = String(value ?? '').trim();
+    if (!texto) return null;
+
+    const fecha = new Date(texto.replace(' ', 'T'));
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
+  }
 
   
 }

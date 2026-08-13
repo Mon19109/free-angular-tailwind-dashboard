@@ -132,6 +132,7 @@
                 id="fechaInicioConsultaTransacciones"
                 label="Fecha Inicio"
                 placeholder="YYYY-MM-DD HH:mm"
+                maxDate="today"
                 (dateChange)="onFechaInicioChange($event)">
               </app-date-picker>
             </div>
@@ -142,6 +143,7 @@
                 label="Fecha Fin"
                 placeholder="YYYY-MM-DD HH:mm"
                 position="above"
+                maxDate="today"
                 (dateChange)="onFechaFinChange($event)">
               </app-date-picker>
             </div>

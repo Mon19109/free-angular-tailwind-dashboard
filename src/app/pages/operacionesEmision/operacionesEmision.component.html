@@ -82,6 +82,7 @@
   id="fechaInicio"
   label="Fecha Inicio"
  placeholder="YYYY-MM-DD HH:mm"
+  maxDate="today"
   (dateChange)="onFechaInicioChange($event)">
 </app-date-picker>
 
@@ -98,6 +99,7 @@
   label="Fecha Fin"
   placeholder="YYYY-MM-DD HH:mm"
   position="above"
+  maxDate="today"
   (dateChange)="onFechaFinChange($event)">
 </app-date-picker>
 
@@ -108,6 +110,11 @@
       </div>
 
       <!-- BOTONES -->
+
+      <div class="form-alert" *ngIf="fechaErrorMensaje">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{ fechaErrorMensaje }}</span>
+      </div>
 
       <div class="operation-actions botones-container">
 
@@ -151,7 +158,8 @@
 
         <button
           type="button"
-          class="button ghost btn-export">
+          class="button ghost btn-export"
+          (click)="exportarExcel()">
 
           Exportar Excel
 

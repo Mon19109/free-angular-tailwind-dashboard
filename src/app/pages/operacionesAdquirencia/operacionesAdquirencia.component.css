@@ -434,6 +434,24 @@ html.dark .form-select option {
   font-size: 18px;
 }
 
+.form-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.form-alert i {
+  color: #f87171;
+}
+
 .voucher-backdrop {
   position: fixed;
   inset: 0;

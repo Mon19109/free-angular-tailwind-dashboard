@@ -1,5 +1,5 @@
 import { Component, OnInit , inject} from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { OperacionesAdquirenciaService } from '../../services/operacionesadquirencia.service';
 import { MultiSelectComponent, Option }
@@ -17,6 +17,7 @@ import * as XLSX from 'xlsx';
 })
 export class OperacionesAdquirenciaComponent implements OnInit {
   formulario: FormGroup;
+  fechaErrorMensaje = '';
   cuentas: any[] = [];
   tiposOperacion: any[] = [];
   estatus: any[] = [];
@@ -250,8 +251,8 @@ onFechaFinChange(event: any) {
   clasificacion: [''],
   tipoOperacion: [this.defaultTipoOperacion],
 estatus: [this.defaultEstatus],
-  fechaInicio: [''],
-  fechaFin: ['']
+  fechaInicio: ['', [Validators.required, this.fechaNoFuturaValidator]],
+  fechaFin: ['', [Validators.required, this.fechaNoFuturaValidator]]
 });
 
   }
@@ -414,6 +415,13 @@ mostrarResultados = false;
   }
 
   onSubmit(): void {
+    this.fechaErrorMensaje = this.obtenerMensajeValidacionFechas();
+
+    if (this.fechaErrorMensaje) {
+      this.formulario.markAllAsTouched();
+      return;
+    }
+
     if (this.formulario.valid) {
       const formValues = this.formulario.getRawValue();
       console.log('Formulario enviado:', formValues);
@@ -480,8 +488,49 @@ mostrarResultados = false;
 
   limpiarFormulario(): void {
     this.formulario.reset();
+    this.fechaErrorMensaje = '';
     this.aplicarBloqueosSesion();
     this.cargarDependenciasSesion();
+  }
+
+  private obtenerMensajeValidacionFechas(): string {
+    const fechaInicio = this.formulario.get('fechaInicio');
+    const fechaFin = this.formulario.get('fechaFin');
+
+    if (fechaInicio?.hasError('required') || fechaFin?.hasError('required')) {
+      return 'Selecciona fecha inicio y fecha fin para buscar.';
+    }
+
+    if (fechaInicio?.hasError('fechaFutura') || fechaFin?.hasError('fechaFutura')) {
+      return 'No puedes seleccionar una fecha mayor a la fecha actual.';
+    }
+
+    const inicio = this.obtenerFechaFormulario(fechaInicio?.value);
+    const fin = this.obtenerFechaFormulario(fechaFin?.value);
+
+    if (inicio && fin && fin.getTime() < inicio.getTime()) {
+      return 'La fecha fin no puede ser anterior a la fecha inicio.';
+    }
+
+    return '';
+  }
+
+  private fechaNoFuturaValidator(control: AbstractControl): ValidationErrors | null {
+    const value = String(control.value ?? '').trim();
+    if (!value) return null;
+
+    const fecha = new Date(value.replace(' ', 'T'));
+    if (Number.isNaN(fecha.getTime())) return null;
+
+    return fecha.getTime() > Date.now() ? { fechaFutura: true } : null;
+  }
+
+  private obtenerFechaFormulario(value: unknown): Date | null {
+    const texto = String(value ?? '').trim();
+    if (!texto) return null;
+
+    const fecha = new Date(texto.replace(' ', 'T'));
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
   }
 
   private cargarDependenciasSesion(): void {

@@ -396,15 +396,28 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   
   validarFechas(): boolean {
     if (!this.filtros.fechaInicio || !this.filtros.fechaFin) {
-      if (this.rolId === '2' || this.rolId === '3') {
-        this.errorMessage.set('Para poder hacer una búsqueda necesitas seleccionar un rango de fecha.');
-        return false;
-      }
-      return true;
+      this.errorMessage.set('Selecciona fecha inicio y fecha fin para buscar.');
+      return false;
     }
     
-    const fechaInicio = new Date(this.filtros.fechaInicio);
-    const fechaFin = new Date(this.filtros.fechaFin);
+    const fechaInicio = this.obtenerFechaFiltro(this.filtros.fechaInicio);
+    const fechaFin = this.obtenerFechaFiltro(this.filtros.fechaFin);
+
+    if (!fechaInicio || !fechaFin) {
+      this.errorMessage.set('Selecciona fecha inicio y fecha fin para buscar.');
+      return false;
+    }
+
+    if (fechaInicio.getTime() > Date.now() || fechaFin.getTime() > Date.now()) {
+      this.errorMessage.set('No puedes seleccionar una fecha mayor a la fecha actual.');
+      return false;
+    }
+
+    if (fechaFin.getTime() < fechaInicio.getTime()) {
+      this.errorMessage.set('La fecha fin no puede ser anterior a la fecha inicio.');
+      return false;
+    }
+
     const diffDays = Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24));
     
     if (diffDays > 30) {
@@ -414,6 +427,14 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     
     this.errorMessage.set('');
     return true;
+  }
+
+  private obtenerFechaFiltro(value: unknown): Date | null {
+    const texto = String(value ?? '').trim();
+    if (!texto) return null;
+
+    const fecha = new Date(texto.replace(' ', 'T'));
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
   }
   
   formatoMonto(value: string | number): string {
