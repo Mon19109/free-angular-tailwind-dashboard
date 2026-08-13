@@ -133,7 +133,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
   this.transaccionesAdquirenciaService.getEstadosTransaccion().subscribe({
     next: (res) => {
-      console.log('ESTADOS', res);
+      console.log('[Transacciones Adquirencia] catResponseCode/getAll:', res);
 
       this.estadosTransaccion.set(
         res.catResponseCodes || []
@@ -454,6 +454,16 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   
   processTransactions(data: any) {
     const transacciones = this.obtenerTransaccionesRespuesta(data);
+    console.log('[Transacciones Adquirencia] searchOperations response:', data);
+    console.log('[Transacciones Adquirencia] primeros estatus recibidos:', transacciones.slice(0, 10).map((transaccion: any) => ({
+      idOperation: transaccion?.idOperation,
+      status: transaccion?.status,
+      statusDescription: transaccion?.statusDescription,
+      responseCode: transaccion?.responseCode,
+      responseCodeMaster: transaccion?.responseCodeMaster,
+      responseDescription: transaccion?.responseDescription,
+      respCodeDescription: transaccion?.respCodeDescription
+    })));
     this.transacciones.set(transacciones);
   }
 
@@ -638,20 +648,58 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   exportarExcel(): void {
+    const fecha = this.obtenerFechaArchivo();
     const rows = this.transaccionesFiltradasTabla.map(transaccion => this.exportRow(transaccion));
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones');
-    XLSX.writeFile(workbook, 'transacciones.xlsx');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones Adquirencia');
+    XLSX.writeFile(workbook, `Transacciones-Adquirencia-${fecha}.xlsx`);
     this.exportMenuAbierto = false;
   }
 
   exportarPDF(): void {
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.text('Consulta de Transacciones', 14, 14);
+    const fecha = this.obtenerFechaArchivo();
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Transacciones-Adquirencia-${fecha}`, 148, 23, { align: 'center' });
+
     autoTable(doc, {
-      startY: 20,
-      head: [['ID', 'Fecha / Hora', 'Sucursal', 'Caja', 'Tipo', 'Monto', 'Estatus', 'Usuario']],
+      startY: 30,
+      styles: {
+        fontSize: 7,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [44, 62, 80],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      bodyStyles: {
+        textColor: [40, 40, 40]
+      },
+      columnStyles: {
+        0: { cellWidth: 22 },
+        1: { cellWidth: 34 },
+        2: { cellWidth: 38 },
+        3: { cellWidth: 38 },
+        4: { cellWidth: 42 },
+        5: { cellWidth: 24 },
+        6: { cellWidth: 28 },
+        7: { cellWidth: 48 }
+      },
+      head: [['ID', 'FECHA / HORA', 'SUCURSAL', 'CAJA', 'TIPO', 'MONTO', 'ESTATUS', 'USUARIO']],
       body: this.transaccionesFiltradasTabla.map(transaccion => [
         transaccion.idOperation,
         transaccion.authorizationDate,
@@ -659,25 +707,49 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
         transaccion.terminalUserName,
         transaccion.transactiontype,
         this.formatCurrency(transaccion.amount),
-        transaccion.status,
+        this.obtenerEstatusTransaccion(transaccion),
         transaccion.payEmail || transaccion.terminalUserName
       ])
     });
-    doc.save('transacciones.pdf');
+    doc.save(`Transacciones-Adquirencia-${fecha}.pdf`);
     this.exportMenuAbierto = false;
   }
 
   private exportRow(transaccion: Transaccion) {
     return {
       ID: transaccion.idOperation,
-      'Fecha / Hora': transaccion.authorizationDate,
-      Sucursal: transaccion.terminalName,
-      Caja: transaccion.terminalUserName,
-      'Tipo Transaccion': transaccion.transactiontype,
-      Monto: this.toNumber(transaccion.amount),
-      Estatus: transaccion.status,
-      Usuario: transaccion.payEmail || transaccion.terminalUserName
+      'FECHA / HORA': transaccion.authorizationDate,
+      SUCURSAL: transaccion.terminalName,
+      CAJA: transaccion.terminalUserName,
+      'TIPO TRANSACCION': transaccion.transactiontype,
+      MONTO: this.toNumber(transaccion.amount),
+      ESTATUS: this.obtenerEstatusTransaccion(transaccion),
+      USUARIO: transaccion.payEmail || transaccion.terminalUserName
     };
+  }
+
+  private obtenerFechaArchivo(): string {
+    const fecha = new Date();
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const hour = String(fecha.getHours()).padStart(2, '0');
+    const minute = String(fecha.getMinutes()).padStart(2, '0');
+    const second = String(fecha.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hour}${minute}${second}`;
+  }
+
+  obtenerEstatusTransaccion(transaccion: any): string {
+    return transaccion?.statusDescription
+      || transaccion?.responseDescription
+      || transaccion?.respCodeDescription
+      || transaccion?.status
+      || 'ND';
+  }
+
+  esEstatusAprobado(transaccion: any): boolean {
+    return this.normalizarTexto(this.obtenerEstatusTransaccion(transaccion)).includes('aprob');
   }
 
 

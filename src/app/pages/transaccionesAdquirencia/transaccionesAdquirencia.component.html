@@ -232,7 +232,10 @@
                   </td>
                   <td>{{ t.entryMode || t.brand || 'ND' }}</td>
                   <td>{{ t.payEmail || t.terminalUserName || 'ND' }}</td>
-                  <td><span class="status" [class.inactive]="t.status !== 'APROBADA' && t.status !== 'Aprobada'"></span>{{ t.status || 'ND' }}</td>
+                  <td>
+                    <span class="status" [class.inactive]="!esEstatusAprobado(t)"></span>
+                    {{ obtenerEstatusTransaccion(t) }}
+                  </td>
                   <td class="actions-cell">
                     <button class="icon-btn" type="button" (click)="verTicket(t)" title="Ver ticket">
                       <i class="fa-regular fa-eye"></i>
