@@ -57,6 +57,31 @@ export class TransaccionesEmisionService {
       'Authorization': 'Basic YWRtaW46c2VjcmV0'
     });
   }
+
+  private getBearerHeaders(): HttpHeaders {
+    const token = this.getStoredToken();
+
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  }
+
+  private getStoredToken(): string {
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        if (session?.token) return session.token;
+      } catch {
+        localStorage.removeItem('auth_session');
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+  }
   /**
    * Obtiene la lista de cuentas del API
    */
@@ -73,7 +98,7 @@ export class TransaccionesEmisionService {
    */
   obtenerTiposOperacion(): Observable<TipoOperacion[]> {
     //return this.http.get<TipoOperacion[]>(`${this.apiUrl}catOperationType/getAll`);
-    const headers = this.getCommonHeaders();
+    const headers = this.getBearerHeaders();
     /*const headers = new HttpHeaders()
       .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
 
@@ -86,10 +111,7 @@ export class TransaccionesEmisionService {
         // Extraer el arreglo
       );*/
 
-      return this.http.post<any>(`${this.apiAldebaran}catOperationType`, { 
-          headers: headers,
-          withCredentials: true
-        });
+      return this.http.post<any>(`${this.apiAldebaran}catOperationType`, {}, { headers });
     
     
   }
@@ -98,7 +120,9 @@ export class TransaccionesEmisionService {
   
   obtenerStatus(): Observable<Status[]> {
 
-    return this.http.get<any>(`${this.apiAldebaran}catStatusOperations`);
+    return this.http.get<any>(`${this.apiAldebaran}catStatusOperations`, {
+      headers: this.getBearerHeaders()
+    });
 
     
   }
@@ -108,23 +132,24 @@ export class TransaccionesEmisionService {
    * @param formData Datos del formulario
    */
   enviarFormulario(formData: FormularioData): Observable<any> {
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('type_operation', this.emptyParam(formData.tipoOperacion))
       .set('id_status', this.emptyParam(formData.estatus))
+      .set('sirioId', this.obtenerSirioId(formData.idEntidad))
       .set('amount', this.emptyParam(formData.monto || formData.montoDesde))
-      .set('amount_from', this.emptyParam(formData.montoDesde))
-      .set('amount_to', this.emptyParam(formData.montoHasta))
       .set('auth_number', this.emptyParam(formData.numAuto))
       .set('num_cuenta', this.emptyParam(formData.cuenta))
-      .set('id_entidad', this.emptyParam(formData.idEntidad))
+      .set('init_date', this.formatearFechaServicio(formData.fechaInicio))
+      .set('end_date', this.formatearFechaServicio(formData.fechaFin))
       .set('email', this.emptyParam(formData.email))
-      .set('tel', this.emptyParam(formData.tel))
-      .set('init_date', this.emptyParam(formData.fechaInicio))
-      .set('end_date', this.emptyParam(formData.fechaFin))
+      .set('telephoneNumber', this.emptyParam(formData.tel))
       .set('page', '0')
       .set('size', '10');
 
-    return this.http.get(`${this.apiAldebaran}getOperations`, { params });
+    return this.http.get(`${this.apiAldebaran}getOperations`, {
+      params,
+      headers: this.getBearerHeaders()
+    });
   }
 
   /**
@@ -147,4 +172,21 @@ export class TransaccionesEmisionService {
     if (value === null || value === undefined) return '';
     return String(value);
   }
+
+  private obtenerSirioId(idEntidad: unknown): string {
+    return this.normalizarSirioId(idEntidad)
+      || localStorage.getItem('issueId')
+      || localStorage.getItem('entitySonID')
+      || '';
+  }
+
+  private normalizarSirioId(value: unknown): string {
+    return this.emptyParam(value).trim();
+  }
+
+  private formatearFechaServicio(value: unknown): string {
+    const fecha = this.emptyParam(value).trim();
+    return fecha ? fecha.split(' ')[0] : '';
+  }
+
 }

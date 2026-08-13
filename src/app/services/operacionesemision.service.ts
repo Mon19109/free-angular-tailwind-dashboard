@@ -118,9 +118,7 @@ obtenerEntidades(cuenta: string): Observable<any> {
    */
   obtenerTiposOperacion(): Observable<TipoOperacion[]> {
     //return this.http.get<TipoOperacion[]>(`${this.apiUrl}catOperationType/getAll`);
-    //const headers = this.getCommonHeaders();
-    const headers = new HttpHeaders()
-      .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
+    const headers = this.getBearerHeaders();
 
 
     return this.http.get<any>(`${this.apiV1Url}catOperationType/getAll`, 

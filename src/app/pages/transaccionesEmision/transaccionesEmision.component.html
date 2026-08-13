@@ -94,8 +94,8 @@
               <span>Entidad</span>
               <select name="idEntidad" [(ngModel)]="filtros.idEntidad">
                 <option value="">Seleccione una entidad</option>
-                <option *ngFor="let cuenta of cuentas" [value]="cuenta.bundle || cuenta.id">
-                  {{ cuenta.bundle || cuenta.id }} {{ cuenta.bussinesName ? '- ' + cuenta.bussinesName : '' }}
+                <option *ngFor="let cuenta of cuentas" [value]="valorEntidad(cuenta)">
+                  {{ textoEntidad(cuenta) }}
                 </option>
               </select>
             </label>

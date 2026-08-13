@@ -49,7 +49,9 @@ export class TransaccionesEmisionComponent implements OnInit {
 
   cargarDatosIniciales(): void {
     this.transEmiService.obtenerCuentas().subscribe({
-      next: data => this.cuentas = this.extraerLista(data),
+      next: data => {
+        this.cuentas = this.extraerLista(data);
+      },
       error: error => console.error('Error al cargar cuentas:', error)
     });
 
@@ -190,19 +192,56 @@ export class TransaccionesEmisionComponent implements OnInit {
   }
 
   exportarExcel(): void {
+    const fecha = this.obtenerFechaArchivo();
     const worksheet = XLSX.utils.json_to_sheet(this.operacionesFiltradasTabla.map(item => this.exportRow(item)));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones Emision');
-    XLSX.writeFile(workbook, 'transacciones-emision.xlsx');
+    XLSX.writeFile(workbook, `Transacciones-Emision-${fecha}.xlsx`);
     this.exportMenuAbierto = false;
   }
 
   exportarPDF(): void {
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.text('Consulta de Transacciones Emision', 14, 14);
+    const fecha = this.obtenerFechaArchivo();
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Transacciones-Emision-${fecha}`, 148, 23, { align: 'center' });
+
     autoTable(doc, {
-      startY: 20,
-      head: [['ID', 'Fecha / Hora', 'Cuenta', 'Tipo', 'Monto', 'Estatus', 'Autorizacion']],
+      startY: 30,
+      styles: {
+        fontSize: 7,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [44, 62, 80],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      bodyStyles: {
+        textColor: [40, 40, 40]
+      },
+      columnStyles: {
+        0: { cellWidth: 24 },
+        1: { cellWidth: 34 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 52 },
+        4: { cellWidth: 24 },
+        5: { cellWidth: 28 },
+        6: { cellWidth: 32 }
+      },
+      head: [['ID', 'FECHA / HORA', 'CUENTA', 'TIPO', 'MONTO', 'ESTATUS', 'AUTORIZACION']],
       body: this.operacionesFiltradasTabla.map(item => [
         this.valorId(item),
         this.valorFecha(item),
@@ -213,7 +252,7 @@ export class TransaccionesEmisionComponent implements OnInit {
         this.valorAutorizacion(item)
       ])
     });
-    doc.save('transacciones-emision.pdf');
+    doc.save(`Transacciones-Emision-${fecha}.pdf`);
     this.exportMenuAbierto = false;
   }
 
@@ -269,16 +308,52 @@ export class TransaccionesEmisionComponent implements OnInit {
     return item?.numeroAutorizacion ?? item?.authorizationNumber ?? item?.authNumber ?? 'ND';
   }
 
+  valorEntidad(cuenta: any): string {
+    return String(
+      cuenta?.sirioId ??
+      cuenta?.sirioID ??
+      cuenta?.bundle ??
+      cuenta?.issueId ??
+      cuenta?.entitySonID ??
+      cuenta?.entitySonId ??
+      cuenta?.affiliationId ??
+      cuenta?.fatherID ??
+      cuenta?.fatherId ??
+      cuenta?.idEntity ??
+      cuenta?.idEntidad ??
+      cuenta?.id ??
+      ''
+    );
+  }
+
+  textoEntidad(cuenta: any): string {
+    const id = this.valorEntidad(cuenta);
+    const nombre = cuenta?.bussinesName || cuenta?.businessName || cuenta?.name || cuenta?.nombre || '';
+    return [id, nombre].filter(Boolean).join(' - ');
+  }
+
   private exportRow(item: any) {
     return {
       ID: this.valorId(item),
-      'Fecha / Hora': this.valorFecha(item),
-      Cuenta: this.valorCuenta(item),
-      Tipo: this.valorTipo(item),
-      Monto: this.toNumber(this.valorMonto(item)),
-      Estatus: this.valorEstatus(item),
-      Autorizacion: this.valorAutorizacion(item)
+      'FECHA / HORA': this.valorFecha(item),
+      CUENTA: this.valorCuenta(item),
+      TIPO: this.valorTipo(item),
+      MONTO: this.toNumber(this.valorMonto(item)),
+      ESTATUS: this.valorEstatus(item),
+      AUTORIZACION: this.valorAutorizacion(item)
     };
+  }
+
+  private obtenerFechaArchivo(): string {
+    const fecha = new Date();
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const hour = String(fecha.getHours()).padStart(2, '0');
+    const minute = String(fecha.getMinutes()).padStart(2, '0');
+    const second = String(fecha.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hour}${minute}${second}`;
   }
 
   private extraerOperaciones(response: any): any[] {
