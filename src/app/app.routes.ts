@@ -47,6 +47,7 @@ import { RevisionMesaDigitalComponent } from './pages/revisionMesaDigital/revisi
 import { EnviarInvitacionComercioComponent } from './pages/enviarInvitacionComercio/enviarInvitacionComercio.component';
 import { ConsultaComerciosComponent } from './pages/consultaComercios/consultaComercios.component';
 import { RegistroClienteComponent } from './pages/registroCliente/registroCliente.component';
+import { ReportesComponent } from './pages/reportes/reportes.component';
 
 export const routes: Routes = [
   { 
@@ -172,11 +173,11 @@ export const routes: Routes = [
         title:'KASHPAY'
       },
       {
-  path: 'operaciones_emision',
-  component: OperacionesEmisionComponent,
-  canActivate: [AuthGuard],
-  title:'KASHPAY'
-},
+        path: 'operaciones_emision',
+        component: OperacionesEmisionComponent,
+        canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
       { 
         path: 'operaciones_adquirencia', 
         component: OperacionesAdquirenciaComponent, 
@@ -195,6 +196,12 @@ export const routes: Routes = [
       { 
         path: 'tarjeta', 
         component: TarjetaComponent, 
+        canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+      { 
+        path: 'reportes', 
+        component: ReportesComponent, 
         canActivate: [AuthGuard],
         title:'KASHPAY'
       },

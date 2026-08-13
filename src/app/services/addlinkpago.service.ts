@@ -40,6 +40,19 @@ export interface FormularioData {
   msi: boolean;
 }
 
+export interface NotificacionPagoData {
+  orderingName: string;
+  description: string;
+  nameCommerce: string;
+  amount: string;
+  alphanumericReference: string;
+  ticketMessage: string;
+  orderingAcount: string;
+  commerceId: string;
+  dateHourTransaction: string;
+  adicional: string;
+}
+
 export interface AddLink {
   idOperation: number;
   nombre: string;
@@ -65,7 +78,7 @@ export interface AddLink {
 export class AddLinkPagoService {
   private http = inject(HttpClient);
   private baseUrl = environment.api.linkpago; // Tu base URLAdquirenciaAdquirencia
-  private crearLink = environment.api.voucher; // Tu base URLAdquirenciaAdquirencia
+  private crearLink = environment.api.linkpago; // Tu base URLAdquirenciaAdquirencia
 
   //user: UserSessionData | null = null;
 
@@ -116,45 +129,41 @@ export class AddLinkPagoService {
       { headers }
     );
   }
-    
+
+  enviarSMS(datos: NotificacionPagoData): Observable<any> {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'versionApp': '3',
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.post(
+      `${environment.api.kashpay}api/v1/paymentLink/notification`,
+      datos,
+      { headers }
+    );
+  }
+
+
+  enviarEmail(datos: NotificacionPagoData): Observable<any> {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'versionApp': '3',
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.post(
+      `${environment.api.kashpay}api/v1/paymentLink/notification`,
+      datos,
+      { headers }
+    );
+  }    
 
   /**
      * Envía los datos del formulario al API
      * @param formData Datos del formulario
      */
     enviarFormulario(formData: FormularioData): Observable<any> {
-      // Opcional: Puedes transformar los datos si es necesario
-      /* "messageType" : 88,
-				"user" : "'.$_POST['emailC'].'",
-				"amount": '.$_POST['monto'].',   
-          		"retrievalReferenceCode": "'.date_timestamp_get($fecha).'",
-			    "currency": "484",
-				"sirioId" : "'.$_POST['entitySonID'].'",
-				"otherAmount" : 0.00,
-				"orderingAccount" : "'.$_POST['cuentaSession'].'",
-				"payment_type" :1,
-        "payPhone": "'.$_POST['tel'].'",
-				"payEmail": "'.$_POST['email'].'",
-				"referenceOne": "'.$_POST['ref1'].'",
-				"referenceTwo": "'.$_POST['ref2'].'",
-				"referenceThree": "",
-			    "customerInfo": {
-				    "firstName": "'.$_POST['nombre'].'",
-				    "lastName": "'.$_POST['apaterno'].'",
-				    "middleName": "'.$_POST['amaterno'].'",
-				    "email": "'.$_POST['email'].'",
-				    "phone1": "'.$_POST['tel'].'"   
-			    },
-        '.$productos.',
-				"payInfo": {
-					"unique": true,
-					"reference": "'.$_POST['referencia'].'",
-					"description": "'.$_POST['concepto'].'",
-					"response": true,
-					"expiration": "'.$_POST['datepicker'].'T23:59:59",
-					"urlCallback": "",
-			    	"urlImage": "'.$urlImage.'"
-				}*/
       const datosTransformados = {
         messageType: 88,
 				user: localStorage.getItem('mail'),
@@ -194,13 +203,14 @@ export class AddLinkPagoService {
       //getOperations?type_operation='.$_GET['type_operation'].'&id_status='.$_GET['id_status'].'&sirioId='.$_GET['id_context'].'&amount='.$_GET['amount'].'&auth_number='.$_GET['auth_number'].'&num_cuenta='.$_GET['num_cuenta'].'&init_date='.$_GET['init_date'].'&end_date='.$_GET['end_date'].'&email='.$_GET['email'].'&telephoneNumber='.$_GET['telephoneNumber'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE;
       //return this.http.get(`${this.baseUrl}processTransaction?type_operation=`);
       return this.http.post(
-        `${this.crearLink}processTransaction`,
+        `${this.crearLink}/OrderReceiver/api/v1/order`,
         datosTransformados,
         {
           headers: this.getCommonHeaders()
         }
       );
     }
+
   
 
 }

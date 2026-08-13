@@ -24,7 +24,7 @@
     "logLevel": "debug"
   },
   "/OrderReceiver": {
-    "target": "http://10.15.5.160",
+    "target": "http://10.15.5.167",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"

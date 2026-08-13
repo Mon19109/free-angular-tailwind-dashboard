@@ -1,7 +1,7 @@
 import { Component , inject, signal} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AddLinkPagoService } from '../../services/addlinkpago.service';
+import { AddLinkPagoService, FormularioData, NotificacionPagoData } from '../../services/addlinkpago.service';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
 //import { TextAreaComponent } from '../../shared/components/form/input/text-area.component';
 import { InputFieldComponent } from '../../shared/components/form/input/input-field.component';
@@ -281,7 +281,7 @@ export class AddLinkPagoComponent {
     }else{
         this.mostrarDiv = false; 
         this.mostrarForm = true; 
-        this.enviarForm();
+        //this.enviarForm();
     }
     console.log('mostrarDiv = '+this.mostrarDiv);
   }
@@ -315,12 +315,65 @@ export class AddLinkPagoComponent {
       next: (response) => {
         this.loading.set(false);
         console.log('Formulario enviado exitosamente:', response);
+
+        const tipoNotificacion = String(formValues.tipoNoti);
+        const formUrl = response?.payOrderResponse?.formUrl;
+        if (tipoNotificacion === '2') {
+          this.enviarSMS(formUrl, formValues);
+        } else if (tipoNotificacion === '3') {
+          this.enviarEmail(formUrl, formValues);
+        }
       },
       error: (error) => {
         this.loading.set(false);
         console.error('Error al enviar formulario:', error);
       }
     });
+  }
+
+  enviarSMS(formUrl: string, formValues: FormularioData): void {
+    const datosSMS = this.crearDatosNotificacion(formUrl, formValues, formValues.tel);
+
+    this.addlinkpagoService.enviarSMS(datosSMS).subscribe({
+      next: (response) => {
+        console.log('SMS enviado exitosamente:', response);
+      },
+      error: (error) => {
+        console.error('Error al enviar SMS:', error);
+      }
+    });
+  }
+
+  enviarEmail(formUrl: string, formValues: FormularioData): void {
+    const datosEmail = this.crearDatosNotificacion(formUrl, formValues, formValues.email);
+
+    this.addlinkpagoService.enviarEmail(datosEmail).subscribe({
+      next: (response) => {
+        console.log('Email enviado exitosamente:', response);
+      },
+      error: (error) => {
+        console.error('Error al enviar email:', error);
+      }
+    });
+  }
+
+  private crearDatosNotificacion(
+    formUrl: string,
+    formValues: FormularioData,
+    orderingAcount: string
+  ): NotificacionPagoData {
+    return {
+      orderingName: `${formValues.nombre} ${formValues.aPaterno} ${formValues.aMaterno}`.trim(),
+      description: formValues.concepto,
+      nameCommerce: localStorage.getItem('userName') || '',
+      amount: String(formValues.monto),
+      alphanumericReference: formValues.refCom,
+      ticketMessage: formUrl,
+      orderingAcount,
+      commerceId: localStorage.getItem('entitySonID') || '',
+      dateHourTransaction: new Date().toISOString(),
+      adicional: formValues.tel
+    };
   }
 
   
