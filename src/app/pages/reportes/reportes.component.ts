@@ -1,7 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ReportesService } from '../../services/reportes.service';
+
+type TipoCuentaReporte = 'EMISION' | 'ADQUIRENTE';
+type TipoReporte = 'ESTADO_PDF' | 'ESTADO_EXCEL' | 'CORTE_DIA' | 'DIARIO_TRANSACCIONES';
+
+interface ReporteDisponible {
+  id: TipoReporte;
+  titulo: string;
+  descripcion: string;
+  icono: string;
+  variante: 'pdf' | 'excel' | 'corte' | 'diario';
+}
 
 @Component({
   selector: 'app-reportes',
@@ -11,90 +21,74 @@ import { ReportesService } from '../../services/reportes.service';
   styleUrls: ['./reportes.component.css']
 })
 export class ReportesComponent implements OnInit {
-  private reportesService = inject(ReportesService);
+  tiposCuenta = [
+    { valor: 'EMISION' as TipoCuentaReporte, texto: 'Cuenta Emisión' },
+    { valor: 'ADQUIRENTE' as TipoCuentaReporte, texto: 'Cuenta Adquirente' }
+  ];
 
-  cuentas: any[] = [];
   periodos: string[] = [];
-  cuentaSeleccionada = '';
+  cuentaSeleccionada: TipoCuentaReporte | '' = '';
   periodoSeleccionado = '';
-  clabe = '';
   mensaje = '';
+  mostrarReportes = false;
   cargando = false;
+
+  reportes: ReporteDisponible[] = [
+    {
+      id: 'ESTADO_PDF',
+      titulo: 'Estado de Cuenta en PDF',
+      descripcion: 'Este reporte es correspondiente al periodo de consulta, proporcionando el detalle de los movimientos registrados, incluyendo cargos, abonos, saldos y demás operaciones, descarga en formato PDF',
+      icono: 'far fa-file-pdf',
+      variante: 'pdf'
+    },
+    {
+      id: 'ESTADO_EXCEL',
+      titulo: 'Estado de Cuenta en EXCEL',
+      descripcion: 'Este reporte muestra el reporte correspondiente al periodo de consulta, proporcionando el detalle de los movimientos registrados, incluyendo cargos, abonos, saldos y demás operaciones, descarga en formato Excel',
+      icono: 'far fa-file-excel',
+      variante: 'excel'
+    },
+    {
+      id: 'CORTE_DIA',
+      titulo: 'Corte del día',
+      descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, no esta ligada al periodo de tiempo seleccionado del filtro superior',
+      icono: 'far fa-copy',
+      variante: 'corte'
+    },
+    {
+      id: 'DIARIO_TRANSACCIONES',
+      titulo: 'Diario de Transacciones',
+      descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, no esta ligada al periodo de tiempo seleccionado del filtro superior',
+      icono: 'far fa-clipboard',
+      variante: 'diario'
+    }
+  ];
 
   ngOnInit(): void {
     this.periodos = this.generarPeriodos();
-    this.periodoSeleccionado = this.periodos[0] || '';
-    this.cargarCuentas();
   }
 
-  cargarCuentas(): void {
-    this.reportesService.obtenerCuentas().subscribe({
-      next: (resp: any) => {
-        this.cuentas = this.normalizarLista(resp, [
-          'data',
-          'accounts',
-          'concentratorAccounts',
-          'accountList'
-        ]).filter(cuenta => this.debeMostrarCuenta(cuenta));
-      },
-      error: (error) => {
-        console.error('Error al cargar cuentas:', error);
-        this.mensaje = 'No fue posible cargar las cuentas.';
-      }
-    });
-  }
-
-  onCuentaChange(): void {
-    this.clabe = '';
-
-    if (!this.cuentaSeleccionada) {
-      return;
-    }
-
-    this.reportesService.obtenerSaldo(this.cuentaSeleccionada).subscribe({
-      next: (resp: any) => {
-        const rows = resp?.rows || resp?.onsignaEntity || resp?.data || resp;
-        this.clabe = rows?.clabeAccount || rows?.virtualAccount || '';
-      },
-      error: (error) => {
-        console.error('Error al obtener saldo:', error);
-        this.mensaje = 'No fue posible obtener la CLABE de la cuenta.';
-      }
-    });
-  }
-
-  descargarPDF(): void {
-    this.generarReporte('PDF');
-  }
-
-  descargarExcel(): void {
-    this.generarReporte('EXCEL');
-  }
-
-  generarReporte(tipo: 'PDF' | 'EXCEL'): void {
+  consultar(): void {
     this.mensaje = '';
 
     if (!this.cuentaSeleccionada || !this.periodoSeleccionado) {
+      this.mostrarReportes = false;
       this.mensaje = 'Selecciona una cuenta y un periodo.';
       return;
     }
 
-    const url = this.reportesService.construirUrlDescarga({
-      tipo,
-      periodo: this.periodoSeleccionado,
-      cuenta: this.cuentaSeleccionada,
-      clabe: this.clabe
-    });
-
-    this.descargarEnSegundoPlano(url);
+    this.mostrarReportes = true;
   }
 
-  obtenerValorCuenta(cuenta: any): string {
-    return cuenta?.idSirio || cuenta?.sirioId || cuenta?.id || cuenta?.bundle || '';
-  }
+  verReporte(reporte: ReporteDisponible): void {
+    this.mensaje = '';
 
-  obtenerTextoCuenta(cuenta: any): string {
-    return cuenta?.name || cuenta?.nombre || cuenta?.businessName || cuenta?.bussinesName || this.obtenerValorCuenta(cuenta);
+    if (!this.mostrarReportes || !this.cuentaSeleccionada || !this.periodoSeleccionado) {
+      this.mensaje = 'Primero consulta con una cuenta y un periodo.';
+      return;
+    }
+
+    this.mensaje = `El reporte "${reporte.titulo}" aun no tiene descarga configurada.`;
   }
 
   private generarPeriodos(): string[] {
@@ -126,49 +120,5 @@ export class ReportesComponent implements OnInit {
     }
 
     return periodos;
-  }
-
-  private debeMostrarCuenta(cuenta: any): boolean {
-    const idPerfil = Number(localStorage.getItem('idPerfil') || 0);
-
-    if (idPerfil === 5) {
-      return true;
-    }
-
-    return this.obtenerTextoCuenta(cuenta) !== 'Cuenta Reserva';
-  }
-
-  private normalizarLista(response: any, keys: string[]): any[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    let current = response;
-
-    for (const key of keys) {
-      current = current?.[key];
-
-      if (Array.isArray(current)) {
-        return current;
-      }
-    }
-
-    if (current && typeof current === 'object') {
-      return [current];
-    }
-
-    return [];
-  }
-
-  private descargarEnSegundoPlano(url: string): void {
-    const iframe = document.createElement('iframe');
-    iframe.src = url;
-    iframe.style.display = 'none';
-    iframe.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(iframe);
-
-    window.setTimeout(() => {
-      iframe.remove();
-    }, 30000);
   }
 }

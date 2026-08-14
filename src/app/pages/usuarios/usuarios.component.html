@@ -42,7 +42,7 @@
         <!-- Fecha Inicio -->
         <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
 
-          <app-date-picker id="fechaInicio" label="Fecha Inicio" placeholder="Selecciona fecha"
+          <app-date-picker id="fechaInicio" label="Fecha Inicio" placeholder="Selecciona fecha" maxDate="today"
             (dateChange)="onFechaInicioChange($event)">
           </app-date-picker>
 
@@ -50,7 +50,7 @@
 
         <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
 
-          <app-date-picker id="fechaFin" label="Fecha Fin" placeholder="Selecciona fecha"
+          <app-date-picker id="fechaFin" label="Fecha Fin" placeholder="Selecciona fecha" maxDate="today"
             (dateChange)="onFechaFinChange($event)">
           </app-date-picker>
 
@@ -136,7 +136,7 @@
 
 
 
-  <div *ngIf="mensajeError" class="empty-message">
+  <div *ngIf="mensajeError" class="empty-message" [class.error-message]="esMensajeValidacion()">
 
     {{ mensajeError }}
 
@@ -207,7 +207,7 @@
 
         <tbody>
 
-          <tr *ngFor="let usuario of usuarios">
+          <tr *ngFor="let usuario of usuarios; let index = index">
 
             <td>
               <input type="checkbox">
@@ -241,14 +241,32 @@
 
             <td>{{ usuario.status }}</td>
 
-            <td>
+            <td class="actions-cell">
 
-              <app-select
-                placeholder="ACCIONES"
-                className="form-control acciones-select"
-                [options]="accionesOptions"
-                (valueChange)="onAccionChange($event, usuario)"
-              />
+              <div class="actions-menu-wrapper" *ngIf="esUsuarioActivo(usuario)">
+                <button
+                  class="actions-trigger"
+                  type="button"
+                  title="Acciones"
+                  (click)="toggleAcciones(usuario)">
+                  <i class="fa-solid fa-ellipsis"></i>
+                </button>
+
+                <div
+                  class="actions-menu"
+                  [class.open-up]="index >= usuarios.length - 2"
+                  *ngIf="accionesAbiertas === obtenerUsuarioId(usuario)">
+                  <button type="button" (click)="onAccionChange('token', usuario)">
+                    Reenviar token
+                  </button>
+                  <button type="button" (click)="onAccionChange('correo', usuario)">
+                    Actualizar correo
+                  </button>
+                  <button type="button" (click)="onAccionChange('bloquear', usuario)">
+                    Bloquear usuario
+                  </button>
+                </div>
+              </div>
 
             </td>
           </tr>
@@ -256,17 +274,29 @@
         </tbody>
 
       </table>
-      <div class="pagination-container" *ngIf="totalPaginas > 1">
-
-        <button *ngFor="let page of paginas" (click)="cambiarPagina(page)" [class.active]="page === paginaActual">
-
-          {{ page }}
-
-        </button>
-
-      </div>
-
     </div>
+
+    <footer class="users-pagination" *ngIf="mostrarTabla">
+      <span>Mostrando {{ usuarios.length }} de {{ totalRegistros || usuarios.length }} registros</span>
+      <div>
+        <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <ng-container *ngFor="let page of paginas">
+          <span *ngIf="page === '...'" class="pagination-ellipsis">...</span>
+          <button
+            type="button"
+            *ngIf="page !== '...'"
+            (click)="cambiarPaginaPaginador(page)"
+            [class.active]="page === paginaActual">
+            {{ page }}
+          </button>
+        </ng-container>
+        <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas || totalPaginas === 0">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </footer>
 
       </section>
     </div>

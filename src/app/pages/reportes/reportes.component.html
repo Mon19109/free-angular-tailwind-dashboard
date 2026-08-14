@@ -1,45 +1,62 @@
-<div class="estado-shell page-container">
-  <article class="estado-card">
-    <div class="estado-body">
-      <form class="estado-grid">
-        <div class="estado-field">
-          <label>Selecciona Cuenta</label>
-          <select class="form-control" [(ngModel)]="cuentaSeleccionada" name="cuenta" (change)="onCuentaChange()">
-            <option value="">Selecciona cuenta</option>
-            <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
-              {{ obtenerTextoCuenta(cuenta) }}
-            </option>
-          </select>
-        </div>
+<section class="reportes-shell">
+  <p class="reportes-intro">Seleccione los filtros y el reporte que desee consultar</p>
 
-        <div class="estado-field">
-          <label>Periodo</label>
-          <select class="form-control" [(ngModel)]="periodoSeleccionado" name="periodo">
-            <option value="">Selecciona periodo</option>
-            <option *ngFor="let periodo of periodos" [value]="periodo">
-              {{ periodo }}
-            </option>
-          </select>
-        </div>
+  <form class="reportes-filter" (ngSubmit)="consultar()">
+    <label class="reportes-field">
+      <span>Selecciona Cuenta</span>
+      <select class="reportes-control" [(ngModel)]="cuentaSeleccionada" name="cuenta">
+        <option value=""></option>
+        <option *ngFor="let tipo of tiposCuenta" [value]="tipo.valor">
+          {{ tipo.texto }}
+        </option>
+      </select>
+    </label>
 
-        <div class="estado-actions">
-          <button type="button" class="button ghost btn-export estado-button" (click)="descargarPDF()" [disabled]="cargando">
-            <i class="far fa-file-pdf"></i>
-            PDF
-          </button>
-        </div>
+    <label class="reportes-field">
+      <span>Periodo</span>
+      <select class="reportes-control" [(ngModel)]="periodoSeleccionado" name="periodo">
+        <option value=""></option>
+        <option *ngFor="let periodo of periodos" [value]="periodo">
+          {{ periodo }}
+        </option>
+      </select>
+    </label>
 
-        <div class="estado-actions">
-          <button type="button" class="button ghost btn-export estado-button" (click)="descargarExcel()" [disabled]="cargando">
-            <i class="far fa-file-excel"></i>
-            EXCEL
-          </button>
-        </div>
-      </form>
-
-      <div *ngIf="mensaje" class="estado-message">
-        {{ mensaje }}
-      </div>
+    <div class="reportes-actions">
+      <button type="submit" class="reportes-consultar" [disabled]="cargando">
+        <i class="fas fa-search"></i>
+        CONSULTAR
+      </button>
     </div>
-  </article>
-</div>
+  </form>
+
+  <div *ngIf="mensaje" class="reportes-message">
+    {{ mensaje }}
+  </div>
+
+  <div *ngIf="mostrarReportes" class="reportes-grid">
+    <article
+      *ngFor="let reporte of reportes"
+      class="reporte-card"
+      [class.reporte-card-pdf]="reporte.variante === 'pdf'"
+      [class.reporte-card-excel]="reporte.variante === 'excel'"
+      [class.reporte-card-corte]="reporte.variante === 'corte'"
+      [class.reporte-card-diario]="reporte.variante === 'diario'">
+      <div class="reporte-icon">
+        <i [class]="reporte.icono"></i>
+      </div>
+
+      <h3>{{ reporte.titulo }}</h3>
+
+      <div class="reporte-divider"></div>
+
+      <p>{{ reporte.descripcion }}</p>
+
+      <button type="button" class="reporte-button" (click)="verReporte(reporte)">
+        <i class="far fa-file-alt"></i>
+        VER REPORTE
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </article>
+  </div>
+</section>

@@ -38,6 +38,33 @@ export class UsuariosService {
       'Authorization': 'Basic YWRtaW46c2VjcmV0'
     });
   }
+
+  private getBearerHeaders(extraHeaders: Record<string, string> = {}): HttpHeaders {
+    const token = this.getStoredToken();
+
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'versionApp': '3',
+      ...extraHeaders
+    });
+  }
+
+  private getStoredToken(): string {
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        if (session?.token) return session.token;
+      } catch {
+        localStorage.removeItem('auth_session');
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+  }
   /**
    * Obtiene la lista de cuentas del API
    */
@@ -108,7 +135,7 @@ export class UsuariosService {
       `&type=${formData.typeSearch}` +
       `&value1=${value1}` +
       `&value2=${value2}` +
-      `&page=${page}&size=10`;
+      `&page=${Math.max(page - 1, 0)}&size=10`;
 
     console.log('URL');
     console.log(url);
@@ -132,5 +159,43 @@ export class UsuariosService {
     //return this.http.get(`${this.apiAldebaran}/consultas`, { params });
     return this.http.get(`${this.apiAldebaran}getUsersBy?sirioId=${formData.entidad}&type=${formData.typeSearch}&value1=${formData.value1F}&value2=${formData.value2F}&page=1&size=10`);
 
+  }
+
+  updateEmail(idUser: string | number, emailOrigin: string, emailUpdate: string): Observable<any> {
+    const params = new HttpParams()
+      .set('idUser', String(idUser ?? ''))
+      .set('emailOrigin', emailOrigin ?? '')
+      .set('emailUpdate', emailUpdate ?? '');
+
+    return this.http.get(`${this.apiAldebaran}updateDataUser`, {
+      params,
+      headers: this.getBearerHeaders()
+    });
+  }
+
+  sendToken(contexto: string | number, email: string, dni: string | number): Observable<any> {
+    const body = {
+      registerOnboardRequest: {
+        email,
+        dni: String(dni ?? ''),
+        idContex: Number(contexto || 0)
+      }
+    };
+
+    return this.http.post(`${this.apiAldebaran}sendToken`, body, {
+      headers: this.getBearerHeaders()
+    });
+  }
+
+  blockUser(idUser: string | number, contexto: string | number): Observable<any> {
+    const body = {
+      idUser: Number(idUser || 0),
+      idStatus: 3,
+      idContext: Number(contexto || 0)
+    };
+
+    return this.http.post(`${this.apiAldebaran}blockUser`, body, {
+      headers: this.getBearerHeaders()
+    });
   }
 }

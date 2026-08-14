@@ -388,9 +388,66 @@ html.dark .form-control option {
   text-overflow: ellipsis;
 }
 
-.acciones-select {
-  min-width: 210px;
+.actions-cell {
+  position: relative;
+}
+
+.actions-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.actions-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--users-line);
+  border-radius: 10px;
+  color: var(--users-gold);
+  background: var(--users-panel);
   cursor: pointer;
+}
+
+.actions-trigger:hover {
+  border-color: rgba(241, 178, 61, 0.45);
+  background: rgba(241, 178, 61, 0.1);
+}
+
+.actions-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  display: grid;
+  min-width: 190px;
+  overflow: hidden;
+  border: 1px solid var(--users-line);
+  border-radius: 10px;
+  background: var(--users-card);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.26);
+}
+
+.actions-menu.open-up {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.actions-menu button {
+  border: 0;
+  padding: 11px 13px;
+  color: var(--users-text);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.actions-menu button:hover {
+  color: var(--users-gold);
+  background: rgba(241, 178, 61, 0.1);
 }
 
 input[type="checkbox"] {
@@ -410,29 +467,82 @@ input[type="checkbox"] {
   text-align: center;
 }
 
-.pagination-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 18px;
+.empty-message.error-message {
+  border-color: rgba(239, 68, 68, 0.42);
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  box-shadow: 0 16px 34px rgba(127, 29, 29, 0.16);
 }
 
-.pagination-container button {
+.users-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  padding: 18px 0 0;
+  color: var(--users-muted);
+  background: var(--users-card);
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.users-pagination > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.users-pagination > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.users-pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 42px;
-  min-height: 42px;
+  height: 42px;
   border: 1px solid var(--users-line);
-  border-radius: 12px;
+  border-radius: 10px;
   color: var(--users-text);
   background: var(--users-panel);
   cursor: pointer;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
-.pagination-container button.active {
+.users-pagination button:hover:not(:disabled) {
+  border-color: rgba(241, 178, 61, 0.45);
+  background: rgba(241, 178, 61, 0.1);
+}
+
+.users-pagination button.active {
   color: #140e02;
   border-color: rgba(241, 178, 61, 0.45);
   background: linear-gradient(180deg, var(--users-gold-strong) 0%, var(--users-gold) 100%);
+}
+
+.users-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 42px;
+  color: var(--users-muted);
+  font-weight: 850;
 }
 
 @media (max-width: 1100px) {
@@ -461,8 +571,12 @@ input[type="checkbox"] {
   }
 
   .users-actions,
-  .table-actions {
+  .table-actions,
+  .users-pagination,
+  .users-pagination > div {
     justify-content: stretch;
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .button {

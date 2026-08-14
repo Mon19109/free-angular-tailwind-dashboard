@@ -1,46 +1,42 @@
 :host {
-  --estado-bg: #05070b;
-  --estado-card: rgba(11, 16, 24, 0.96);
-  --estado-border: rgba(241, 178, 61, 0.18);
-  --estado-input-border: rgba(255, 255, 255, 0.12);
-  --estado-text: #f6f7fb;
-  --estado-muted: rgba(246, 247, 251, 0.72);
-  --estado-gold: #f1b23d;
-  --estado-button-bg: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
-  --estado-button-hover: linear-gradient(180deg, #ffe49b 0%, #f5bf50 100%);
-  --estado-button-text: #16120b;
-  --estado-button-border: rgba(241, 178, 61, 0.42);
-  --estado-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+  --reportes-bg: #f3f5f8;
+  --reportes-card: #ffffff;
+  --reportes-border: #d8dde4;
+  --reportes-text: #2f3b4d;
+  --reportes-muted: #696f7a;
+  --reportes-control-bg: #ffffff;
+  --reportes-control-border: #d9dde3;
+  --reportes-button: #2f4057;
+  --reportes-button-hover: #3b516f;
+  --reportes-shadow: 0 2px 4px rgba(16, 24, 40, 0.12);
   display: block;
   margin: -1rem;
-  color: var(--estado-text);
+  color: var(--reportes-text);
 }
 
-:host-context(html:not(.dark)) {
-  --estado-bg: #f3f5f8;
-  --estado-card: #ffffff;
-  --estado-border: #d9dde3;
-  --estado-input-border: #d8dce2;
-  --estado-text: #172033;
-  --estado-muted: #667085;
-  --estado-button-bg: linear-gradient(180deg, #344861 0%, #2d3b50 100%);
-  --estado-button-hover: linear-gradient(180deg, #4b6380 0%, #3a4e68 100%);
-  --estado-button-text: #ffffff;
-  --estado-button-border: rgba(35, 50, 77, 0.18);
-  --estado-shadow: 0 2px 4px rgba(16, 24, 40, 0.12);
+:host-context(html.dark) {
+  --reportes-bg: #05070b;
+  --reportes-card: rgba(11, 16, 24, 0.96);
+  --reportes-border: rgba(241, 178, 61, 0.22);
+  --reportes-text: #f6f7fb;
+  --reportes-muted: rgba(246, 247, 251, 0.72);
+  --reportes-control-bg: rgba(255, 255, 255, 0.04);
+  --reportes-control-border: rgba(255, 255, 255, 0.14);
+  --reportes-button: #f1b23d;
+  --reportes-button-hover: #f6c762;
+  --reportes-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
 }
 
 * {
   box-sizing: border-box;
 }
 
-.estado-shell {
+.reportes-shell {
   min-height: calc(100vh - 104px);
   width: 100%;
-  padding: clamp(46px, 7vw, 86px) clamp(20px, 3vw, 36px);
+  padding: clamp(24px, 4vw, 44px) clamp(18px, 3vw, 32px);
   overflow-x: hidden;
-  color: var(--estado-text);
-  background: var(--estado-bg);
+  background: var(--reportes-bg);
 }
 
 @media (min-width: 768px) {
@@ -49,136 +45,278 @@
   }
 }
 
-.estado-card {
-  width: 100%;
-  margin: 0 auto;
-  border: 1px solid var(--estado-border);
-  border-radius: 5px;
-  background: var(--estado-card);
-  box-shadow: var(--estado-shadow);
+.reportes-intro {
+  margin: 0 0 10px;
+  color: var(--reportes-muted);
+  font-size: clamp(15px, 1.1vw, 18px);
+  font-weight: 400;
+  line-height: 1.25;
 }
 
-.estado-body {
-  padding: clamp(24px, 3vw, 40px);
-}
-
-.estado-grid {
+.reportes-filter {
   display: grid;
-  grid-template-columns: minmax(260px, 1.25fr) minmax(260px, 1.25fr) minmax(120px, 0.35fr) minmax(140px, 0.45fr);
-  gap: clamp(28px, 4vw, 70px);
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) minmax(180px, 0.45fr);
+  gap: clamp(18px, 3.2vw, 56px);
   align-items: center;
+  width: 100%;
+  min-height: 96px;
+  padding: clamp(18px, 2.4vw, 26px) clamp(20px, 3vw, 48px);
+  border: 1px solid var(--reportes-border);
+  border-radius: 6px;
+  background: var(--reportes-card);
+  box-shadow: var(--reportes-shadow);
 }
 
-.estado-field {
+:host-context(html.dark) .reportes-filter {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(241, 178, 61, 0.08);
+}
+
+.reportes-field {
   min-width: 0;
 }
 
-.estado-field label {
+.reportes-field span {
   display: block;
   margin-bottom: 2px;
-  color: var(--estado-muted);
-  font-size: 18px;
+  color: var(--reportes-muted);
+  font-size: clamp(14px, 1.05vw, 17px);
   font-weight: 400;
   line-height: 1.1;
 }
 
-.form-control {
+.reportes-control {
   width: 100%;
-  min-height: 42px;
-  border: 1px solid var(--estado-input-border);
+  min-height: 40px;
+  border: 1px solid var(--reportes-control-border);
   border-radius: 4px;
-  padding: 0 16px;
+  padding: 0 14px;
   outline: none;
-  color: var(--estado-text);
-  background: var(--app-input-bg);
-  font-size: 18px;
+  color: var(--reportes-text);
+  background: var(--reportes-control-bg);
+  font-size: clamp(14px, 1.05vw, 17px);
   font-weight: 400;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
 }
 
-:host-context(html:not(.dark)) .form-control {
+.reportes-control:focus {
+  border-color: #67c6dd;
+  box-shadow: 0 0 0 3px rgba(103, 198, 221, 0.18);
+}
+
+.reportes-control option {
   color: #172033;
   background: #ffffff;
 }
 
-.form-control option {
-  color: #172033;
-  background: #ffffff;
-}
-
-html.dark .form-control option {
+:host-context(html.dark) .reportes-control option {
   color: #f6f7fb;
-  background: #0b111a;
+  background: #111827;
 }
 
-.estado-actions {
+.reportes-actions {
   display: flex;
-  align-items: center;
+  align-items: end;
   justify-content: center;
+  height: 100%;
+  padding-top: 16px;
 }
 
-.estado-button {
-  min-height: 44px;
-  min-width: 104px;
-  padding: 0 18px;
+.reportes-consultar {
+  min-height: 42px;
+  min-width: 142px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 1px solid var(--estado-button-border);
-  border-radius: 12px;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   cursor: pointer;
-  color: var(--estado-button-text);
-  background: var(--estado-button-bg);
-  font-size: 15px;
-  font-weight: 850;
-  letter-spacing: 0.01em;
-  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.14);
+  color: #ffffff;
+  background: var(--reportes-button);
+  font-size: clamp(14px, 1.05vw, 16px);
+  font-weight: 500;
   transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.estado-button:hover:not(:disabled) {
-  background: var(--estado-button-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.18);
+:host-context(html.dark) .reportes-consultar {
+  color: #16120b;
 }
 
-.estado-button i {
-  font-size: 16px;
+.reportes-consultar:hover:not(:disabled) {
+  background: var(--reportes-button-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(16, 24, 40, 0.18);
 }
 
-.estado-button:disabled {
+.reportes-consultar:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
 
-.estado-message {
+.reportes-message {
   margin-top: 18px;
-  padding: 16px 18px;
-  border: 1px solid var(--estado-border);
-  border-radius: 5px;
-  color: var(--estado-muted);
-  background: var(--app-input-bg);
+  padding: 14px 16px;
+  border: 1px solid var(--reportes-border);
+  border-radius: 6px;
+  color: var(--reportes-muted);
+  background: var(--reportes-card);
   font-weight: 600;
 }
 
-@media (max-width: 1100px) {
-  .estado-grid {
+.reportes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: clamp(16px, 2.2vw, 32px);
+  margin-top: clamp(22px, 3vw, 34px);
+}
+
+.reporte-card {
+  --accent: #5b5b5b;
+  --accent-soft: rgba(91, 91, 91, 0.12);
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  min-height: 390px;
+  padding: 18px 18px 22px;
+  border: 1px solid var(--reportes-border);
+  border-radius: 6px;
+  background: var(--reportes-card);
+  box-shadow: var(--reportes-shadow);
+  text-align: center;
+}
+
+:host-context(html.dark) .reporte-card {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(241, 178, 61, 0.08);
+}
+
+.reporte-card-pdf {
+  --accent: #ff1e1e;
+  --accent-soft: rgba(255, 30, 30, 0.1);
+}
+
+.reporte-card-excel {
+  --accent: #d4df00;
+  --accent-soft: rgba(212, 223, 0, 0.13);
+}
+
+.reporte-card-corte {
+  --accent: #5b5b5b;
+  --accent-soft: rgba(91, 91, 91, 0.13);
+}
+
+.reporte-card-diario {
+  --accent: #d29243;
+  --accent-soft: rgba(210, 146, 67, 0.12);
+}
+
+.reporte-icon {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 28px;
+}
+
+.reporte-card h3 {
+  min-height: 48px;
+  margin: 0;
+  color: var(--reportes-text);
+  font-size: clamp(17px, 1.18vw, 21px);
+  font-weight: 800;
+  line-height: 1.18;
+}
+
+.reporte-divider {
+  width: 100%;
+  height: 1px;
+  margin: 18px 0 20px;
+  background: var(--reportes-border);
+}
+
+.reporte-card p {
+  margin: 0;
+  color: var(--reportes-muted);
+  font-size: clamp(13px, 0.95vw, 16px);
+  font-weight: 400;
+  line-height: 1.22;
+}
+
+.reporte-button {
+  width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+  border: 3px solid var(--accent);
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--accent);
+  background: transparent;
+  font-size: clamp(13px, 1vw, 16px);
+  font-weight: 500;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.reporte-button:hover {
+  color: #ffffff;
+  background: var(--accent);
+  transform: translateY(-1px);
+}
+
+:host-context(html.dark) .reporte-card {
+  --accent-soft: rgba(255, 255, 255, 0.07);
+}
+
+:host-context(html.dark) .reporte-card-pdf {
+  --accent: #ff6b6b;
+}
+
+:host-context(html.dark) .reporte-card-excel {
+  --accent: #e3ea4e;
+}
+
+:host-context(html.dark) .reporte-card-corte {
+  --accent: #c9ced6;
+}
+
+:host-context(html.dark) .reporte-card-diario {
+  --accent: #f1b23d;
+}
+
+@media (max-width: 1280px) {
+  .reportes-grid {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
-    gap: 22px;
+  }
+}
+
+@media (max-width: 900px) {
+  .reportes-filter {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .reportes-actions {
+    justify-content: stretch;
+    padding-top: 0;
+  }
+
+  .reportes-consultar {
+    width: 100%;
   }
 }
 
 @media (max-width: 640px) {
-  .estado-grid {
+  .reportes-grid {
     grid-template-columns: 1fr;
   }
 
-  .estado-actions {
-    justify-content: stretch;
-  }
-
-  .estado-button {
-    width: 100%;
+  .reporte-card {
+    min-height: auto;
   }
 }

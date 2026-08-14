@@ -29,7 +29,9 @@ export class UsuariosComponent implements OnInit {
   tipoBusquedaSeleccionado = '0';
   paginaActual = 1;
   totalPaginas = 1;
-  paginas: number[] = [];
+  totalRegistros = 0;
+  paginas: Array<number | string> = [];
+  accionesAbiertas = '';
 
   typeSearchOptions = [
     { label: 'Rango de fecha', value: '0' },
@@ -150,25 +152,31 @@ export class UsuariosComponent implements OnInit {
     console.log('Formulario ');
     console.log(this.formulario.value);
 
+    this.mensajeError = '';
+
+    if (!this.validarFechasBusqueda()) {
+      this.mostrarTabla = false;
+      return;
+    }
+
     this.cargando = true;
     this.mostrarTabla = false;
-    this.mensajeError = '';
 
     this.usuariosService.enviarFormulario(this.formulario.value)
       .subscribe({
 
         next: (response) => {
 
-          this.usuarios = response.content || [];
-          this.totalPaginas =
-            response.totalPages || 1;
+          this.usuarios = this.filtrarUsuariosPorEstatus(response.content || []);
+          this.totalRegistros = this.esBusquedaPorEstatus()
+            ? this.usuarios.length
+            : (response.totalElements || this.usuarios.length);
+          this.totalPaginas = this.esBusquedaPorEstatus()
+            ? (this.usuarios.length ? 1 : 0)
+            : (response.totalPages || 1);
 
-          this.paginas =
-            Array.from(
-              { length: this.totalPaginas },
-              (_, i) => i + 1
-            );
-          // this.cargando = false;
+          this.paginas = this.obtenerPaginas();
+          this.cargando = false;
 
           if (this.usuarios.length > 0) {
 
@@ -178,6 +186,7 @@ export class UsuariosComponent implements OnInit {
 
             this.mensajeError =
               'No se encontraron registros para los filtros seleccionados';
+            this.mostrarTabla = false;
 
           }
 
@@ -197,6 +206,9 @@ export class UsuariosComponent implements OnInit {
   }
 
   cambiarPagina(page: number): void {
+    if (page < 1 || page > this.totalPaginas || page === this.paginaActual) {
+      return;
+    }
 
     this.paginaActual = page;
 
@@ -209,13 +221,48 @@ export class UsuariosComponent implements OnInit {
 
         next: (response) => {
 
-          this.usuarios =
-            response.content || [];
+          this.usuarios = this.filtrarUsuariosPorEstatus(response.content || []);
+          this.totalRegistros = this.esBusquedaPorEstatus()
+            ? this.usuarios.length
+            : (response.totalElements || this.totalRegistros || this.usuarios.length);
+          this.totalPaginas = this.esBusquedaPorEstatus()
+            ? (this.usuarios.length ? 1 : 0)
+            : (response.totalPages || this.totalPaginas);
+          this.paginas = this.obtenerPaginas();
 
         }
 
       });
 
+  }
+
+  cambiarPaginaPaginador(page: number | string): void {
+    if (typeof page !== 'number') return;
+    this.cambiarPagina(page);
+  }
+
+  private obtenerPaginas(): Array<number | string> {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+    if (total <= 0) return [];
+
+    const paginasVisibles = new Set<number>([1, total]);
+
+    for (let pagina = actual - 2; pagina <= actual + 2; pagina++) {
+      if (pagina > 1 && pagina < total) {
+        paginasVisibles.add(pagina);
+      }
+    }
+
+    const paginasOrdenadas = Array.from(paginasVisibles).sort((a, b) => a - b);
+    return paginasOrdenadas.reduce<Array<number | string>>((paginas, pagina, index) => {
+      const paginaAnterior = paginasOrdenadas[index - 1];
+      if (index > 0 && pagina - paginaAnterior > 1) {
+        paginas.push('...');
+      }
+      paginas.push(pagina);
+      return paginas;
+    }, []);
   }
 
   /*cargarTiposOperacion(): void {
@@ -246,6 +293,57 @@ export class UsuariosComponent implements OnInit {
       value2F: event.dateStr.split(' ')[0]
     });
 
+  }
+
+  private validarFechasBusqueda(): boolean {
+    if (this.formulario.get('typeSearch')?.value !== '0') {
+      return true;
+    }
+
+    const fechaInicioTexto = this.formulario.get('value1F')?.value;
+    const fechaFinTexto = this.formulario.get('value2F')?.value;
+
+    if (!fechaInicioTexto || !fechaFinTexto) {
+      this.mensajeError = 'Selecciona fecha inicio y fecha fin para buscar.';
+      return false;
+    }
+
+    const fechaInicio = this.obtenerFechaFiltro(fechaInicioTexto);
+    const fechaFin = this.obtenerFechaFiltro(fechaFinTexto);
+
+    if (!fechaInicio || !fechaFin) {
+      this.mensajeError = 'Selecciona una fecha valida.';
+      return false;
+    }
+
+    if (fechaInicio.getTime() > Date.now() || fechaFin.getTime() > Date.now()) {
+      this.mensajeError = 'No puedes seleccionar una fecha mayor a la fecha actual.';
+      return false;
+    }
+
+    if (fechaFin.getTime() < fechaInicio.getTime()) {
+      this.mensajeError = 'La fecha fin no puede ser anterior a la fecha inicio.';
+      return false;
+    }
+
+    return true;
+  }
+
+  esMensajeValidacion(): boolean {
+    return [
+      'Selecciona fecha inicio y fecha fin para buscar.',
+      'Selecciona una fecha valida.',
+      'No puedes seleccionar una fecha mayor a la fecha actual.',
+      'La fecha fin no puede ser anterior a la fecha inicio.'
+    ].includes(this.mensajeError);
+  }
+
+  private obtenerFechaFiltro(value: unknown): Date | null {
+    const texto = String(value ?? '').trim();
+    if (!texto) return null;
+
+    const fecha = new Date(texto.replace(' ', 'T'));
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
   }
 
   /*
@@ -558,37 +656,153 @@ export class UsuariosComponent implements OnInit {
     this.tipoBusquedaSeleccionado = '0';
 
     this.usuarios = [];
+    this.totalRegistros = 0;
 
     this.mostrarTabla = false;
 
     this.mensajeError = '';
+    this.accionesAbiertas = '';
 
   }
 
 
   onAccionChange(accion: string, usuario: any): void {
 
-    if (!accion) {
+    if (!accion || !this.esUsuarioActivo(usuario)) {
+      this.accionesAbiertas = '';
       return;
     }
 
     if (accion === 'token') {
-
-      console.log('Reenvio token');
-      console.log(usuario);
-
-      // this.reenviarToken(usuario);
+      this.reenviarToken(usuario);
 
     }
 
     if (accion === 'correo') {
-
-      console.log('Actualizar correo');
-      console.log(usuario);
-
-      // this.actualizarCorreo(usuario);
-
+      this.actualizarCorreo(usuario);
     }
 
+    if (accion === 'bloquear') {
+      this.bloquearUsuario(usuario);
+    }
+
+    this.accionesAbiertas = '';
+  }
+
+  toggleAcciones(usuario: any): void {
+    const idUsuario = this.obtenerUsuarioId(usuario);
+    this.accionesAbiertas = this.accionesAbiertas === idUsuario ? '' : idUsuario;
+  }
+
+  esUsuarioActivo(usuario: any): boolean {
+    const status = String(usuario?.status ?? usuario?.statusDescription ?? usuario?.idStatus ?? '').trim().toLowerCase();
+    return status === '1' || status === 'activo' || status === 'active';
+  }
+
+  private filtrarUsuariosPorEstatus(usuarios: any[]): any[] {
+    if (!this.esBusquedaPorEstatus()) {
+      return usuarios;
+    }
+
+    const estatusSeleccionado = String(this.formulario.get('value1F')?.value ?? '');
+    const estatusNombre = this.estatusOptions.find(estatus => String(estatus.id) === estatusSeleccionado)?.nombre ?? '';
+    const estatusNormalizado = this.normalizarTexto(estatusNombre);
+
+    return usuarios.filter(usuario => {
+      const idStatus = String(usuario?.idStatus ?? usuario?.statusId ?? '');
+      const status = this.normalizarTexto(usuario?.status ?? usuario?.statusDescription ?? '');
+
+      return idStatus === estatusSeleccionado || (!!estatusNormalizado && status === estatusNormalizado);
+    });
+  }
+
+  private esBusquedaPorEstatus(): boolean {
+    return this.formulario.get('typeSearch')?.value === '3';
+  }
+
+  private normalizarTexto(value: unknown): string {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  obtenerUsuarioId(usuario: any): string {
+    return String(usuario?.idUser ?? usuario?.userId ?? usuario?.id ?? usuario?.dni ?? usuario?.email ?? '');
+  }
+
+  private reenviarToken(usuario: any): void {
+    if (!this.esUsuarioActivo(usuario)) return;
+
+    const email = String(usuario?.email ?? '');
+    const dni = String(usuario?.dni ?? '');
+    const contexto = this.obtenerContextoUsuario(usuario);
+
+    this.usuariosService.sendToken(contexto, email, dni).subscribe({
+      next: () => {
+        this.mensajeError = 'Token enviado correctamente.';
+      },
+      error: error => {
+        console.error('Error al reenviar token:', error);
+        this.mensajeError = 'No fue posible reenviar el token.';
+      }
+    });
+  }
+
+  private actualizarCorreo(usuario: any): void {
+    if (!this.esUsuarioActivo(usuario)) return;
+
+    const idUser = this.obtenerUsuarioId(usuario);
+    const emailOrigin = String(usuario?.email ?? '');
+    const emailUpdate = window.prompt('Nuevo correo electrónico', emailOrigin);
+
+    if (!emailUpdate || emailUpdate.trim() === emailOrigin) {
+      return;
+    }
+
+    this.usuariosService.updateEmail(idUser, emailOrigin, emailUpdate.trim()).subscribe({
+      next: () => {
+        usuario.email = emailUpdate.trim();
+        this.mensajeError = 'Correo actualizado correctamente.';
+      },
+      error: error => {
+        console.error('Error al actualizar correo:', error);
+        this.mensajeError = 'No fue posible actualizar el correo.';
+      }
+    });
+  }
+
+  private bloquearUsuario(usuario: any): void {
+    if (!this.esUsuarioActivo(usuario)) return;
+
+    const confirmado = window.confirm('¿Deseas bloquear este usuario?');
+    if (!confirmado) return;
+
+    const idUser = this.obtenerUsuarioId(usuario);
+    const contexto = this.obtenerContextoUsuario(usuario);
+
+    this.usuariosService.blockUser(idUser, contexto).subscribe({
+      next: () => {
+        usuario.status = 'Bloqueado';
+        this.mensajeError = 'Usuario bloqueado correctamente.';
+      },
+      error: error => {
+        console.error('Error al bloquear usuario:', error);
+        this.mensajeError = 'No fue posible bloquear el usuario.';
+      }
+    });
+  }
+
+  private obtenerContextoUsuario(usuario: any): string {
+    return String(
+      usuario?.idContext ??
+      usuario?.context ??
+      usuario?.contextId ??
+      usuario?.affiliationId ??
+      this.formulario.get('entidad')?.value ??
+      localStorage.getItem('idContext') ??
+      ''
+    );
   }
 }

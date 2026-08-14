@@ -92,6 +92,11 @@ export class AppSidebarComponent {
           name: 'SALDOS',
             icon: '<i class="fas fa-dollar-sign fa-lg"></i>',
           path: '/saldos'
+        },
+        {
+          name: 'CENTRO DE REPORTES',
+          icon: '<i class="fas fa-sitemap fa-lg"></i>',
+          path: '/reportes'
         }
       ]
     },
