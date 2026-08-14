@@ -1517,6 +1517,33 @@ small {
   font-weight: 900;
 }
 
+.mesa-siprelad-result {
+  margin: 6px 0 14px;
+  min-height: 88px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: var(--pre-text);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.mesa-siprelad-result strong {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--pre-text);
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.mesa-siprelad-result p {
+  margin: 0;
+  color: #86efac;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
 .mesa-results {
   min-height: 44px;
   padding: 10px 12px;
@@ -1752,6 +1779,20 @@ small {
 :host-context(html:not(.dark)) .mesa-review h3 {
   color: #172033;
   border-bottom-color: rgba(241, 178, 61, 0.7);
+}
+
+:host-context(html:not(.dark)) .mesa-siprelad-result {
+  color: #172033;
+  border-color: rgba(209, 219, 233, 0.95);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+:host-context(html:not(.dark)) .mesa-siprelad-result strong {
+  color: #172033;
+}
+
+:host-context(html:not(.dark)) .mesa-siprelad-result p {
+  color: #2f7d32;
 }
 
 :host-context(html:not(.dark)) .mesa-results {
