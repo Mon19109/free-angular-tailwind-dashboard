@@ -84,9 +84,10 @@ export class AddLinkPagoService {
 
   private getCommonHeaders(): HttpHeaders {
     return new HttpHeaders({
-      'Authorization': 'Bearer '+localStorage.getItem('token'),
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
       'Content-Type': 'application/json',
-      'Entity-i': 'com.onsigna'
+      'Entity-i': 'com.onsigna',
+      'versionApp': '3'
     });
   }
 
@@ -164,46 +165,62 @@ export class AddLinkPagoService {
      * @param formData Datos del formulario
      */
     enviarFormulario(formData: FormularioData): Observable<any> {
+      const productos = (formData.productos || []).map(description => ({
+        description,
+        category: '',
+        count: 0,
+        price: 0.0,
+        tax: 0.0
+      }));
+
+      const expiration = formData.fechaVen.includes('T')
+        ? formData.fechaVen
+        : `${formData.fechaVen}T23:59:59`;
+
       const datosTransformados = {
-        messageType: 88,
-				user: localStorage.getItem('mail'),
-				amount: formData.monto,   
-        retrievalReferenceCode: "'.date_timestamp_get($fecha).'",
-			  currency: "484",
-				sirioId: localStorage.getItem('entitySonID'),
-				otherAmount: 0.00,
-				orderingAccount : localStorage.getItem('cuenta'),
-				payment_type: 1,
+        user: localStorage.getItem('mail') || '',
+        amount: Number(formData.monto),
+        sirioID: localStorage.getItem('entitySonID') || '',
+        paymentType: 1,
+        retrievalReferenceCode: String(Math.floor(Date.now() / 1000)),
+        currency: '484',
+        notificationType: {
+          notificationTypeID: Number(formData.tipoNoti)
+        },
+        paymentMethod: {
+          paymentMethodID: Number(formData.tipoPago)
+        },
+        orderType: {
+          id: 2
+        },
+        products: productos,
+        customerInfo: {
+          firstName: formData.nombre,
+          lastName: formData.aPaterno,
+          middleName: formData.aMaterno,
+          email: formData.email,
+          phone1: formData.tel
+        },
+        payInfo: {
+          reference: formData.refCom,
+          description: formData.concepto,
+          expiration,
+          urlCallback: '',
+          urlImage: ''
+        },
+        otherAmount: 0.0,
+        orderingAccount: localStorage.getItem('cuenta') || '',
         payPhone: formData.tel,
-				payEmail: formData.email,
-				referenceOne: formData.ref1,
-			  referenceTwo: formData.ref2,
-				referenceThree: "",
-			  customerInfo: {
-				  firstName: formData.nombre,
-				  lastName: formData.aPaterno,
-				  middleName: formData.aMaterno,
-				  email: formData.email,
-			    phone1: formData.tel   
-			  },
-				products: formData.productos || [],
-				payInfo: {
-					unique: true,
-					reference: formData.refCom,
-					description: formData.concepto,
-					response: true,
-					expiration: formData.fechaVen,
-					urlCallback: "",
-			    urlImage: ""
-				}
-        // Convertir fechas al formato deseado si es necesario
-        //fechaInicio: formData.fechaVen ? new Date(formData.fechaVen).toISOString() : null
+        payEmail: formData.email,
+        referenceOne: formData.ref1,
+        referenceTwo: formData.ref2,
+        referenceThree: '',
+        tip: formData.propina,
+        msi: formData.msi
       };
-  
-      //getOperations?type_operation='.$_GET['type_operation'].'&id_status='.$_GET['id_status'].'&sirioId='.$_GET['id_context'].'&amount='.$_GET['amount'].'&auth_number='.$_GET['auth_number'].'&num_cuenta='.$_GET['num_cuenta'].'&init_date='.$_GET['init_date'].'&end_date='.$_GET['end_date'].'&email='.$_GET['email'].'&telephoneNumber='.$_GET['telephoneNumber'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE;
-      //return this.http.get(`${this.baseUrl}processTransaction?type_operation=`);
+
       return this.http.post(
-        `${this.crearLink}/OrderReceiver/api/v1/order`,
+        `${this.crearLink}order`,
         datosTransformados,
         {
           headers: this.getCommonHeaders()
