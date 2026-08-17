@@ -41,9 +41,16 @@
       [class.reporte-card-pdf]="reporte.variante === 'pdf'"
       [class.reporte-card-excel]="reporte.variante === 'excel'"
       [class.reporte-card-corte]="reporte.variante === 'corte'"
-      [class.reporte-card-diario]="reporte.variante === 'diario'">
+      [class.reporte-card-diario]="reporte.variante === 'diario'"
+      [class.reporte-card-split]="reporte.variante === 'split'"
+      [class.reporte-card-liquidacion]="reporte.variante === 'liquidacion'"
+      [class.reporte-card-bancos]="reporte.variante === 'bancos'"
+      [class.reporte-card-comision]="reporte.variante === 'comision'"
+      [class.reporte-card-conciliacion]="reporte.variante === 'conciliacion'"
+      [class.reporte-card-internacional]="reporte.variante === 'internacional'"
+      [class.reporte-card-reserva]="reporte.variante === 'reserva'">
       <div class="reporte-icon">
-        <i [class]="reporte.icono"></i>
+        <img [src]="reporte.imagen" [alt]="reporte.titulo" />
       </div>
 
       <h3>{{ reporte.titulo }}</h3>
@@ -52,9 +59,9 @@
 
       <p>{{ reporte.descripcion }}</p>
 
-      <button type="button" class="reporte-button" (click)="verReporte(reporte)">
-        <i class="far fa-file-alt"></i>
-        VER REPORTE
+      <button type="button" class="reporte-button" [disabled]="abriendoReporte === reporte.id" (click)="verReporte(reporte)">
+        <i class="fas" [ngClass]="abriendoReporte === reporte.id ? 'fa-spinner fa-spin' : 'fa-file-alt'"></i>
+        {{ abriendoReporte === reporte.id ? 'ABRIENDO...' : 'VER REPORTE' }}
         <i class="fas fa-chevron-right"></i>
       </button>
     </article>

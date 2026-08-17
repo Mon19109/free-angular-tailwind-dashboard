@@ -208,7 +208,39 @@
   --accent-soft: rgba(210, 146, 67, 0.12);
 }
 
+.reporte-card-split,
+.reporte-card-liquidacion {
+  --accent: #2e9e59;
+  --accent-soft: rgba(46, 158, 89, 0.12);
+}
+
+.reporte-card-bancos {
+  --accent: #e67e22;
+  --accent-soft: rgba(230, 126, 34, 0.12);
+}
+
+.reporte-card-comision {
+  --accent: #ff1e1e;
+  --accent-soft: rgba(255, 30, 30, 0.1);
+}
+
+.reporte-card-conciliacion {
+  --accent: #8e44ad;
+  --accent-soft: rgba(142, 68, 173, 0.12);
+}
+
+.reporte-card-internacional {
+  --accent: #4aa978;
+  --accent-soft: rgba(74, 169, 120, 0.12);
+}
+
+.reporte-card-reserva {
+  --accent: #d75b8d;
+  --accent-soft: rgba(215, 91, 141, 0.12);
+}
+
 .reporte-icon {
+  position: relative;
   width: 68px;
   height: 68px;
   display: grid;
@@ -219,6 +251,12 @@
   color: var(--accent);
   background: var(--accent-soft);
   font-size: 28px;
+}
+
+.reporte-icon img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
 }
 
 .reporte-card h3 {
@@ -269,8 +307,86 @@
   transform: translateY(-1px);
 }
 
+.reporte-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 :host-context(html.dark) .reporte-card {
   --accent-soft: rgba(255, 255, 255, 0.07);
+}
+
+:host-context(html.dark) .reporte-icon {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(html.dark) .reporte-icon img {
+  opacity: 0;
+}
+
+:host-context(html.dark) .reporte-icon::before {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+:host-context(html.dark) .reporte-card-pdf .reporte-icon::before {
+  mask-image: url("/assets/reportes/DescargaPDF.png");
+  -webkit-mask-image: url("/assets/reportes/DescargaPDF.png");
+}
+
+:host-context(html.dark) .reporte-card-excel .reporte-icon::before {
+  mask-image: url("/assets/reportes/DescargarXLS.png");
+  -webkit-mask-image: url("/assets/reportes/DescargarXLS.png");
+}
+
+:host-context(html.dark) .reporte-card-corte .reporte-icon::before {
+  mask-image: url("/assets/reportes/Transacciones.png");
+  -webkit-mask-image: url("/assets/reportes/Transacciones.png");
+}
+
+:host-context(html.dark) .reporte-card-diario .reporte-icon::before {
+  mask-image: url("/assets/reportes/TransaccionesDia.png");
+  -webkit-mask-image: url("/assets/reportes/TransaccionesDia.png");
+}
+
+:host-context(html.dark) .reporte-card-split .reporte-icon::before {
+  mask-image: url("/assets/reportes/Split.png");
+  -webkit-mask-image: url("/assets/reportes/Split.png");
+}
+
+:host-context(html.dark) .reporte-card-liquidacion .reporte-icon::before {
+  mask-image: url("/assets/reportes/Liquidacion.png");
+  -webkit-mask-image: url("/assets/reportes/Liquidacion.png");
+}
+
+:host-context(html.dark) .reporte-card-bancos .reporte-icon::before {
+  mask-image: url("/assets/reportes/Bancos.png");
+  -webkit-mask-image: url("/assets/reportes/Bancos.png");
+}
+
+:host-context(html.dark) .reporte-card-comision .reporte-icon::before,
+:host-context(html.dark) .reporte-card-reserva .reporte-icon::before {
+  mask-image: url("/assets/reportes/Compensacion.png");
+  -webkit-mask-image: url("/assets/reportes/Compensacion.png");
+}
+
+:host-context(html.dark) .reporte-card-conciliacion .reporte-icon::before {
+  mask-image: url("/assets/reportes/Conciliacion.png");
+  -webkit-mask-image: url("/assets/reportes/Conciliacion.png");
+}
+
+:host-context(html.dark) .reporte-card-internacional .reporte-icon::before {
+  mask-image: url("/assets/reportes/Internacional.png");
+  -webkit-mask-image: url("/assets/reportes/Internacional.png");
 }
 
 :host-context(html.dark) .reporte-card-pdf {
@@ -287,6 +403,31 @@
 
 :host-context(html.dark) .reporte-card-diario {
   --accent: #f1b23d;
+}
+
+:host-context(html.dark) .reporte-card-split,
+:host-context(html.dark) .reporte-card-liquidacion {
+  --accent: #4ade80;
+}
+
+:host-context(html.dark) .reporte-card-bancos {
+  --accent: #fb923c;
+}
+
+:host-context(html.dark) .reporte-card-comision {
+  --accent: #ff6b6b;
+}
+
+:host-context(html.dark) .reporte-card-conciliacion {
+  --accent: #d8b4fe;
+}
+
+:host-context(html.dark) .reporte-card-internacional {
+  --accent: #86efac;
+}
+
+:host-context(html.dark) .reporte-card-reserva {
+  --accent: #f9a8d4;
 }
 
 @media (max-width: 1280px) {
