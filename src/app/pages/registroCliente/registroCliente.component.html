@@ -100,15 +100,15 @@
               [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
               [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
-              (continuar)="completarPaso('datos', 'accesos')"
+              (continuar)="completarPaso('datos', 'liquidacion')"
               (volver)="continuarSeccion('comercio')" />
 
             <app-step-accesos
               *ngIf="seccion.id === 'accesos'"
               [form]="accesosForm"
               textoContinuar="Guardar y continuar"
-              (continuar)="completarPaso('accesos', 'liquidacion')"
-              (volver)="continuarSeccion('datos')" />
+              (continuar)="completarPaso('accesos', 'documentos')"
+              (volver)="continuarSeccion('liquidacion')" />
 
             <app-step-liquidacion
               *ngIf="seccion.id === 'liquidacion'"
@@ -119,7 +119,7 @@
               [permitirVacio]="true"
               [textoContinuar]="esNodoExistente ? 'Guardar cuenta de liquidación' : 'Guardar y continuar'"
               (continuar)="guardarLiquidacion()"
-              (volver)="continuarSeccion('accesos')" />
+              (volver)="continuarSeccion('datos')" />
 
             <app-step-documentos
               *ngIf="seccion.id === 'documentos'"
@@ -131,7 +131,7 @@
               textoFinalizar="Guardar registro"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (finalizar)="completarPaso('documentos'); finalizar()"
-              (volver)="continuarSeccion('liquidacion')" />
+              (volver)="continuarSeccion('accesos')" />
           </div>
         </article>
 

@@ -93,16 +93,16 @@ export class RegistroClienteComponent {
   readonly pasos = [
     { numero: 1, titulo: 'Descripción del Comercio' },
     { numero: 2, titulo: 'Datos Generales' },
-    { numero: 3, titulo: 'Accesos a la Plataforma y Terminales TPV' },
-    { numero: 4, titulo: 'Cuenta de Liquidación' },
+    { numero: 3, titulo: 'Cuenta de Liquidación' },
+    { numero: 4, titulo: 'Accesos a la Plataforma y Terminales TPV' },
     { numero: 5, titulo: 'Documentos del Comercio' }
   ];
 
   readonly secciones: SeccionRegistro[] = [
     { id: 'comercio', titulo: 'Datos del Comercio', descripcion: 'Información básica y de contacto del comercio', icono: 'fa-store' },
     { id: 'datos', titulo: 'Datos Generales', descripcion: 'Información del representante o contacto principal', icono: 'fa-user' },
-    { id: 'accesos', titulo: 'Accesos a Plataforma y TPV', descripcion: 'Credenciales para acceso a la plataforma y uso del TPV', icono: 'fa-lock' },
     { id: 'liquidacion', titulo: 'Cuenta de Liquidación', descripcion: 'Datos de la cuenta donde se recibirán las liquidaciones', icono: 'fa-building-columns' },
+    { id: 'accesos', titulo: 'Accesos a Plataforma y TPV', descripcion: 'Credenciales para acceso a la plataforma y uso del TPV', icono: 'fa-lock' },
     { id: 'documentos', titulo: 'Documentos', descripcion: 'Documentos requeridos del comercio', icono: 'fa-file-lines' }
   ];
 
@@ -488,7 +488,7 @@ export class RegistroClienteComponent {
     this.guardarEstadoRegistroLocal();
     this.liquidacionPorNodo = { ...this.liquidacionPorNodo };
     if (!this.esNodoExistente) {
-      this.seccionAbierta = this.resolverSeccionVisible('documentos', 'liquidacion');
+      this.seccionAbierta = this.resolverSeccionVisible('accesos', 'liquidacion');
       this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
     }
   }
