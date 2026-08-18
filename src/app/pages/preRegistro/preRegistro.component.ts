@@ -502,8 +502,8 @@ export class PreRegistroComponent {
     municipioComercial: ['', Validators.required],
     entidadFederativaComercial: ['', Validators.required],
     locationIDComercial: [''],
-    entreCalleComercial: [''],
-    yCalleComercial: [''],
+    entreCalleComercial: ['', Validators.required],
+    yCalleComercial: ['', Validators.required],
 
     correoComercial: ['', [Validators.required, Validators.email]],
     nombreContactoComercial: ['', Validators.required],
@@ -516,7 +516,7 @@ export class PreRegistroComponent {
 
   });
 
-  private readonly camposDinamicosOpcionales = ['numeroExterior', 'numeroInterior', 'entreCalle', 'yCalle'];
+  private readonly camposDinamicosOpcionales = ['numeroExterior', 'numeroInterior'];
   private readonly camposInfoFiscalEntidad = [
     'razonSocial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
     'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'actividadId', 'nombreComercial',
@@ -2564,6 +2564,8 @@ export class PreRegistroComponent {
       'localidadComercial',
       'municipioComercial',
       'entidadFederativaComercial',
+      'entreCalleComercial',
+      'yCalleComercial',
       'nombreContactoComercial',
       'apellidoPaternoContactoComercial',
       'apellidoMaternoContactoComercial',

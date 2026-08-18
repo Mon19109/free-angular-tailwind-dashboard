@@ -224,13 +224,15 @@
       </div>
       }
       @if (tiene('entreCalle')) {
-      <div class="field"><label for="entreCalle">Entre Calle</label>
-        <input id="entreCalle" formControlName="entreCalle" />
+      <div class="field"><label for="entreCalle">Entre Calle <b>*</b></label>
+        <input id="entreCalle" formControlName="entreCalle" [class.invalid]="esInvalido('entreCalle')" />
+        @if (esInvalido('entreCalle')) { <small>{{ mensajeCampo('entreCalle') }}</small> }
       </div>
       }
       @if (tiene('yCalle')) {
-      <div class="field"><label for="yCalle">Y Calle</label>
-        <input id="yCalle" formControlName="yCalle" />
+      <div class="field"><label for="yCalle">Y Calle <b>*</b></label>
+        <input id="yCalle" formControlName="yCalle" [class.invalid]="esInvalido('yCalle')" />
+        @if (esInvalido('yCalle')) { <small>{{ mensajeCampo('yCalle') }}</small> }
       </div>
       }
     </div>
@@ -436,13 +438,17 @@
       </div>
 
       <div class="field">
-        <label for="entreCalleComercial">Entre Calle</label>
-        <input id="entreCalleComercial" formControlName="entreCalleComercial">
+        <label for="entreCalleComercial">Entre Calle <b>*</b></label>
+        <input id="entreCalleComercial" formControlName="entreCalleComercial"
+          [class.invalid]="esInvalido('entreCalleComercial')">
+        @if (esInvalido('entreCalleComercial')) { <small>{{ mensajeCampo('entreCalleComercial') }}</small> }
       </div>
 
       <div class="field">
-        <label for="yCalleComercial">Y Calle</label>
-        <input id="yCalleComercial" formControlName="yCalleComercial">
+        <label for="yCalleComercial">Y Calle <b>*</b></label>
+        <input id="yCalleComercial" formControlName="yCalleComercial"
+          [class.invalid]="esInvalido('yCalleComercial')">
+        @if (esInvalido('yCalleComercial')) { <small>{{ mensajeCampo('yCalleComercial') }}</small> }
       </div>
 
     </div>
