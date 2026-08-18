@@ -316,8 +316,11 @@
             }
             @switch (paso.numero) {
             @case (1) {
-            <app-step-comercio [form]="comercioForm" [niveles]="nivelesComercioVisibles" [tiposComercio]="tiposComercio"
+            <app-step-comercio [form]="comercioForm" [datosForm]="datosForm" [niveles]="nivelesComercioVisibles" [tiposComercio]="tiposComercio"
               [bloquearNivel]="bloquearNivelComercio" [bloquearTipoComercio]="bloquearTipoComercio"
+              [bloquearTipoPersona]="bloquearTipoPersonaSucursal"
+              [mostrarTipoPersona]="camposDatosGenerales.includes('tipoPersona')"
+              [ocultarContactoPersonaMoral]="ocultarContactoPersonaMoralDescripcion"
               (continuar)="continuarComercio()" (volver)="volverDesdeComercio()" (abrirComisionista)="mostrarComisionista = true" />
             }
             @case (2) {

@@ -550,6 +550,14 @@ export class PreRegistroComponent {
     return this.mostrarRepresentante && this.datosForm.controls.tipoPersona.value !== 'PF';
   }
 
+  private get mostrarDireccionRepresentante(): boolean {
+    return this.mostrarRepresentante
+      || (
+        ['Empresa Holding', 'Empresa Grupo'].includes(this.tipoComercioEfectivoActual())
+        && this.datosForm.controls.tipoPersona.value === 'PF'
+      );
+  }
+
   private actualizarValidadoresDatos(): void {
     const activos = new Set(this.camposDatosGenerales);
     this.todosCamposDinamicos.forEach(nombre => {
@@ -580,7 +588,10 @@ export class PreRegistroComponent {
 
       if (!control) return;
 
-      const obligatorio = this.camposDatosGenerales.includes(nombre);
+      const esContactoDescripcion = this.camposDatosGenerales.includes('tipoPersona')
+        && ['correo', 'telefono'].includes(nombre)
+        && !(this.ocultarContactoPersonaMoralDescripcion && this.datosForm.controls.tipoPersona.value === 'PM');
+      const obligatorio = this.camposDatosGenerales.includes(nombre) || esContactoDescripcion;
 
       control.setValidators(this.validadoresDatosPorCampo(nombre, obligatorio));
 
@@ -600,6 +611,7 @@ export class PreRegistroComponent {
 
 
     const mostrarRep = this.mostrarRepresentante;
+    const mostrarDirRep = this.mostrarDireccionRepresentante;
     const mostrarNombreRep = this.mostrarNombreRepresentante;
 
     this.camposNombreRepresentante.forEach(nombre => {
@@ -613,7 +625,7 @@ export class PreRegistroComponent {
     this.camposDireccionRepresentanteObligatorios.forEach(nombre => {
       const control = this.datosForm.get(nombre);
       if (!control) return;
-      control.setValidators(this.validadoresDatosPorCampo(nombre, mostrarRep));
+      control.setValidators(this.validadoresDatosPorCampo(nombre, mostrarDirRep));
       control.updateValueAndValidity({ emitEvent: false });
     });
 
@@ -1096,7 +1108,9 @@ export class PreRegistroComponent {
     const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel);
     const campos = this.datosGeneralesPorTipo[esSinTipo ? nivel : tipo] ?? [];
     if (campos.length === 0) return campos;
-    const camposContactoPersona = this.mostrarRepresentante ? [] : ['correo', 'telefono'];
+    const camposContactoPersona = this.mostrarRepresentante || campos.includes('tipoPersona') || tipo === 'Persona Física'
+      ? []
+      : ['correo', 'telefono'];
     return Array.from(new Set([...campos, ...camposContactoPersona]));
   }
 
@@ -1141,8 +1155,15 @@ export class PreRegistroComponent {
     return !this.esComercioUnico && nodo?.nivel === 'sucursal' && !!this.buscarEntidadPadre(nodo.id);
   }
   get bloquearTipoPersonaSucursal(): boolean {
-    return !!this.tipoPersonaForzadaPorTexto(this.tipoComercioEfectivoActual())
+    return !!this.tipoPersonaForzadaPorTexto(this.tipoComercioDescripcionActual)
       || (this.mostrarInfoFiscalEntidadSucursal && this.datosForm.controls.mismaInfoFiscalEntidad.value);
+  }
+  get ocultarContactoPersonaMoralDescripcion(): boolean {
+    const tipoComercio = this.tipoComercioDescripcionActual;
+    return ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'].includes(tipoComercio);
+  }
+  private get tipoComercioDescripcionActual(): string {
+    return this.valorTexto(this.comercioForm.getRawValue().tipoComercio) || this.tipoComercioEfectivoActual();
   }
   get mostrarCheckMismoDomicilio(): boolean {
     if (this.tipoNegocioSeleccionado?.id !== 'sucursales-multiples') return true;
@@ -1401,10 +1422,16 @@ export class PreRegistroComponent {
           nodoSeleccionado: primerNodo?.id || 'sucursal-1',
         }, { emitEvent: false });
         if (primerNodo) this.aplicarComercioPorNodo(primerNodo);
+        if (primerNodo) this.cargarDatosSucursal(primerNodo.id);
+        if (this.camposDatosGenerales.includes('tipoPersona')) {
+          this.pasosCompletados.delete(1);
+          this.guardarBorradorSilencioso();
+          this.irAlPaso(1);
+          return;
+        }
         this.guardarComercioAutomaticoComercioUnico();
         this.marcarPasoCompletado(1);
         this.guardarBorradorSilencioso();
-        if (primerNodo) this.cargarDatosSucursal(primerNodo.id);
         this.irAlPaso(2);
         return;
       }
@@ -1441,6 +1468,7 @@ export class PreRegistroComponent {
   continuarComercio(): void {
     if (this.comercioForm.invalid) { this.comercioForm.markAllAsTouched(); return; }
     this.guardarComercioNodoActual();
+    if (this.camposDatosGenerales.includes('tipoPersona')) this.guardarDatosSucursalActual();
     this.marcarPasoCompletado(1);
     this.guardarBorradorSilencioso();
     if (this.pasoGeneralesDebeSaltarse) {
@@ -2742,7 +2770,10 @@ export class PreRegistroComponent {
   }
 
   private esDescripcionComercioAutomatica(nodo: NodoArbolNegocio): boolean {
-    return nodo.nivel === 'sub-afiliado' && this.tipoComercioAutomaticoPorNodo(nodo) === 'Empresa Holding';
+    const tipoComercio = this.tipoComercioAutomaticoPorNodo(nodo);
+    const campos = this.datosGeneralesPorTipo[tipoComercio] ?? [];
+    if (campos.includes('tipoPersona')) return false;
+    return nodo.nivel === 'sub-afiliado' && tipoComercio === 'Empresa Holding';
   }
 
   private tipoComercioForzadoPorEntidad(nodo: NodoArbolNegocio): string {
@@ -2766,7 +2797,7 @@ export class PreRegistroComponent {
 
   private requiereDatosRepresentante(tipoComercio: string, tipoPersona: unknown): boolean {
     if (!this.requiereRepresentantePorTipo(tipoComercio)) return false;
-    if (tipoComercio === 'Empresa Grupo' && this.tipoPersonaPayload(tipoPersona) === 'PF') return false;
+    if (['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'].includes(tipoComercio) && this.tipoPersonaPayload(tipoPersona) === 'PF') return false;
     return true;
   }
 

@@ -363,15 +363,20 @@ export class StepDatosComponent implements OnInit {
       'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
     ].includes(tipo);
     const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'];
-    const esEmpresaGrupoPersonaFisica = tipo === 'Empresa Grupo' && this.form.get('tipoPersona')?.value === 'PF';
-    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esEmpresaGrupoPersonaFisica;
+    const esPersonaFisica = this.form.get('tipoPersona')?.value === 'PF';
+    const esGrupoPersonaFisica = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'].includes(tipo) && esPersonaFisica;
+    const mostrarDireccionRepresentante = !esCaja && (
+      (tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica)
+      || (['Empresa Holding', 'Empresa Grupo'].includes(tipo) && esPersonaFisica)
+    );
+    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica;
     const mostrarNombreRepresentante = mostrarRepresentante && this.form.get('tipoPersona')?.value !== 'PF';
 
     return {
       datosGenerales:     !esCaja,
       domicilioFiscal:    !esCaja,
       representante:      mostrarNombreRepresentante,
-      dirRepresentante:   mostrarRepresentante,
+      dirRepresentante:   mostrarDireccionRepresentante,
       contactoRep:        mostrarRepresentante,
       domicilioComercial: true,
       contactoComercial:  true,

@@ -13,10 +13,14 @@ import { ReactiveFormsModule, FormGroup } from '@angular/forms';
 })
 export class StepComercioComponent {
   @Input() form!: FormGroup;
+  @Input() datosForm!: FormGroup;
   @Input() niveles: string[] = [];
   @Input() tiposComercio: string[] = [];
   @Input() bloquearNivel = false;
   @Input() bloquearTipoComercio = false;
+  @Input() bloquearTipoPersona = false;
+  @Input() mostrarTipoPersona = false;
+  @Input() ocultarContactoPersonaMoral = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() abrirComisionista = new EventEmitter<void>();
@@ -31,9 +35,47 @@ get esSinTipo(): boolean {
   return ['Referenciador', 'Comisionista'].includes(this.form.getRawValue().nivel);
 }
 
+get esPersonaFisica(): boolean {
+  return this.datosForm?.get('tipoPersona')?.value === 'PF';
+}
+
+get esPersonaMoral(): boolean {
+  return this.datosForm?.get('tipoPersona')?.value === 'PM';
+}
+
+get muestraContacto(): boolean {
+  return this.esPersonaFisica || (this.mostrarTipoPersona && !(this.ocultarContactoPersonaMoral && this.esPersonaMoral));
+}
+
+esContactoInvalido(campo: string): boolean {
+  const c = this.datosForm?.get(campo);
+  return !!(c?.invalid && c.touched);
+}
+
+mensajeContacto(campo: string): string {
+  const c = this.datosForm?.get(campo);
+  if (!c) return 'Campo obligatorio.';
+  if (c.hasError('required')) return 'Campo obligatorio.';
+  if (c.hasError('email')) return 'Ingresa un correo válido.';
+  if (c.hasError('pattern') || c.hasError('minlength') || c.hasError('maxlength')) {
+    if (campo === 'telefono') return 'Ingresa un teléfono de 10 dígitos.';
+  }
+  return 'Revisa el dato capturado.';
+}
+
 
   submit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    const camposDatosPaso = [
+      ...(this.mostrarTipoPersona ? ['tipoPersona'] : []),
+      ...(this.muestraContacto ? ['correo', 'telefono'] : []),
+    ];
+    const datosPasoInvalidos = camposDatosPaso.some(campo => this.datosForm?.get(campo)?.invalid);
+
+    if (this.form.invalid || datosPasoInvalidos) {
+      this.form.markAllAsTouched();
+      camposDatosPaso.forEach(campo => this.datosForm?.get(campo)?.markAsTouched());
+      return;
+    }
     this.continuar.emit();
   }
 }

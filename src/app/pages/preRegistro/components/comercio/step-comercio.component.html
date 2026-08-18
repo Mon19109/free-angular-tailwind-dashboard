@@ -23,6 +23,41 @@
     @if (esInvalido('tipoComercio')) { <small>Selecciona el tipo de comercio.</small> }
   </div>
 }
+
+    @if (mostrarTipoPersona && datosForm) {
+    <div class="field span-2">
+      <span class="field-label">Seleccione el tipo de cliente para el registro <b>*</b></span>
+      <div class="person-type-radios" [class.invalid]="esContactoInvalido('tipoPersona')" role="radiogroup" aria-label="Tipo de cliente para el registro">
+        <label>
+          <input type="radio" value="PF" [formControl]="$any(datosForm.get('tipoPersona'))"
+            [attr.disabled]="bloquearTipoPersona && !esPersonaFisica ? true : null" />
+          Persona Fisica
+        </label>
+        <label>
+          <input type="radio" value="PM" [formControl]="$any(datosForm.get('tipoPersona'))"
+            [attr.disabled]="bloquearTipoPersona && !esPersonaMoral ? true : null" />
+          Persona Moral
+        </label>
+      </div>
+      @if (esContactoInvalido('tipoPersona')) { <small>Debes seleccionar una opción.</small> }
+    </div>
+    }
+
+    @if (muestraContacto && datosForm) {
+    <div class="field">
+      <label for="correoPersonaFisica">Correo electrónico <b>*</b></label>
+      <input id="correoPersonaFisica" type="email" [formControl]="$any(datosForm.get('correo'))"
+        [class.invalid]="esContactoInvalido('correo')" />
+      @if (esContactoInvalido('correo')) { <small>{{ mensajeContacto('correo') }}</small> }
+    </div>
+
+    <div class="field">
+      <label for="telefonoPersonaFisica">Teléfono de contacto <b>*</b></label>
+      <input id="telefonoPersonaFisica" maxlength="10" inputmode="numeric" [formControl]="$any(datosForm.get('telefono'))"
+        [class.invalid]="esContactoInvalido('telefono')" />
+      @if (esContactoInvalido('telefono')) { <small>{{ mensajeContacto('telefono') }}</small> }
+    </div>
+    }
   </div>
 
   <div class="callout hidden">
