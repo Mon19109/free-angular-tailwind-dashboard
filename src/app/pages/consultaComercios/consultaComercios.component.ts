@@ -6,13 +6,13 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja';
-type EstatusComercio = 'Activo' | 'Inactivo' | 'Baja definitiva';
+type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos';
+type EstatusComercio = 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
 
 interface Comercio {
   idComercio: string;
   nodoId?: string;
-  nivel: 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja';
+  nivel: 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja' | 'Prospecto';
   jerarquia: string;
   nombreComercial: string;
   razonSocial: string;
@@ -45,7 +45,8 @@ export class ConsultaComerciosComponent {
     { id: 'sub-afiliado' as NivelComercio, label: 'Sub Afiliado', icon: 'fa-user-tie' },
     { id: 'entidad' as NivelComercio, label: 'Entidad', icon: 'fa-building' },
     { id: 'sucursal' as NivelComercio, label: 'Sucursal', icon: 'fa-store' },
-    { id: 'caja' as NivelComercio, label: 'Caja', icon: 'fa-cash-register' }
+    { id: 'caja' as NivelComercio, label: 'Caja', icon: 'fa-cash-register' },
+    { id: 'prospectos' as NivelComercio, label: 'Prospectos', icon: 'fa-user-clock' }
   ];
 
   filtros = {
@@ -68,7 +69,9 @@ export class ConsultaComerciosComponent {
     { idComercio: 'COM-00012848', nivel: 'Sucursal', jerarquia: 'Entidad 02 / Sucursal 03', nombreComercial: 'Sucursal Tlaquepaque', razonSocial: 'Sucursal Tlaquepaque SA', rfc: 'STL010101II9', correo: 'sucursal03.e2@subnorte.com', telefono: '55 1102 0003', estatus: 'Activo', tieneInferiores: true },
     { idComercio: 'COM-00012845', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 01 / Caja 01', nombreComercial: 'Caja 01 Toluca Centro', razonSocial: 'Caja 01 Toluca Centro SA', rfc: 'C1T010101JJ1', correo: 'caja01.s1e1@subnorte.com', telefono: '55 1201 0101', estatus: 'Activo', cajaPinRapido: true, password: 'Temp1#209901' },
     { idComercio: 'COM-00012841', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 01 / Caja 02', nombreComercial: 'Caja 02 Toluca Centro', razonSocial: 'Caja 02 Toluca Centro SA', rfc: 'C2T010101KK2', correo: 'caja02.s1e1@subnorte.com', telefono: '55 1201 0102', estatus: 'Activo', cajaPinRapido: true },
-    { idComercio: 'COM-00012837', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 02 / Caja 01', nombreComercial: 'Caja 01 Metepec', razonSocial: 'Caja 01 Metepec SA', rfc: 'C1M010101LL3', correo: 'caja01.s2e1@subnorte.com', telefono: '55 1201 0201', estatus: 'Activo', cajaPinRapido: true, password: 'Caja2#445566' }
+    { idComercio: 'COM-00012837', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 02 / Caja 01', nombreComercial: 'Caja 01 Metepec', razonSocial: 'Caja 01 Metepec SA', rfc: 'C1M010101LL3', correo: 'caja01.s2e1@subnorte.com', telefono: '55 1201 0201', estatus: 'Activo', cajaPinRapido: true, password: 'Caja2#445566' },
+    { idComercio: 'PRO-000001', nodoId: 'prospecto-1', nivel: 'Prospecto', jerarquia: 'Prospectos', nombreComercial: 'Prospecto Sucursal Centro', razonSocial: 'Prospecto Sucursal Centro SA', rfc: 'PSC010101MM4', correo: 'prospecto.centro@correo.com', telefono: '55 1301 0001', estatus: 'Prospecto' },
+    { idComercio: 'PRO-000002', nodoId: 'prospecto-2', nivel: 'Prospecto', jerarquia: 'Prospectos', nombreComercial: 'Prospecto Entidad Bajío', razonSocial: 'Prospecto Entidad Bajío SA', rfc: 'PEB010101NN5', correo: 'prospecto.bajio@correo.com', telefono: '55 1301 0002', estatus: 'Prospecto' }
   ];
 
   resultados = [...this.comercios];
@@ -133,7 +136,8 @@ export class ConsultaComerciosComponent {
     const telefono = normalizar(this.filtros.telefono);
 
     this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
-      const coincideNivel = nivel === 'todos' || this.normalizarNivel(comercio.nivel) === nivel;
+      const coincideNivel = nivel === 'todos'
+        || (nivel === 'prospectos' ? comercio.estatus === 'Prospecto' : this.normalizarNivel(comercio.nivel) === nivel);
       const coincideNombre = !nombre || comercio.nombreComercial.toLowerCase().includes(nombre) || comercio.razonSocial.toLowerCase().includes(nombre);
       const coincideRfc = !rfc || comercio.rfc.toLowerCase().includes(rfc);
       const coincideCorreo = !correo || comercio.correo.toLowerCase().includes(correo);
@@ -174,7 +178,8 @@ export class ConsultaComerciosComponent {
       'Sub Afiliado': 0,
       'Entidad': 1,
       'Sucursal': 2,
-      'Caja': 3
+      'Caja': 3,
+      'Prospecto': 4
     };
 
     return [...comercios].sort((a, b) => {
@@ -198,6 +203,7 @@ export class ConsultaComerciosComponent {
     const caja = this.extraerNumero(ruta, /caja[-\s]*0?(\d+)/i);
 
     if (comercio.nivel === 'Sub Afiliado') return [0, 0, 0];
+    if (comercio.nivel === 'Prospecto') return [99, 99, 99];
     if (comercio.nivel === 'Entidad') return [entidad || this.extraerNumero(comercio.nombreComercial, /(\d+)/), 0, 0];
     if (comercio.nivel === 'Sucursal') return [entidad || 1, sucursal || this.extraerNumero(comercio.nombreComercial, /(\d+)/), 0];
     return [entidad || 1, sucursal || 1, caja || this.extraerNumero(comercio.nombreComercial, /(\d+)/)];
@@ -220,6 +226,8 @@ export class ConsultaComerciosComponent {
     this.accionesAbiertas = null;
 
     if (accion === 'editar') {
+      if (!this.puedeEditar(comercio)) return;
+
       this.router.navigate(['/registro_cliente'], {
         queryParams: {
           id: comercio.idComercio,
@@ -276,6 +284,7 @@ export class ConsultaComerciosComponent {
   private nodoRegistroPorComercio(comercio: Comercio): string {
     if (comercio.nodoId) return comercio.nodoId;
     if (comercio.nivel === 'Sub Afiliado') return 'sub-afiliado-1';
+    if (comercio.nivel === 'Prospecto') return 'prospecto-1';
 
     const entidadMatch = comercio.jerarquia.match(/Entidad[-\s]+0?(\d+)/i);
     const sucursalMatch = comercio.jerarquia.match(/Sucursal[-\s]+0?(\d+)/i);
@@ -297,6 +306,10 @@ export class ConsultaComerciosComponent {
 
   puedeConsultarPassword(comercio: Comercio): boolean {
     return comercio.nivel === 'Caja' && !!comercio.cajaPinRapido;
+  }
+
+  puedeEditar(comercio: Comercio): boolean {
+    return this.filtros.nivel === 'prospectos' && comercio.estatus === 'Prospecto';
   }
 
   exportarExcel(): void {

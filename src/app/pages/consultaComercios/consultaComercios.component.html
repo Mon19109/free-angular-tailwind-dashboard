@@ -141,7 +141,7 @@
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
               <div class="actions-menu" *ngIf="accionesAbiertas === comercio.idComercio">
-                <button type="button" (click)="ejecutarAccion('editar', comercio)">Editar</button>
+                <button *ngIf="puedeEditar(comercio)" type="button" (click)="ejecutarAccion('editar', comercio)">Editar</button>
                 <button type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
                 <button type="button" (click)="ejecutarAccion('baja', comercio)">Baja</button>
                 <button type="button" [disabled]="!puedeConsultarPassword(comercio)" (click)="ejecutarAccion('password', comercio)">Consulta Contraseña</button>

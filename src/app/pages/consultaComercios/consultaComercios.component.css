@@ -202,7 +202,7 @@
 
 .level-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-columns: repeat(6, minmax(140px, 1fr));
   gap: 10px;
   padding: 0;
   margin: 0;
@@ -550,6 +550,7 @@ td {
 .badge.sucursal { background: #6d54b5; }
 .badge.entidad { background: #1f7aac; }
 .badge.sub-afiliado { background: #d96a16; }
+.badge.prospecto { background: #c7924b; color: #1d1608; }
 
 .status {
   width: 9px;
