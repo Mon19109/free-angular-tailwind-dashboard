@@ -17,6 +17,7 @@ export interface ConsultaComercioApi {
   terminalID?: number;
   terminalUserID?: number;
   userID?: number;
+  commerceID?: string;
   entitySonID?: string;
   fatherId?: string | null;
   issueId?: string | null;
@@ -30,8 +31,30 @@ export interface ConsultaComercioApi {
   dateTimeCreated?: string;
   idBusinessModel?: number;
   idAffilationLevel?: string;
+  guid?: string;
+  validate?: string;
   commerceType?: string;
   typeOfBusiness?: number;
+  [key: string]: unknown;
+}
+
+export interface ConsultaPasswordCajaResponse {
+  success?: boolean;
+  tuPassword?: string;
+  password?: string;
+  pwd?: string;
+  data?: {
+    tuPassword?: string;
+    password?: string;
+    pwd?: string;
+    [key: string]: unknown;
+  } | string;
+  message?: string;
+  error?: {
+    name?: string;
+    message?: string;
+    code?: string | number;
+  };
   [key: string]: unknown;
 }
 
@@ -68,8 +91,18 @@ export class ConsultaComerciosService {
     });
   }
 
+  consultarPasswordCaja(guid: string): Observable<ConsultaPasswordCajaResponse> {
+    return this.http.post<ConsultaPasswordCajaResponse>(
+      `${environment.api.kashpay}api/v1/user-r7k/v2/shwpwd-f3a917`,
+      { guid },
+      { headers: this.headers() }
+    );
+  }
+
   private headers(): HttpHeaders {
     return new HttpHeaders({
+      'Content-Type': 'application/json',
+      versionApp: '3',
       Authorization: `Bearer ${this.obtenerToken()}`,
     });
   }

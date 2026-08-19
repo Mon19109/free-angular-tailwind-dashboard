@@ -14,6 +14,7 @@ type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; val
 interface Comercio {
   idComercio: string;
   nodoId?: string;
+  guid?: string;
   nivel: 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja' | 'Prospecto';
   jerarquia: string;
   nombreComercial: string;
@@ -75,6 +76,8 @@ export class ConsultaComerciosComponent {
   modalCambiarPassword: Comercio | null = null;
   nuevaPassword = '';
   confirmarPassword = '';
+  cargandoPassword = false;
+  errorPassword = '';
   mostrarPassword = false;
   mostrarNuevaPassword = false;
   mostrarConfirmarPassword = false;
@@ -200,6 +203,7 @@ export class ConsultaComerciosComponent {
       const nivel = this.nivelDesdeComercioApi(comercio);
       return {
         idComercio: comercio.entitySonID || this.idComercioDesdeApi(comercio),
+        guid: this.guidDesdeComercioApi(comercio),
         nivel,
         jerarquia: this.jerarquiaDesdeComercioApi(comercio, nivel),
         nombreComercial: comercio.nameCommerce || 'ND',
@@ -234,8 +238,8 @@ export class ConsultaComerciosComponent {
 
     if (normalizado === 'ENTIDAD') return 'Entidad';
     if (normalizado === 'SUCURSAL') return 'Sucursal';
-    if (normalizado === 'CAJA') return 'Caja';
-    if (normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospecto';
+    if (normalizado === 'TERMINAL' || normalizado === 'CAJA') return 'Caja';
+    if (normalizado === 'REFERENCIADOR' || normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospecto';
 
     return null;
   }
@@ -266,6 +270,19 @@ export class ConsultaComerciosComponent {
       comercio.terminalID,
       comercio.terminalUserID,
     ].filter(valor => Number(valor) > 0).join('-') || 'ND';
+  }
+
+  private guidDesdeComercioApi(comercio: ConsultaComercioApi): string {
+    return String(
+      comercio.commerceID
+      || comercio.guid
+      || comercio.validate
+      || comercio['Guid']
+      || comercio['GUID']
+      || comercio['userGuid']
+      || comercio['terminalGuid']
+      || ''
+    );
   }
 
   private ordenarComoArbol(comercios: Comercio[]): Comercio[] {
@@ -344,6 +361,7 @@ export class ConsultaComerciosComponent {
     if (accion === 'password') {
       this.modalPassword = comercio;
       this.mostrarPassword = false;
+      this.consultarPasswordCaja(comercio);
       return;
     }
 
@@ -367,6 +385,65 @@ export class ConsultaComerciosComponent {
     this.confirmarPassword = '';
     this.mostrarNuevaPassword = false;
     this.mostrarConfirmarPassword = false;
+  }
+
+  private consultarPasswordCaja(comercio: Comercio): void {
+    if (!comercio.guid) {
+      this.errorPassword = 'La caja no tiene guid para consultar la contraseña.';
+      return;
+    }
+
+    this.cargandoPassword = true;
+    this.errorPassword = '';
+    comercio.password = '';
+
+    this.consultaComerciosService.consultarPasswordCaja(comercio.guid).subscribe({
+      next: respuesta => {
+        const password = this.passwordDesdeRespuesta(respuesta);
+        if (!password) {
+          this.errorPassword = respuesta.error?.message || respuesta.message || 'No se encontro contraseña para esta caja.';
+        }
+
+        comercio.password = password;
+        this.cargandoPassword = false;
+      },
+      error: () => {
+        this.errorPassword = 'No fue posible consultar la contraseña.';
+        comercio.password = '';
+        this.cargandoPassword = false;
+      }
+    });
+  }
+
+  private passwordDesdeRespuesta(respuesta: unknown): string {
+    return this.buscarValorEnRespuesta(respuesta, ['tuPassword', 'password', 'pwd']);
+  }
+
+  private buscarValorEnRespuesta(respuesta: unknown, llaves: string[]): string {
+    if (!respuesta) return '';
+    if (typeof respuesta === 'string') return respuesta;
+    if (typeof respuesta !== 'object') return '';
+
+    if (Array.isArray(respuesta)) {
+      for (const item of respuesta) {
+        const valor = this.buscarValorEnRespuesta(item, llaves);
+        if (valor) return valor;
+      }
+      return '';
+    }
+
+    const data = respuesta as Record<string, unknown>;
+    for (const llave of llaves) {
+      const valor = data[llave];
+      if (typeof valor === 'string') return valor;
+    }
+
+    for (const valor of Object.values(data)) {
+      const encontrado = this.buscarValorEnRespuesta(valor, llaves);
+      if (encontrado) return encontrado;
+    }
+
+    return '';
   }
 
   guardarPassword(): void {
@@ -400,7 +477,7 @@ export class ConsultaComerciosComponent {
   }
 
   puedeConsultarPassword(comercio: Comercio): boolean {
-    return comercio.nivel === 'Caja' && !!comercio.cajaPinRapido;
+    return comercio.nivel === 'Caja';
   }
 
   puedeEditar(comercio: Comercio): boolean {

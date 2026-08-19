@@ -194,13 +194,15 @@
 <div class="modal-backdrop" *ngIf="modalPassword">
   <section class="modal-card password">
     <header><h2>{{ modalPassword.nombreComercial }}</h2><button type="button" (click)="modalPassword = null"><i class="fa-solid fa-xmark"></i></button></header>
+    <p class="no-filters" *ngIf="cargandoPassword">Consultando contraseña...</p>
+    <p class="no-filters" *ngIf="errorPassword">{{ errorPassword }}</p>
     <label>
       <span>Contraseña:</span>
-      <input [type]="mostrarPassword ? 'text' : 'password'" [value]="modalPassword.password" readonly>
+      <input [type]="mostrarPassword ? 'text' : 'password'" [value]="modalPassword.password || ''" readonly>
       <button type="button" (click)="mostrarPassword = !mostrarPassword"><i class="fa-regular fa-eye"></i></button>
     </label>
     <footer>
-      <button class="btn btn-primary" type="button" (click)="abrirCambioPassword()">Cambiar</button>
+      <button class="btn btn-primary" type="button" [disabled]="cargandoPassword || !modalPassword.password" (click)="abrirCambioPassword()">Cambiar</button>
       <button class="btn btn-dark" type="button" (click)="modalPassword = null">Cancelar</button>
     </footer>
   </section>
