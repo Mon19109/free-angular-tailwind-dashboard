@@ -5,9 +5,11 @@ import { Router } from '@angular/router';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/consulta-comercios.service';
 
 type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos';
 type EstatusComercio = 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
+type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; valor: '...' };
 
 interface Comercio {
   idComercio: string;
@@ -34,10 +36,11 @@ interface Comercio {
   styleUrls: ['./consultaComercios.component.css']
 })
 export class ConsultaComerciosComponent {
-  private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
-
-  constructor(private router: Router) {
-    this.cargarComerciosLocales();
+  constructor(
+    private router: Router,
+    private consultaComerciosService: ConsultaComerciosService
+  ) {
+    this.buscar();
   }
 
   readonly niveles = [
@@ -57,24 +60,11 @@ export class ConsultaComerciosComponent {
     telefono: ''
   };
 
-  comercios: Comercio[] = [
-    { idComercio: 'COM-00012842', nivel: 'Sub Afiliado', jerarquia: 'Empresa Holding', nombreComercial: 'Sub Afiliado Norte', razonSocial: 'Sub Afiliado Norte SA de CV', rfc: 'SAN010101AA1', correo: 'holding@subnorte.com', telefono: '55 1000 0000', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012843', nivel: 'Entidad', jerarquia: 'Sub Afiliado Norte / Entidad 01', nombreComercial: 'Entidad Financiera México', razonSocial: 'Entidad Financiera México SA', rfc: 'EFM010101BB2', correo: 'entidad01@subnorte.com', telefono: '55 1000 0101', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012839', nivel: 'Entidad', jerarquia: 'Sub Afiliado Norte / Entidad 02', nombreComercial: 'Entidad Financiera Occidente', razonSocial: 'Entidad Financiera Occidente SA', rfc: 'EFO010101CC3', correo: 'entidad02@subnorte.com', telefono: '55 1000 0202', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012844', nivel: 'Sucursal', jerarquia: 'Entidad 01 / Sucursal 01', nombreComercial: 'Sucursal Toluca Centro', razonSocial: 'Sucursal Toluca Centro SA', rfc: 'STC010101DD4', correo: 'sucursal01.e1@subnorte.com', telefono: '55 1101 0001', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012840', nivel: 'Sucursal', jerarquia: 'Entidad 01 / Sucursal 02', nombreComercial: 'Sucursal Metepec', razonSocial: 'Sucursal Metepec SA', rfc: 'SME010101EE5', correo: 'sucursal02.e1@subnorte.com', telefono: '55 1101 0002', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012836', nivel: 'Sucursal', jerarquia: 'Entidad 01 / Sucursal 03', nombreComercial: 'Sucursal Zinacantepec', razonSocial: 'Sucursal Zinacantepec SA', rfc: 'SZI010101FF6', correo: 'sucursal03.e1@subnorte.com', telefono: '55 1101 0003', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012846', nivel: 'Sucursal', jerarquia: 'Entidad 02 / Sucursal 01', nombreComercial: 'Sucursal Guadalajara Centro', razonSocial: 'Sucursal Guadalajara Centro SA', rfc: 'SGC010101GG7', correo: 'sucursal01.e2@subnorte.com', telefono: '55 1102 0001', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012847', nivel: 'Sucursal', jerarquia: 'Entidad 02 / Sucursal 02', nombreComercial: 'Sucursal Zapopan', razonSocial: 'Sucursal Zapopan SA', rfc: 'SZA010101HH8', correo: 'sucursal02.e2@subnorte.com', telefono: '55 1102 0002', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012848', nivel: 'Sucursal', jerarquia: 'Entidad 02 / Sucursal 03', nombreComercial: 'Sucursal Tlaquepaque', razonSocial: 'Sucursal Tlaquepaque SA', rfc: 'STL010101II9', correo: 'sucursal03.e2@subnorte.com', telefono: '55 1102 0003', estatus: 'Activo', tieneInferiores: true },
-    { idComercio: 'COM-00012845', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 01 / Caja 01', nombreComercial: 'Caja 01 Toluca Centro', razonSocial: 'Caja 01 Toluca Centro SA', rfc: 'C1T010101JJ1', correo: 'caja01.s1e1@subnorte.com', telefono: '55 1201 0101', estatus: 'Activo', cajaPinRapido: true, password: 'Temp1#209901' },
-    { idComercio: 'COM-00012841', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 01 / Caja 02', nombreComercial: 'Caja 02 Toluca Centro', razonSocial: 'Caja 02 Toluca Centro SA', rfc: 'C2T010101KK2', correo: 'caja02.s1e1@subnorte.com', telefono: '55 1201 0102', estatus: 'Activo', cajaPinRapido: true },
-    { idComercio: 'COM-00012837', nivel: 'Caja', jerarquia: 'Entidad 01 / Sucursal 02 / Caja 01', nombreComercial: 'Caja 01 Metepec', razonSocial: 'Caja 01 Metepec SA', rfc: 'C1M010101LL3', correo: 'caja01.s2e1@subnorte.com', telefono: '55 1201 0201', estatus: 'Activo', cajaPinRapido: true, password: 'Caja2#445566' },
-    { idComercio: 'PRO-000001', nodoId: 'prospecto-1', nivel: 'Prospecto', jerarquia: 'Prospectos', nombreComercial: 'Prospecto Sucursal Centro', razonSocial: 'Prospecto Sucursal Centro SA', rfc: 'PSC010101MM4', correo: 'prospecto.centro@correo.com', telefono: '55 1301 0001', estatus: 'Prospecto' },
-    { idComercio: 'PRO-000002', nodoId: 'prospecto-2', nivel: 'Prospecto', jerarquia: 'Prospectos', nombreComercial: 'Prospecto Entidad Bajío', razonSocial: 'Prospecto Entidad Bajío SA', rfc: 'PEB010101NN5', correo: 'prospecto.bajio@correo.com', telefono: '55 1301 0002', estatus: 'Prospecto' }
-  ];
+  comercios: Comercio[] = [];
 
   resultados = [...this.comercios];
+  cargando = false;
+  errorConsulta = '';
   paginaActual = 1;
   elementosPorPagina = 10;
   busquedaTabla = '';
@@ -109,8 +99,39 @@ export class ConsultaComerciosComponent {
     return Math.max(1, Math.ceil(this.resultadosFiltradosTabla.length / this.elementosPorPagina));
   }
 
-  get paginas(): number[] {
-    return Array.from({ length: this.totalPaginas }, (_, index) => index + 1);
+  get paginasVisibles(): PaginaVisible[] {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, index) => ({
+        tipo: 'pagina' as const,
+        valor: index + 1
+      }));
+    }
+
+    const paginas = new Set<number>([1, total, actual - 1, actual, actual + 1]);
+
+    if (actual <= 4) {
+      [2, 3, 4, 5].forEach(pagina => paginas.add(pagina));
+    }
+
+    if (actual >= total - 3) {
+      [total - 4, total - 3, total - 2, total - 1].forEach(pagina => paginas.add(pagina));
+    }
+
+    const ordenadas = [...paginas]
+      .filter(pagina => pagina >= 1 && pagina <= total)
+      .sort((a, b) => a - b);
+
+    return ordenadas.reduce<PaginaVisible[]>((acumulado, pagina, index) => {
+      const anterior = ordenadas[index - 1];
+      if (anterior && pagina - anterior > 1) {
+        acumulado.push({ tipo: 'ellipsis', valor: '...' });
+      }
+      acumulado.push({ tipo: 'pagina', valor: pagina });
+      return acumulado;
+    }, []);
   }
 
   get resumen() {
@@ -128,49 +149,123 @@ export class ConsultaComerciosComponent {
   }
 
   buscar(): void {
-    const normalizar = (valor: string) => valor.trim().toLowerCase();
-    const nivel = this.filtros.nivel;
-    const nombre = normalizar(this.filtros.nombre);
-    const rfc = normalizar(this.filtros.rfc);
-    const correo = normalizar(this.filtros.correo);
-    const telefono = normalizar(this.filtros.telefono);
+    this.cargando = true;
+    this.errorConsulta = '';
+    this.consultaComerciosService.buscarComercios({
+      nameCommerce: this.filtros.nombre.trim(),
+      rfc: this.filtros.rfc.trim(),
+      email: this.filtros.correo.trim(),
+      telefono: this.filtros.telefono.trim(),
+    }).subscribe({
+      next: respuesta => {
+        if (respuesta.success === false) {
+          this.errorConsulta = respuesta.error?.message || 'No fue posible consultar los comercios.';
+          this.resultados = [];
+          this.cargando = false;
+          return;
+        }
 
-    this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
-      const coincideNivel = nivel === 'todos'
-        || (nivel === 'prospectos' ? comercio.estatus === 'Prospecto' : this.normalizarNivel(comercio.nivel) === nivel);
-      const coincideNombre = !nombre || comercio.nombreComercial.toLowerCase().includes(nombre) || comercio.razonSocial.toLowerCase().includes(nombre);
-      const coincideRfc = !rfc || comercio.rfc.toLowerCase().includes(rfc);
-      const coincideCorreo = !correo || comercio.correo.toLowerCase().includes(correo);
-      const coincideTelefono = !telefono || comercio.telefono.toLowerCase().includes(telefono);
-
-      return coincideNivel && coincideNombre && coincideRfc && coincideCorreo && coincideTelefono;
-    }));
-
-    this.paginaActual = 1;
-    this.accionesAbiertas = null;
+        this.comercios = this.ordenarComoArbol(this.normalizarComerciosApi(respuesta.commerces ?? []));
+        this.aplicarFiltroNivel();
+        this.cargando = false;
+      },
+      error: () => {
+        this.errorConsulta = 'No fue posible consultar los comercios.';
+        this.comercios = [];
+        this.aplicarFiltroNivel();
+        this.cargando = false;
+      }
+    });
   }
 
   limpiar(): void {
     this.filtros = { nivel: 'todos', nombre: '', rfc: '', correo: '', telefono: '' };
     this.busquedaTabla = '';
-    this.resultados = this.ordenarComoArbol(this.comercios);
+    this.buscar();
     this.paginaActual = 1;
   }
 
-  private cargarComerciosLocales(): void {
-    try {
-      const locales = JSON.parse(localStorage.getItem(this.comerciosLocalesKey) || '[]') as Comercio[];
-      if (!Array.isArray(locales) || !locales.length) return;
+  private aplicarFiltroNivel(): void {
+    const nivel = this.filtros.nivel;
+    this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio =>
+      nivel === 'todos'
+      || (nivel === 'prospectos' ? comercio.estatus === 'Prospecto' : this.normalizarNivel(comercio.nivel) === nivel)
+    ));
+    this.paginaActual = 1;
+    this.accionesAbiertas = null;
+  }
 
-      const idsLocales = new Set(locales.map(comercio => comercio.idComercio));
-      this.comercios = this.ordenarComoArbol([
-        ...this.comercios.filter(comercio => !idsLocales.has(comercio.idComercio)),
-        ...locales
-      ]);
-      this.resultados = this.ordenarComoArbol(this.comercios);
-    } catch {
-      this.resultados = this.ordenarComoArbol(this.comercios);
+  private normalizarComerciosApi(commerces: ConsultaComercioApi[]): Comercio[] {
+    return commerces.map(comercio => {
+      const nivel = this.nivelDesdeComercioApi(comercio);
+      return {
+        idComercio: comercio.entitySonID || this.idComercioDesdeApi(comercio),
+        nivel,
+        jerarquia: this.jerarquiaDesdeComercioApi(comercio, nivel),
+        nombreComercial: comercio.nameCommerce || 'ND',
+        razonSocial: comercio.businessName || 'ND',
+        rfc: comercio.rfc || 'ND',
+        correo: comercio.email || 'ND',
+        telefono: comercio.phoneNumber || 'ND',
+        estatus: 'Activo',
+        cajaPinRapido: nivel === 'Caja' && comercio.idBusinessModel === 3,
+        tieneInferiores: nivel !== 'Caja',
+      };
+    });
+  }
+
+  private nivelDesdeComercioApi(comercio: ConsultaComercioApi): Comercio['nivel'] {
+    const nivelServicio = this.nivelDesdeAffilationLevel(comercio.idAffilationLevel);
+    if (nivelServicio) return nivelServicio;
+
+    // Respaldo para registros viejos que todavia no manden idAffilationLevel.
+    if (Number(comercio.terminalUserID) > 0) return 'Caja';
+    if (Number(comercio.terminalID) > 0) return 'Sucursal';
+    if (Number(comercio.entityID) > 0) return 'Entidad';
+    return 'Sub Afiliado';
+  }
+
+  private nivelDesdeAffilationLevel(nivel?: string): Comercio['nivel'] | null {
+    const normalizado = this.normalizarTexto(nivel);
+
+    if (normalizado === 'SUBAFILIADO' || normalizado === 'SUB_AFILIADO' || normalizado === 'SUB AFILIADO') {
+      return 'Sub Afiliado';
     }
+
+    if (normalizado === 'ENTIDAD') return 'Entidad';
+    if (normalizado === 'SUCURSAL') return 'Sucursal';
+    if (normalizado === 'CAJA') return 'Caja';
+    if (normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospecto';
+
+    return null;
+  }
+
+  private normalizarTexto(valor?: string): string {
+    return (valor || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase();
+  }
+
+  private jerarquiaDesdeComercioApi(comercio: ConsultaComercioApi, nivel: Comercio['nivel']): string {
+    const partes = [
+      comercio.contextID ? `Sub ${comercio.contextID}` : '',
+      comercio.entityID ? `Entidad ${comercio.entityID}` : '',
+      comercio.terminalID ? `Sucursal ${comercio.terminalID}` : '',
+      comercio.terminalUserID ? `Caja ${comercio.terminalUserID}` : '',
+    ].filter(Boolean);
+
+    return partes.length ? partes.join(' / ') : nivel;
+  }
+
+  private idComercioDesdeApi(comercio: ConsultaComercioApi): string {
+    return [
+      comercio.contextID,
+      comercio.entityID,
+      comercio.terminalID,
+      comercio.terminalUserID,
+    ].filter(valor => Number(valor) > 0).join('-') || 'ND';
   }
 
   private ordenarComoArbol(comercios: Comercio[]): Comercio[] {
@@ -289,7 +384,7 @@ export class ConsultaComerciosComponent {
     const entidadMatch = comercio.jerarquia.match(/Entidad[-\s]+0?(\d+)/i);
     const sucursalMatch = comercio.jerarquia.match(/Sucursal[-\s]+0?(\d+)/i);
     const cajaMatch = comercio.jerarquia.match(/Caja[-\s]+0?(\d+)/i);
-    const entidad = entidadMatch ? Number(entidadMatch[1]) : comercio.idComercio === 'COM-00012839' ? 2 : 1;
+    const entidad = entidadMatch ? Number(entidadMatch[1]) : 1;
 
     if (comercio.nivel === 'Entidad') return `entidad-${entidad}`;
 

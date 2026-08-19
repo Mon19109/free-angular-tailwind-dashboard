@@ -611,6 +611,7 @@ td {
 
 .pagination > div {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -626,6 +627,13 @@ td {
   border-color: var(--consulta-gold);
   background: var(--consulta-gold);
   color: #1d1608;
+}
+
+.pagination-ellipsis {
+  min-width: 24px;
+  text-align: center;
+  color: var(--consulta-muted);
+  font-weight: 800;
 }
 
 .no-filters {

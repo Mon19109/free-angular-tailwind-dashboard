@@ -111,6 +111,9 @@
       </div>
     </div>
 
+    <p class="no-filters" *ngIf="cargando">Consultando comercios...</p>
+    <p class="no-filters" *ngIf="errorConsulta">{{ errorConsulta }}</p>
+
     <div class="table-scroll">
       <table>
         <thead>
@@ -156,7 +159,15 @@
       <span>Mostrando {{ comerciosPaginados.length }} de {{ resultadosFiltradosTabla.length }} registros</span>
       <div>
         <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1"><i class="fa-solid fa-chevron-left"></i></button>
-        <button type="button" *ngFor="let pagina of paginas" [class.active]="pagina === paginaActual" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+        <ng-container *ngFor="let pagina of paginasVisibles">
+          <button
+            type="button"
+            *ngIf="pagina.tipo === 'pagina'"
+            [class.active]="pagina.valor === paginaActual"
+            (click)="cambiarPagina(pagina.valor)"
+          >{{ pagina.valor }}</button>
+          <span class="pagination-ellipsis" *ngIf="pagina.tipo === 'ellipsis'">{{ pagina.valor }}</span>
+        </ng-container>
         <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
     </footer>
