@@ -1,73 +1,118 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
-//import { AuthService, UserSessionData } from '../services/auth.service';
 
-export interface Cuenta {
-  id: number;
-  nombre: string;
-  numero: string;
-  saldo?: number;
+export type FiltroPagoDistancia =
+  | 'Apellido Paterno'
+  | 'Apellido Materno'
+  | 'Nombre'
+  | 'Concepto'
+  | 'Correo Electrónico'
+  | 'Monto'
+  | 'Referencia del comercio'
+  | 'Teléfono'
+  | 'Fecha de expiración'
+  | '';
+
+export interface BusquedaPagoDistanciaData {
+  filtro: FiltroPagoDistancia;
+  busqueda: string;
+  fechaCreacion: string;
 }
 
-export interface FormularioData {
-  entidad: string;
-  tarjeta: string;
+interface CustomerInfoBusqueda {
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  email: string;
+  phone1: string;
+}
+
+interface PayInfoBusqueda {
+  reference: string;
+  description: string;
+  creation: string;
+  expiration: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class PagoDistanciaService {
-  private apiUrlCuentas = environment.api.aldebaran;
+  private readonly apiUrl = environment.api.linkpago;
 
-  
   constructor(private http: HttpClient) { }
 
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
-    });
-  }
-  /**
-   * Obtiene la lista de cuentas del API
-   */
+  buscarOrdenes(formData: BusquedaPagoDistanciaData): Observable<any> {
+    const customerInfo: CustomerInfoBusqueda = {
+      firstName: '',
+      lastName: '',
+      middleName: '',
+      email: '',
+      phone1: ''
+    };
+    const payInfo: PayInfoBusqueda = {
+      reference: '',
+      description: '',
+      creation: formData.fechaCreacion,
+      expiration: ''
+    };
+    let amount: number | null = null;
 
-  obtenerCuentas(): Observable<Cuenta[]> {
-    return this.http.get<any>(
-      `${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`
-    );
-  }
+    switch (formData.filtro) {
+      case 'Apellido Paterno':
+        customerInfo.lastName = formData.busqueda;
+        break;
+      case 'Apellido Materno':
+        customerInfo.middleName = formData.busqueda;
+        break;
+      case 'Nombre':
+        customerInfo.firstName = formData.busqueda;
+        break;
+      case 'Concepto':
+        payInfo.description = formData.busqueda;
+        break;
+      case 'Correo Electrónico':
+        customerInfo.email = formData.busqueda;
+        break;
+      case 'Monto': {
+        const monto = Number(formData.busqueda);
+        amount = Number.isFinite(monto) ? monto : null;
+        break;
+      }
+      case 'Referencia del comercio':
+        payInfo.reference = formData.busqueda;
+        break;
+      case 'Teléfono':
+        customerInfo.phone1 = formData.busqueda;
+        break;
+      case 'Fecha de expiración':
+        payInfo.expiration = formData.busqueda;
+        break;
+      default:
+        customerInfo.firstName = formData.busqueda;
+        break;
+    }
 
-
-  /**
-   * Envía los datos del formulario al API
-   * @param formData Datos del formulario
-   */
-  enviarFormulario(formData: FormularioData): Observable<any> {
-    // Opcional: Puedes transformar los datos si es necesario
-    const datosTransformados = {
-      ...formData
+    const payload = {
+      sirioID: localStorage.getItem('entitySonID') || '',
+      amount,
+      customerInfo,
+      payInfo
     };
 
-    return this.http.get(`${this.apiUrlCuentas}getCards?value=${formData.tarjeta}&sirioId=${formData.entidad}`);
-  }
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Entity-i': 'com.onsigna',
+      'versionApp': '3',
+      'Content-Type': 'application/json'
+    });
 
-  /**
-   * Método alternativo para enviar formulario con parámetros query
-   * @param formData Datos del formulario
-   */
-  enviarFormularioComoParams(formData: FormularioData): Observable<any> {
-    let params = new HttpParams();
-    
-    if (formData.tarjeta) params = params.set('cuenta', formData.tarjeta);
-    if (formData.entidad) params = params.set('estatus', formData.entidad);
-
-    return this.http.get(`${this.apiUrlCuentas}getCards?value=${formData.tarjeta}&sirioId=${formData.entidad}`);
-
+    return this.http.post(
+      `${this.apiUrl}order/getOders`,
+      payload,
+      { headers }
+    );
   }
 }

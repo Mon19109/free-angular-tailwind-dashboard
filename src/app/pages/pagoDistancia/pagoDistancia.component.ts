@@ -1,7 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { PagoDistanciaService,  } from '../../services/pagoDistancia.service';
+import {
+  BusquedaPagoDistanciaData,
+  FiltroPagoDistancia,
+  PagoDistanciaService
+} from '../../services/pagoDistancia.service';
 import { LabelComponent } from '../../shared/components/form/label/label.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 
@@ -13,20 +17,22 @@ import { DatePickerComponent } from '../../shared/components/form/date-picker/da
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 }) 
-export class PagoDistanciaComponent implements OnInit {
+export class PagoDistanciaComponent {
   formulario: FormGroup;
-  cuentas: any[] = [];
-  tarjeta: string = '';
+  readonly idRol = Number(localStorage.getItem('idRol') || 0);
+  readonly mostrarCrearLink = [5, 6].includes(this.idRol);
+  readonly mostrarBotonPago = [4, 5, 6].includes(this.idRol);
+  ordenes: any[] = [];
   filtros = [
-        { value: '1', label: 'Apellido Paterno' },
-        { value: '2', label: 'Apellido Materno' },
-        { value: '3', label: 'Nombre' },
-        { value: '3', label: 'Concepto' },
-        { value: '3', label: 'Correo Electrónico' },
-        { value: '3', label: 'Monto' },
-        { value: '3', label: 'Referencia del comercio' },
-        { value: '3', label: 'Teléfono' },
-        { value: '3', label: 'Fecha Expiración' }
+        { value: 'Apellido Paterno', label: 'Apellido Paterno' },
+        { value: 'Apellido Materno', label: 'Apellido Materno' },
+        { value: 'Nombre', label: 'Nombre' },
+        { value: 'Concepto', label: 'Concepto' },
+        { value: 'Correo Electrónico', label: 'Correo Electrónico' },
+        { value: 'Monto', label: 'Monto' },
+        { value: 'Referencia del comercio', label: 'Referencia del comercio' },
+        { value: 'Teléfono', label: 'Teléfono' },
+        { value: 'Fecha de expiración', label: 'Fecha de expiración' }
     ];
   selectedOptionFil = '';
   dateValue='';
@@ -41,63 +47,38 @@ export class PagoDistanciaComponent implements OnInit {
     private fb: FormBuilder
   ) {
     this.formulario = this.fb.group({
-      tarjeta: [''],
-      entidad: ['']
+      fechaCreacion: [''],
+      filtro: [''],
+      busqueda: ['']
     });
-  }
-
-  ngOnInit(): void {
-    this.cargarDatosIniciales();
-  }
-
-  cargarDatosIniciales(): void {
-    // Cargar cuentas
-    this.pagoDistanciaService.obtenerCuentas().subscribe({
-      next: (data) => {
-        this.cuentas = this.normalizarCuentas(data);
-        console.log('Cuentas pago distancia:', this.cuentas);
-      },
-      error: (error) => {
-        console.error('Error al cargar cuentas:', error);
-      }
-    });
-
-  }
-
-  private normalizarCuentas(response: any): any[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    return response?.data || response?.entities || [];
   }
 
   handleSelectChangeFil(event: Event) {
     const value = (event.target as HTMLSelectElement).value;
     this.selectedOptionFil = value;
-    console.log('Selected value:', value);
-    //this.opcionSeleccionada = value
+    this.formulario.patchValue({ filtro: value });
   }
   handleDateChange(event: any) {
-    this.dateValue = event;
-    console.log('Date changed:', event);
+    this.dateValue = event?.dateStr ?? event ?? '';
+    this.formulario.patchValue({ fechaCreacion: this.dateValue });
   }
 
   onSubmit(): void {
     if (this.formulario.valid) {
-      const formValues = this.formulario.value;
-      console.log('Formulario enviado:', formValues);
-      
-      // Aquí puedes llamar a otro servicio para enviar los datos
-      this.pagoDistanciaService.enviarFormulario(formValues).subscribe({
-        next: (response) => {
-          console.log('Formulario enviado exitosamente:', response);
-          this.tarjeta = response || [];
+      const rawValue = this.formulario.getRawValue();
+      const formValues: BusquedaPagoDistanciaData = {
+        filtro: (rawValue.filtro || '') as FiltroPagoDistancia,
+        busqueda: String(rawValue.busqueda || '').trim(),
+        fechaCreacion: String(rawValue.fechaCreacion || '').trim()
+      };
 
-          //console.log('tarjeta enviado exitosamente:', this.operaciones);
-          // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
+      this.pagoDistanciaService.buscarOrdenes(formValues).subscribe({
+        next: (response) => {
+          this.ordenes = this.normalizarOrdenes(response);
+          console.log('Links encontrados:', this.ordenes);
         },
         error: (error) => {
+          this.ordenes = [];
           console.error('Error al enviar formulario:', error);
         }
       });
@@ -106,6 +87,22 @@ export class PagoDistanciaComponent implements OnInit {
 
   limpiarFormulario(): void {
     this.formulario.reset();
+    this.ordenes = [];
+    this.selectedOptionFil = '';
+    this.dateValue = '';
+  }
+
+  private normalizarOrdenes(response: any): any[] {
+    if (Array.isArray(response)) return response;
+
+    const resultado = response?.orders
+      ?? response?.data
+      ?? response?.payOrders
+      ?? response?.orderResponse
+      ?? response?.content
+      ?? [];
+
+    return Array.isArray(resultado) ? resultado : [resultado];
   }
  
 }

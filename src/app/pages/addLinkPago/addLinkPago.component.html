@@ -5,6 +5,15 @@
     </div>
   }
   <div class="operations-shell page-container">
+    @if (mensajeEstado) {
+      <div
+        class="link-status-message"
+        [class.error]="mensajeEsError"
+        role="status"
+        aria-live="polite">
+        {{ mensajeEstado }}
+      </div>
+    }
     <div [hidden]="!mostrarForm">
       <article class="operation-card intro-card">
        
@@ -273,25 +282,25 @@
             </div>
 
             <div class="button-options-grid">
-              <div (click)="parentClick()" class="button-option btn-select" data-clase="btn-azul">
+              <div (click)="seleccionarBoton('btn-azul')" class="button-option btn-select" [class.selected]="botonSeleccionado === 'btn-azul'">
                 <a class="pay-button btn-azul">Pagar con Kashpay</a>
               </div>
-              <div (click)="parentClick()" class="button-option btn-select" data-clase="btn-azul-degradado">
+              <div (click)="seleccionarBoton('btn-azul-degradado')" class="button-option btn-select" [class.selected]="botonSeleccionado === 'btn-azul-degradado'">
                 <a class="pay-button btn-azul-degradado">Pagar con Kashpay</a>
               </div>
-              <div (click)="parentClick()" class="button-option btn-select" data-clase="btn-blanco">
+              <div (click)="seleccionarBoton('btn-blanco')" class="button-option btn-select" [class.selected]="botonSeleccionado === 'btn-blanco'">
                 <a class="pay-button btn-blanco">Pagar con Kashpay</a>
               </div>
-              <div (click)="parentClick()" class="button-option btn-select" data-clase="btn-blanco-sombra">
+              <div (click)="seleccionarBoton('btn-blanco-sombra')" class="button-option btn-select" [class.selected]="botonSeleccionado === 'btn-blanco-sombra'">
                 <a class="pay-button btn-blanco-sombra">Pagar con Kashpay</a>
               </div>
-              <div (click)="parentClick()" class="button-option btn-select" data-clase="btn-azul-redondo">
+              <div (click)="seleccionarBoton('btn-azul-redondo')" class="button-option btn-select" [class.selected]="botonSeleccionado === 'btn-azul-redondo'">
                 <a class="pay-button btn-azul-redondo">Pagar con Kashpay</a>
               </div>
-              <div (click)="parentClick()" class="button-option btn-select" data-clase="btn-blanco-redondo">
+              <div (click)="seleccionarBoton('btn-blanco-redondo')" class="button-option btn-select" [class.selected]="botonSeleccionado === 'btn-blanco-redondo'">
                 <a class="pay-button btn-blanco-redondo">Pagar con Kashpay</a>
               </div>
-              <div (click)="parentClick()" class="button-option btn-select" data-clase="btn-blanco-sombra-redondo">
+              <div (click)="seleccionarBoton('btn-blanco-sombra-redondo')" class="button-option btn-select" [class.selected]="botonSeleccionado === 'btn-blanco-sombra-redondo'">
                 <a class="pay-button btn-blanco-sombra-redondo">Pagar con Kashpay</a>
               </div>
             </div>
@@ -299,6 +308,74 @@
             <div class="form-actions split-actions">
               <button (click)="ocultarBotones()" type="button" id="btn-back-btn" class="button secondary">ATRÁS</button>
               <button [disabled]="loading()" type="submit" id="btn-add-btn" class="button primary">GENERAR</button>
+            </div>
+          </section>
+        </div>
+      </article>
+    </div>
+
+    <div [hidden]="!mostrarDiv2" id="detalles">
+      <article class="operation-card details-card">
+        <header class="operation-card-header">
+          <div>
+            <span class="eyebrow">Link generado</span>
+            <h2>Detalle del botón de pago</h2>
+          </div>
+        </header>
+
+        <div class="operation-card-body">
+          <section class="operation-section details-section">
+            <div class="success-detail-icon" aria-hidden="true">&#10003;</div>
+            <div class="section-heading center-heading">
+              <h3>Link creado exitosamente</h3>
+              <p>Copia el enlace o comparte el link de pago con tu cliente.</p>
+            </div>
+
+            <div class="linkPago link-result">
+              <a [href]="linkPago" target="_blank" rel="noopener noreferrer" id="copy_link_l">
+                {{ linkPago }}
+              </a>
+              <button type="button" class="copy-button" (click)="copiarLink()" aria-label="Copiar link">
+                <i class="far fa-copy" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            @if (textoCopiado) {
+              <p class="copy-feedback" role="status">{{ textoCopiado }}</p>
+            }
+
+            <div class="payment-preview">
+              <a [href]="linkPago" target="_blank" rel="noopener noreferrer" [ngClass]="['pay-button', botonSeleccionado]">
+                Pagar con Kash
+              </a>
+              <p>Débito | crédito | efectivo | SPEI</p>
+              <img src="pagosDistancia/Marcas.png" alt="Formas de pago">
+            </div>
+
+            <div class="code-section">
+              <div class="code-heading">
+                <label for="codigo-boton">Código para insertar en tu sitio</label>
+                <button type="button" class="copy-code-button" (click)="copiarCodigo()">
+                  <i class="far fa-copy" aria-hidden="true"></i>
+                  Copiar código
+                </button>
+              </div>
+              <textarea id="codigo-boton" class="codebtn" rows="9" readonly [value]="codigoBoton"></textarea>
+            </div>
+
+            <div class="detail-actions" id="detalleBoton">
+              <button type="button" class="share-action whatsapp" (click)="compartirWhatsApp()" aria-label="Compartir por WhatsApp">
+                <i class="fab fa-whatsapp" aria-hidden="true"></i>
+                <span>WhatsApp</span>
+              </button>
+              <button type="button" class="share-action correo" (click)="compartirEmail()" aria-label="Compartir por correo">
+                <i class="fas fa-at" aria-hidden="true"></i>
+                <span>Correo</span>
+              </button>
+              <button type="button" class="share-action" (click)="volverFormulario()" aria-label="Regresar al formulario">
+                <i class="fas fa-undo" aria-hidden="true"></i>
+                <span>Regresar</span>
+              </button>
             </div>
           </section>
         </div>

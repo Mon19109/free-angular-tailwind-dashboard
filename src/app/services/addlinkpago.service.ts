@@ -150,6 +150,7 @@ export class AddLinkPagoService {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
       'versionApp': '3',
+      'Entity-i': 'com.onsigna',
       'Content-Type': 'application/json'
     });
 
@@ -173,9 +174,10 @@ export class AddLinkPagoService {
         tax: 0.0
       }));
 
-      const expiration = formData.fechaVen.includes('T')
-        ? formData.fechaVen
-        : `${formData.fechaVen}T23:59:59`;
+      const fechaVenNormalizada = formData.fechaVen.trim().replace(/\s+/, 'T');
+      const expiration = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(fechaVenNormalizada)
+        ? `${fechaVenNormalizada}:59`
+        : fechaVenNormalizada;
 
       const datosTransformados = {
         user: localStorage.getItem('mail') || '',
@@ -218,6 +220,8 @@ export class AddLinkPagoService {
         tip: formData.propina,
         msi: formData.msi
       };
+
+      console.log('datosTransformados::',datosTransformados);
 
       return this.http.post(
         `${this.crearLink}order`,

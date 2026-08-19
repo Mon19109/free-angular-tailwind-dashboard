@@ -244,6 +244,35 @@
   box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12);
 }
 
+.link-status-message {
+  max-width: 1200px;
+  margin: 0 auto 24px;
+  padding: 16px 20px;
+  border: 1px solid rgba(34, 197, 94, 0.38);
+  border-radius: 14px;
+  color: #dcfce7;
+  background: rgba(22, 101, 52, 0.34);
+  font-size: 15px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.link-status-message.error {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fee2e2;
+  background: rgba(153, 27, 27, 0.34);
+}
+
+:host-context(html:not(.dark)) .link-status-message {
+  color: #166534;
+  background: #f0fdf4;
+}
+
+:host-context(html:not(.dark)) .link-status-message.error {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
 .tags-input {
   min-height: 48px;
   display: flex;
@@ -548,4 +577,187 @@
   color: #dc2626;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.button-option.selected {
+  border-color: var(--ops-gold);
+  background: rgba(241, 178, 61, 0.12);
+  box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12);
+}
+
+.details-section {
+  text-align: center;
+}
+
+.success-detail-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #dcfce7;
+  background: #15803d;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.link-result {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--ops-line);
+  border-radius: 14px;
+  background: rgba(2, 4, 7, 0.34);
+  text-align: left;
+}
+
+.link-result a {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  color: var(--ops-gold-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.copy-button,
+.copy-code-button,
+.share-action {
+  border: 0;
+  cursor: pointer;
+}
+
+.copy-button {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  color: #140e02;
+  background: var(--ops-gold);
+  font-size: 18px;
+}
+
+.copy-feedback {
+  margin: 10px 0 0;
+  color: #4ade80;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.payment-preview {
+  max-width: 640px;
+  margin: 28px auto;
+  padding: 24px;
+  border: 1px solid var(--ops-line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.payment-preview .pay-button {
+  width: 100%;
+}
+
+.payment-preview p {
+  margin: 16px 0 8px;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.payment-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.code-section {
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.code-heading {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.code-heading label {
+  color: var(--ops-text);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.copy-code-button {
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #140e02;
+  background: var(--ops-gold);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.codebtn {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--ops-line);
+  border-radius: 14px;
+  padding: 14px;
+  outline: none;
+  color: var(--ops-text);
+  background: rgba(2, 4, 7, 0.48);
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.detail-actions {
+  max-width: 620px;
+  margin: 30px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.share-action {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--ops-line);
+  border-radius: 14px;
+  color: var(--ops-text);
+  background: rgba(2, 4, 7, 0.34);
+  font-weight: 750;
+}
+
+.share-action i {
+  color: var(--ops-gold);
+  font-size: 24px;
+}
+
+:host-context(html:not(.dark)) .link-result,
+:host-context(html:not(.dark)) .codebtn,
+:host-context(html:not(.dark)) .share-action {
+  color: #172033;
+  background: #ffffff;
+}
+
+@media (max-width: 600px) {
+  .code-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .detail-actions {
+    grid-template-columns: 1fr;
+  }
 }
