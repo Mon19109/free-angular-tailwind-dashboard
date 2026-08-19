@@ -1301,6 +1301,14 @@ small {
   cursor: pointer;
 }
 
+.access-info-title {
+  margin-top: 4px;
+}
+
+.access-info-title .field-label {
+  margin-bottom: 0;
+}
+
 .documents-panel {
   display: grid;
   gap: 18px;

@@ -11,6 +11,12 @@
           (change)="cambiarInfoFiscalEntidad.emit($any($event.target).checked)">
         Misma información fiscal de la Entidad
       </label>
+      } @else if (mostrarMismaInfoAcceso) {
+      <label class="checkbox-inline">
+        <input type="checkbox" [checked]="mismaInfoAccesoActiva"
+          (change)="cambiarMismaInfoAcceso.emit($any($event.target).checked)">
+        Los datos son los mismos del acceso
+      </label>
       } @else {
       <span>Campos obligatorios marcados con *</span>
       }
@@ -245,9 +251,16 @@
 
     <div class="section-title">
       <h3>Representante Legal</h3>
+      @if (mostrarMismaInfoAccesoRepresentante) {
+      <label class="checkbox-inline">
+        <input type="checkbox" [checked]="mismaInfoAccesoRepresentanteActiva"
+          (change)="cambiarMismaInfoAccesoRepresentante.emit($any($event.target).checked)">
+        Los datos son los mismos de Información para acceso
+      </label>
+      }
     </div>
     <div class="form-grid cols-3">
-      <div class="field"><label for="nombreRepresentante">Nombre <b>*</b></label>
+      <div class="field"><label for="nombreRepresentante">Nombre</label>
         <input id="nombreRepresentante" formControlName="nombreRepresentante"
           [class.invalid]="esInvalido('nombreRepresentante')" />
         @if (esInvalido('nombreRepresentante')) { <small>{{ mensajeCampo('nombreRepresentante') }}</small> }

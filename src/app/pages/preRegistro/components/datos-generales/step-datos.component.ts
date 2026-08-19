@@ -47,11 +47,17 @@ export class StepDatosComponent implements OnInit {
   @Input() tipoComercio: string = '';
   @Input() mostrarInfoFiscalEntidad = false;
   @Input() infoFiscalEntidadActiva = false;
+  @Input() mostrarMismaInfoAcceso = false;
+  @Input() mismaInfoAccesoActiva = false;
+  @Input() mostrarMismaInfoAccesoRepresentante = false;
+  @Input() mismaInfoAccesoRepresentanteActiva = false;
   @Input() mostrarMismoDomicilio = true;
   @Input() bloquearTipoPersona = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
+  @Output() cambiarMismaInfoAcceso = new EventEmitter<boolean>();
+  @Output() cambiarMismaInfoAccesoRepresentante = new EventEmitter<boolean>();
   @Output() seleccionarLocalidadFiscal = new EventEmitter<string>();
   @Output() seleccionarLocalidadComercial = new EventEmitter<string>();
   @Output() seleccionarLocalidadRepresentante = new EventEmitter<string>();
@@ -86,11 +92,7 @@ export class StepDatosComponent implements OnInit {
   get girosFiltrados(): GiroBusqueda[] {
     const term = (this.terminoBusqueda.value ?? '').trim().toLowerCase();
     if (term.length < this.minimoCaracteresBusqueda) return [];
-    return this.girosBusqueda.filter(g =>
-      g.descripcion.toLowerCase().includes(term) ||
-      g.familia.toLowerCase().includes(term) ||
-      g.mcc.includes(term)
-    );
+    return this.girosBusqueda;
   }
 
   get esPersonaFisica(): boolean {
@@ -150,9 +152,9 @@ export class StepDatosComponent implements OnInit {
     const lista = this.obtenerListaGiros(response);
 
     return lista.map(giro => ({
-      familia: this.obtenerTexto(giro, ['familia', 'family', 'giro', 'name']),
-      descripcion: this.obtenerTexto(giro, ['descripcion', 'description', 'desGiro', 'actividad', 'label']),
-      mcc: this.obtenerTexto(giro, ['mcc', 'MCC', 'codigoMcc', 'idGiro', 'id'])
+      familia: this.obtenerTexto(giro, ['familia', 'family', 'giro', 'giroComercial', 'businessLine', 'name', 'nombre']),
+      descripcion: this.obtenerTexto(giro, ['descripcion', 'description', 'desGiro', 'actividad', 'activity', 'label', 'nombreGiro']),
+      mcc: this.obtenerTexto(giro, ['mcc', 'MCC', 'codigoMcc', 'codigoMCC', 'idGiro', 'id', 'code', 'codigo'])
     })).filter(giro => giro.descripcion || giro.familia || giro.mcc);
   }
 
@@ -161,12 +163,18 @@ export class StepDatosComponent implements OnInit {
     if (!response || typeof response !== 'object') return [];
 
     const payload = response as Record<string, unknown>;
-    const posiblesListas = ['rows', 'data', 'giros', 'catGiroResponse', 'result', 'response'];
+    const posiblesListas = ['rows', 'data', 'giros', 'catGiroResponse', 'result', 'response', 'items', 'list', 'content'];
 
     for (const key of posiblesListas) {
       const value = payload[key];
       if (Array.isArray(value)) return value as GiroComercial[];
+      const listaAnidada = this.obtenerListaGiros(value);
+      if (listaAnidada.length) return listaAnidada;
     }
+
+    const pareceGiro = ['familia', 'family', 'giro', 'giroComercial', 'descripcion', 'description', 'desGiro', 'mcc', 'MCC']
+      .some(key => payload[key] !== undefined);
+    if (pareceGiro) return [payload as GiroComercial];
 
     return [];
   }
@@ -362,14 +370,15 @@ export class StepDatosComponent implements OnInit {
       'Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI',
       'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
     ].includes(tipo);
-    const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'];
+    const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo', 'Sucursales Únicas'];
     const esPersonaFisica = this.form.get('tipoPersona')?.value === 'PF';
     const esGrupoPersonaFisica = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'].includes(tipo) && esPersonaFisica;
+    const esSucursalUnicaPersonaFisica = tipo === 'Sucursales Únicas' && esPersonaFisica;
     const mostrarDireccionRepresentante = !esCaja && (
-      (tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica)
+      (tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica && !esSucursalUnicaPersonaFisica)
       || (['Empresa Holding', 'Empresa Grupo'].includes(tipo) && esPersonaFisica)
     );
-    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica;
+    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica && !esSucursalUnicaPersonaFisica;
     const mostrarNombreRepresentante = mostrarRepresentante && this.form.get('tipoPersona')?.value !== 'PF';
 
     return {
