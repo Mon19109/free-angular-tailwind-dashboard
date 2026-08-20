@@ -1,21 +1,145 @@
 <div class="detail-shell page-container">
-  <article class="detail-card">
+  <article class="detail-card panel panel-visible">
     <header class="detail-header">
       <div>
-        <span class="eyebrow">Link de pago</span>
-        <h1>Detalle del link</h1>
+        <span class="eyebrow">Pago a distancia</span>
+        <h1><span>Link</span> de pago</h1>
       </div>
       <a routerLink="/pago_distancia" class="back-button">Regresar</a>
     </header>
 
-    <div class="detail-body">
-      @if (referencia) {
-        <section class="reference-panel">
-          <span>Referencia de la orden</span>
-          <strong>{{ referencia }}</strong>
+    <div class="detail-body panel-body" id="formulario">
+      @if (orden) {
+        <section class="link-summary">
+          <div class="link-panel">
+            @if (descripcionEstatus !== 'CANCELADA') {
+              <a
+                [href]="orden.formUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                id="copy_link">
+                {{ orden.formUrl || 'ND' }}
+              </a>
+              <button type="button" class="copy-button" (click)="copiarLink()" aria-label="Copiar link">
+                <i class="far fa-copy" aria-hidden="true"></i>
+              </button>
+            } @else {
+              <span class="cancelled-link" id="copy_link">{{ orden.formUrl || 'ND' }}</span>
+            }
+          </div>
+
+          @if (mensajeCopiado) {
+            <p class="copy-feedback" role="status">{{ mensajeCopiado }}</p>
+          }
+
+          <p class="status-label" [attr.data-status]="descripcionEstatus" id="estatus">
+            {{ estatusVisible }}
+          </p>
         </section>
+
+        <section class="information-panel">
+          <table class="detail-table">
+            <tbody>
+              <tr>
+                <th>Fecha de creación</th>
+                <td>{{ orden.payInfo?.creation || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Fecha de expiración</th>
+                <td>{{ orden.payInfo?.expiration || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Nombre</th>
+                <td>{{ nombreCliente }}</td>
+              </tr>
+              <tr>
+                <th>Teléfono Móvil</th>
+                <td>{{ orden.customerInfo?.phone1 || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Comercio</th>
+                <td>{{ orden.merchantInfo?.name || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Productos</th>
+                <td>
+                  @for (producto of orden.products || []; track $index) {
+                    <span class="product-item">{{ producto.description || 'ND' }}</span>
+                  } @empty {
+                    ND
+                  }
+                </td>
+              </tr>
+              <tr>
+                <th>Concepto</th>
+                <td>{{ orden.payInfo?.description || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Referencia del comercio</th>
+                <td>{{ orden.payInfo?.reference || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Referencia 1</th>
+                <td>{{ orden.referenceOne || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Referencia 2</th>
+                <td>{{ orden.referenceTwo || 'ND' }}</td>
+              </tr>
+              <tr>
+                <th>Tipo de notificación</th>
+                <td>{{ orden.notificationType?.name || 'ND' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="amount-panel">
+          <span>Monto</span>
+          <strong>{{ orden.amount | currency:'MXN':'symbol-narrow':'1.2-2' }}</strong>
+        </section>
+
+        <footer class="detail-actions">
+          <div class="primary-actions">
+            @if (descripcionEstatus === 'PAGADA' || descripcionEstatus === 'CANCELADA') {
+              <button type="button" class="button secondary" (click)="volver()">Atrás</button>
+            } @else {
+              <button type="button" class="button secondary">Cancelar</button>
+            }
+
+            @if (descripcionEstatus === 'PAGADA') {
+              <a [href]="orden.formUrl" target="_blank" rel="noopener noreferrer" class="button primary">
+                Comprobante
+              </a>
+            } @else if (descripcionEstatus !== 'CANCELADA') {
+              <a [href]="orden.formUrl" target="_blank" rel="noopener noreferrer" class="button primary">
+                Pagar
+              </a>
+            }
+          </div>
+
+          <div class="share-actions">
+            <button type="button" class="icon-action whatsapp" (click)="compartirWhatsApp()" aria-label="Compartir por WhatsApp">
+              <i class="fab fa-whatsapp" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="icon-action correo" (click)="compartirCorreo()" aria-label="Compartir por correo">
+              <i class="fas fa-at" aria-hidden="true"></i>
+            </button>
+            <a [href]="orden.formUrl" class="icon-action" target="_blank" rel="noopener noreferrer" aria-label="Descargar comprobante">
+              <i class="fas fa-download" aria-hidden="true"></i>
+            </a>
+          </div>
+        </footer>
       } @else {
-        <p class="empty-message">No se proporcionó una referencia para consultar el link.</p>
+        <section class="empty-panel">
+          @if (cargando) {
+            <h2>Consultando detalle</h2>
+            <p>Espera un momento mientras obtenemos la información del link.</p>
+          } @else {
+            <h2>No fue posible mostrar el detalle</h2>
+            <p>{{ mensajeError }}</p>
+          }
+        </section>
       }
     </div>
   </article>
