@@ -1,0 +1,179 @@
+<section id="content" class="edit-link-shell page-container">
+  <article class="edit-link-card panel panel-visible">
+    <header class="edit-link-header">
+      <div>
+        <span class="eyebrow">Pago a distancia</span>
+        <h1>Editar link de pago</h1>
+      </div>
+      <a routerLink="/pago_distancia" class="button secondary">Regresar</a>
+    </header>
+
+    @if (cargando) {
+      <div class="state-panel">Cargando información del link...</div>
+    } @else if (mensajeError) {
+      <div class="state-panel error">{{ mensajeError }}</div>
+    } @else {
+      <form [formGroup]="formulario" id="form_addlinkpago">
+        @if (vista === 'formulario') {
+          <div class="edit-link-body panel-body" id="formulario">
+            <section class="intro-panel">
+              <img class="logo-pago" src="iconos/Pagos a distancia/linkPago.png" alt="Link de pago">
+              <h2><span>Link</span> de Pago</h2>
+              <p>Complete todos los campos requeridos para continuar el proceso de pago.</p>
+            </section>
+
+            <section class="form-panel">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="tel">Número de teléfono Móvil*</label>
+                  <input id="tel" type="tel" maxlength="10" formControlName="tel">
+                </div>
+                <div class="form-field">
+                  <label for="email">Correo electrónico*</label>
+                  <input id="email" type="email" formControlName="email">
+                </div>
+                <div class="form-field">
+                  <label for="tnoti">Tipo de notificación*</label>
+                  <select id="tnoti" formControlName="tipoNotificacion">
+                    <option value="">Selecciona una opción</option>
+                    @for (opcion of tiposNotificacion; track opcion.value) {
+                      <option [value]="opcion.value">{{ opcion.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="nombre">Nombre(s)*</label>
+                  <input id="nombre" type="text" formControlName="nombre">
+                </div>
+                <div class="form-field">
+                  <label for="apaterno">Apellido Paterno*</label>
+                  <input id="apaterno" type="text" formControlName="apellidoPaterno">
+                </div>
+                <div class="form-field">
+                  <label for="amaterno">Apellido Materno*</label>
+                  <input id="amaterno" type="text" formControlName="apellidoMaterno">
+                </div>
+                <div class="form-field">
+                  <label for="tagmanager">Productos <small>(Presione Enter para agregar cada producto)</small></label>
+                  <div class="tags-input">
+                    @for (producto of productos; track producto) {
+                      <span class="product-tag">
+                        {{ producto }}
+                        <button type="button" (click)="eliminarProducto(producto)">&times;</button>
+                      </span>
+                    }
+                    <input
+                      id="tagmanager"
+                      type="text"
+                      [value]="productoEntrada"
+                      (input)="productoEntrada = $any($event.target).value"
+                      (keydown)="agregarProducto($event)"
+                      placeholder="Agregar producto">
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label for="referencia">Referencia del comerciante*</label>
+                  <input id="referencia" type="text" maxlength="6" formControlName="referenciaComercio">
+                </div>
+                <div class="form-field">
+                  <label for="ref1">Referencia 1*</label>
+                  <input id="ref1" type="text" formControlName="referenciaUno">
+                </div>
+                <div class="form-field">
+                  <label for="ref2">Referencia 2*</label>
+                  <input id="ref2" type="text" formControlName="referenciaDos">
+                </div>
+                <div class="form-field">
+                  <label for="concepto">Concepto*</label>
+                  <input id="concepto" type="text" formControlName="concepto">
+                </div>
+                <div class="form-field">
+                  <label for="datepicker">Fecha de vencimiento*</label>
+                  <input id="datepicker" type="date" formControlName="fechaVencimiento">
+                </div>
+                <div class="form-field">
+                  <label for="fpago">Forma de pago*</label>
+                  <select id="fpago" formControlName="metodoPago">
+                    <option value="">Selecciona una opción</option>
+                    @for (opcion of metodosPago; track opcion.value) {
+                      <option [value]="opcion.value">{{ opcion.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="monto">Monto*</label>
+                  <input id="monto" type="number" min="0.01" step="0.01" formControlName="monto">
+                </div>
+                <label class="switch-field" for="fr2">
+                  <input id="fr2" type="checkbox" formControlName="msi">
+                  <span>Activa o desactiva Meses sin intereses (MSI)</span>
+                </label>
+                <label class="switch-field" for="fr1">
+                  <input id="fr1" type="checkbox" formControlName="propina">
+                  <span>Activa o desactiva propinas</span>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" id="btn-ver-botones" class="button primary" (click)="continuar()">
+                  Enviar
+                </button>
+              </div>
+            </section>
+          </div>
+        }
+
+        @if (vista === 'personalizacion') {
+          <div class="edit-link-body panel-body" id="informacion">
+            <section class="form-panel">
+              <div class="section-heading">
+                <h2>¡Personaliza tu link de negocio!</h2>
+                <p>Selecciona el tipo de botón que deseas establecer a tus cobros.</p>
+              </div>
+
+              <div class="button-options-grid">
+                @for (clase of ['btn-azul', 'btn-azul-degradado', 'btn-blanco', 'btn-blanco-sombra', 'btn-azul-redondo', 'btn-blanco-redondo', 'btn-blanco-sombra-redondo']; track clase) {
+                  <button
+                    type="button"
+                    class="button-option"
+                    [class.selected]="botonSeleccionado === clase"
+                    (click)="seleccionarBoton(clase)">
+                    <span class="pay-button" [ngClass]="clase">Pagar con Kashpay</span>
+                  </button>
+                }
+              </div>
+
+              <div class="form-actions split-actions">
+                <button type="button" class="button secondary" (click)="volverAlFormulario()">Atrás</button>
+                <button type="button" class="button primary" (click)="generarBoton()">Generar</button>
+              </div>
+            </section>
+          </div>
+        }
+
+        @if (vista === 'detalle') {
+          <div class="edit-link-body panel-body" id="detalleBoton">
+            <section class="button-result">
+              <a
+                id="btn-pago"
+                [href]="orden?.formUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="pay-button result-button"
+                [ngClass]="botonSeleccionado">
+                Pagar con Kashpay
+              </a>
+              <p>Débito | Crédito | Efectivo | SPEI</p>
+              <img src="pagosDistancia/Marcas.png" alt="Formas de pago">
+              <textarea id="copy_link" rows="6" readonly [value]="codigoBoton"></textarea>
+              <div class="form-actions split-actions">
+                <button type="button" class="button secondary" (click)="volverAPersonalizacion()">Atrás</button>
+                <button type="button" class="button primary" (click)="copiarCodigo()">Copiar código</button>
+              </div>
+            </section>
+          </div>
+        }
+      </form>
+    }
+  </article>
+</section>
