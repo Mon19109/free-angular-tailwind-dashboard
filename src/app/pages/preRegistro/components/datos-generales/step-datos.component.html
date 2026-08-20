@@ -22,6 +22,25 @@
       }
     </div>
     <div class="form-grid cols-2">
+      @if (tiene('tipoPersona')) {
+      <div class="field span-2">
+        <span class="field-label">Seleccione el tipo de cliente para el registro <b>*</b></span>
+        <div class="person-type-radios" [class.invalid]="esInvalido('tipoPersona')" role="radiogroup" aria-label="Tipo de cliente para el registro">
+          <label>
+            <input type="radio" value="PF" formControlName="tipoPersona"
+              [attr.disabled]="bloquearTipoPersona && !esPersonaFisica ? true : null" />
+            Persona Fisica
+          </label>
+          <label>
+            <input type="radio" value="PM" formControlName="tipoPersona"
+              [attr.disabled]="bloquearTipoPersona && !esPersonaMoral ? true : null" />
+            Persona Moral
+          </label>
+        </div>
+        @if (esInvalido('tipoPersona')) { <small>Debes seleccionar una opción.</small> }
+      </div>
+      }
+
       @if (tiene('rfc')) {
       <div class="field">
         <label for="rfc">RFC <b>*</b></label>

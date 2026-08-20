@@ -374,10 +374,10 @@ export class StepDatosComponent implements OnInit {
     const esPersonaFisica = this.form.get('tipoPersona')?.value === 'PF';
     const esGrupoPersonaFisica = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'].includes(tipo) && esPersonaFisica;
     const esSucursalUnicaPersonaFisica = tipo === 'Sucursales Únicas' && esPersonaFisica;
-    const mostrarDireccionRepresentante = !esCaja && (
-      (tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica && !esSucursalUnicaPersonaFisica)
-      || (['Empresa Holding', 'Empresa Grupo'].includes(tipo) && esPersonaFisica)
-    );
+    const mostrarDireccionRepresentante = !esCaja
+      && tiposConRepresentante.includes(tipo)
+      && !esGrupoPersonaFisica
+      && !esSucursalUnicaPersonaFisica;
     const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica && !esSucursalUnicaPersonaFisica;
     const mostrarNombreRepresentante = mostrarRepresentante && this.form.get('tipoPersona')?.value !== 'PF';
 

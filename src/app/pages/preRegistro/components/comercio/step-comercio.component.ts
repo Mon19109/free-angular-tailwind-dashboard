@@ -72,7 +72,6 @@ private esCampoAccesoVacio(campo: string): boolean {
 
   submit(): void {
     const camposDatosPaso = [
-      ...(this.mostrarTipoPersona ? ['tipoPersona'] : []),
       ...(this.muestraContacto ? ['nombreAcceso', 'apellidoPaternoAcceso', 'apellidoMaternoAcceso'] : []),
       ...(this.muestraContacto ? ['correo', 'telefono'] : []),
     ];

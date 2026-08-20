@@ -551,6 +551,7 @@ export class PreRegistroComponent {
   private readonly tiposCaja = ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'];
   private readonly camposNombreRepresentante = ['nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante'];
   private readonly camposNombreRepresentanteObligatorios = ['apellidoPaternoRepresentante', 'apellidoMaternoRepresentante'];
+  private readonly camposDireccionRepresentante = ['calleRepresentante', 'numeroExteriorRepresentante', 'numeroInteriorRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante', 'locationIDRepresentante'];
   private readonly camposDireccionRepresentanteObligatorios = ['calleRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante'];
 
   private get mostrarRepresentante(): boolean {
@@ -562,11 +563,7 @@ export class PreRegistroComponent {
   }
 
   private get mostrarDireccionRepresentante(): boolean {
-    return this.mostrarRepresentante
-      || (
-        ['Empresa Holding', 'Empresa Grupo'].includes(this.tipoComercioEfectivoActual())
-        && this.datosForm.controls.tipoPersona.value === 'PF'
-      );
+    return this.mostrarRepresentante;
   }
 
   private actualizarValidadoresDatos(): void {
@@ -640,6 +637,17 @@ export class PreRegistroComponent {
       control.setValidators(this.validadoresDatosPorCampo(nombre, mostrarDirRep));
       control.updateValueAndValidity({ emitEvent: false });
     });
+
+    if (!mostrarDirRep) {
+      this.camposDireccionRepresentante.forEach(nombre => {
+        const control = this.datosForm.get(nombre);
+        if (!control) return;
+        control.setValue('', { emitEvent: false });
+        control.updateValueAndValidity({ emitEvent: false });
+      });
+      this.localidadesRepresentante = [];
+      this.cargandoLocalidadesRepresentante = false;
+    }
 
     const correoRep = this.datosForm.get('correoRepresentante');
     correoRep?.setValidators(mostrarRep ? [Validators.required, Validators.email, this.emailValidator] : [Validators.email, this.emailValidator]);
@@ -1112,6 +1120,9 @@ export class PreRegistroComponent {
 
   private obtenerReglasDocumentos(tipoComercio: string, tipoPersona: unknown): ReglaDocumento[] {
     const tipoPersonaNormalizada = this.tipoPersonaPayload(tipoPersona);
+    if (['Empresa Grupo', 'Sucursales de Grupo'].includes(tipoComercio) && tipoPersonaNormalizada === 'PF') {
+      return this.documentosPorTipoComercio['Persona Física'] ?? [];
+    }
     if (tipoComercio === 'Sucursales Únicas' && tipoPersonaNormalizada === 'PF') {
       return this.documentosPorTipoComercio['Sucursal Persona Física'] ?? [];
     }
@@ -1123,7 +1134,7 @@ export class PreRegistroComponent {
     if (!documento) return undefined;
     const tipoPersonaNormalizada = this.tipoPersonaPayload(tipoPersona);
     const nombre = tipoPersonaNormalizada === 'PF'
-      && ['Persona Física', 'Sucursal Persona Física', 'Sucursales Únicas'].includes(tipoComercio)
+      && ['Empresa Grupo', 'Sucursales de Grupo', 'Persona Física', 'Sucursal Persona Física', 'Sucursales Únicas'].includes(tipoComercio)
       && regla.numero === 3
         ? 'Identificación Oficial'
         : documento.nombre;
