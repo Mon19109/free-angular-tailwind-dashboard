@@ -2965,9 +2965,10 @@ export class PreRegistroComponent {
   }
 
   private aplicarTipoPersonaPorTipoComercio(tipoComercio: string): void {
-    if (this.tipoPersonaForzadaPorTexto(tipoComercio) !== 'PF') return;
+    const tipoPersona = this.tipoPersonaForzadaPorTexto(tipoComercio);
+    if (!tipoPersona) return;
 
-    this.datosForm.controls.tipoPersona.setValue('PF', { emitEvent: false });
+    this.datosForm.controls.tipoPersona.setValue(tipoPersona, { emitEvent: false });
     this.actualizarValidadoresDatos();
   }
 
@@ -2989,6 +2990,7 @@ export class PreRegistroComponent {
 
   private tipoPersonaForzadaPorTexto(tipoComercio: string): string {
     const tipo = tipoComercio.toLowerCase();
+    if (tipo === 'empresa holding') return 'PM';
     if (tipo.includes('persona física') || tipo.includes('persona fisica')) return 'PF';
 
     return '';

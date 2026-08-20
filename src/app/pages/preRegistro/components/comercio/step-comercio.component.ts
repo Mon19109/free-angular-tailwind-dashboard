@@ -43,8 +43,14 @@ get esPersonaMoral(): boolean {
   return this.datosForm?.get('tipoPersona')?.value === 'PM';
 }
 
+get esEmpresaHolding(): boolean {
+  return this.form.getRawValue().tipoComercio === 'Empresa Holding';
+}
+
 get muestraContacto(): boolean {
-  return this.esPersonaFisica || (this.mostrarTipoPersona && !(this.ocultarContactoPersonaMoral && this.esPersonaMoral));
+  return this.esEmpresaHolding
+    || this.esPersonaFisica
+    || (this.mostrarTipoPersona && !(this.ocultarContactoPersonaMoral && this.esPersonaMoral));
 }
 
 esContactoInvalido(campo: string): boolean {
