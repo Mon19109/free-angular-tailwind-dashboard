@@ -7,13 +7,11 @@ import {
   PagoDistanciaService
 } from '../../services/pagoDistancia.service';
 import { LabelComponent } from '../../shared/components/form/label/label.component';
-import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule,LabelComponent,
-      DatePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, LabelComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 }) 
@@ -35,7 +33,6 @@ export class PagoDistanciaComponent {
         { value: 'Fecha de expiración', label: 'Fecha de expiración' }
     ];
   selectedOptionFil = '';
-  dateValue='';
   
                                     
 
@@ -58,11 +55,6 @@ export class PagoDistanciaComponent {
     this.selectedOptionFil = value;
     this.formulario.patchValue({ filtro: value });
   }
-  handleDateChange(event: any) {
-    this.dateValue = event?.dateStr ?? event ?? '';
-    this.formulario.patchValue({ fechaCreacion: this.dateValue });
-  }
-
   onSubmit(): void {
     if (this.formulario.valid) {
       const rawValue = this.formulario.getRawValue();
@@ -89,7 +81,6 @@ export class PagoDistanciaComponent {
     this.formulario.reset();
     this.ordenes = [];
     this.selectedOptionFil = '';
-    this.dateValue = '';
   }
 
   private normalizarOrdenes(response: any): any[] {
@@ -103,6 +94,40 @@ export class PagoDistanciaComponent {
       ?? [];
 
     return Array.isArray(resultado) ? resultado : [resultado];
+  }
+
+  obtenerUrlDetalle(orden: any): string {
+    return this.construirUrlOrden('detalleLinkpago', orden);
+  }
+
+  obtenerUrlEditar(orden: any): string {
+    return this.construirUrlOrden('nuevoLinkPago', orden);
+  }
+
+  esOrdenCreada(orden: any): boolean {
+    const estatus = orden?.estatus?.description
+      ?? orden?.status?.description
+      ?? orden?.statusDescription
+      ?? orden?.status
+      ?? '';
+
+    return String(estatus).trim().toUpperCase() === 'CREADA';
+  }
+
+  private construirUrlOrden(ruta: string, orden: any): string {
+    const referencia = orden?.id ?? orden?.orderID ?? orden?.orderId ?? '';
+    const filtrosActuales = this.formulario.getRawValue();
+    const parametros = new URLSearchParams({
+      referencia: String(referencia)
+    });
+
+    if (filtrosActuales.filtro) parametros.set('filtro', filtrosActuales.filtro);
+    if (filtrosActuales.busqueda) parametros.set('busqueda', filtrosActuales.busqueda);
+    if (filtrosActuales.fechaCreacion) {
+      parametros.set('fechaCreacion', filtrosActuales.fechaCreacion);
+    }
+
+    return `${ruta}?${parametros.toString()}`;
   }
  
 }

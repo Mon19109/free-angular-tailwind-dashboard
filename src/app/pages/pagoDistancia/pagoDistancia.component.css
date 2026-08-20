@@ -421,6 +421,22 @@ html.dark .form-control option {
   background: rgba(241, 178, 61, 0.08);
 }
 
+.table-detail-button {
+  min-height: 34px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #140e02;
+  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .empty-row {
   height: 78px;
   color: var(--ops-muted);

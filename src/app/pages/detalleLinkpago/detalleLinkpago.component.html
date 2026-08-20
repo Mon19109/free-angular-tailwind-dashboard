@@ -1,0 +1,22 @@
+<div class="detail-shell page-container">
+  <article class="detail-card">
+    <header class="detail-header">
+      <div>
+        <span class="eyebrow">Link de pago</span>
+        <h1>Detalle del link</h1>
+      </div>
+      <a routerLink="/pago_distancia" class="back-button">Regresar</a>
+    </header>
+
+    <div class="detail-body">
+      @if (referencia) {
+        <section class="reference-panel">
+          <span>Referencia de la orden</span>
+          <strong>{{ referencia }}</strong>
+        </section>
+      } @else {
+        <p class="empty-message">No se proporcionó una referencia para consultar el link.</p>
+      }
+    </div>
+  </article>
+</div>

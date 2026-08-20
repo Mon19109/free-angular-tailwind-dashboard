@@ -1,0 +1,126 @@
+:host {
+  --detail-bg: #05070b;
+  --detail-card: rgba(9, 13, 20, 0.96);
+  --detail-border: rgba(241, 178, 61, 0.18);
+  --detail-line: rgba(255, 255, 255, 0.08);
+  --detail-text: #f6f7fb;
+  --detail-muted: rgba(246, 247, 251, 0.68);
+  --detail-gold: #f1b23d;
+  display: block;
+  margin: -1rem;
+  color: var(--detail-text);
+}
+
+:host-context(html:not(.dark)) {
+  --detail-bg: #f4f7fb;
+  --detail-card: #ffffff;
+  --detail-border: #d1dbe9;
+  --detail-line: rgba(148, 163, 184, 0.22);
+  --detail-text: #172033;
+  --detail-muted: #667085;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.detail-shell {
+  min-height: calc(100vh - 104px);
+  padding: clamp(28px, 4vw, 54px);
+  background:
+    radial-gradient(circle at top left, rgba(241, 178, 61, 0.16), transparent 30%),
+    var(--detail-bg);
+}
+
+.detail-card {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--detail-border);
+  border-radius: 22px;
+  background: var(--detail-card);
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.28);
+}
+
+.detail-header {
+  min-height: 92px;
+  padding: 22px clamp(22px, 3vw, 34px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--detail-line);
+}
+
+.eyebrow {
+  color: var(--detail-gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.detail-header h1 {
+  margin: 5px 0 0;
+  font-size: clamp(22px, 3vw, 30px);
+}
+
+.back-button {
+  min-height: 42px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12px;
+  color: #140e02;
+  background: linear-gradient(180deg, #f8d877, var(--detail-gold));
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.detail-body {
+  padding: clamp(24px, 4vw, 42px);
+}
+
+.reference-panel {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--detail-line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.reference-panel span,
+.empty-message {
+  color: var(--detail-muted);
+}
+
+.reference-panel strong {
+  overflow-wrap: anywhere;
+  color: var(--detail-text);
+  font-size: 20px;
+}
+
+.empty-message {
+  margin: 0;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  :host {
+    margin: -1.5rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .detail-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .back-button {
+    justify-content: center;
+  }
+}

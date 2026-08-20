@@ -54,12 +54,12 @@
         <form id="form-filtro" name="form-filtro" [formGroup]="formulario" (ngSubmit)="onSubmit()">
           <div class="transactions-form-grid">
             <div class="transaction-field">
-              <app-date-picker
+              <app-label>Fecha de creación</app-label>
+              <input
                 id="fechaCreacionPagoDistancia"
-                label="Fecha de creación"
-                placeholder="YYYY-MM-DD HH:mm"
-                (dateChange)="handleDateChange($event)">
-              </app-date-picker>
+                type="date"
+                class="form-control"
+                formControlName="fechaCreacion">
             </div>
 
             <div class="transaction-field">
@@ -113,20 +113,31 @@
                   <th>Teléfono</th>
                   <th>Producto</th>
                   <th>Monto</th>
-                  <th>Referencia</th>
-                  <th>Concepto</th>
+                  <th>Ver Detalle</th>
+                  <th>Editar Link</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let orden of ordenes">
                   <td>{{ orden.createdAt || orden.creationDate || orden.payInfo?.creation || 'ND' }}</td>
-                  <td>{{ orden.status || orden.statusDescription || orden.orderStatus?.description || 'ND' }}</td>
+                  <td>{{ orden.estatus?.description || orden.status || orden.status.dsescription || orden.status?.description || 'ND' }}</td>
                   <td>{{ orden.customerInfo?.email || orden.payEmail || 'ND' }}</td>
                   <td>{{ orden.customerInfo?.phone1 || orden.payPhone || 'ND' }}</td>
                   <td>{{ orden.products?.[0]?.description || 'ND' }}</td>
                   <td>{{ orden.amount ?? 'ND' }}</td>
-                  <td>{{ orden.payInfo?.reference || 'ND' }}</td>
-                  <td>{{ orden.payInfo?.description || 'ND' }}</td>
+                  <td>
+                    <a class="btn btn-primary table-detail-button" [href]="obtenerUrlDetalle(orden)">
+                      Ver
+                    </a>
+                  </td>
+                  <td>
+                    <a
+                      *ngIf="esOrdenCreada(orden)"
+                      class="btn btn-primary table-detail-button"
+                      [href]="obtenerUrlEditar(orden)">
+                      Editar
+                    </a>
+                  </td>
                 </tr>
                 <tr *ngIf="!ordenes.length">
                   <td colspan="8" class="empty-row">No hay elementos disponibles.</td>
