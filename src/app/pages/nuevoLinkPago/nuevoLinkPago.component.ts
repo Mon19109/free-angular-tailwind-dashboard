@@ -54,9 +54,9 @@ export class NuevoLinkPagoComponent implements OnInit {
   orden: any = null;
   cargando = true;
   mensajeError = '';
-  vista: 'formulario' | 'personalizacion' | 'detalle' = 'formulario';
-  botonSeleccionado = 'btn-azul';
-  codigoBoton = '';
+  actualizando = false;
+  mensajeResultado = '';
+  resultadoEsError = false;
 
   ngOnInit(): void {
     if (!this.referencia) {
@@ -112,31 +112,37 @@ export class NuevoLinkPagoComponent implements OnInit {
       return;
     }
 
-    this.vista = String(this.formulario.value.tipoNotificacion) === '1'
-      ? 'personalizacion'
-      : 'formulario';
-  }
+    if (this.actualizando) return;
 
-  seleccionarBoton(clase: string): void {
-    this.botonSeleccionado = clase;
-  }
+    this.actualizando = true;
+    this.mensajeResultado = '';
+    this.resultadoEsError = false;
 
-  generarBoton(): void {
-    const formUrl = this.orden?.formUrl || '';
-    this.codigoBoton = `<a href="${formUrl}" target="_blank" class="${this.botonSeleccionado}">Pagar con Kashpay</a>`;
-    this.vista = 'detalle';
-  }
+    this.nuevoLinkPagoService
+      .editarLink(this.formulario.getRawValue(), this.productos)
+      .subscribe({
+        next: response => {
+          this.actualizando = false;
 
-  volverAPersonalizacion(): void {
-    this.vista = 'personalizacion';
-  }
+          if (response?.success === false) {
+            this.resultadoEsError = true;
+            this.mensajeResultado = response?.message
+              || response?.mensaje
+              || 'No fue posible actualizar el link de pago.';
+            return;
+          }
 
-  volverAlFormulario(): void {
-    this.vista = 'formulario';
-  }
-
-  async copiarCodigo(): Promise<void> {
-    if (this.codigoBoton) await navigator.clipboard.writeText(this.codigoBoton);
+          this.mensajeResultado = 'Link de pago actualizado correctamente.';
+        },
+        error: error => {
+          console.error('Error al actualizar el link de pago:', error);
+          this.actualizando = false;
+          this.resultadoEsError = true;
+          this.mensajeResultado = error?.error?.message
+            || error?.error?.mensaje
+            || 'No fue posible actualizar el link de pago.';
+        }
+      });
   }
 
   private cargarFormulario(orden: any): void {

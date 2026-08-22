@@ -67,6 +67,23 @@
 }
 .state-panel.error { color: #dc2626; }
 
+.result-message {
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  border: 1px solid rgba(34, 197, 94, .35);
+  border-radius: 13px;
+  color: #22c55e;
+  background: rgba(34, 197, 94, .09);
+  font-weight: 750;
+  text-align: center;
+}
+
+.result-message.error {
+  border-color: rgba(239, 68, 68, .35);
+  color: #ef4444;
+  background: rgba(239, 68, 68, .09);
+}
+
 .intro-panel,
 .form-panel,
 .button-result {
@@ -132,6 +149,7 @@
 .button { min-height: 44px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 12px; font-size: 13px; font-weight: 850; text-decoration: none; cursor: pointer; }
 .button.primary { color: #140e02; background: linear-gradient(180deg, #f8d877, var(--edit-gold)); }
 .button.secondary { color: #fff; background: #344c68; }
+.button:disabled { opacity: .6; cursor: not-allowed; }
 
 .section-heading { margin-bottom: 28px; text-align: center; }
 .section-heading h2 { margin: 0 0 10px; }
