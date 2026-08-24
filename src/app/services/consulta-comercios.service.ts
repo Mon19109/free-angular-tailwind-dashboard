@@ -33,6 +33,7 @@ export interface ConsultaComercioApi {
   idAffilationLevel?: string;
   guid?: string;
   validate?: string;
+  status?: string;
   commerceType?: string;
   typeOfBusiness?: number;
   [key: string]: unknown;

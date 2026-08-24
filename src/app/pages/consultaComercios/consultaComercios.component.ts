@@ -211,11 +211,22 @@ export class ConsultaComerciosComponent {
         rfc: comercio.rfc || 'ND',
         correo: comercio.email || 'ND',
         telefono: comercio.phoneNumber || 'ND',
-        estatus: 'Activo',
+        estatus: this.estatusDesdeComercioApi(comercio),
         cajaPinRapido: nivel === 'Caja' && comercio.idBusinessModel === 3,
         tieneInferiores: nivel !== 'Caja',
       };
     });
+  }
+
+  private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
+    const status = this.normalizarTexto(comercio.status || String(comercio['Status'] || comercio['STATUS'] || ''));
+
+    if (status === 'ACTIVO' || status === 'ACTIVE') return 'Activo';
+    if (status === 'INACTIVO' || status === 'INACTIVE') return 'Inactivo';
+    if (status === 'BAJA' || status === 'BAJA DEFINITIVA' || status === 'BAJA_DEFINITIVA') return 'Baja definitiva';
+    if (status === 'PROSPECTO' || status === 'PROSPECTOS') return 'Prospecto';
+
+    return this.nivelDesdeComercioApi(comercio) === 'Prospecto' ? 'Prospecto' : 'Activo';
   }
 
   private nivelDesdeComercioApi(comercio: ConsultaComercioApi): Comercio['nivel'] {
