@@ -51,6 +51,7 @@ export class StepDatosComponent implements OnInit {
   @Input() mismaInfoAccesoActiva = false;
   @Input() mostrarMismaInfoAccesoRepresentante = false;
   @Input() mismaInfoAccesoRepresentanteActiva = false;
+  @Input() textoMismaInfoAccesoRepresentante = 'Los datos son los mismos de Información para acceso';
   @Input() mostrarMismoDomicilio = true;
   @Input() bloquearTipoPersona = false;
   @Output() continuar = new EventEmitter<void>();

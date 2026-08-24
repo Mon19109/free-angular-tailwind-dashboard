@@ -21,6 +21,7 @@ export class StepComercioComponent {
   @Input() bloquearTipoPersona = false;
   @Input() mostrarTipoPersona = false;
   @Input() ocultarContactoPersonaMoral = false;
+  @Input() mostrarContactoAcceso = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() abrirComisionista = new EventEmitter<void>();
@@ -48,9 +49,7 @@ get esEmpresaHolding(): boolean {
 }
 
 get muestraContacto(): boolean {
-  return this.esEmpresaHolding
-    || this.esPersonaFisica
-    || (this.mostrarTipoPersona && !(this.ocultarContactoPersonaMoral && this.esPersonaMoral));
+  return this.mostrarContactoAcceso;
 }
 
 esContactoInvalido(campo: string): boolean {

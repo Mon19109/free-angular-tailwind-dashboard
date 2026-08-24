@@ -274,7 +274,7 @@
       <label class="checkbox-inline">
         <input type="checkbox" [checked]="mismaInfoAccesoRepresentanteActiva"
           (change)="cambiarMismaInfoAccesoRepresentante.emit($any($event.target).checked)">
-        Los datos son los mismos de Información para acceso
+        {{ textoMismaInfoAccesoRepresentante }}
       </label>
       }
     </div>

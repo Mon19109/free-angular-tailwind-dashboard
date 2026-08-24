@@ -553,6 +553,12 @@ export class PreRegistroComponent {
   private readonly camposNombreRepresentanteObligatorios = ['apellidoPaternoRepresentante', 'apellidoMaternoRepresentante'];
   private readonly camposDireccionRepresentante = ['calleRepresentante', 'numeroExteriorRepresentante', 'numeroInteriorRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante', 'locationIDRepresentante'];
   private readonly camposDireccionRepresentanteObligatorios = ['calleRepresentante', 'codigoPostalRepresentante', 'coloniaRepresentante', 'municipioRepresentante', 'estadoRepresentante'];
+  private readonly nivelContactoAccesoPorPaquete: Record<string, string> = {
+    'comercio-unico': 'Sucursal',
+    'sucursales-multiples': 'Entidad',
+    'empresa-holding': 'Sub Afiliado',
+    'auditor-unico': 'Entidad',
+  };
 
   private get mostrarRepresentante(): boolean {
     return this.requiereDatosRepresentante(this.tipoComercioEfectivoActual(), this.datosForm.controls.tipoPersona.value);
@@ -596,15 +602,21 @@ export class PreRegistroComponent {
 
       if (!control) return;
 
-      const esContactoDescripcion = this.camposDatosGenerales.includes('tipoPersona')
-        && ['correo', 'telefono'].includes(nombre)
-        && !(this.ocultarContactoPersonaMoralDescripcion && this.datosForm.controls.tipoPersona.value === 'PM');
+      const esContactoDescripcion = this.mostrarContactoAccesoDescripcion
+        && ['correo', 'telefono'].includes(nombre);
       const obligatorio = this.camposDatosGenerales.includes(nombre) || esContactoDescripcion;
 
       control.setValidators(this.validadoresDatosPorCampo(nombre, obligatorio));
 
       control.updateValueAndValidity({ emitEvent: false });
 
+    });
+
+    ['nombreAcceso', 'apellidoPaternoAcceso', 'apellidoMaternoAcceso'].forEach(nombre => {
+      const control = this.datosForm.get(nombre);
+      if (!control) return;
+      control.setValidators(this.mostrarContactoAccesoDescripcion ? [Validators.required] : []);
+      control.updateValueAndValidity({ emitEvent: false });
     });
 
 
@@ -920,8 +932,8 @@ export class PreRegistroComponent {
 
   private idAffiliationTypePorNivel(nivel: string): number {
     const mapa: Record<string, number> = {
-      'Sub Afiliado': 1,
-      'Entidad': 2,
+      'Sub Afiliado': 3,
+      'Entidad': 4,
       'Sucursal': 5,
       'Caja': 6,
     };
@@ -1110,10 +1122,18 @@ export class PreRegistroComponent {
     const tipo = this.comercioForm.getRawValue().tipoComercio;
     const tipoEfectivo = ['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo;
     const reglas = this.obtenerReglasDocumentos(tipoEfectivo, this.datosForm.controls.tipoPersona.value);
+    const documentosGuardados = this.documentosPorNodo[this.nodoDocumentosActualId()] ?? {};
 
     return reglas
-      .map(regla => {
-        return this.documentoDesdeRegla(regla, tipoEfectivo, this.datosForm.controls.tipoPersona.value);
+      .map((regla): DocumentoRequerido | undefined => {
+        const documento = this.documentoDesdeRegla(regla, tipoEfectivo, this.datosForm.controls.tipoPersona.value);
+        if (!documento) return undefined;
+        const guardado = documentosGuardados[documento.numero];
+        return {
+          ...documento,
+          archivo: guardado?.archivo,
+          archivoNombre: guardado?.archivoNombre,
+        };
       })
       .filter((documento): documento is DocumentoRequerido => !!documento);
   }
@@ -1191,6 +1211,11 @@ export class PreRegistroComponent {
   get mostrarMismaInfoAccesoRepresentante(): boolean {
     return this.requiereDatosRepresentante(this.tipoComercioEfectivoActual(), this.datosForm.controls.tipoPersona.value);
   }
+  get textoMismaInfoAccesoRepresentante(): string {
+    return this.esSucursalPaqueteSucursalesMultiples
+      ? 'Mismos datos que en Entidad'
+      : 'Los datos son los mismos de Información para acceso';
+  }
   get bloquearNivelComercio(): boolean { return !!this.tipoNegocioSeleccionado || this.contextoComercio === 'caja'; }
   get bloquearTipoComercio(): boolean {
     return this.esComercioUnico
@@ -1208,9 +1233,26 @@ export class PreRegistroComponent {
     return !!this.tipoPersonaForzadaPorTexto(this.tipoComercioDescripcionActual)
       || (this.mostrarInfoFiscalEntidadSucursal && this.datosForm.controls.mismaInfoFiscalEntidad.value);
   }
+  get mostrarContactoAccesoDescripcion(): boolean {
+    return this.nivelComercioActual === this.nivelContactoAccesoActual;
+  }
+  private get esSucursalPaqueteSucursalesMultiples(): boolean {
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    return this.tipoNegocioSeleccionado?.id === 'sucursales-multiples'
+      && nodo?.nivel === 'sucursal'
+      && !!this.buscarEntidadPadre(nodo.id);
+  }
   get ocultarContactoPersonaMoralDescripcion(): boolean {
     const tipoComercio = this.tipoComercioDescripcionActual;
     return ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'].includes(tipoComercio);
+  }
+  private get nivelComercioActual(): string {
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    return nodo ? this.nivelClientePorNodo(nodo) : this.comercioForm.getRawValue().nivel;
+  }
+  private get nivelContactoAccesoActual(): string {
+    const paqueteId = this.tipoNegocioSeleccionado?.id || this.buscarTipoNegocioDesdeComercio()?.id || '';
+    return this.nivelContactoAccesoPorPaquete[paqueteId] || this.comercioForm.getRawValue().nivel;
   }
   private get tipoComercioDescripcionActual(): string {
     return this.valorTexto(this.comercioForm.getRawValue().tipoComercio) || this.tipoComercioEfectivoActual();
@@ -1251,7 +1293,7 @@ export class PreRegistroComponent {
       return { nivelPadre: 'Entidad', mostrarEntidades: false, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
     }
     if (id === 'auditor-unico') {
-      return { nivelPadre: 'Sucursal', mostrarEntidades: false, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
+      return { nivelPadre: 'Entidad', mostrarEntidades: false, mostrarSucursales: true, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
     }
     return { nivelPadre: 'Sucursal', mostrarEntidades: false, mostrarSucursales: false, mostrarCajas: true, entidadesBase: 1, sucursalesBase: 1, cajasBase: 1 };
   }
@@ -1581,37 +1623,84 @@ export class PreRegistroComponent {
   alternarMismaInfoAccesoRepresentante(usarInfoAcceso: boolean): void {
     this.datosForm.controls.mismaInfoAccesoRepresentante.setValue(usarInfoAcceso, { emitEvent: false });
     if (usarInfoAcceso) {
-      this.datosForm.patchValue({
-        nombreRepresentante: this.datosForm.controls.nombreAcceso.value,
-        apellidoPaternoRepresentante: this.datosForm.controls.apellidoPaternoAcceso.value,
-        apellidoMaternoRepresentante: this.datosForm.controls.apellidoMaternoAcceso.value,
-        correoRepresentante: this.datosForm.controls.correo.value,
-        telefonoRepresentante: this.datosForm.controls.telefono.value,
-      });
+      this.datosForm.patchValue(this.obtenerDatosParaRepresentanteDesdeCheck() as any);
       [
         'nombreRepresentante',
         'apellidoPaternoRepresentante',
         'apellidoMaternoRepresentante',
+        'calleRepresentante',
+        'numeroExteriorRepresentante',
+        'numeroInteriorRepresentante',
+        'codigoPostalRepresentante',
+        'coloniaRepresentante',
+        'municipioRepresentante',
+        'estadoRepresentante',
+        'locationIDRepresentante',
         'correoRepresentante',
         'telefonoRepresentante',
+        'telefonoAdicionalRepresentante',
       ].forEach(campo => this.datosForm.get(campo)?.markAsTouched());
     } else {
       this.datosForm.patchValue({
         nombreRepresentante: '',
         apellidoPaternoRepresentante: '',
         apellidoMaternoRepresentante: '',
+        calleRepresentante: '',
+        numeroExteriorRepresentante: '',
+        numeroInteriorRepresentante: '',
+        codigoPostalRepresentante: '',
+        coloniaRepresentante: '',
+        municipioRepresentante: '',
+        estadoRepresentante: '',
+        locationIDRepresentante: '',
         correoRepresentante: '',
         telefonoRepresentante: '',
+        telefonoAdicionalRepresentante: '',
       });
       [
         'nombreRepresentante',
         'apellidoPaternoRepresentante',
         'apellidoMaternoRepresentante',
+        'calleRepresentante',
+        'numeroExteriorRepresentante',
+        'numeroInteriorRepresentante',
+        'codigoPostalRepresentante',
+        'coloniaRepresentante',
+        'municipioRepresentante',
+        'estadoRepresentante',
+        'locationIDRepresentante',
         'correoRepresentante',
         'telefonoRepresentante',
+        'telefonoAdicionalRepresentante',
       ].forEach(campo => this.datosForm.get(campo)?.markAsUntouched());
     }
     this.guardarBorradorSilencioso();
+  }
+
+  private obtenerDatosParaRepresentanteDesdeCheck(): Record<string, string> {
+    const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
+    const entidad = this.esSucursalPaqueteSucursalesMultiples && nodo ? this.buscarEntidadPadre(nodo.id) : undefined;
+    const datosEntidad = entidad ? this.obtenerDatosPorSucursal()[entidad.id] : undefined;
+    const entidadEsPersonaMoral = this.tipoPersonaPayload(datosEntidad?.['tipoPersona']) === 'PM';
+    const sucursalEsPersonaMoral = this.tipoPersonaPayload(this.datosForm.controls.tipoPersona.value) === 'PM';
+
+    if (datosEntidad && entidadEsPersonaMoral && sucursalEsPersonaMoral) {
+      return Object.fromEntries([
+        ...this.camposNombreRepresentante,
+        ...this.camposDireccionRepresentante,
+        'correoRepresentante',
+        'telefonoRepresentante',
+        'telefonoAdicionalRepresentante',
+      ].map(campo => [campo, this.valorTexto(datosEntidad[campo])]));
+    }
+
+    return {
+      nombreRepresentante: this.valorTexto(datosEntidad?.['nombreAcceso']) || this.datosForm.controls.nombreAcceso.value,
+      apellidoPaternoRepresentante: this.valorTexto(datosEntidad?.['apellidoPaternoAcceso']) || this.datosForm.controls.apellidoPaternoAcceso.value,
+      apellidoMaternoRepresentante: this.valorTexto(datosEntidad?.['apellidoMaternoAcceso']) || this.datosForm.controls.apellidoMaternoAcceso.value,
+      correoRepresentante: this.valorTexto(datosEntidad?.['correo']) || this.datosForm.controls.correo.value,
+      telefonoRepresentante: this.valorTexto(datosEntidad?.['telefono']) || this.datosForm.controls.telefono.value,
+    };
   }
 
   volverDesdeComercio(): void {
@@ -2124,10 +2213,9 @@ export class PreRegistroComponent {
   }
 
   private typeOfBusinessPayload(nodoId: string, tipoComercio: string, tipoComercioId?: number): number {
-    return this.valorNumero(tipoComercioId)
-      || this.valorNumero(this.obtenerComercioPorNodo()[nodoId]?.tipoComercioId)
-      || this.valorNumero(this.typeOfBusinessPorTipoComercio[tipoComercio])
-      || this.typeOfBusinessComercio(tipoComercio);
+    const nodo = this.buscarNodoArbol(nodoId);
+    const nivel = nodo ? this.nivelClientePorNodo(nodo) : this.comercioForm.getRawValue().nivel;
+    return this.idAffiliationTypePorNivel(nivel);
   }
 
   private construirDireccionPayload(addressType: 'DF' | 'DC', datos: Record<string, string | boolean>, sufijo: '' | 'Comercial'): Record<string, string> {
@@ -2190,7 +2278,7 @@ export class PreRegistroComponent {
       isAliasUser: true,
       typeOfBusiness: caja
         ? this.typeOfBusinessPayload(caja.id, tipoComercioCaja, this.obtenerComercioPorNodo()[caja.id]?.tipoComercioId)
-        : this.typeOfBusinessComercio(tipoComercioCaja),
+        : this.idAffiliationTypePorNivel('Caja'),
     };
   }
 
@@ -2336,7 +2424,7 @@ export class PreRegistroComponent {
     }
     documento.archivo = archivo; documento.archivoNombre = archivo.name;
     this.archivosInvalidos = false;
-    this.guardarDocumentosNodoActual();
+    this.guardarDocumentoNodoActual(documento);
     this.guardarBorradorSilencioso();
   }
 
@@ -3093,6 +3181,17 @@ export class PreRegistroComponent {
         archivoNombre: documento.archivoNombre,
       }])
     );
+  }
+
+  private guardarDocumentoNodoActual(documento: DocumentoRequerido): void {
+    const nodoId = this.nodoDocumentosActualId();
+    this.documentosPorNodo[nodoId] = {
+      ...(this.documentosPorNodo[nodoId] ?? {}),
+      [documento.numero]: {
+        archivo: documento.archivo,
+        archivoNombre: documento.archivoNombre,
+      },
+    };
   }
 
   private cargarDocumentosNodo(nodoId: string): void {

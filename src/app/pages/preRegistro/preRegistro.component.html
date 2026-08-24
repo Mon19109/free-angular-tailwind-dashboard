@@ -321,6 +321,7 @@
               [bloquearTipoPersona]="bloquearTipoPersonaSucursal"
               [mostrarTipoPersona]="camposDatosGenerales.includes('tipoPersona')"
               [ocultarContactoPersonaMoral]="ocultarContactoPersonaMoralDescripcion"
+              [mostrarContactoAcceso]="mostrarContactoAccesoDescripcion"
               (continuar)="continuarComercio()" (volver)="volverDesdeComercio()" (abrirComisionista)="mostrarComisionista = true" />
             }
             @case (2) {
@@ -342,6 +343,7 @@
               [mismaInfoAccesoActiva]="datosForm.controls.mismaInfoAcceso.value"
               [mostrarMismaInfoAccesoRepresentante]="mostrarMismaInfoAccesoRepresentante"
               [mismaInfoAccesoRepresentanteActiva]="datosForm.controls.mismaInfoAccesoRepresentante.value"
+              [textoMismaInfoAccesoRepresentante]="textoMismaInfoAccesoRepresentante"
               [mostrarMismoDomicilio]="mostrarCheckMismoDomicilio"
               [bloquearTipoPersona]="bloquearTipoPersonaSucursal"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"

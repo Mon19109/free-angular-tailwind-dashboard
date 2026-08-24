@@ -1307,6 +1307,14 @@ small {
 
 .access-info-title .field-label {
   margin-bottom: 0;
+  color: var(--pre-text);
+  font-size: clamp(17px, 1.35vw, 22px);
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.access-info-title .field-label b {
+  color: #ffaf64;
 }
 
 .documents-panel {
