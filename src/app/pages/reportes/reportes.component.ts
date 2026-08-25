@@ -18,6 +18,11 @@ interface ReporteDisponible {
   folder?: string;
 }
 
+interface CuentaReporteDisponible {
+  id: string;
+  texto: string;
+}
+
 @Component({
   selector: 'app-reportes',
   standalone: true,
@@ -108,14 +113,11 @@ export class ReportesComponent implements OnInit {
     }
   };
 
-  tiposCuenta = [
-    { valor: 'EMISION' as TipoCuentaReporte, texto: 'Cuenta Emisión' },
-    { valor: 'ADQUIRENTE' as TipoCuentaReporte, texto: 'Cuenta Adquirente' }
-  ];
-
+  cuentas: CuentaReporteDisponible[] = [];
   periodos: string[] = [];
-  cuentaSeleccionada: TipoCuentaReporte | '' = '';
+  cuentaSeleccionada = '';
   periodoSeleccionado = '';
+  clabe = '';
   mensaje = '';
   mostrarReportes = false;
   cargando = false;
@@ -127,6 +129,47 @@ export class ReportesComponent implements OnInit {
 
   ngOnInit(): void {
     this.periodos = this.generarPeriodos();
+    this.cargarCuentas();
+  }
+
+  cargarCuentas(): void {
+    this.reportesService.obtenerCuentas().subscribe({
+      next: respuesta => {
+        this.cuentas = this.normalizarLista(respuesta, [
+          'data',
+          'accounts',
+          'concentratorAccounts',
+          'accountList'
+        ])
+          .filter(cuenta => this.debeMostrarCuenta(cuenta))
+          .map(cuenta => ({
+            id: this.obtenerValorCuenta(cuenta),
+            texto: this.obtenerTextoCuenta(cuenta)
+          }))
+          .filter(cuenta => !!cuenta.id);
+      },
+      error: () => {
+        this.mensaje = 'No fue posible cargar las cuentas.';
+      }
+    });
+  }
+
+  onCuentaChange(): void {
+    this.clabe = '';
+    this.mostrarReportes = false;
+    this.reportes = [...this.reportesFijos];
+
+    if (!this.cuentaSeleccionada) return;
+
+    this.reportesService.obtenerSaldo(this.cuentaSeleccionada).subscribe({
+      next: respuesta => {
+        const rows = respuesta?.rows || respuesta?.onsignaEntity || respuesta?.data || respuesta;
+        this.clabe = rows?.clabeAccount || rows?.virtualAccount || '';
+      },
+      error: () => {
+        this.mensaje = 'No fue posible obtener la CLABE de la cuenta.';
+      }
+    });
   }
 
   consultar(): void {
@@ -141,7 +184,7 @@ export class ReportesComponent implements OnInit {
     this.cargando = true;
     this.reportes = [...this.reportesFijos];
 
-    this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.cuentaSeleccionada)
+    this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada())
       .pipe(
         catchError(() => of([] as ReporteArchivo[])),
         finalize(() => {
@@ -184,7 +227,7 @@ export class ReportesComponent implements OnInit {
   }
 
   private verReporteDinamico(reporte: ReporteDisponible): void {
-    this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.cuentaSeleccionada as TipoCuentaReporte, reporte.folder || reporte.id)
+    this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), reporte.folder || reporte.id)
       .pipe(finalize(() => this.abriendoReporte = ''))
       .subscribe({
         next: respuesta => {
@@ -204,8 +247,8 @@ export class ReportesComponent implements OnInit {
   }
 
   private verReporteFijo(reporte: ReporteDisponible): void {
-    const cuenta = localStorage.getItem('entitySonID') || this.cuentaSeleccionada || '';
-    const clabe = localStorage.getItem('clabe') || '';
+    const cuenta = this.cuentaSeleccionada;
+    const clabe = this.clabe;
     const request$ = reporte.id === 'ESTADO_PDF'
       ? this.reportesService.obtenerEstadoCuenta('PDF', this.periodoSeleccionado, cuenta, clabe)
       : reporte.id === 'ESTADO_EXCEL'
@@ -256,6 +299,53 @@ export class ReportesComponent implements OnInit {
   private extraerRows(respuesta: any): ReporteArchivo[] {
     if (Array.isArray(respuesta)) return respuesta;
     if (Array.isArray(respuesta?.rows)) return respuesta.rows;
+    return [];
+  }
+
+  obtenerValorCuenta(cuenta: any): string {
+    return cuenta?.idSirio || cuenta?.sirioId || cuenta?.id || cuenta?.bundle || cuenta?.entitySonID || '';
+  }
+
+  obtenerTextoCuenta(cuenta: any): string {
+    return cuenta?.name || cuenta?.nombre || cuenta?.businessName || cuenta?.bussinesName || this.obtenerValorCuenta(cuenta);
+  }
+
+  private obtenerTipoCuentaSeleccionada(): TipoCuentaReporte {
+    const cuenta = this.cuentas.find(item => item.id === this.cuentaSeleccionada);
+    const texto = (cuenta?.texto || '').toLowerCase();
+
+    return texto.includes('adquir') ? 'ADQUIRENTE' : 'EMISION';
+  }
+
+  private debeMostrarCuenta(cuenta: any): boolean {
+    const idPerfil = Number(localStorage.getItem('idPerfil') || 0);
+
+    if (idPerfil === 5) {
+      return true;
+    }
+
+    return this.obtenerTextoCuenta(cuenta) !== 'Cuenta Reserva';
+  }
+
+  private normalizarLista(response: any, keys: string[]): any[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    let current = response;
+
+    for (const key of keys) {
+      current = current?.[key];
+
+      if (Array.isArray(current)) {
+        return current;
+      }
+    }
+
+    if (current && typeof current === 'object') {
+      return [current];
+    }
+
     return [];
   }
 

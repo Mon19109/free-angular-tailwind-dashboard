@@ -4,10 +4,10 @@
   <form class="reportes-filter" (ngSubmit)="consultar()">
     <label class="reportes-field">
       <span>Selecciona Cuenta</span>
-      <select class="reportes-control" [(ngModel)]="cuentaSeleccionada" name="cuenta">
+      <select class="reportes-control" [(ngModel)]="cuentaSeleccionada" name="cuenta" (change)="onCuentaChange()">
         <option value=""></option>
-        <option *ngFor="let tipo of tiposCuenta" [value]="tipo.valor">
-          {{ tipo.texto }}
+        <option *ngFor="let cuenta of cuentas" [value]="cuenta.id">
+          {{ cuenta.texto }}
         </option>
       </select>
     </label>

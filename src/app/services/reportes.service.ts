@@ -3,13 +3,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
 
-export interface ReportesParams {
-  tipo: 'PDF' | 'EXCEL';
-  periodo: string;
-  cuenta: string;
-  clabe: string;
-}
-
 export interface PeriodoReporte {
   anio: string;
   mes: string;
@@ -22,6 +15,8 @@ export interface ReporteArchivo {
   [key: string]: unknown;
 }
 
+export type TipoCuentaReporte = 'EMISION' | 'ADQUIRENTE';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -30,7 +25,6 @@ export class ReportesService {
   private apiV1Url = `${this.baseUrl}api/v1/`;
   private saldosUrl = environment.api.saldos;
   private documentsUrl = environment.api.documents;
-  private exportadorUrl = 'https://sdbx-portal-antares.kashplataforma.com/public/assets/exportar/estadoCuenta.php';
 
   constructor(private http: HttpClient) {}
 
@@ -73,12 +67,12 @@ export class ReportesService {
     );
   }
 
-  buscarFolderReportes(periodo: string, cuenta: string): Observable<ReporteArchivo[]> {
-    return this.listarDirectorio(this.construirFolderReportes(periodo, cuenta));
+  buscarFolderReportes(periodo: string, tipoCuenta: TipoCuentaReporte): Observable<ReporteArchivo[]> {
+    return this.listarDirectorio(this.construirFolderReportes(periodo, tipoCuenta));
   }
 
-  buscarArchivosReporte(periodo: string, cuenta: string, reporte: string): Observable<ReporteArchivo[]> {
-    return this.listarDirectorio(`${this.construirFolderReportes(periodo, cuenta)}${reporte}`);
+  buscarArchivosReporte(periodo: string, tipoCuenta: TipoCuentaReporte, reporte: string): Observable<ReporteArchivo[]> {
+    return this.listarDirectorio(`${this.construirFolderReportes(periodo, tipoCuenta)}${reporte}`);
   }
 
   obtenerEstadoCuenta(tipo: 'PDF' | 'EXCEL', periodo: string, cuenta: string, clabe = ''): Observable<any> {
@@ -136,18 +130,6 @@ export class ReportesService {
     });
   }
 
-  construirUrlDescarga(paramsData: ReportesParams): string {
-    const params = new URLSearchParams({
-      idAffiliationLevel: localStorage.getItem('idRol') || '',
-      tipo: paramsData.tipo,
-      anio: paramsData.periodo,
-      cuenta: paramsData.cuenta,
-      clabe: paramsData.clabe
-    });
-
-    return `${this.exportadorUrl}?${params.toString()}`;
-  }
-
   parsePeriodo(periodo: string): PeriodoReporte {
     const [anio = '', mes = ''] = periodo.split(' ');
     const meses: Record<string, string> = {
@@ -179,7 +161,7 @@ export class ReportesService {
     return this.http.get<ReporteArchivo[]>(`${this.documentsUrl}listFilesInDirectory?${params.toString()}`);
   }
 
-  private construirFolderReportes(periodo: string, cuenta: string): string {
+  private construirFolderReportes(periodo: string, tipoCuentaReporte: TipoCuentaReporte): string {
     const { anio, mesNumero } = this.parsePeriodo(periodo);
     const sessionRaw = localStorage.getItem('auth_session');
     let sessionGuid = '';
@@ -194,7 +176,7 @@ export class ReportesService {
     }
 
     const guidCommerce = localStorage.getItem('guidCommerce') || localStorage.getItem('commerceGuid') || localStorage.getItem('guid') || sessionGuid;
-    const tipoCuenta = cuenta === 'ADQUIRENTE' ? 'Adquirencia' : 'Emision';
+    const tipoCuenta = tipoCuentaReporte === 'ADQUIRENTE' ? 'Adquirencia' : 'Emision';
 
     return `${guidCommerce}/Reportes/${anio}/${mesNumero}/${tipoCuenta}/`;
   }
