@@ -305,6 +305,8 @@ export class PreRegistroComponent {
 
   readonly datosGeneralesPorTipo: Record<string, string[]> = {
     'Empresa Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Empresa Agrupadora': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Entidad Agrupadora': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Persona Física': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Empresa Holding': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Sucursales de Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
@@ -351,6 +353,36 @@ export class PreRegistroComponent {
       { numero: 13, obligatorio: false },
     ],
     'Empresa Grupo': [
+      { numero: 1, obligatorio: true },
+      { numero: 2, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 8, obligatorio: false },
+      { numero: 9, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+      { numero: 12, obligatorio: false },
+      { numero: 13, obligatorio: false },
+    ],
+    'Empresa Agrupadora': [
+      { numero: 1, obligatorio: true },
+      { numero: 2, obligatorio: true },
+      { numero: 3, obligatorio: true },
+      { numero: 4, obligatorio: false },
+      { numero: 5, obligatorio: false },
+      { numero: 6, obligatorio: false },
+      { numero: 7, obligatorio: false },
+      { numero: 8, obligatorio: false },
+      { numero: 9, obligatorio: false },
+      { numero: 10, obligatorio: false },
+      { numero: 11, obligatorio: false },
+      { numero: 12, obligatorio: false },
+      { numero: 13, obligatorio: false },
+    ],
+    'Entidad Agrupadora': [
       { numero: 1, obligatorio: true },
       { numero: 2, obligatorio: true },
       { numero: 3, obligatorio: true },
@@ -546,7 +578,7 @@ export class PreRegistroComponent {
 
 
 
-  private readonly tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo', 'Sucursales Únicas'];
+  private readonly tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Empresa Agrupadora', 'Entidad Agrupadora', 'Sucursales de Grupo', 'Sucursales Únicas'];
   private readonly tiposSinRepresentante = ['Persona Física', 'Sucursal Persona Física', 'Referenciador', 'Comisionista'];
   private readonly tiposCaja = ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'];
   private readonly camposNombreRepresentante = ['nombreRepresentante', 'apellidoPaternoRepresentante', 'apellidoMaternoRepresentante'];
@@ -847,7 +879,7 @@ export class PreRegistroComponent {
     this.comercioForm.controls.nivel.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(nivel => {
-        this.tiposComercio = this.tiposComercioPorNivel[nivel] ?? [];
+        this.tiposComercio = this.filtrarTiposComercioPorPaquete(nivel, this.tiposComercioPorNivel[nivel] ?? []);
         this.cargarTiposComercioCatalogo(nivel);
         const esSinTipo = ['Referenciador', 'Comisionista'].includes(nivel);
         const tipoAutomatico = this.tiposComercio.length === 1 ? this.tiposComercio[0] : '';
@@ -875,7 +907,10 @@ export class PreRegistroComponent {
 
     //this.cargarBorrador();
     try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
-    this.tiposComercio = this.tiposComercioPorNivel[this.comercioForm.controls.nivel.value] ?? [];
+    this.tiposComercio = this.filtrarTiposComercioPorPaquete(
+      this.comercioForm.controls.nivel.value,
+      this.tiposComercioPorNivel[this.comercioForm.controls.nivel.value] ?? []
+    );
     this.cargarRegimenesFiscales();
     this.actualizarValidadoresDatos();
     this.actualizarValidadorCuentaLiquidacion(this.liquidacionForm.controls.tipoCuenta.value);
@@ -914,10 +949,13 @@ export class PreRegistroComponent {
             ...this.typeOfBusinessPorTipoComercio,
             ...Object.fromEntries(tipos.map(tipo => [tipo.nombre, tipo.id])),
           };
-          this.tiposComercio = tipos.map(tipo => tipo.nombre);
+          this.tiposComercio = this.filtrarTiposComercioPorPaquete(
+            nivel,
+            tipos.map(tipo => tipo.nombre)
+          );
 
           const tipoActual = this.comercioForm.controls.tipoComercio.value;
-          if (tipoActual && !this.typeOfBusinessPorTipoComercio[tipoActual]) {
+          if (tipoActual && !this.tiposComercio.includes(tipoActual)) {
             this.comercioForm.controls.tipoComercio.setValue('', { emitEvent: false });
             this.comercioForm.controls.tipoComercioId.setValue(0, { emitEvent: false });
           } else if (tipoActual) {
@@ -938,6 +976,23 @@ export class PreRegistroComponent {
       'Caja': 6,
     };
     return mapa[nivel] ?? 0;
+  }
+
+  private filtrarTiposComercioPorPaquete(nivel: string, tipos: string[]): string[] {
+    if (this.contextoComercio === 'paquete' && nivel === 'Sub Afiliado') {
+      return tipos.includes('Empresa Holding') ? ['Empresa Holding'] : [];
+    }
+
+    if (this.contextoComercio === 'paquete' && nivel === 'Entidad') {
+      if (this.tipoNegocioSeleccionado?.id === 'auditor-unico') {
+        return tipos.filter(tipo => tipo.toLowerCase().includes('agrupadora'));
+      }
+
+      const permitidos = ['Persona Física', 'Empresa Grupo'];
+      return permitidos.filter(tipo => tipos.includes(tipo));
+    }
+
+    return tipos;
   }
 
   private extraerTiposComercioCatalogo(response: unknown): Array<{ id: number; nombre: string }> {
@@ -1140,6 +1195,13 @@ export class PreRegistroComponent {
 
   private obtenerReglasDocumentos(tipoComercio: string, tipoPersona: unknown): ReglaDocumento[] {
     const tipoPersonaNormalizada = this.tipoPersonaPayload(tipoPersona);
+    if (['Empresa Agrupadora', 'Entidad Agrupadora'].includes(tipoComercio)) {
+      if (tipoPersonaNormalizada === 'PF') {
+        return this.documentosPorTipoComercio['Persona Física'] ?? [];
+      }
+
+      return this.documentosPorTipoComercio[tipoComercio] ?? this.documentosPorTipoComercio['Empresa Grupo'] ?? [];
+    }
     if (['Empresa Grupo', 'Sucursales de Grupo'].includes(tipoComercio) && tipoPersonaNormalizada === 'PF') {
       return this.documentosPorTipoComercio['Persona Física'] ?? [];
     }
@@ -1386,7 +1448,7 @@ export class PreRegistroComponent {
       ? [tipoForzado]
       : this.esComercioUnico
       ? [this.tipoComercioAutomaticoPorNodo(nodo)]
-      : this.tiposComercioPorNivel[nivel] ?? [];
+      : this.filtrarTiposComercioPorPaquete(nivel, this.tiposComercioPorNivel[nivel] ?? []);
     this.cargarTiposComercioCatalogo(nivel);
     this.comercioForm.patchValue({
       nivel,
@@ -1496,7 +1558,7 @@ export class PreRegistroComponent {
     });
     this.tiposComercio = tipo.id === 'comercio-unico'
       ? [tipo.tipoComercio]
-      : this.tiposComercioPorNivel[tipo.nivel] ?? [];
+      : this.filtrarTiposComercioPorPaquete(tipo.nivel, this.tiposComercioPorNivel[tipo.nivel] ?? []);
     if (this.requiereArbolNegocio(tipo)) {
       this.configurarArbolPorTipo(tipo);
       this.arbolNegocioForm.patchValue({
