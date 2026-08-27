@@ -26,28 +26,7 @@
 
     @if (muestraContacto && datosForm) {
     <div class="field span-2 access-info-title">
-      <span class="field-label">Información para accesos a la plataforma <b>*</b></span>
-    </div>
-
-    <div class="field">
-      <label for="nombrePersonaFisica">Nombre(s) <b>*</b></label>
-      <input id="nombrePersonaFisica" [formControl]="$any(datosForm.get('nombreAcceso'))"
-        [class.invalid]="esContactoInvalido('nombreAcceso')" />
-      @if (esContactoInvalido('nombreAcceso')) { <small>{{ mensajeContacto('nombreAcceso') }}</small> }
-    </div>
-
-    <div class="field">
-      <label for="apellidoPaternoPersonaFisica">Apellido paterno <b>*</b></label>
-      <input id="apellidoPaternoPersonaFisica" [formControl]="$any(datosForm.get('apellidoPaternoAcceso'))"
-        [class.invalid]="esContactoInvalido('apellidoPaternoAcceso')" />
-      @if (esContactoInvalido('apellidoPaternoAcceso')) { <small>{{ mensajeContacto('apellidoPaternoAcceso') }}</small> }
-    </div>
-
-    <div class="field">
-      <label for="apellidoMaternoPersonaFisica">Apellido materno <b>*</b></label>
-      <input id="apellidoMaternoPersonaFisica" [formControl]="$any(datosForm.get('apellidoMaternoAcceso'))"
-        [class.invalid]="esContactoInvalido('apellidoMaternoAcceso')" />
-      @if (esContactoInvalido('apellidoMaternoAcceso')) { <small>{{ mensajeContacto('apellidoMaternoAcceso') }}</small> }
+      <span class="field-label">Ingresa un correo electrónico y Teléfono, este dato se utilizará para dar continuidad únicamente al pre registro: <b>*</b></span>
     </div>
 
     <div class="field">
@@ -58,7 +37,7 @@
     </div>
 
     <div class="field">
-      <label for="telefonoPersonaFisica">Teléfono de contacto <b>*</b></label>
+      <label for="telefonoPersonaFisica">Teléfono <b>*</b></label>
       <input id="telefonoPersonaFisica" maxlength="10" inputmode="numeric" [formControl]="$any(datosForm.get('telefono'))"
         [class.invalid]="esContactoInvalido('telefono')" />
       @if (esContactoInvalido('telefono')) { <small>{{ mensajeContacto('telefono') }}</small> }

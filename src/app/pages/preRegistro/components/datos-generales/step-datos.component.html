@@ -11,12 +11,6 @@
           (change)="cambiarInfoFiscalEntidad.emit($any($event.target).checked)">
         Misma información fiscal de la Entidad
       </label>
-      } @else if (mostrarMismaInfoAcceso) {
-      <label class="checkbox-inline">
-        <input type="checkbox" [checked]="mismaInfoAccesoActiva"
-          (change)="cambiarMismaInfoAcceso.emit($any($event.target).checked)">
-        Los datos son los mismos del acceso
-      </label>
       } @else {
       <span>Campos obligatorios marcados con *</span>
       }
@@ -270,13 +264,6 @@
 
     <div class="section-title">
       <h3>Representante Legal</h3>
-      @if (mostrarMismaInfoAccesoRepresentante) {
-      <label class="checkbox-inline">
-        <input type="checkbox" [checked]="mismaInfoAccesoRepresentanteActiva"
-          (change)="cambiarMismaInfoAccesoRepresentante.emit($any($event.target).checked)">
-        {{ textoMismaInfoAccesoRepresentante }}
-      </label>
-      }
     </div>
     <div class="form-grid cols-3">
       <div class="field"><label for="nombreRepresentante">Nombre</label>
@@ -390,7 +377,7 @@
       @if (mostrarMismoDomicilio) {
       <label class="checkbox-inline">
         <input type="checkbox" formControlName="mismoDomicilio">
-        Mismo domicilio
+        Mismo domicilio que el fiscal
       </label>
       }
     </div>
@@ -419,7 +406,7 @@
       </div>
 
       <div class="field">
-        <label for="numeroExteriorComercial">Número Exterior</label>
+        <label for="numeroExteriorComercial">Número Exterior <b>*</b></label>
         <input id="numeroExteriorComercial" formControlName="numeroExteriorComercial"
           [class.invalid]="esInvalido('numeroExteriorComercial')">
         @if (esInvalido('numeroExteriorComercial')) { <small>{{ mensajeCampo('numeroExteriorComercial') }}</small> }
@@ -493,35 +480,19 @@
       <h3>Contacto Comercial</h3>
     </div>
     <div class="form-grid cols-3">
-      <div class="field"><label for="nombreContactoComercial">Nombre(s) <b>*</b></label>
-        <input id="nombreContactoComercial" formControlName="nombreContactoComercial"
-          [class.invalid]="esInvalido('nombreContactoComercial')">
-        @if (esInvalido('nombreContactoComercial')) { <small>{{ mensajeCampo('nombreContactoComercial') }}</small> }
-      </div>
-      <div class="field"><label for="apellidoPaternoContactoComercial">Apellido paterno <b>*</b></label>
-        <input id="apellidoPaternoContactoComercial" formControlName="apellidoPaternoContactoComercial"
-          [class.invalid]="esInvalido('apellidoPaternoContactoComercial')">
-        @if (esInvalido('apellidoPaternoContactoComercial')) { <small>{{ mensajeCampo('apellidoPaternoContactoComercial') }}</small> }
-      </div>
-      <div class="field"><label for="apellidoMaternoContactoComercial">Apellido materno <b>*</b></label>
-        <input id="apellidoMaternoContactoComercial" formControlName="apellidoMaternoContactoComercial"
-          [class.invalid]="esInvalido('apellidoMaternoContactoComercial')">
-        @if (esInvalido('apellidoMaternoContactoComercial')) { <small>{{ mensajeCampo('apellidoMaternoContactoComercial') }}</small> }
-      </div>
       <div class="field"><label for="correoComercial">Correo Electrónico <b>*</b></label>
         <input id="correoComercial" type="email" formControlName="correoComercial"
           [class.invalid]="esInvalido('correoComercial')">
         @if (esInvalido('correoComercial')) { <small>{{ mensajeCampo('correoComercial') }}</small> }
       </div>
-      <div class="field"><label for="telefonoRepresentante">Teléfono <b>*</b></label>
+      <div class="field"><label for="telefonoComercial">Teléfono <b>*</b></label>
         <input id="telefonoComercial" maxlength="10" inputmode="numeric" formControlName="telefonoComercial"
           [class.invalid]="esInvalido('telefonoComercial')">
         @if (esInvalido('telefonoComercial')) { <small>{{ mensajeCampo('telefonoComercial') }}</small> }
       </div>
 
-      <div class="field"><label for="telefonoAdicionalRepresentante">Teléfono Adicional</label>
-        <input id="telefonoAdicionalComercial" maxlength="10" inputmode="numeric"
-          maxlength="10" inputmode="numeric" formControlName="telefonoAdicionalComercial" />
+      <div class="field"><label for="telefonoAdicionalComercial">Teléfono Adicional</label>
+        <input id="telefonoAdicionalComercial" maxlength="10" inputmode="numeric" formControlName="telefonoAdicionalComercial" />
       </div>
     </div>
   </section>

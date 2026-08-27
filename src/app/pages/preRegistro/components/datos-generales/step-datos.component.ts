@@ -49,16 +49,12 @@ export class StepDatosComponent implements OnInit {
   @Input() infoFiscalEntidadActiva = false;
   @Input() mostrarMismaInfoAcceso = false;
   @Input() mismaInfoAccesoActiva = false;
-  @Input() mostrarMismaInfoAccesoRepresentante = false;
-  @Input() mismaInfoAccesoRepresentanteActiva = false;
-  @Input() textoMismaInfoAccesoRepresentante = 'Los datos son los mismos de Información para acceso';
   @Input() mostrarMismoDomicilio = true;
   @Input() bloquearTipoPersona = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
   @Output() cambiarMismaInfoAcceso = new EventEmitter<boolean>();
-  @Output() cambiarMismaInfoAccesoRepresentante = new EventEmitter<boolean>();
   @Output() seleccionarLocalidadFiscal = new EventEmitter<string>();
   @Output() seleccionarLocalidadComercial = new EventEmitter<string>();
   @Output() seleccionarLocalidadRepresentante = new EventEmitter<string>();
@@ -387,7 +383,7 @@ export class StepDatosComponent implements OnInit {
       domicilioFiscal:    !esCaja,
       representante:      mostrarNombreRepresentante,
       dirRepresentante:   mostrarDireccionRepresentante,
-      contactoRep:        mostrarRepresentante,
+      contactoRep:        false,
       domicilioComercial: true,
       contactoComercial:  true,
     };

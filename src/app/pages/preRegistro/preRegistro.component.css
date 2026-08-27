@@ -1306,11 +1306,18 @@ small {
 }
 
 .access-info-title .field-label {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(241, 178, 61, 0.36);
+  border-radius: 8px;
   margin-bottom: 0;
-  color: var(--pre-text);
-  font-size: clamp(17px, 1.35vw, 22px);
-  font-weight: 850;
-  line-height: 1.2;
+  color: var(--pre-gold-strong);
+  background: rgba(241, 178, 61, 0.1);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .access-info-title .field-label b {
@@ -2396,6 +2403,17 @@ small {
 :host-context(html:not(.dark)) select:focus {
   border-color: rgba(241, 178, 61, 0.42);
   box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.1);
+}
+
+:host-context(html:not(.dark)) .access-info-title .field-label {
+  border-color: rgba(180, 83, 9, 0.36);
+  color: #92400e;
+  background: #fff7ed;
+  box-shadow: 0 8px 18px rgba(180, 83, 9, 0.08);
+}
+
+:host-context(html:not(.dark)) .access-info-title .field-label b {
+  color: #c2410c;
 }
 
 :host-context(html:not(.dark)) ::ng-deep app-select select.preregistro-select:focus {

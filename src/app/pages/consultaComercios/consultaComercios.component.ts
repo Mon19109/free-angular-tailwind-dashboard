@@ -62,6 +62,19 @@ export class ConsultaComerciosComponent {
   };
 
   comercios: Comercio[] = [];
+  private readonly comercioProspecto: Comercio = {
+    idComercio: 'PROS-000001',
+    nodoId: 'prospecto-1',
+    nivel: 'Prospecto',
+    jerarquia: 'Prospecto',
+    nombreComercial: 'Prospecto Comercio Demo',
+    razonSocial: 'Prospecto Comercio Demo SA de CV',
+    rfc: 'PCD260826AB1',
+    correo: 'prospecto.demo@kashpay.mx',
+    telefono: '5512345678',
+    estatus: 'Prospecto',
+    tieneInferiores: false,
+  };
 
   resultados = [...this.comercios];
   cargando = false;
@@ -168,13 +181,15 @@ export class ConsultaComerciosComponent {
           return;
         }
 
-        this.comercios = this.ordenarComoArbol(this.normalizarComerciosApi(respuesta.commerces ?? []));
+        this.comercios = this.ordenarComoArbol(this.comerciosConProspecto(
+          this.normalizarComerciosApi(respuesta.commerces ?? [])
+        ));
         this.aplicarFiltroNivel();
         this.cargando = false;
       },
       error: () => {
         this.errorConsulta = 'No fue posible consultar los comercios.';
-        this.comercios = [];
+        this.comercios = this.ordenarComoArbol(this.comerciosConProspecto([]));
         this.aplicarFiltroNivel();
         this.cargando = false;
       }
@@ -216,6 +231,11 @@ export class ConsultaComerciosComponent {
         tieneInferiores: nivel !== 'Caja',
       };
     });
+  }
+
+  private comerciosConProspecto(comercios: Comercio[]): Comercio[] {
+    const sinProspectoDemo = comercios.filter(comercio => comercio.idComercio !== this.comercioProspecto.idComercio);
+    return [...sinProspectoDemo, this.comercioProspecto];
   }
 
   private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
@@ -492,7 +512,7 @@ export class ConsultaComerciosComponent {
   }
 
   puedeEditar(comercio: Comercio): boolean {
-    return this.filtros.nivel === 'prospectos' && comercio.estatus === 'Prospecto';
+    return comercio.estatus === 'Prospecto';
   }
 
   exportarExcel(): void {

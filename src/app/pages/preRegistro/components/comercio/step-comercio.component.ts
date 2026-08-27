@@ -54,13 +54,12 @@ get muestraContacto(): boolean {
 
 esContactoInvalido(campo: string): boolean {
   const c = this.datosForm?.get(campo);
-  return !!((c?.invalid || this.esCampoAccesoVacio(campo)) && c?.touched);
+  return !!(c?.invalid && c?.touched);
 }
 
 mensajeContacto(campo: string): string {
   const c = this.datosForm?.get(campo);
   if (!c) return 'Campo obligatorio.';
-  if (this.esCampoAccesoVacio(campo)) return 'Campo obligatorio.';
   if (c.hasError('required')) return 'Campo obligatorio.';
   if (c.hasError('email')) return 'Ingresa un correo válido.';
   if (c.hasError('pattern') || c.hasError('minlength') || c.hasError('maxlength')) {
@@ -69,18 +68,11 @@ mensajeContacto(campo: string): string {
   return 'Revisa el dato capturado.';
 }
 
-private esCampoAccesoVacio(campo: string): boolean {
-  return ['nombreAcceso', 'apellidoPaternoAcceso', 'apellidoMaternoAcceso'].includes(campo)
-    && this.muestraContacto
-    && !`${this.datosForm?.get(campo)?.value ?? ''}`.trim();
-}
-
   submit(): void {
     const camposDatosPaso = [
-      ...(this.muestraContacto ? ['nombreAcceso', 'apellidoPaternoAcceso', 'apellidoMaternoAcceso'] : []),
       ...(this.muestraContacto ? ['correo', 'telefono'] : []),
     ];
-    const datosPasoInvalidos = camposDatosPaso.some(campo => this.datosForm?.get(campo)?.invalid || this.esCampoAccesoVacio(campo));
+    const datosPasoInvalidos = camposDatosPaso.some(campo => this.datosForm?.get(campo)?.invalid);
 
     if (this.form.invalid || datosPasoInvalidos) {
       this.form.markAllAsTouched();

@@ -127,6 +127,8 @@ export class PreRegistroComponent {
   tiposComercio: string[] = [];
   tipoNegocioSeleccionado?: TipoNegocio;
   private typeOfBusinessPorTipoComercio: Record<string, number> = {};
+  private tiposComercioCatalogoPorNivel: Record<string, Array<{ id: number; nombre: string }>> = {};
+  private tiposComercioCatalogoSolicitados = new Set<string>();
   localidadesFiscal: CodigoPostalLocalizacion[] = [];
   localidadesComercial: CodigoPostalLocalizacion[] = [];
   localidadesRepresentante: CodigoPostalLocalizacion[] = [];
@@ -538,7 +540,7 @@ export class PreRegistroComponent {
     codigoPostalComercial: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(5), Validators.pattern(/^\d{5}$/)]],
     tipoVialidadComercial: ['', Validators.required],
     nombreVialidadComercial: ['', Validators.required],
-    numeroExteriorComercial: [''],
+    numeroExteriorComercial: ['', Validators.required],
     numeroInteriorComercial: [''],
     coloniaComercial: ['', Validators.required],
     localidadComercial: ['', Validators.required],
@@ -549,9 +551,9 @@ export class PreRegistroComponent {
     yCalleComercial: ['', Validators.required],
 
     correoComercial: ['', [Validators.required, Validators.email]],
-    nombreContactoComercial: ['', Validators.required],
-    apellidoPaternoContactoComercial: ['', Validators.required],
-    apellidoMaternoContactoComercial: ['', Validators.required],
+    nombreContactoComercial: [''],
+    apellidoPaternoContactoComercial: [''],
+    apellidoMaternoContactoComercial: [''],
     telefonoComercial: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
     telefonoAdicionalComercial: ['', [Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
 
@@ -647,7 +649,7 @@ export class PreRegistroComponent {
     ['nombreAcceso', 'apellidoPaternoAcceso', 'apellidoMaternoAcceso'].forEach(nombre => {
       const control = this.datosForm.get(nombre);
       if (!control) return;
-      control.setValidators(this.mostrarContactoAccesoDescripcion ? [Validators.required] : []);
+      control.clearValidators();
       control.updateValueAndValidity({ emitEvent: false });
     });
 
@@ -694,11 +696,11 @@ export class PreRegistroComponent {
     }
 
     const correoRep = this.datosForm.get('correoRepresentante');
-    correoRep?.setValidators(mostrarRep ? [Validators.required, Validators.email, this.emailValidator] : [Validators.email, this.emailValidator]);
+    correoRep?.setValidators([Validators.email, this.emailValidator]);
     correoRep?.updateValueAndValidity({ emitEvent: false });
 
     const telRep = this.datosForm.get('telefonoRepresentante');
-    telRep?.setValidators(this.validadoresDatosPorCampo('telefonoRepresentante', mostrarRep));
+    telRep?.setValidators(this.validadoresDatosPorCampo('telefonoRepresentante', false));
     telRep?.updateValueAndValidity({ emitEvent: false });
 
     this.actualizarValidadoresActividadYGiro();
@@ -933,39 +935,60 @@ export class PreRegistroComponent {
   }
 
   private cargarTiposComercioCatalogo(nivel: string): void {
-    if (this.esComercioUnico) return;
-
     const idAffiliationType = this.idAffiliationTypePorNivel(nivel);
     if (!idAffiliationType) return;
+
+    const cacheado = this.tiposComercioCatalogoPorNivel[nivel];
+    if (cacheado) {
+      this.aplicarTiposComercioCatalogo(nivel, cacheado);
+      return;
+    }
+
+    if (this.tiposComercioCatalogoSolicitados.has(nivel)) return;
+    this.tiposComercioCatalogoSolicitados.add(nivel);
 
     this.preRegistroService.getTiposComercio(idAffiliationType)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: response => {
+          console.info('[PreRegistro] catTypeOfBusinesses', { nivel, idAffiliationType, response });
           const tipos = this.extraerTiposComercioCatalogo(response);
           if (!tipos.length) return;
-
-          this.typeOfBusinessPorTipoComercio = {
-            ...this.typeOfBusinessPorTipoComercio,
-            ...Object.fromEntries(tipos.map(tipo => [tipo.nombre, tipo.id])),
-          };
-          this.tiposComercio = this.filtrarTiposComercioPorPaquete(
-            nivel,
-            tipos.map(tipo => tipo.nombre)
-          );
-
-          const tipoActual = this.comercioForm.controls.tipoComercio.value;
-          if (tipoActual && !this.tiposComercio.includes(tipoActual)) {
-            this.comercioForm.controls.tipoComercio.setValue('', { emitEvent: false });
-            this.comercioForm.controls.tipoComercioId.setValue(0, { emitEvent: false });
-          } else if (tipoActual) {
-            this.comercioForm.controls.tipoComercioId.setValue(this.typeOfBusinessPorTipoComercio[tipoActual] ?? 0, { emitEvent: false });
-          }
+          this.tiposComercioCatalogoPorNivel[nivel] = tipos;
+          this.aplicarTiposComercioCatalogo(nivel, tipos);
         },
         error: error => {
           void error;
+          this.tiposComercioCatalogoSolicitados.delete(nivel);
         },
       });
+  }
+
+  private aplicarTiposComercioCatalogo(nivel: string, tipos: Array<{ id: number; nombre: string }>): void {
+    this.typeOfBusinessPorTipoComercio = {
+      ...this.typeOfBusinessPorTipoComercio,
+      ...Object.fromEntries(tipos.map(tipo => [tipo.nombre, tipo.id])),
+    };
+    const tiposFiltrados = this.filtrarTiposComercioPorPaquete(
+      nivel,
+      tipos.map(tipo => tipo.nombre)
+    );
+    const esNivelActual = this.comercioForm.controls.nivel.value === nivel;
+    if (esNivelActual) this.tiposComercio = tiposFiltrados;
+
+    const tipoActual = this.comercioForm.controls.tipoComercio.value;
+    if (!esNivelActual) {
+      this.actualizarTipoComercioIdsGuardados(tipos);
+      return;
+    }
+
+    if (tipoActual && !tiposFiltrados.includes(tipoActual)) {
+      this.comercioForm.controls.tipoComercio.setValue('', { emitEvent: false });
+      this.comercioForm.controls.tipoComercioId.setValue(0, { emitEvent: false });
+    } else if (tipoActual) {
+      this.comercioForm.controls.tipoComercioId.setValue(this.typeOfBusinessPorTipoComercio[tipoActual] ?? 0, { emitEvent: false });
+    }
+    this.actualizarTipoComercioIdsGuardados(tipos);
   }
 
   private idAffiliationTypePorNivel(nivel: string): number {
@@ -979,6 +1002,11 @@ export class PreRegistroComponent {
   }
 
   private filtrarTiposComercioPorPaquete(nivel: string, tipos: string[]): string[] {
+    if (this.tipoNegocioSeleccionado?.id === 'comercio-unico') {
+      const tipoUnico = nivel === 'Caja' ? 'Cuenta Terminal Pin Rapido' : 'Sucursales Únicas';
+      return tipos.includes(tipoUnico) ? [tipoUnico] : [];
+    }
+
     if (this.contextoComercio === 'paquete' && nivel === 'Sub Afiliado') {
       return tipos.includes('Empresa Holding') ? ['Empresa Holding'] : [];
     }
@@ -1270,14 +1298,6 @@ export class PreRegistroComponent {
       && this.camposDatosGenerales.includes('apellidoPaterno')
       && this.camposDatosGenerales.includes('apellidoMaterno');
   }
-  get mostrarMismaInfoAccesoRepresentante(): boolean {
-    return this.requiereDatosRepresentante(this.tipoComercioEfectivoActual(), this.datosForm.controls.tipoPersona.value);
-  }
-  get textoMismaInfoAccesoRepresentante(): string {
-    return this.esSucursalPaqueteSucursalesMultiples
-      ? 'Mismos datos que en Entidad'
-      : 'Los datos son los mismos de Información para acceso';
-  }
   get bloquearNivelComercio(): boolean { return !!this.tipoNegocioSeleccionado || this.contextoComercio === 'caja'; }
   get bloquearTipoComercio(): boolean {
     return this.esComercioUnico
@@ -1555,7 +1575,7 @@ export class PreRegistroComponent {
       nivel: tipo.nivel,
       tipoComercio: tipo.tipoComercio,
       tipoComercioId: this.typeOfBusinessPayload('', tipo.tipoComercio),
-    });
+    }, { emitEvent: false });
     this.tiposComercio = tipo.id === 'comercio-unico'
       ? [tipo.tipoComercio]
       : this.filtrarTiposComercioPorPaquete(tipo.nivel, this.tiposComercioPorNivel[tipo.nivel] ?? []);
@@ -1564,8 +1584,8 @@ export class PreRegistroComponent {
       this.arbolNegocioForm.patchValue({
         numeroEntidades: this.arbolNegocioForm.controls.numeroEntidades.value || '1',
         numeroSucursales: this.arbolNegocioForm.controls.numeroSucursales.value || '1',
-        numeroCajas: tipo.id === 'comercio-unico' ? '1' : this.arbolNegocioForm.controls.numeroCajas.value || '1',
-        cajasPorSucursal: tipo.id === 'comercio-unico' ? JSON.stringify([1]) : this.arbolNegocioForm.controls.cajasPorSucursal.value,
+        numeroCajas: this.arbolNegocioForm.controls.numeroCajas.value || '1',
+        cajasPorSucursal: this.arbolNegocioForm.controls.cajasPorSucursal.value,
       });
       this.guardarBorradorSilencioso();
       if (!this.requierePantallaArbolNegocio(tipo)) {
@@ -1608,6 +1628,7 @@ export class PreRegistroComponent {
       });
       if (primerNodo) this.cargarCapturaNodo(primerNodo.id);
     }
+    this.precargarTiposComercioArbol();
     this.accesosForm.controls.cajasTPV.setValue(String(Math.max(...Object.values(this.obtenerCajasPorSucursal()))));
     const nodo = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value) || this.primerNodoCapturableArbol();
     if (nodo) this.aplicarComercioPorNodo(nodo);
@@ -1622,7 +1643,9 @@ export class PreRegistroComponent {
   continuarComercio(): void {
     if (this.comercioForm.invalid) { this.comercioForm.markAllAsTouched(); return; }
     this.guardarComercioNodoActual();
-    if (this.camposDatosGenerales.includes('tipoPersona')) this.guardarDatosSucursalActual();
+    if (this.camposDatosGenerales.includes('tipoPersona') || this.mostrarContactoAccesoDescripcion) {
+      this.guardarDatosSucursalActual();
+    }
     this.marcarPasoCompletado(1);
     this.guardarBorradorSilencioso();
     if (this.pasoGeneralesDebeSaltarse) {
@@ -2185,18 +2208,24 @@ export class PreRegistroComponent {
     const liquidacion = this.liquidacionForm.getRawValue() as Record<string, string | boolean>;
     datos = this.sincronizarRepresentanteDesdePersonaFisica(datos, tipoComercioPayload);
     const tipoPersona = this.tipoPersonaPayload(datos['tipoPersona']);
+    const emailComercio = this.esComercioUnico
+      ? this.valorTexto(datos['correo']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(accesos['adminCorreo'])
+      : this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']) || this.valorTexto(accesos['adminCorreo']);
+    const telefonoComercio = this.esComercioUnico
+      ? this.valorTexto(datos['telefono']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(accesos['adminTelefono'])
+      : this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']) || this.valorTexto(accesos['adminTelefono']);
 
     return {
       nameCommerce: this.valorTexto(datos['nombreComercial']) || this.valorTexto(datos['razonSocial']),
       businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
       idBussinesLine: this.valorNumero(datos['mcc']),
       idActivity: this.valorNumero(datos['actividadId']),
-      email: this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']) || this.valorTexto(accesos['adminCorreo']),
+      email: emailComercio,
       password: this.valorTexto(accesos['pinContrasena']),
       name: this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(datos['nombre']) || this.valorTexto(accesos['adminNombre']),
       paternalSurname: this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(datos['apellidoPaterno']) || this.valorTexto(accesos['adminPaterno']),
       maternalSurname: this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(datos['apellidoMaterno']) || this.valorTexto(accesos['adminMaterno']),
-      phoneNumber: this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']) || this.valorTexto(accesos['adminTelefono']),
+      phoneNumber: telefonoComercio,
       rfc: this.valorTexto(datos['rfc']),
       curp: this.valorTexto(datos['curp']),
       fiscalRegime: this.codigoRegimenFiscal(datos['regimenFiscal']),
@@ -2241,9 +2270,9 @@ export class PreRegistroComponent {
       name: this.valorTexto(datos['nombreRepresentante']),
       paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']),
       maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']),
-      phoneNumber: this.valorTexto(datos['telefonoRepresentante']),
-      additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']),
-      email: this.valorTexto(datos['correoRepresentante']),
+      phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']),
+      additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']) || this.valorTexto(datos['telefonoAdicionalComercial']),
+      email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']),
       address: this.construirDireccionRepresentantePayload(datos),
     };
   }
@@ -2275,9 +2304,9 @@ export class PreRegistroComponent {
   }
 
   private typeOfBusinessPayload(nodoId: string, tipoComercio: string, tipoComercioId?: number): number {
-    const nodo = this.buscarNodoArbol(nodoId);
-    const nivel = nodo ? this.nivelClientePorNodo(nodo) : this.comercioForm.getRawValue().nivel;
-    return this.idAffiliationTypePorNivel(nivel);
+    return tipoComercioId
+      || this.typeOfBusinessPorTipoComercio[tipoComercio]
+      || 0;
   }
 
   private construirDireccionPayload(addressType: 'DF' | 'DC', datos: Record<string, string | boolean>, sufijo: '' | 'Comercial'): Record<string, string> {
@@ -2340,8 +2369,33 @@ export class PreRegistroComponent {
       isAliasUser: true,
       typeOfBusiness: caja
         ? this.typeOfBusinessPayload(caja.id, tipoComercioCaja, this.obtenerComercioPorNodo()[caja.id]?.tipoComercioId)
-        : this.idAffiliationTypePorNivel('Caja'),
+        : this.typeOfBusinessPayload('', tipoComercioCaja),
     };
+  }
+
+  private precargarTiposComercioArbol(): void {
+    const niveles = new Set(
+      this.aplanarArbolNegocio(this.arbolNegocioWizard)
+        .map(nodo => this.nivelClientePorNodo(nodo))
+    );
+    niveles.forEach(nivel => this.cargarTiposComercioCatalogo(nivel));
+  }
+
+  private actualizarTipoComercioIdsGuardados(tipos: Array<{ id: number; nombre: string }>): void {
+    const idsPorNombre = Object.fromEntries(tipos.map(tipo => [tipo.nombre, tipo.id]));
+    const comercio = this.obtenerComercioPorNodo();
+    let cambio = false;
+
+    Object.entries(comercio).forEach(([nodoId, item]) => {
+      const id = idsPorNombre[item.tipoComercio];
+      if (!id || item.tipoComercioId === id) return;
+      comercio[nodoId] = { ...item, tipoComercioId: id };
+      cambio = true;
+    });
+
+    if (cambio) {
+      this.arbolNegocioForm.controls.comercioPorNodo.setValue(JSON.stringify(comercio), { emitEvent: false });
+    }
   }
 
   private construirDocumentosPayload(nodoId: string, tipoComercio: string): any[] {
@@ -2378,20 +2432,6 @@ export class PreRegistroComponent {
     if (tipo.includes('jur') || tipo.includes('moral') || tipo === 'pm') return 'PM';
     if (tipo.includes('natural') || tipo.includes('fisica') || tipo.includes('física') || tipo === 'pf') return 'PF';
     return '';
-  }
-
-  private typeOfBusinessComercio(tipoComercio: string): number {
-    if (tipoComercio === 'Empresa Holding') return 6;
-    if (tipoComercio === 'Empresa Grupo') return 6;
-    if (tipoComercio === 'Sucursales de Grupo') return 6;
-    if (tipoComercio === 'Sucursal Persona Física') return 6;
-    if (tipoComercio === 'Sucursales Únicas') return 6;
-    if (tipoComercio === 'Caja con Tarjeta sólo Fondeo') return 13;
-    if (tipoComercio === 'Caja con Tarjeta SPEI') return 13;
-    if (tipoComercio === 'Cuenta Entidad') return 13;
-    if (tipoComercio === 'Cuenta Terminal') return 13;
-    if (tipoComercio === 'Cuenta Terminal Pin Rapido') return 13;
-    return 0;
   }
 
   private valorTexto(valor: unknown): string {
@@ -2609,7 +2649,7 @@ export class PreRegistroComponent {
   }
 
   private requierePantallaArbolNegocio(tipo = this.tipoNegocioSeleccionado): boolean {
-    return tipo?.id !== 'comercio-unico';
+    return this.requiereArbolNegocio(tipo);
   }
 
   private numeroEntero(valor: string, minimo: number): number {
@@ -2820,15 +2860,13 @@ export class PreRegistroComponent {
       'codigoPostalComercial',
       'tipoVialidadComercial',
       'nombreVialidadComercial',
+      'numeroExteriorComercial',
       'coloniaComercial',
       'localidadComercial',
       'municipioComercial',
       'entidadFederativaComercial',
       'entreCalleComercial',
       'yCalleComercial',
-      'nombreContactoComercial',
-      'apellidoPaternoContactoComercial',
-      'apellidoMaternoContactoComercial',
       'correoComercial',
       'telefonoComercial',
     ];
