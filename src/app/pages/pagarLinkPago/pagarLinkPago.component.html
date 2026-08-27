@@ -1,166 +1,203 @@
-<div class=" grid grid-cols-1 gap-6 xl:grid-cols-1">  
-  <div class=" grid grid-cols-2 gap-6 xl:grid-cols-2">  
-    <form  id="formulario" [formGroup]="formulario" (ngSubmit)="enviarForm($event)">
-      <div [hidden]="!mostrarForm" class=" grid grid-cols-1 gap-6 xl:grid-cols-1">  
+<app-payment-header></app-payment-header>
 
-        <div class="bg-white border border-gray-200 dark:bg-white/[0.03] dark:border-gray-800 rounded-2xl">
-          <div class="card account-info">
-            <div class="max-w-full overflow-x-auto">
-              <table class="w-full">
-                <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  <tr>
-                    <td style="text-align: center;">
-                      <img style="max-width: 10%; text-align: center !important;display: inline-block;" class="logoPago" src="iconos/Pagos a distancia/linkPago.png">
-                    
-                      <h4 style="font-size: 20px;color: #807b7b;" class="mt-2  dark:text-white/90"><span class="text-dorado">Link</span> de pago</h4>
-                      <p style="text-align: center;margin-top: 20px;">"Complete todos los campos requeridos para continuar el proceso de pago".</p>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>      
-          </div>
+<div class="pagar-link-contenido">
+<div class="estado" *ngIf="cargando">Consultando link de pago...</div>
+<div class="estado error" *ngIf="!cargando && mensajeError">{{ mensajeError }}</div>
+
+<form *ngIf="!cargando && orden" class="form-kash" [formGroup]="formulario" (ngSubmit)="continuar()">
+  <aside class="panel detalle-pago">
+    <div class="titulo-detalle">
+      <h2>Detalles del pago</h2>
+      <img src="pagosDistancia/tienda.png" alt="Comercio">
+    </div>
+
+    <dl>
+      <div><dt>Comercio:</dt><dd>{{ orden?.merchantInfo?.name || 'ND' }}</dd></div>
+      <div><dt>Nombre:</dt><dd>{{ nombreCliente }}</dd></div>
+      <div><dt>Telefono movil:</dt><dd>{{ orden?.customerInfo?.phone1 || 'ND' }}</dd></div>
+      <div><dt>Referencia 1:</dt><dd>{{ orden?.referenceOne || 'ND' }}</dd></div>
+      <div><dt>Concepto:</dt><dd>{{ orden?.payInfo?.description || 'ND' }}</dd></div>
+      <div><dt>Producto:</dt><dd>{{ productos }}</dd></div>
+      <div><dt>Referencia del comercio:</dt><dd>{{ orden?.payInfo?.reference || 'ND' }}</dd></div>
+      <div><dt>Fecha limite de pago:</dt><dd>{{ fechaExpiracionVisible }}</dd></div>
+      <div><dt>Monto:</dt><dd>{{ orden?.amount | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+      <div *ngIf="esPagoMixto"><dt>Monto pendiente:</dt><dd>{{ orden?.amountPending | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+      <div *ngIf="mostrarOpcionesPago && permiteMsi"><dt>Forma de pago:</dt><dd>{{ descripcionPagoSeleccionado }}</dd></div>
+      <div *ngIf="mostrarOpcionesPago && permitePropina"><dt>Propina:</dt><dd>{{ propinaCalculada | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+      <div class="total"><dt>Total:</dt><dd>{{ total | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+    </dl>
+  </aside>
+
+  <main class="panel pago-panel">
+    <nav class="tabs" aria-label="Forma de pago">
+      <button type="button" [class.active]="tabActiva === 'tarjeta'" (click)="seleccionarTab('tarjeta')">
+        <span aria-hidden="true">▣</span> Tarjeta
+      </button>
+      <button type="button" [class.active]="tabActiva === 'transferencia'" (click)="seleccionarTab('transferencia')">
+        <span aria-hidden="true">⇄</span> Transferencia
+      </button>
+    </nav>
+
+    <section *ngIf="tabActiva === 'tarjeta' && !mostrarResumen" class="contenido-tab">
+      <img class="marcas" src="pagosDistancia/Marcas.png" alt="Tarjetas participantes">
+
+      <div class="paso-formulario" *ngIf="!mostrarOpcionesPago">
+      <div class="campo medio" *ngIf="esPagoMixto">
+        <label for="amountPending">Ingrese el monto a pagar</label>
+        <input id="amountPending" type="number" min="0.01" step="0.01" formControlName="amountPending">
+      </div>
+
+      <div class="campo">
+        <label for="nameCard">Nombre del titular</label>
+        <input id="nameCard" type="text" formControlName="nameCard" (input)="formatearTextoSinEspeciales($event, 'nameCard')"
+          placeholder="Nombre del titular" autocomplete="cc-name">
+        <small *ngIf="formulario.controls.nameCard.touched && formulario.controls.nameCard.invalid">Capture el nombre del titular.</small>
+      </div>
+
+      <div class="campo">
+        <label for="numCard">Numero de tarjeta</label>
+        <input id="numCard" type="text" inputmode="numeric" maxlength="19" formControlName="numCard"
+          (input)="formatearNumeroTarjeta($event)" placeholder="0000 0000 0000 0000" autocomplete="cc-number">
+        <small *ngIf="formulario.controls.numCard.touched && formulario.controls.numCard.invalid">Capture los 16 digitos de la tarjeta.</small>
+        <small class="mensaje-bin" *ngIf="validandoBin">Validando tarjeta y promociones...</small>
+        <small class="mensaje-bin error-bin" *ngIf="!validandoBin && mensajeBin">{{ mensajeBin }}</small>
+      </div>
+
+      <div class="fila-campos">
+        <div class="campo">
+          <label for="vencimiento">Vencimiento</label>
+          <input id="vencimiento" type="text" inputmode="numeric" maxlength="5" formControlName="vencimiento"
+            (input)="formatearVencimiento($event)" placeholder="MM/AA" autocomplete="cc-exp">
+          <small *ngIf="formulario.controls.vencimiento.touched && formulario.controls.vencimiento.invalid">
+            {{ mensajeErrorVencimiento }}
+          </small>
         </div>
-
-        <div style="margin-top: 20px;" class="">
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <app-label>Número de teléfono móvil* </app-label>
-              <input id="tel" name="tel" [maxLength]="10" class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 dark:focus:border-brand-800" type="text">
-            </div>
-            <div class="mt10">
-              <app-label >Correo Electrónico* </app-label>
-              <app-input-field name="email" id="email" type="email"></app-input-field>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <app-label>Tipo de notificación* </app-label>
-              <select class="form-select ng-pristine ng-valid ng-touched">
-                
-
-              </select>
-            </div>
-            <div class="mt10">
-              <app-label>Nombre* </app-label>
-              <app-input-field type="text" name="nombre" id="nombre"></app-input-field>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <app-label>Apellido Paterno* </app-label>
-              <app-input-field type="text" name="aPaterno" id="aPaterno"></app-input-field>
-            </div>
-            <div class="mt10">
-              <app-label>Apellido Materno* </app-label>
-              <app-input-field type="text" name="aMaterno" id="aMaterno"></app-input-field>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <app-label>Productos </app-label>
-              <app-input-field  type="text" name="productos" id="productos"></app-input-field>
-            </div>
-            <div class="mt10">
-              <app-label>Referencia del comercio* </app-label>
-              <app-input-field  type="text" name="refComercio" id="refComercio"></app-input-field>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <app-label>Referencia 1* </app-label>
-              <app-input-field type="text" name="ref1" id="ref1"></app-input-field>
-            </div>
-            <div class="mt10">
-              <app-label>Referencia 2* </app-label>
-              <app-input-field type="text" name="ref2" id="ref2"></app-input-field>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <app-label>Concepto* </app-label>
-              <app-input-field id="concepto" type="text" name="concepto"></app-input-field>
-            </div>
-            <div class="mt10">
-              <app-label>Fecha de vencimiento* </app-label>
-              <div class="relative">
-                <input
-                  #dateInput
-                  [id]="fechaVen"
-                  class="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3  dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30  bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700  dark:focus:border-brand-800"
-                  autocomplete="off"
-                />
-                <span class="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="size-6"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 2C8.41421 2 8.75 2.33579 8.75 2.75V3.75H15.25V2.75C15.25 2.33579 15.5858 2 16 2C16.4142 2 16.75 2.33579 16.75 2.75V3.75H18.5C19.7426 3.75 20.75 4.75736 20.75 6V9V19C20.75 20.2426 19.7426 21.25 18.5 21.25H5.5C4.25736 21.25 3.25 20.2426 3.25 19V9V6C3.25 4.75736 4.25736 3.75 5.5 3.75H7.25V2.75C7.25 2.33579 7.58579 2 8 2ZM8 5.25H5.5C5.08579 5.25 4.75 5.58579 4.75 6V8.25H19.25V6C19.25 5.58579 18.9142 5.25 18.5 5.25H16H8ZM19.25 9.75H4.75V19C4.75 19.4142 5.08579 19.75 5.5 19.75H18.5C18.9142 19.75 19.25 19.4142 19.25 19V9.75Z" fill="currentColor"></path></svg>
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <app-label>Forma de pago*</app-label>
-              <app-select
-              name="filtros"
-              id="filtros"
-              placeholder=""
-              (valueChange)="handleSelectChangePago($event)"
-              className="dark:bg-dark-900"
-              ></app-select>
-
-            </div>
-            <div class="mt10">
-              <app-label>Monto* </app-label>
-              <app-input-field type="text" name="monto" id="monto"></app-input-field>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">  
-            <div class="mt10">
-              <div class="flex items-center gap-3">
-                <app-checkbox
-                  name="msi" 
-                  id="msi"
-                ></app-checkbox>
-                <span class="block text-sm font-medium text-gray-700 dark:text-gray-400">
-                  Habilitar MSI
-                </span>
-              </div>
-            </div>
-            <div class="mt10">
-              <div class="flex items-center gap-3">
-                <app-checkbox
-                  name="propina" 
-                  id="propina"
-                ></app-checkbox>
-                <span class="block text-sm font-medium text-gray-700 dark:text-gray-400">
-                  Habilitar Propina
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-6 xl:grid-cols-2"> 
-            <div  class="mt10"> </div>
-            <div  class="mt10"> 
-              <button (click)="verBotones()" [disabled]="loading()" id="btn-ver-botones" class="btn-azul inline-flex items-center justify-center gap-3 py-3 text-sm font-normal  transition-colors rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
-                Enviar
-              </button>
-            </div>
-          </div>
+        <div class="campo corto">
+          <label for="ccv">CCV</label>
+          <input id="ccv" type="password" inputmode="numeric" [maxLength]="longitudCvv" formControlName="ccv"
+            (input)="formatearCvv($event)" placeholder="CCV" autocomplete="cc-csc">
+          <small *ngIf="formulario.controls.ccv.touched && formulario.controls.ccv.invalid">
+            Capture {{ longitudCvv }} digitos.
+          </small>
         </div>
       </div>
-    
 
-      <div class=" grid grid-cols-1 gap-6 xl:grid-cols-1">  
-        <div id="informacion" style="margin-top: 20px;">
-          <div class="botones grid grid-cols-1 gap-6 xl:grid-cols-1">
-            <div>
-              <h4 style="text-align: center;  font-size: 30px;" class="text-dorado">¡Personaliza tu link de negocio! Crea tu propio botón de pago. </h4>
-              <p style="margin-top: 20px;">Selecciona el tipo de botón que deseas establecer a tus cobros.</p>
-            </div>
-          </div>
+      <div class="fila-campos">
+        <div class="campo">
+          <label for="pais">Pais</label>
+          <input id="pais" type="text" formControlName="pais" (input)="formatearTextoSinEspeciales($event, 'pais')"
+            placeholder="Pais" autocomplete="country-name">
+          <small *ngIf="formulario.controls.pais.touched && formulario.controls.pais.invalid">Capture el pais.</small>
+        </div>
+        <div class="campo">
+          <label for="cp">Codigo postal</label>
+          <input id="cp" type="text" inputmode="numeric" maxlength="5" formControlName="cp"
+            (input)="formatearCodigoPostal($event)" placeholder="Codigo postal" autocomplete="postal-code">
+          <small *ngIf="formulario.controls.cp.touched && formulario.controls.cp.invalid">Capture el codigo postal.</small>
         </div>
       </div>
-    </form>
-  </div>
-  <div class=" grid grid-cols-2 gap-6 xl:grid-cols-2">  
-  </div>
+
+      <button class="btn-principal" type="submit">Continuar</button>
+      </div>
+
+      <div class="paso-opciones" *ngIf="mostrarOpcionesPago">
+      <section class="opciones" *ngIf="permiteMsi">
+        <h3>Meses sin intereses</h3>
+        <p>Seleccione la forma en que desea realizar el pago.</p>
+        <div class="botones-opcion">
+          <label>
+            <input type="radio" formControlName="meses" [value]="1"> Un solo pago
+          </label>
+          <label *ngFor="let opcion of msiDisponibles">
+            <input type="radio" formControlName="meses" [value]="opcion.meses"> {{ opcion.descripcion }}
+          </label>
+        </div>
+      </section>
+
+      <section class="opciones" *ngIf="permitePropina">
+        <h3>Propina</h3>
+        <p>Seleccione o ingrese la cantidad de propina deseada.</p>
+        <div class="botones-opcion">
+          <button *ngFor="let porcentaje of [5, 10, 15, 20, 25, 30]" type="button"
+            [class.selected]="formulario.controls.propinaPorcentaje.value === porcentaje"
+            (click)="seleccionarPropina(porcentaje)">{{ porcentaje }}%</button>
+          <button type="button" [class.selected]="propinaPersonalizadaActiva"
+            (click)="seleccionarOtraPropina()">Otro</button>
+        </div>
+        <div class="campo medio">
+          <label for="propina">Propina en $</label>
+          <input id="propina" type="number" min="0" step="0.01" formControlName="propina"
+            placeholder="0.00" [attr.aria-disabled]="!propinaPersonalizadaActiva">
+        </div>
+      </section>
+
+      <label class="terminos">
+        <input type="checkbox" formControlName="terminos" required aria-required="true">
+        Acepto los <a href="https://onsigna.com/2024/01/22/terminos_y_condiciones/" target="_blank" rel="noopener">terminos y condiciones</a> <span class="obligatorio">*</span>
+      </label>
+      <small class="error-terminos" *ngIf="formulario.controls.terminos.touched && formulario.controls.terminos.invalid">
+        Debe aceptar los terminos y condiciones.
+      </small>
+      <button class="btn-principal" type="submit"
+        [disabled]="formulario.controls.terminos.invalid">Pagar</button>
+      </div>
+    </section>
+
+    <section *ngIf="tabActiva === 'transferencia'" class="contenido-tab transferencia">
+      <img class="spei" src="pagosDistancia/SPEI.png" alt="SPEI">
+      <h3>{{ orden?.merchantInfo?.name || 'Datos para transferencia' }}</h3>
+
+      <div class="dato-transferencia">
+        <div><span>Clabe interbancaria</span><strong>{{ clabe }}</strong></div>
+        <button type="button" (click)="copiar(clabe)" aria-label="Copiar CLABE">Copiar</button>
+      </div>
+      <div class="dato-transferencia">
+        <div><span>Telefono</span><strong>{{ telefonoTransferencia }}</strong></div>
+        <button type="button" (click)="copiar(telefonoTransferencia)" aria-label="Copiar telefono">Copiar</button>
+      </div>
+      <div class="dato-transferencia">
+        <div><span>Banco</span><strong>{{ orden?.speiInfo?.bank || orden?.transferInfo?.bank || 'STP' }}</strong></div>
+      </div>
+
+      <div class="aviso">
+        <strong>Importante</strong>
+        <p>Debes capturar el numero <b>{{ orden?.payInfo?.reference }}</b> en el concepto del SPEI para registrar el pago.</p>
+        <button type="button" (click)="copiar(orden?.payInfo?.reference)">Copiar referencia</button>
+      </div>
+      <div class="acciones-transferencia">
+        <button type="button" (click)="compartirTransferencia('correo')">Enviar por correo</button>
+        <button type="button" (click)="compartirTransferencia('whatsapp')">Compartir por WhatsApp</button>
+      </div>
+    </section>
+
+    <section *ngIf="tabActiva === 'tarjeta' && mostrarResumen" class="contenido-tab resumen">
+      <h2>Resumen</h2>
+      <h3>Destino</h3>
+      <dl>
+        <div><dt>Tipo de pago</dt><dd>Link de pago</dd></div>
+        <div><dt>Destinatario</dt><dd>{{ orden?.orderingAccount || 'ND' }}</dd></div>
+      </dl>
+      <h3>Datos de envio</h3>
+      <dl>
+        <div><dt>Cargo a la tarjeta</dt><dd>{{ tarjetaOculta }}</dd></div>
+        <div><dt>Concepto</dt><dd>{{ orden?.payInfo?.description || 'ND' }}</dd></div>
+        <div><dt>Producto</dt><dd>{{ productos }}</dd></div>
+        <div *ngIf="permiteMsi"><dt>Forma de pago</dt><dd>{{ descripcionPagoSeleccionado }}</dd></div>
+        <div *ngIf="permitePropina"><dt>Propina</dt><dd>{{ propinaCalculada | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+        <div><dt>Subtotal</dt><dd>{{ subtotal | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+        <div class="total"><dt>Pagar</dt><dd>{{ total | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+      </dl>
+      <div class="acciones-resumen">
+        <button type="button" class="btn-secundario" (click)="volverAlFormulario()">Regresar</button>
+        <button type="button" class="btn-principal" [disabled]="enviandoPago" (click)="procesarPago()">
+          {{ enviandoPago ? 'Procesando...' : 'Aceptar' }}
+        </button>
+      </div>
+      <p class="resultado-pago exito" *ngIf="mensajePago">{{ mensajePago }}</p>
+      <p class="resultado-pago fallo" *ngIf="errorPago">{{ errorPago }}</p>
+    </section>
+  </main>
+</form>
+
+<div class="toast" *ngIf="mensajeCopiado">{{ mensajeCopiado }}</div>
 </div>

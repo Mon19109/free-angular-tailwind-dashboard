@@ -1,0 +1,22 @@
+.payment-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 72px;
+  padding: 16px 24px;
+  background: #333f50;
+  border-bottom: 1px solid rgb(194 155 70 / 45%);
+  box-shadow: 0 2px 10px rgb(16 24 40 / 10%);
+}
+
+.payment-brand {
+  color: #c29b46;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  line-height: 1;
+}

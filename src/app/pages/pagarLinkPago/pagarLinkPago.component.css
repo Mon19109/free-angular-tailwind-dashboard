@@ -1,0 +1,73 @@
+:host { display: block; color: #222; }
+.pagar-link-contenido { width: 100%; max-width: 1536px; margin: 0 auto; padding: 24px; }
+.form-kash { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(420px, 2fr); gap: 24px; align-items: start; }
+.panel { background: #fff; border: 1px solid #e4e7ec; border-radius: 14px; box-shadow: 0 5px 20px rgb(16 24 40 / 7%); overflow: hidden; }
+.detalle-pago { padding: 24px; }
+.titulo-detalle { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 16px; }
+.titulo-detalle h2, .resumen h2 { margin: 0; font-size: 20px; font-weight: 700; }
+.titulo-detalle img { width: 48px; height: 48px; object-fit: contain; }
+dl { margin: 14px 0 0; }
+dl > div { display: grid; grid-template-columns: minmax(125px, 44%) 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid #f0f1f3; }
+dt { color: #667085; }
+dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+dl .total { margin-top: 5px; border-bottom: 0; font-size: 17px; color: #111827; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #e4e7ec; }
+.tabs button { border: 0; background: #f8fafc; color: #667085; padding: 17px; cursor: pointer; font-size: 15px; }
+.tabs button.active { background: #fff; color: #073b72; font-weight: 700; box-shadow: inset 0 -3px #c29b46; }
+.contenido-tab { padding: 26px; }
+.paso-formulario, .paso-opciones { width: 100%; }
+.marcas { display: block; width: 100%; max-height: 75px; object-fit: contain; margin-bottom: 20px; }
+.campo { margin-bottom: 16px; }
+.campo.medio { max-width: 50%; }
+.campo label { display: block; margin-bottom: 6px; color: #344054; font-size: 13px; font-weight: 600; }
+.campo input { width: 100%; height: 44px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 0 13px; outline: none; background: #fff; }
+.campo input:focus { border-color: #c29b46; box-shadow: 0 0 0 3px rgb(194 155 70 / 15%); }
+.campo input:disabled { cursor: not-allowed; color: #98a2b3; background: #f2f4f7; }
+.campo small { color: #c62828; display: block; margin-top: 5px; }
+.campo .mensaje-bin { color: #667085; }
+.campo .error-bin { color: #c62828; }
+.fila-campos { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.fila-campos .campo { min-width: 0; }
+.opciones { border-top: 1px solid #e4e7ec; padding-top: 20px; margin-top: 5px; }
+.opciones h3, .transferencia h3, .resumen h3 { margin: 0 0 7px; color: #a77d24; text-transform: uppercase; font-size: 16px; }
+.opciones p { margin: 0 0 14px; color: #667085; }
+.botones-opcion { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 17px; }
+.botones-opcion label, .botones-opcion button { padding: 8px 12px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; cursor: pointer; }
+.botones-opcion button.selected { border-color: #c29b46; background: #fff8e8; color: #8a6416; }
+.terminos { display: flex; gap: 9px; align-items: flex-start; margin: 20px 0; color: #475467; font-size: 14px; }
+.terminos a { color: #a77d24; }
+.obligatorio { color: #c62828; font-weight: 700; }
+.error-terminos { display: block; margin: -12px 0 14px; color: #c62828; }
+.btn-principal, .btn-secundario { border: 0; border-radius: 8px; padding: 12px 22px; cursor: pointer; font-weight: 600; }
+.btn-principal { width: 100%; background: #073b72; color: #fff; }
+.btn-principal:hover { background: #052e59; }
+.btn-principal:disabled { cursor: wait; opacity: .65; }
+.btn-secundario { background: #eef2f6; color: #344054; }
+.spei { display: block; width: 125px; margin: 0 auto 22px; }
+.dato-transferencia { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; gap: 15px; }
+.dato-transferencia span { display: block; color: #667085; font-size: 13px; margin-bottom: 4px; }
+.dato-transferencia button, .aviso button, .acciones-transferencia button { background: none; border: 0; color: #9b7420; cursor: pointer; font-weight: 600; }
+.aviso { margin-top: 22px; padding: 16px; border-radius: 8px; background: #e8f7ee; color: #24553a; }
+.aviso p { margin: 5px 0 8px; }
+.acciones-transferencia { display: flex; justify-content: center; gap: 20px; padding-top: 22px; }
+.resumen h3 { margin-top: 25px; }
+.acciones-resumen { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-top: 24px; }
+.resultado-pago { margin: 14px 0 0; padding: 12px; border-radius: 8px; text-align: center; }
+.resultado-pago.exito { color: #166534; background: #ecfdf3; }
+.resultado-pago.fallo { color: #b42318; background: #fff1f0; }
+.estado { padding: 24px; text-align: center; background: #fff; border: 1px solid #e4e7ec; border-radius: 12px; }
+.estado.error { color: #b42318; background: #fff6f5; border-color: #fecdca; }
+.toast { position: fixed; right: 24px; bottom: 24px; z-index: 50; padding: 12px 18px; color: #fff; background: #101828; border-radius: 8px; box-shadow: 0 5px 18px rgb(0 0 0 / 20%); }
+
+@media (max-width: 900px) {
+  .form-kash { grid-template-columns: 1fr; }
+  .campo.medio { max-width: none; }
+}
+
+@media (max-width: 520px) {
+  .pagar-link-contenido { padding: 14px; }
+  .contenido-tab, .detalle-pago { padding: 18px; }
+  .fila-campos { grid-template-columns: 1fr; gap: 0; }
+  dl > div { grid-template-columns: 1fr; gap: 3px; }
+  .acciones-transferencia { flex-direction: column; }
+}

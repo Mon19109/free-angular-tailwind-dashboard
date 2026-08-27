@@ -63,6 +63,12 @@ export const routes: Routes = [
     component: PreRegistroComponent,
     title: 'Pre registro | KASHPAY'
   },
+  { 
+    path: 'pagar_linkpago', 
+    component: PagarLinkPagoComponent, 
+    //canActivate: [AuthGuard],
+    title:'KASHPAY'
+  },
   {
     path:'',
     component:AppLayoutComponent,
@@ -227,12 +233,6 @@ export const routes: Routes = [
       { 
         path: 'add_linkpago', 
         component: AddLinkPagoComponent, 
-        //canActivate: [AuthGuard],
-        title:'KASHPAY'
-      },
-      { 
-        path: 'pagar_linkpago', 
-        component: PagarLinkPagoComponent, 
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },
