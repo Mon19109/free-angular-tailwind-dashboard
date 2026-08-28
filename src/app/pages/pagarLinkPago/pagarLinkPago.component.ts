@@ -53,7 +53,10 @@ export class PagarLinkPagoComponent implements OnInit {
   private temporizadorMonto?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
-    this.obtenerUbicacion();
+    this.pagarLinkPagoService.obtenerUbicacion().subscribe(ubicacion => {
+      this.latitud = ubicacion.latitud;
+      this.longitud = ubicacion.longitud;
+    });
 
     if (!this.referencia) {
       this.cargando = false;
@@ -428,21 +431,6 @@ export class PagarLinkPagoComponent implements OnInit {
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener,noreferrer');
   }
 
-  private obtenerUbicacion(): void {
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      posicion => {
-        this.latitud = String(posicion.coords.latitude);
-        this.longitud = String(posicion.coords.longitude);
-      },
-      () => {
-        this.latitud = '';
-        this.longitud = '';
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-    );
-  }
 }
 
 function validarVencimientoTarjeta(control: AbstractControl): ValidationErrors | null {

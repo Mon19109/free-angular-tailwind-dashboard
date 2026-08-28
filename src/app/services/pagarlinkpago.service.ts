@@ -3,6 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
 
+export interface UbicacionPago {
+  latitud: string;
+  longitud: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PagarLinkPagoService {
   private readonly http = inject(HttpClient);
@@ -41,5 +46,30 @@ export class PagarLinkPagoService {
     });
 
     return this.http.post(`${this.transactionUrl}processTransaction`, payload, { headers });
+  }
+
+  obtenerUbicacion(): Observable<UbicacionPago> {
+    return new Observable<UbicacionPago>(observer => {
+      if (!navigator.geolocation) {
+        observer.next({ latitud: '', longitud: '' });
+        observer.complete();
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        posicion => {
+          observer.next({
+            latitud: String(posicion.coords.latitude),
+            longitud: String(posicion.coords.longitude)
+          });
+          observer.complete();
+        },
+        () => {
+          observer.next({ latitud: '', longitud: '' });
+          observer.complete();
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      );
+    });
   }
 }
