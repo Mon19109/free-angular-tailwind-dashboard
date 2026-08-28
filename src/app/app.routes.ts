@@ -50,6 +50,7 @@ import { EnviarInvitacionComercioComponent } from './pages/enviarInvitacionComer
 import { ConsultaComerciosComponent } from './pages/consultaComercios/consultaComercios.component';
 import { RegistroClienteComponent } from './pages/registroCliente/registroCliente.component';
 import { ReportesComponent } from './pages/reportes/reportes.component';
+import { VoucherComponent } from './pages/voucher/voucher.component';
 
 export const routes: Routes = [
   { 
@@ -66,6 +67,12 @@ export const routes: Routes = [
   { 
     path: 'pagar_linkpago', 
     component: PagarLinkPagoComponent, 
+    //canActivate: [AuthGuard],
+    title:'KASHPAY'
+  },
+  { 
+    path: 'voucher', 
+    component: VoucherComponent, 
     //canActivate: [AuthGuard],
     title:'KASHPAY'
   },
@@ -188,17 +195,20 @@ export const routes: Routes = [
       { 
         path: 'operaciones_adquirencia', 
         component: OperacionesAdquirenciaComponent, 
-        canActivate: [AuthGuard] 
+        canActivate: [AuthGuard] ,
+        title:'KASHPAY'
       },
       { 
         path: 'transacciones_emision', 
         component: TransaccionesEmisionComponent, 
-        canActivate: [AuthGuard] 
+        canActivate: [AuthGuard] ,
+        title:'KASHPAY'
       },
       { 
         path: 'transacciones_adquirencia', 
         component: TransaccionesAdquirenciaComponent, 
-        canActivate: [AuthGuard] 
+        canActivate: [AuthGuard] ,
+        title:'KASHPAY'
       },
       { 
         path: 'tarjeta', 

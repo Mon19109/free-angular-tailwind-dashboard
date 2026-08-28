@@ -1,0 +1,90 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #1f2937;
+}
+
+.allcp-form {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.panel {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgb(15 23 42 / 8%);
+}
+
+.status-card {
+  margin: 2.5rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.panel-body {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.payment-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 600;
+}
+
+.status-icon {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.paid {
+  color: #15803d;
+}
+
+.cancelled,
+.error-message {
+  color: #b91c1c;
+}
+
+.pending {
+  color: #92400e;
+}
+
+.loading,
+.download-message,
+.error-message {
+  margin: 1rem 0 0;
+}
+
+.loading {
+  margin-top: 0;
+}
+
+.bottom-space {
+  height: 60px;
+}
+
+@media (max-width: 640px) {
+  .status-card {
+    margin: 1rem;
+  }
+
+  .panel-body {
+    padding: 1rem 0.25rem;
+  }
+}

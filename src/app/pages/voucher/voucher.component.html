@@ -1,0 +1,33 @@
+<app-payment-header></app-payment-header>
+
+<div class="allcp-form theme-primary">
+  <div class="panel">
+    <div id="figuras" class="status-card">
+      <div class="panel-body">
+        <p class="loading" *ngIf="cargando">Consultando el estado del pago...</p>
+
+        <h2 class="payment-status paid" *ngIf="!cargando && estaPagada">
+          <span class="status-icon" aria-hidden="true">✓</span>
+          El link de pago fue pagado exitosamente.
+        </h2>
+
+        <h2 class="payment-status cancelled" *ngIf="!cargando && estaCancelada">
+          <span class="status-icon" aria-hidden="true">⊘</span>
+          El link de pago fue cancelado.
+        </h2>
+
+        <h2 class="payment-status pending" *ngIf="!cargando && orden && !estaPagada && !estaCancelada">
+          El pago se encuentra en estado: {{ orden?.status?.description || 'pendiente' }}.
+        </h2>
+
+        <p class="download-message" *ngIf="descargandoVoucher">
+          Preparando la descarga del voucher...
+        </p>
+
+        <p class="error-message" role="alert" *ngIf="mensajeError">{{ mensajeError }}</p>
+      </div>
+    </div>
+
+    <div class="bottom-space" aria-hidden="true"></div>
+  </div>
+</div>
