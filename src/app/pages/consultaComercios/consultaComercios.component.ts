@@ -10,6 +10,7 @@ import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/co
 type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos';
 type EstatusComercio = 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
 type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; valor: '...' };
+type FiltroJerarquia = 'entidad' | 'sucursal' | 'caja';
 
 interface Comercio {
   idComercio: string;
@@ -55,10 +56,12 @@ export class ConsultaComerciosComponent {
 
   filtros = {
     nivel: 'todos' as NivelComercio,
+    entidad: '',
+    sucursal: '',
+    caja: '',
     nombre: '',
     rfc: '',
-    correo: '',
-    telefono: ''
+    correo: ''
   };
 
   comercios: Comercio[] = [];
@@ -161,6 +164,7 @@ export class ConsultaComerciosComponent {
 
   seleccionarNivel(nivel: NivelComercio): void {
     this.filtros.nivel = nivel;
+    this.limpiarFiltrosNoAplicables();
     this.buscar();
   }
 
@@ -171,7 +175,6 @@ export class ConsultaComerciosComponent {
       nameCommerce: this.filtros.nombre.trim(),
       rfc: this.filtros.rfc.trim(),
       email: this.filtros.correo.trim(),
-      telefono: this.filtros.telefono.trim(),
     }).subscribe({
       next: respuesta => {
         if (respuesta.success === false) {
@@ -197,20 +200,66 @@ export class ConsultaComerciosComponent {
   }
 
   limpiar(): void {
-    this.filtros = { nivel: 'todos', nombre: '', rfc: '', correo: '', telefono: '' };
+    this.filtros = { nivel: 'todos', entidad: '', sucursal: '', caja: '', nombre: '', rfc: '', correo: '' };
     this.busquedaTabla = '';
     this.buscar();
     this.paginaActual = 1;
   }
 
+  filtroVisible(filtro: FiltroJerarquia | 'nombre' | 'rfc' | 'correo'): boolean {
+    const visiblesPorNivel: Record<NivelComercio, Array<FiltroJerarquia | 'nombre' | 'rfc' | 'correo'>> = {
+      todos: ['entidad', 'sucursal', 'caja', 'nombre', 'rfc', 'correo'],
+      'sub-afiliado': ['entidad', 'sucursal', 'caja', 'nombre', 'rfc', 'correo'],
+      entidad: ['sucursal', 'caja', 'nombre', 'rfc', 'correo'],
+      sucursal: ['nombre', 'rfc', 'correo'],
+      caja: [],
+      prospectos: ['nombre', 'rfc', 'correo']
+    };
+
+    return visiblesPorNivel[this.filtros.nivel].includes(filtro);
+  }
+
   private aplicarFiltroNivel(): void {
     const nivel = this.filtros.nivel;
-    this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio =>
-      nivel === 'todos'
-      || (nivel === 'prospectos' ? comercio.estatus === 'Prospecto' : this.normalizarNivel(comercio.nivel) === nivel)
-    ));
+    this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
+      const coincideNivel = nivel === 'todos'
+        || (nivel === 'prospectos' ? comercio.estatus === 'Prospecto' : this.normalizarNivel(comercio.nivel) === nivel);
+
+      return coincideNivel && this.coincideFiltrosJerarquia(comercio);
+    }));
     this.paginaActual = 1;
     this.accionesAbiertas = null;
+  }
+
+  private limpiarFiltrosNoAplicables(): void {
+    (['entidad', 'sucursal', 'caja', 'nombre', 'rfc', 'correo'] as const).forEach(filtro => {
+      if (!this.filtroVisible(filtro)) {
+        this.filtros[filtro] = '';
+      }
+    });
+  }
+
+  private coincideFiltrosJerarquia(comercio: Comercio): boolean {
+    return (['entidad', 'sucursal', 'caja'] as const).every(filtro => {
+      const termino = this.filtros[filtro].trim();
+      if (!termino || !this.filtroVisible(filtro)) return true;
+
+      return this.valorJerarquia(comercio, filtro).includes(this.normalizarTexto(termino));
+    });
+  }
+
+  private valorJerarquia(comercio: Comercio, filtro: FiltroJerarquia): string {
+    const patrones: Record<FiltroJerarquia, RegExp> = {
+      entidad: /entidad[-\s]*0?(\d+)/i,
+      sucursal: /sucursal[-\s]*0?(\d+)/i,
+      caja: /caja[-\s]*0?(\d+)/i
+    };
+    const ruta = [comercio.idComercio, comercio.nodoId, comercio.jerarquia, comercio.nombreComercial]
+      .filter(Boolean)
+      .join(' / ');
+    const numero = this.extraerNumero(ruta, patrones[filtro]);
+
+    return this.normalizarTexto([numero || '', filtro, ruta].filter(Boolean).join(' '));
   }
 
   private normalizarComerciosApi(commerces: ConsultaComercioApi[]): Comercio[] {

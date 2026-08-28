@@ -503,6 +503,10 @@ select:focus {
   overflow-y: visible;
 }
 
+.table-scroll.actions-open {
+  padding-bottom: 150px;
+}
+
 table {
   width: 100%;
   min-width: 1120px;
@@ -581,6 +585,7 @@ td {
 .actions-menu {
   top: 44px;
   right: 8px;
+  z-index: 30;
   width: 190px;
   min-width: 190px;
   max-width: 190px;

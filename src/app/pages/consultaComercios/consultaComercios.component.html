@@ -38,28 +38,40 @@
       </fieldset>
 
       <div class="info-grid" *ngIf="filtros.nivel !== 'caja'">
-        <label>
+        <label *ngIf="filtroVisible('entidad')">
+          <span>Entidad</span>
+          <i class="fa-solid fa-building"></i>
+          <input type="text" name="entidad" [(ngModel)]="filtros.entidad" placeholder="Buscar por entidad">
+        </label>
+
+        <label *ngIf="filtroVisible('sucursal')">
+          <span>Sucursal</span>
+          <i class="fa-solid fa-store"></i>
+          <input type="text" name="sucursal" [(ngModel)]="filtros.sucursal" placeholder="Buscar por sucursal">
+        </label>
+
+        <label *ngIf="filtroVisible('caja')">
+          <span>Caja</span>
+          <i class="fa-solid fa-cash-register"></i>
+          <input type="text" name="caja" [(ngModel)]="filtros.caja" placeholder="Buscar por caja">
+        </label>
+
+        <label *ngIf="filtroVisible('nombre')">
           <span>Nombre Comercial</span>
           <i class="fa-solid fa-magnifying-glass"></i>
           <input type="text" name="nombre" [(ngModel)]="filtros.nombre" placeholder="Buscar por nombre comercial">
         </label>
 
-        <label>
+        <label *ngIf="filtroVisible('rfc')">
           <span>RFC</span>
           <i class="fa-solid fa-magnifying-glass"></i>
           <input type="text" name="rfc" [(ngModel)]="filtros.rfc" placeholder="Buscar por RFC">
         </label>
 
-        <label>
+        <label *ngIf="filtroVisible('correo')">
           <span>Correo Electrónico</span>
           <i class="fa-regular fa-envelope"></i>
           <input type="email" name="correo" [(ngModel)]="filtros.correo" placeholder="Buscar por correo">
-        </label>
-
-        <label *ngIf="filtros.nivel === 'todos' || filtros.nivel === 'sub-afiliado'">
-          <span>Teléfono</span>
-          <i class="fa-solid fa-phone"></i>
-          <input type="tel" name="telefono" [(ngModel)]="filtros.telefono" placeholder="Buscar por teléfono">
         </label>
       </div>
 
@@ -114,7 +126,7 @@
     <p class="no-filters" *ngIf="cargando">Consultando comercios...</p>
     <p class="no-filters" *ngIf="errorConsulta">{{ errorConsulta }}</p>
 
-    <div class="table-scroll">
+    <div class="table-scroll" [class.actions-open]="accionesAbiertas">
       <table>
         <thead>
           <tr>
