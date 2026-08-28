@@ -367,21 +367,18 @@ export class StepDatosComponent implements OnInit {
       'Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI',
       'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
     ].includes(tipo);
-    const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo', 'Sucursales Únicas'];
+    const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Empresa Agrupadora', 'Entidad Agrupadora', 'Sucursales de Grupo', 'Sucursales Únicas'];
     const esPersonaFisica = this.form.get('tipoPersona')?.value === 'PF';
-    const esGrupoPersonaFisica = ['Empresa Holding', 'Empresa Grupo', 'Sucursales de Grupo'].includes(tipo) && esPersonaFisica;
-    const esSucursalUnicaPersonaFisica = tipo === 'Sucursales Únicas' && esPersonaFisica;
+    const esTipoPersonaFisicaSinRepresentante = tiposConRepresentante.includes(tipo) && esPersonaFisica;
     const mostrarDireccionRepresentante = !esCaja
       && tiposConRepresentante.includes(tipo)
-      && !esGrupoPersonaFisica
-      && !esSucursalUnicaPersonaFisica;
-    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esGrupoPersonaFisica && !esSucursalUnicaPersonaFisica;
-    const mostrarNombreRepresentante = mostrarRepresentante && this.form.get('tipoPersona')?.value !== 'PF';
+      && !esTipoPersonaFisicaSinRepresentante;
+    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esTipoPersonaFisicaSinRepresentante;
 
     return {
       datosGenerales:     !esCaja,
       domicilioFiscal:    !esCaja,
-      representante:      mostrarNombreRepresentante,
+      representante:      mostrarRepresentante,
       dirRepresentante:   mostrarDireccionRepresentante,
       contactoRep:        false,
       domicilioComercial: true,
