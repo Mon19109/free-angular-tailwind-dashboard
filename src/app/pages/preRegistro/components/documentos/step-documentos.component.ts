@@ -15,8 +15,11 @@ export class StepDocumentosComponent {
   @Input() archivosInvalidos = false;
   @Input() textoFinalizar = 'Enviar preregistro';
   @Input() mostrarMesaDigital = false;
+  @Input() mostrarMismaDocumentacionEntidad = false;
+  @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
   @Output() seleccionarArchivo = new EventEmitter<{ event: Event; documento: DocumentoRequerido }>();
+  @Output() cambiarMismaDocumentacionEntidad = new EventEmitter<boolean>();
   @Output() finalizar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 

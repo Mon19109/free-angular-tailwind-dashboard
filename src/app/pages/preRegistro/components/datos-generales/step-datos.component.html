@@ -243,13 +243,13 @@
       </div>
       }
       @if (tiene('entreCalle')) {
-      <div class="field"><label for="entreCalle">Entre Calle <b>*</b></label>
+      <div class="field"><label for="entreCalle">Entre Calle</label>
         <input id="entreCalle" formControlName="entreCalle" [class.invalid]="esInvalido('entreCalle')" />
         @if (esInvalido('entreCalle')) { <small>{{ mensajeCampo('entreCalle') }}</small> }
       </div>
       }
       @if (tiene('yCalle')) {
-      <div class="field"><label for="yCalle">Y Calle <b>*</b></label>
+      <div class="field"><label for="yCalle">Y Calle</label>
         <input id="yCalle" formControlName="yCalle" [class.invalid]="esInvalido('yCalle')" />
         @if (esInvalido('yCalle')) { <small>{{ mensajeCampo('yCalle') }}</small> }
       </div>

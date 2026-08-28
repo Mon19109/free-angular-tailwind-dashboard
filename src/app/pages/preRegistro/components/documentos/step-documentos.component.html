@@ -75,7 +75,7 @@
     <div class="documents-panel-header">
       <div class="section-title">
         <h3>Documentación requerida</h3>
-        <span>Documentos en PDF e imágenes en PNG. Máximo 10 MB por archivo.</span>
+        <span>Documentos en PDF e imágenes en PNG o JPG. Máximo 10 MB por archivo.</span>
       </div>
       <div class="docs-summary">
         <article><strong>{{ documentosCargados }}</strong><span>Cargados</span></article>
@@ -86,10 +86,20 @@
     <div class="callout subtle documents-note">
       <p>Los documentos marcados con * son obligatorios.</p>
     </div>
+
+    @if (mostrarMismaDocumentacionEntidad) {
+      <label class="checkbox-inline">
+        <input
+          type="checkbox"
+          [checked]="mismaDocumentacionEntidad"
+          (change)="cambiarMismaDocumentacionEntidad.emit($any($event.target).checked)">
+        Misma documentación de la Entidad
+      </label>
+    }
   </section>
 
   @if (archivosInvalidos) {
-    <div class="alert-error">Carga los archivos requeridos con el formato correcto: documentos en PDF e imágenes en PNG.</div>
+    <div class="alert-error">Carga los archivos requeridos con el formato correcto: documentos en PDF e imágenes en PNG o JPG.</div>
   }
 
   <div class="documents-table">
@@ -107,7 +117,8 @@
           <strong>{{ documento.nombre }}@if (documento.obligatorio) { <b>*</b> }</strong>
         </div>
         <label class="file-picker">
-          <input type="file" [accept]="documento.nombre.startsWith('Imagen') ? '.png,image/png' : '.pdf,application/pdf'"
+          <input type="file" [accept]="documento.nombre.startsWith('Imagen') ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.pdf,application/pdf'"
+            [disabled]="mismaDocumentacionEntidad"
             (change)="seleccionarArchivo.emit({ event: $event, documento })" />
           <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>
         </label>

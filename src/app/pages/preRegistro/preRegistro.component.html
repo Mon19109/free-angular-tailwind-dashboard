@@ -370,6 +370,9 @@
             <app-step-documentos [documentos]="documentosVisibles" [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes" [archivosInvalidos]="archivosInvalidos"
               [textoFinalizar]="textoBotonDocumentos"
+              [mostrarMismaDocumentacionEntidad]="mostrarMismaDocumentacionEntidad"
+              [mismaDocumentacionEntidad]="mismaDocumentacionEntidadActiva"
+              (cambiarMismaDocumentacionEntidad)="alternarMismaDocumentacionEntidad($event)"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (finalizar)="finalizarRegistro()" (volver)="volver(pasoDocumentosAnterior)" />
             }

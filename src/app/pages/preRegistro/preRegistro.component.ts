@@ -72,6 +72,7 @@ interface BorradorPreRegistro {
   accesos: Record<string, string | boolean>;
   liquidacion: Record<string, string | boolean>;
   documentos: Array<{ numero: number; archivoNombre?: string }>;
+  documentosSucursalMismaEntidad?: Record<string, boolean>;
   payload?: unknown;
 }
 
@@ -136,6 +137,7 @@ export class PreRegistroComponent {
   cargandoLocalidadesComercial = false;
   cargandoLocalidadesRepresentante = false;
   private documentosPorNodo: Record<string, Record<number, DocumentoNodo>> = {};
+  private documentosSucursalMismaEntidad: Record<string, boolean> = {};
   private contextoComercio: 'paquete' | 'caja' = 'paquete';
   private readonly sufijosDocumentos: Record<number, { sufijo: string; extension: 'pdf' | 'png' }> = {
     1: { sufijo: 'COMP_DOM', extension: 'pdf' },
@@ -561,18 +563,18 @@ export class PreRegistroComponent {
 
   });
 
-  private readonly camposDinamicosOpcionales = ['numeroExterior', 'numeroInterior'];
+  private readonly camposDinamicosOpcionales = ['numeroExterior', 'numeroInterior', 'entreCalle', 'yCalle'];
   private readonly camposInfoFiscalEntidad = [
     'razonSocial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
     'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'actividadId', 'nombreComercial',
     'tipoPersona',
     'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior',
-    'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle',
+    'colonia', 'localidad', 'municipio', 'entidadFederativa', 'locationID', 'entreCalle', 'yCalle',
   ];
   private readonly camposInfoFiscalCompartidaPersona = [
     'regimenFiscal', 'nombreComercial',
     'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior',
-    'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle',
+    'colonia', 'localidad', 'municipio', 'entidadFederativa', 'locationID', 'entreCalle', 'yCalle',
   ];
   private readonly todosCamposDinamicos: string[] = Array.from(
     new Set(Object.values(this.datosGeneralesPorTipo).flat())
@@ -1205,7 +1207,7 @@ export class PreRegistroComponent {
     const tipo = this.comercioForm.getRawValue().tipoComercio;
     const tipoEfectivo = ['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo;
     const reglas = this.obtenerReglasDocumentos(tipoEfectivo, this.datosForm.controls.tipoPersona.value);
-    const documentosGuardados = this.documentosPorNodo[this.nodoDocumentosActualId()] ?? {};
+    const documentosGuardados = this.documentosPorNodo[this.nodoFuenteDocumentosActualId()] ?? {};
 
     return reglas
       .map((regla): DocumentoRequerido | undefined => {
@@ -1219,6 +1221,18 @@ export class PreRegistroComponent {
         };
       })
       .filter((documento): documento is DocumentoRequerido => !!documento);
+  }
+
+  get mostrarMismaDocumentacionEntidad(): boolean {
+    const nodo = this.buscarNodoArbol(this.nodoDocumentosActualId());
+    return this.tipoNegocioSeleccionado?.id === 'sucursales-multiples'
+      && nodo?.nivel === 'sucursal'
+      && this.puedeUsarDocumentacionEntidad(nodo.id);
+  }
+
+  get mismaDocumentacionEntidadActiva(): boolean {
+    const nodoId = this.nodoDocumentosActualId();
+    return !!this.documentosSucursalMismaEntidad[nodoId] && this.puedeUsarDocumentacionEntidad(nodoId);
   }
 
   private obtenerReglasDocumentos(tipoComercio: string, tipoPersona: unknown): ReglaDocumento[] {
@@ -2139,7 +2153,7 @@ export class PreRegistroComponent {
       entitys: [
         {
           branchOficces: [
-            this.construirComercioPayload(nodoId),
+            this.construirComercioPayload(nodoId, { omitirDatosContactoPrincipal: true }),
           ],
         },
       ],
@@ -2158,7 +2172,7 @@ export class PreRegistroComponent {
       entitys: [
         {
           ...payloadEntidad,
-          branchOficces: sucursales.map(sucursal => this.construirComercioPayload(sucursal.id)),
+          branchOficces: sucursales.map(sucursal => this.construirComercioPayload(sucursal.id, { omitirDatosContactoPrincipal: true })),
         },
       ],
     };
@@ -2189,14 +2203,14 @@ export class PreRegistroComponent {
   }
 
   private construirSucursalConCajasPayload(sucursal: NodoArbolNegocio): any {
-    const { poss: _possSucursal, ...payloadSucursal } = this.construirComercioPayload(sucursal.id);
+    const { poss: _possSucursal, ...payloadSucursal } = this.construirComercioPayload(sucursal.id, { omitirDatosContactoPrincipal: true });
     return {
       ...payloadSucursal,
       poss: this.construirPossPayloadPorSucursal(sucursal),
     };
   }
 
-  private construirComercioPayload(nodoId: string): any {
+  private construirComercioPayload(nodoId: string, opciones: { omitirDatosContactoPrincipal?: boolean } = {}): any {
     const datosPorSucursal = this.obtenerDatosPorSucursal();
     const accesosPorSucursal = this.obtenerAccesosPorSucursal();
     let datos = this.combinarPreferirLlenos(datosPorSucursal[nodoId] ?? {}, this.datosForm.getRawValue());
@@ -2205,27 +2219,27 @@ export class PreRegistroComponent {
     const comercio = comercioGuardado ?? this.comercioForm.getRawValue();
     const tipoComercioPayload = this.tipoComercioPayload(nodoId, comercio.tipoComercio);
     const typeOfBusiness = this.typeOfBusinessPayload(nodoId, tipoComercioPayload, comercio.tipoComercioId);
-    const liquidacion = this.liquidacionForm.getRawValue() as Record<string, string | boolean>;
     datos = this.sincronizarRepresentanteDesdePersonaFisica(datos, tipoComercioPayload);
     const tipoPersona = this.tipoPersonaPayload(datos['tipoPersona']);
-    const emailComercio = this.esComercioUnico
-      ? this.valorTexto(datos['correo']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(accesos['adminCorreo'])
-      : this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']) || this.valorTexto(accesos['adminCorreo']);
-    const telefonoComercio = this.esComercioUnico
-      ? this.valorTexto(datos['telefono']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(accesos['adminTelefono'])
-      : this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']) || this.valorTexto(accesos['adminTelefono']);
+    const emailComercio = this.valorTexto(datos['correo'])
+      || this.valorTexto(datos['correoComercial'])
+      || this.valorTexto(accesos['adminCorreo']);
+    const telefonoComercio = this.valorTexto(datos['telefono'])
+      || this.valorTexto(datos['telefonoComercial'])
+      || this.valorTexto(accesos['adminTelefono']);
+    const incluirContactoPrincipal = !opciones.omitirDatosContactoPrincipal;
 
     return {
       nameCommerce: this.valorTexto(datos['nombreComercial']) || this.valorTexto(datos['razonSocial']),
       businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
       idBussinesLine: this.valorNumero(datos['mcc']),
       idActivity: this.valorNumero(datos['actividadId']),
-      email: emailComercio,
+      email: incluirContactoPrincipal ? emailComercio : '',
       password: this.valorTexto(accesos['pinContrasena']),
-      name: this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(datos['nombre']) || this.valorTexto(accesos['adminNombre']),
-      paternalSurname: this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(datos['apellidoPaterno']) || this.valorTexto(accesos['adminPaterno']),
-      maternalSurname: this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(datos['apellidoMaterno']) || this.valorTexto(accesos['adminMaterno']),
-      phoneNumber: telefonoComercio,
+      name: incluirContactoPrincipal ? this.valorTexto(datos['nombre']) || this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(accesos['adminNombre']) : '',
+      paternalSurname: incluirContactoPrincipal ? this.valorTexto(datos['apellidoPaterno']) || this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(accesos['adminPaterno']) : '',
+      maternalSurname: incluirContactoPrincipal ? this.valorTexto(datos['apellidoMaterno']) || this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(accesos['adminMaterno']) : '',
+      phoneNumber: incluirContactoPrincipal ? telefonoComercio : '',
       rfc: this.valorTexto(datos['rfc']),
       curp: this.valorTexto(datos['curp']),
       fiscalRegime: this.codigoRegimenFiscal(datos['regimenFiscal']),
@@ -2237,43 +2251,101 @@ export class PreRegistroComponent {
         this.construirDireccionPayload('DF', datos, ''),
         this.construirDireccionPayload('DC', datos, 'Comercial'),
       ],
-      tradeBilling: {
-        period: this.valorTexto(liquidacion['period']),
-        days: this.valorTexto(liquidacion['days']),
-        amount: this.valorNumero(liquidacion['amount']),
-      },
-      contacts: [
-        this.construirContactoPayload(datos, tipoPersona, tipoComercioPayload),
-      ],
+      contacts: this.construirContactosPayload(datos, tipoPersona, tipoComercioPayload, incluirContactoPrincipal),
       poss: this.construirPossPayload(accesos, nodoId),
     };
   }
 
-  private construirContactoPayload(datos: Record<string, string | boolean>, tipoPersona: string, tipoComercio: string): any {
+  private construirContactosPayload(datos: Record<string, string | boolean>, tipoPersona: string, tipoComercio: string, incluirContactoPrincipal: boolean): any[] {
     const requiereRepresentante = this.requiereDatosRepresentante(tipoComercio, tipoPersona);
 
-    if (tipoPersona === 'PF' || !requiereRepresentante) {
-      return {
-        type: 1,
-        name: this.valorTexto(datos['nombre']),
-        paternalSurname: this.valorTexto(datos['apellidoPaterno']),
-        maternalSurname: this.valorTexto(datos['apellidoMaterno']),
-        phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefono']),
-        additionaPhoneNumber: '',
-        email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correo']),
-        address: requiereRepresentante ? this.construirDireccionRepresentantePayload(datos) : null,
-      };
+    if (tipoPersona === 'PF') {
+      return incluirContactoPrincipal ? [] : this.contactoComercialComoLista(datos);
     }
+
+    if (!requiereRepresentante) {
+      return this.contactoComercialComoLista(datos);
+    }
+
+    const contactoRepresentante = this.construirContactoRepresentantePayload(datos);
+    return [
+      ...(contactoRepresentante ? [contactoRepresentante] : []),
+      ...this.contactoComercialComoLista(datos),
+    ];
+  }
+
+  private contactoComercialComoLista(datos: Record<string, string | boolean>): any[] {
+    const contacto = this.construirContactoComercialPayload(datos);
+    return contacto ? [contacto] : [];
+  }
+
+  private construirContactoRepresentantePayload(datos: Record<string, string | boolean>): any | null {
+    const address = this.construirDireccionRepresentantePayload(datos);
+    const tieneDatosRepresentante = [
+      datos['nombreRepresentante'],
+      datos['apellidoPaternoRepresentante'],
+      datos['apellidoMaternoRepresentante'],
+      datos['telefonoRepresentante'],
+      datos['telefonoAdicionalRepresentante'],
+      datos['correoRepresentante'],
+      address['street'],
+      address['exteriorNumber'],
+      address['interiorNumber'],
+      address['postalCode'],
+      address['district'],
+      address['municipality'],
+      address['state'],
+      address['idLocation'],
+    ].some(valor => this.valorTexto(valor).length > 0);
+
+    if (!tieneDatosRepresentante) return null;
 
     return {
       type: 1,
       name: this.valorTexto(datos['nombreRepresentante']),
       paternalSurname: this.valorTexto(datos['apellidoPaternoRepresentante']),
       maternalSurname: this.valorTexto(datos['apellidoMaternoRepresentante']),
-      phoneNumber: this.valorTexto(datos['telefonoRepresentante']) || this.valorTexto(datos['telefonoComercial']) || this.valorTexto(datos['telefono']),
-      additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']) || this.valorTexto(datos['telefonoAdicionalComercial']),
-      email: this.valorTexto(datos['correoRepresentante']) || this.valorTexto(datos['correoComercial']) || this.valorTexto(datos['correo']),
-      address: this.construirDireccionRepresentantePayload(datos),
+      phoneNumber: this.valorTexto(datos['telefonoRepresentante']),
+      additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalRepresentante']),
+      email: this.valorTexto(datos['correoRepresentante']),
+      address,
+    };
+  }
+
+  private construirContactoComercialPayload(datos: Record<string, string | boolean>): any | null {
+    const address = this.construirDireccionPayload('DC', datos, 'Comercial');
+    const tieneDatosComerciales = [
+      datos['nombreContactoComercial'],
+      datos['apellidoPaternoContactoComercial'],
+      datos['apellidoMaternoContactoComercial'],
+      datos['telefonoComercial'],
+      datos['telefonoAdicionalComercial'],
+      datos['correoComercial'],
+      address['postalCode'],
+      address['roadType'],
+      address['roadName'],
+      address['extNum'],
+      address['intNum'],
+      address['district'],
+      address['location'],
+      address['municipality'],
+      address['federativeEntity'],
+      address['betweenStreet'],
+      address['andStreet'],
+      address['locationID'],
+    ].some(valor => this.valorTexto(valor).length > 0);
+
+    if (!tieneDatosComerciales) return null;
+
+    return {
+      type: 2,
+      name: this.valorTexto(datos['nombreContactoComercial']),
+      paternalSurname: this.valorTexto(datos['apellidoPaternoContactoComercial']),
+      maternalSurname: this.valorTexto(datos['apellidoMaternoContactoComercial']),
+      phoneNumber: this.valorTexto(datos['telefonoComercial']),
+      additionaPhoneNumber: this.valorTexto(datos['telefonoAdicionalComercial']),
+      email: this.valorTexto(datos['correoComercial']),
+      address,
     };
   }
 
@@ -2282,6 +2354,10 @@ export class PreRegistroComponent {
       street: this.valorTexto(datos['calleRepresentante']),
       exteriorNumber: this.valorTexto(datos['numeroExteriorRepresentante']),
       interiorNumber: this.valorTexto(datos['numeroInteriorRepresentante']),
+      postalCode: this.valorTexto(datos['codigoPostalRepresentante']),
+      district: this.valorTexto(datos['coloniaRepresentante']),
+      municipality: this.valorTexto(datos['municipioRepresentante']),
+      state: this.valorTexto(datos['estadoRepresentante']),
       idLocation: this.valorTexto(datos['locationIDRepresentante']) || this.valorTexto(datos['coloniaRepresentante']),
     };
   }
@@ -2399,7 +2475,7 @@ export class PreRegistroComponent {
   }
 
   private construirDocumentosPayload(nodoId: string, tipoComercio: string): any[] {
-    const documentosNodo = this.documentosPorNodo[nodoId] ?? this.documentosPorNodo[this.arbolNegocioForm.controls.nodoSeleccionado.value] ?? {};
+    const documentosNodo = this.documentosPorNodo[this.nodoFuenteDocumentosId(nodoId)] ?? this.documentosPorNodo[this.arbolNegocioForm.controls.nodoSeleccionado.value] ?? {};
     const datosNodo = this.obtenerDatosPorSucursal()[nodoId] ?? this.datosForm.getRawValue();
     const reglas = this.obtenerReglasDocumentos(tipoComercio, datosNodo['tipoPersona']);
     return reglas
@@ -2518,7 +2594,7 @@ export class PreRegistroComponent {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
     const esImagen = this.esDocumentoImagen(documento);
-    const tiposPermitidos = esImagen ? ['image/png'] : ['application/pdf'];
+    const tiposPermitidos = esImagen ? ['image/png', 'image/jpeg'] : ['application/pdf'];
     const valido = !!archivo && archivo.size <= 10 * 1024 * 1024 && tiposPermitidos.includes(archivo.type);
     if (!valido) {
       documento.archivo = undefined; documento.archivoNombre = undefined;
@@ -2572,6 +2648,7 @@ export class PreRegistroComponent {
     this.accesosForm.reset({ modoReserva: 'NINGUNO', cajasTPV: '1', tieneSupervisor: 'si', reservaSplit: '', adminNombre: '', adminPaterno: '', adminMaterno: '', adminCorreo: '', adminConfirmarCorreo: '', adminTelefono: '', perfilReservaNombre: '', perfilReservaPaterno: '', perfilReservaMaterno: '', perfilReservaCorreo: '', perfilReservaConfirmarCorreo: '', perfilReservaTelefono: '', pinAdministrador: '', pinCorreo: '', pinConfirmarCorreo: '', pinContrasena: '' });
     this.liquidacionForm.reset({ cuentaFueraRed: 'no', digitoVerificador: '', tipoPersonaBeneficiario: 'fisica', beneficiarioIgualComercio: false, nombreBeneficiario: '', apellidoPaternoBeneficiario: '', apellidoMaternoBeneficiario: '', correoBeneficiario: '', direccionBeneficiario: '', rfcBeneficiario: '', actividadBeneficiario: '', giroBeneficiario: '', tipoCuenta: '', cuentaClabe: '', nombreBanco: '', direccionBanco: '', telefonoBanco: '', emailBanco: '' });
     this.documentos.forEach(d => { d.archivo = undefined; d.archivoNombre = undefined; });
+    this.documentosSucursalMismaEntidad = {};
     this.actualizarValidadoresAccesos('NINGUNO');
     this.actualizarEstadoLiquidacion(false);
     try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
@@ -2603,6 +2680,7 @@ export class PreRegistroComponent {
         accesos: this.accesosForm.getRawValue(),
         liquidacion: this.liquidacionForm.getRawValue(),
         documentos: this.documentos.map(d => ({ numero: d.numero, archivoNombre: d.archivoNombre })),
+        documentosSucursalMismaEntidad: this.documentosSucursalMismaEntidad,
         payload,
         payloadJson,
       } as BorradorPreRegistro));
@@ -2622,6 +2700,7 @@ export class PreRegistroComponent {
       if (draft.datos) this.datosForm.patchValue(draft.datos as any);
       if (draft.accesos) this.accesosForm.patchValue(draft.accesos as any);
       if (draft.liquidacion) this.liquidacionForm.patchValue(draft.liquidacion as any);
+      this.documentosSucursalMismaEntidad = draft.documentosSucursalMismaEntidad ?? {};
       this.documentos.forEach(d => {
         const saved = draft.documentos?.find(s => s.numero === d.numero);
         d.archivoNombre = saved?.archivoNombre;
@@ -2896,7 +2975,7 @@ export class PreRegistroComponent {
     const obligatorios = reglas.filter(regla => regla.obligatorio);
     if (!obligatorios.length) return true;
 
-    const documentos = this.documentosPorNodo[id] ?? {};
+    const documentos = this.documentosPorNodo[this.nodoFuenteDocumentosId(id)] ?? {};
     return obligatorios.every(regla => !!documentos[regla.numero]?.archivoNombre || !!documentos[regla.numero]?.archivo);
   }
 
@@ -3275,6 +3354,16 @@ export class PreRegistroComponent {
 
   private guardarDocumentosNodoActual(): void {
     const nodoId = this.nodoDocumentosActualId();
+    if (this.documentosSucursalMismaEntidad[nodoId] && this.puedeUsarDocumentacionEntidad(nodoId)) {
+      const entidadId = this.nodoEntidadDocumentosActualId();
+      this.documentosPorNodo[nodoId] = { ...(this.documentosPorNodo[entidadId] ?? {}) };
+      return;
+    }
+    if (this.documentosSucursalMismaEntidad[nodoId]) {
+      delete this.documentosSucursalMismaEntidad[nodoId];
+      delete this.documentosPorNodo[nodoId];
+    }
+
     this.documentosPorNodo[nodoId] = Object.fromEntries(
       this.documentosVisibles.map(documento => [documento.numero, {
         archivo: documento.archivo,
@@ -3285,6 +3374,8 @@ export class PreRegistroComponent {
 
   private guardarDocumentoNodoActual(documento: DocumentoRequerido): void {
     const nodoId = this.nodoDocumentosActualId();
+    if (this.documentosSucursalMismaEntidad[nodoId]) return;
+
     this.documentosPorNodo[nodoId] = {
       ...(this.documentosPorNodo[nodoId] ?? {}),
       [documento.numero]: {
@@ -3295,7 +3386,7 @@ export class PreRegistroComponent {
   }
 
   private cargarDocumentosNodo(nodoId: string): void {
-    const documentos = this.documentosPorNodo[nodoId] ?? {};
+    const documentos = this.documentosPorNodo[this.nodoFuenteDocumentosId(nodoId)] ?? {};
     this.documentos.forEach(documento => {
       const guardado = documentos[documento.numero];
       documento.archivo = guardado?.archivo;
@@ -3304,11 +3395,71 @@ export class PreRegistroComponent {
     this.archivosInvalidos = false;
   }
 
+  alternarMismaDocumentacionEntidad(usarMismaDocumentacion: boolean): void {
+    const nodoId = this.nodoDocumentosActualId();
+    if (!this.mostrarMismaDocumentacionEntidad) return;
+
+    if (usarMismaDocumentacion) {
+      this.documentosSucursalMismaEntidad[nodoId] = true;
+      const entidadId = this.nodoEntidadDocumentosActualId();
+      this.documentosPorNodo[nodoId] = { ...(this.documentosPorNodo[entidadId] ?? {}) };
+    } else {
+      delete this.documentosSucursalMismaEntidad[nodoId];
+      delete this.documentosPorNodo[nodoId];
+    }
+
+    this.cargarDocumentosNodo(nodoId);
+    this.guardarBorradorSilencioso();
+  }
+
   private nodoDocumentosActualId(): string {
     if (!this.mostrarArbolWizard) return 'preregistro';
     return this.arbolNegocioForm.controls.nodoSeleccionado.value
       || this.primerNodoCapturableArbol()?.id
       || 'sucursal-1';
+  }
+
+  private nodoFuenteDocumentosActualId(): string {
+    return this.nodoFuenteDocumentosId(this.nodoDocumentosActualId());
+  }
+
+  private nodoFuenteDocumentosId(nodoId: string): string {
+    return this.documentosSucursalMismaEntidad[nodoId] && this.puedeUsarDocumentacionEntidad(nodoId)
+      ? this.nodoEntidadDocumentosId(nodoId)
+      : nodoId;
+  }
+
+  private puedeUsarDocumentacionEntidad(nodoId: string): boolean {
+    const nodo = this.buscarNodoArbol(nodoId);
+    if (nodo?.nivel !== 'sucursal') return false;
+
+    const entidadId = this.nodoEntidadDocumentosId(nodoId);
+    if (entidadId === nodoId) return false;
+
+    const datosPorNodo = this.obtenerDatosPorSucursal();
+    const datosEntidad = datosPorNodo[entidadId];
+    const datosSucursal = datosPorNodo[nodoId] ?? (
+      this.arbolNegocioForm.controls.nodoSeleccionado.value === nodoId
+        ? this.datosForm.getRawValue()
+        : undefined
+    );
+    const tipoPersonaEntidad = this.tipoPersonaPayload(datosEntidad?.['tipoPersona']);
+    const tipoPersonaSucursal = this.tipoPersonaPayload(datosSucursal?.['tipoPersona']);
+
+    return !!tipoPersonaEntidad && !!tipoPersonaSucursal && tipoPersonaEntidad === tipoPersonaSucursal;
+  }
+
+  private nodoEntidadDocumentosActualId(): string {
+    return this.nodoEntidadDocumentosId(this.nodoDocumentosActualId());
+  }
+
+  private nodoEntidadDocumentosId(nodoId: string): string {
+    const nodo = this.buscarNodoArbol(nodoId);
+    if (nodo?.nivel === 'entidad') return nodo.id;
+    const entidad = this.aplanarArbolNegocio(this.arbolNegocioWizard).find(item =>
+      item.nivel === 'entidad' && (item.hijos ?? []).some(sucursal => sucursal.id === nodoId)
+    );
+    return entidad?.id || this.aplanarArbolNegocio(this.arbolNegocioWizard).find(item => item.nivel === 'entidad')?.id || nodoId;
   }
 
   private avanzarASiguienteSucursal(): boolean {
