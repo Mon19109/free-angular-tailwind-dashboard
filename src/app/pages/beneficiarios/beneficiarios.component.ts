@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { BeneficiarioForm, BeneficiariosService } from '../../services/beneficiarios.service';
 
 type VistaBeneficiarios = 'lista' | 'agregar' | 'eliminar' | 'estatus';
@@ -25,6 +26,7 @@ export class BeneficiariosComponent implements OnInit {
   mensaje = '';
   error = '';
   cargando = false;
+  buscandoInstitucion = false;
   estatusFileKey = '';
   altaMasiva = false;
 
@@ -47,7 +49,7 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   cargarContactos(): void {
-    const idUser = this.obtenerIdUser();
+    const idUser = this.obtenerIdentificadorContactos();
     if (!idUser) {
       this.error = 'No se encontró el usuario de sesión.';
       return;
@@ -74,16 +76,46 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   buscarBanco(): void {
+    this.error = '';
+    this.instituciones = [];
+    this.form.institucion = '';
+    this.form.nameIns = '';
+    this.form.accountNumber = '';
+
     if (!this.form.cuenta) {
       this.error = 'Captura una cuenta o tarjeta para buscar el banco.';
       return;
     }
 
-    this.beneficiariosService.buscarInstitucion(this.form.cuenta).subscribe({
+    this.buscandoInstitucion = true;
+    this.beneficiariosService.buscarInstitucion(this.form.cuenta).pipe(
+      finalize(() => this.buscandoInstitucion = false)
+    ).subscribe({
       next: resp => {
-        this.instituciones = this.normalizarLista(resp, ['institutions', 'institutionResponse', 'rows', 'data']);
-        const primera = this.instituciones[0];
-        if (primera) this.seleccionarInstitucion(this.obtenerInstitucionId(primera));
+        if (resp?.success === false) {
+          this.error = resp?.error?.message || 'No fue posible buscar el banco.';
+          return;
+        }
+
+        const institutionResponse = resp?.institutionResponse
+          || resp?.data?.institutionResponse
+          || resp?.data
+          || resp;
+        this.instituciones = Array.isArray(institutionResponse?.institutions)
+          ? institutionResponse.institutions
+          : [];
+
+        if (!this.instituciones.length) {
+          this.error = 'No se encontraron instituciones para la cuenta capturada.';
+          return;
+        }
+
+        if (this.instituciones.length === 1) {
+          const institucion = this.instituciones[0];
+          this.form.institucion = this.obtenerInstitucionId(institucion);
+          this.form.nameIns = this.obtenerInstitucionTexto(institucion);
+          this.form.accountNumber = String(institutionResponse?.idEntity || this.form.cuenta);
+        }
       },
       error: error => {
         console.error('Error al buscar institución:', error);
@@ -96,7 +128,7 @@ export class BeneficiariosComponent implements OnInit {
     this.form.institucion = id;
     const institucion = this.instituciones.find(item => this.obtenerInstitucionId(item) === id);
     this.form.nameIns = this.obtenerInstitucionTexto(institucion);
-    this.form.accountNumber = this.form.cuenta;
+    if (id) this.form.accountNumber = this.form.cuenta;
   }
 
   agregar(): void {
@@ -234,12 +266,12 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   obtenerInstitucionId(institucion: any): string {
-    return String(institucion?.idInstitution ?? institucion?.id ?? institucion?.institutionId ?? institucion?.code ?? '');
+    return String(institucion?.key ?? institucion?.idInstitution ?? institucion?.id ?? institucion?.institutionId ?? institucion?.code ?? '');
   }
 
   obtenerInstitucionTexto(institucion: any): string {
     if (!institucion) return '';
-    return institucion?.nameInstitution || institucion?.institutionName || institucion?.name || institucion?.description || this.obtenerInstitucionId(institucion);
+    return institucion?.name || institucion?.nameInstitution || institucion?.institutionName || institucion?.description || this.obtenerInstitucionId(institucion);
   }
 
   obtenerValorEstatus(row: any, keys: string[]): string {
@@ -265,6 +297,25 @@ export class BeneficiariosComponent implements OnInit {
     if (!base) return false;
     if (this.form.tipoBen === 'PM') return Boolean(this.form.giro && this.form.desGiro);
     return Boolean(this.form.actividad);
+  }
+
+  private obtenerIdentificadorContactos(): string {
+    const sessionRaw = localStorage.getItem('auth_session');
+
+    if (sessionRaw) {
+      try {
+        const session = JSON.parse(sessionRaw);
+        const sessionId = session?.validate || session?.idUser || session?.userId;
+        if (sessionId) return String(sessionId);
+      } catch {
+        // Se usan las llaves individuales como respaldo.
+      }
+    }
+
+    return localStorage.getItem('validate')
+      || localStorage.getItem('idUser')
+      || localStorage.getItem('userId')
+      || '';
   }
 
   private obtenerIdUser(): number {

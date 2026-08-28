@@ -240,8 +240,19 @@
             <label>Numero de cuenta*</label>
             <div class="input-action">
               <input class="form-control" type="text" maxlength="18" [(ngModel)]="form.cuenta" name="cuenta">
-              <button type="button" class="button primary small" (click)="buscarBanco()">Buscar</button>
+              <button
+                type="button"
+                class="button primary small"
+                [disabled]="buscandoInstitucion"
+                [attr.aria-busy]="buscandoInstitucion"
+                (click)="buscarBanco()">
+                <span class="loading-spinner" *ngIf="buscandoInstitucion" aria-hidden="true"></span>
+                {{ buscandoInstitucion ? 'Cargando información...' : 'Buscar' }}
+              </button>
             </div>
+            <span class="loading-message" *ngIf="buscandoInstitucion" role="status" aria-live="polite">
+              Cargando información de la institución...
+            </span>
           </div>
           <div class="field">
             <label>Nombre completo del banco*</label>

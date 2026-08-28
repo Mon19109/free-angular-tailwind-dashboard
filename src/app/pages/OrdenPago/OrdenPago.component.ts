@@ -6,6 +6,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { OrdenPagoService } from '../../services/OrdenPago.service';
 import { RadioComponent } from '../../shared/components/form/input/radio.component';
 import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 
 @Component({
     selector: 'app-orden-pago',
@@ -29,8 +30,13 @@ export class OrdenPagoComponent implements OnInit {
 
     mostrarModalToken = false;
     token = '';
+    tokenError = '';
+    tokenMensaje = '';
     payloadPendiente: any = null;
     finalizandoEnvio = false;
+    validandoToken = false;
+    reenviandoToken = false;
+    comprobanteSpei: any = null;
     mensajeEnvio = '';
     tipoMensajeEnvio: 'success' | 'error' = 'success';
 
@@ -333,7 +339,17 @@ export class OrdenPagoComponent implements OnInit {
 
             accountNumber: beneficiario?.accountNumber,
 
-            tarjeta: beneficiario?.cardNumber
+            cuenta: beneficiario?.cardNumber || beneficiario?.accountNumber,
+
+            cuentaMascara: beneficiario?.cardNumberMask || beneficiario?.accountNumberMask,
+
+            tarjeta: beneficiario?.cardNumber,
+
+            tipoCuenta: beneficiario?.accountType || beneficiario?.typeAccount || 'Tarjeta',
+
+            tipoBeneficiario: beneficiario?.beneficiaryType || beneficiario?.typeBeneficiary || 'Persona física',
+
+            mail: this.sesion?.mail || localStorage.getItem('mail') || ''
 
             //mail: this.sesion?.mail
 
@@ -341,111 +357,49 @@ export class OrdenPagoComponent implements OnInit {
 
         this.payloadPendiente = payload;
 
-       /* this.ordenPagoService
-            .enviarToken(
-                this.sesion!.idUser
-            )
-            .subscribe({
-                next: (resp) => {
-
-                    console.log('TOKEN SMS ENVIADO', resp);
-
-                    this.mostrarModalToken = true;
-
-                },
-                error: (err) => {
-
-                    console.error('ERROR SMS', err);
-
-                    this.mostrarModalToken = true;
-
-                }
-            });*/
-
-        // TEMPORALMENTE SIN TOKEN
-        this.finalizandoEnvio = true;
         this.limpiarMensajeEnvio();
-
-        this.ordenPagoService
-            .realizarSpei(payload)
-            .subscribe({
-                next: (resp) => {
-
-                    console.log(
-                        'SPEI ENVIADO',
-                        resp
-                    );
-
-                    this.finalizandoEnvio = false;
-                    this.tipoMensajeEnvio = 'success';
-                    this.mensajeEnvio = 'Envío realizado correctamente.';
-                    this.reiniciarFlujo();
-
-                },
-                error: (err) => {
-
-                    console.error(
-                        'ERROR SPEI',
-                        err
-                    );
-
-                    this.finalizandoEnvio = false;
-                    this.tipoMensajeEnvio = 'error';
-                    this.mensajeEnvio = 'No fue posible realizar el envío. Intenta nuevamente.';
-
-                }
-            });
+        this.solicitarToken(false);
 
     }
 
     validarToken(): void {
 
-       /*this.ordenPagoService.validarToken(
-         this.token,
-         this.sesion!.idUser
-        )
-            .subscribe({
-                next: (resp) => {
+        const codigo = this.token.trim();
+        const guid = this.obtenerGuid();
 
-                    console.log(
-                        'VALIDACION TOKEN',
-                        resp
-                    );
+        if (!codigo) {
+            this.tokenError = 'Captura el token recibido por SMS.';
+            return;
+        }
 
-                    this.mostrarModalToken = false;
+        if (!guid || !this.payloadPendiente || this.validandoToken) {
+            this.tokenError = !guid
+                ? 'No se encontró el identificador de la sesión.'
+                : 'No hay una orden pendiente por validar.';
+            return;
+        }
 
-                    this.ordenPagoService
-                        .realizarSpei(
-                            this.payloadPendiente
-                        )
-                        .subscribe({
-                            next: (r) => {
+        this.validandoToken = true;
+        this.tokenError = '';
+        this.tokenMensaje = '';
 
-                                console.log(
-                                    'SPEI ENVIADO',
-                                    r
-                                );
-
-                            },
-                            error: (e) => {
-
-                                console.error(
-                                    e
-                                );
-
-                            }
-                        });
-
-                },
-                error: (err) => {
-
-                    console.error(
-                        'TOKEN INVALIDO',
-                        err
-                    );
-
+        this.ordenPagoService.validarToken(codigo, guid).pipe(
+            finalize(() => this.validandoToken = false)
+        ).subscribe({
+            next: resp => {
+                if (!this.esRespuestaExitosa(resp)) {
+                    this.tokenError = this.obtenerMensajeRespuesta(resp, 'El token capturado no es válido.');
+                    return;
                 }
-            });*/
+
+                this.mostrarModalToken = false;
+                this.ejecutarSpei();
+            },
+            error: err => {
+                console.error('Error al validar el token:', err);
+                this.tokenError = this.obtenerMensajeRespuesta(err?.error, 'No fue posible validar el token.');
+            }
+        });
 
     }
 
@@ -506,6 +460,190 @@ export class OrdenPagoComponent implements OnInit {
 
         return beneficiario?.cardNumberMask || '';
 
+    }
+
+    reenviarToken(): void {
+        this.solicitarToken(true);
+    }
+
+    cerrarModalToken(): void {
+        if (this.validandoToken || this.reenviandoToken) return;
+        this.mostrarModalToken = false;
+        this.token = '';
+        this.tokenError = '';
+        this.tokenMensaje = '';
+    }
+
+    limpiarErrorToken(): void {
+        this.tokenError = '';
+    }
+
+    cerrarComprobante(): void {
+        this.comprobanteSpei = null;
+    }
+
+    obtenerTelefonoSesion(): string {
+        const telefono = String(
+            this.sesion?.tel || this.sesion?.telefono || this.sesion?.phone ||
+            localStorage.getItem('tel') || localStorage.getItem('telefono') || ''
+        );
+
+        return telefono ? `terminación ${telefono.slice(-4)}` : 'registrado';
+    }
+
+    private solicitarToken(esReenvio: boolean): void {
+        const guid = this.obtenerGuid();
+
+        if (!guid) {
+            this.tipoMensajeEnvio = 'error';
+            this.mensajeEnvio = 'No se encontró el identificador de la sesión para enviar el token.';
+            return;
+        }
+
+        if (esReenvio && this.reenviandoToken) return;
+        if (!esReenvio && this.finalizandoEnvio) return;
+
+        if (esReenvio) {
+            this.reenviandoToken = true;
+        } else {
+            this.finalizandoEnvio = true;
+        }
+
+        this.tokenError = '';
+        this.tokenMensaje = '';
+
+        this.ordenPagoService.enviarToken(guid).pipe(
+            finalize(() => {
+                this.finalizandoEnvio = false;
+                this.reenviandoToken = false;
+            })
+        ).subscribe({
+            next: resp => {
+                if (this.respuestaEsFallo(resp)) {
+                    const mensaje = this.obtenerMensajeRespuesta(resp, 'No fue posible enviar el token por SMS.');
+                    if (esReenvio) this.tokenError = mensaje;
+                    else {
+                        this.tipoMensajeEnvio = 'error';
+                        this.mensajeEnvio = mensaje;
+                    }
+                    return;
+                }
+
+                this.mostrarModalToken = true;
+                this.token = '';
+                this.tokenMensaje = esReenvio
+                    ? 'Se envió un nuevo token por SMS.'
+                    : 'Token enviado por SMS correctamente.';
+            },
+            error: err => {
+                console.error('Error al enviar el token:', err);
+                const mensaje = this.obtenerMensajeRespuesta(err?.error, 'No fue posible enviar el token por SMS.');
+                if (esReenvio) this.tokenError = mensaje;
+                else {
+                    this.tipoMensajeEnvio = 'error';
+                    this.mensajeEnvio = mensaje;
+                }
+            }
+        });
+    }
+
+    private ejecutarSpei(): void {
+        const payload = this.payloadPendiente;
+        if (!payload) return;
+
+        this.finalizandoEnvio = true;
+        this.limpiarMensajeEnvio();
+
+        this.ordenPagoService.realizarSpei(payload).pipe(
+            finalize(() => this.finalizandoEnvio = false)
+        ).subscribe({
+            next: resp => {
+                if (!this.esSpeiExitoso(resp)) {
+                    this.tipoMensajeEnvio = 'error';
+                    this.mensajeEnvio = this.obtenerMensajeRespuesta(
+                        resp,
+                        'El servicio SPEI no confirmó la operación con código 00.'
+                    );
+                    return;
+                }
+
+                this.comprobanteSpei = this.crearComprobante(resp, payload);
+                this.tipoMensajeEnvio = 'success';
+                this.mensajeEnvio = 'Envío realizado correctamente.';
+                this.reiniciarFlujo();
+            },
+            error: err => {
+                console.error('Error al liberar el SPEI:', err);
+                this.tipoMensajeEnvio = 'error';
+                this.mensajeEnvio = this.obtenerMensajeRespuesta(
+                    err?.error,
+                    'No fue posible realizar el envío. Intenta nuevamente.'
+                );
+            }
+        });
+    }
+
+    private crearComprobante(resp: any, payload: any): any {
+        const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
+        const datos = rows || resp?.data?.rows || resp?.data || resp || {};
+        const fechaOperacion = datos?.date || datos?.createdAt || new Date();
+        const fecha = new Date(fechaOperacion);
+
+        return {
+            autorizacion: datos?.id || datos?.authorization || datos?.authorizationNumber || 'ND',
+            fecha: Number.isNaN(fecha.getTime()) ? String(fechaOperacion) : fecha.toLocaleDateString('es-MX'),
+            hora: Number.isNaN(fecha.getTime()) ? '' : fecha.toLocaleTimeString('es-MX'),
+            cuentaRetiro: this.enmascararCuenta(payload.cuentaOr),
+            cuentaBeneficiaria: payload.cuentaMascara || this.enmascararCuenta(payload.accountNumber || payload.cuenta),
+            banco: payload.nameIns || 'ND',
+            monto: Number(payload.importe || 0),
+            claveRastreo: datos?.internalReference || datos?.trackingKey || datos?.claveRastreo || 'NA',
+            tipoCuenta: payload.tipoCuenta || 'Tarjeta',
+            tipoBeneficiario: payload.tipoBeneficiario || 'Persona física',
+            referenciaNumerica: datos?.numericReference || payload.referencia || 'NA',
+            concepto: datos?.description || payload.concepto || 'NA'
+        };
+    }
+
+    private obtenerGuid(): string {
+        return String(this.sesion?.validate || localStorage.getItem('validate') || '');
+    }
+
+    private esRespuestaExitosa(resp: any): boolean {
+        const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
+        if (success !== undefined && success !== null) {
+            return success === true || success === 1 || String(success).toLowerCase() === 'true';
+        }
+
+        const codigo = resp?.code ?? resp?.error?.code ?? resp?.data?.code ?? resp?.data?.error?.code ??
+            resp?.responseCode ?? resp?.rows?.code ?? resp?.rows?.error?.code;
+        return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
+    }
+
+    private respuestaEsFallo(resp: any): boolean {
+        const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
+        return success === false || success === 0 || String(success).toLowerCase() === 'false';
+    }
+
+    private esSpeiExitoso(resp: any): boolean {
+        const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
+        const codigo = resp?.code ?? resp?.error?.code ?? resp?.responseCode ?? rows?.code ??
+            rows?.error?.code ?? rows?.responseCode ?? resp?.data?.code ?? resp?.data?.error?.code ??
+            resp?.data?.responseCode ?? resp?.data?.rows?.code;
+
+        return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
+    }
+
+    private obtenerMensajeRespuesta(resp: any, respaldo: string): string {
+        return resp?.message || resp?.error?.message || resp?.data?.message ||
+            resp?.rows?.message || resp?.description || respaldo;
+    }
+
+    private enmascararCuenta(cuenta: unknown): string {
+        const valor = String(cuenta || '');
+        if (!valor) return 'ND';
+        if (valor.includes('*')) return valor;
+        return `**** **** ${valor.slice(-4)}`;
     }
 
     private reiniciarFlujo(): void {

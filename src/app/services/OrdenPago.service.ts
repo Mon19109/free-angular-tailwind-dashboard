@@ -144,9 +144,13 @@ export class OrdenPagoService {
             data
         );
 
+        const referenciaNumerica = String(data.referencia || this.generarCadena('1234567890', 6));
+        const cuentaBeneficiaria = String(data.accountNumber || '') === '0'
+            ? data.cuenta
+            : data.accountNumber || data.cuenta;
         const body = {
 
-            type: data.idIns === 40903 ? 4 : 1,
+            type: Number(data.idIns) === 40903 ? 4 : 1,
 
             amount: Number(data.importe),
 
@@ -154,14 +158,13 @@ export class OrdenPagoService {
                 id: 484
             },
 
-            numericReference: data.referencia,
+            numericReference: referenciaNumerica,
 
-            alphanumericReference:
-                Math.random().toString(36).substring(2, 8),
+            alphanumericReference: this.generarCadena('1234567890abcdefghijklmnopqrstuvwxyz', 6),
 
             targetName: data.titular,
 
-            targetID: data.accountNumber,
+            targetID: cuentaBeneficiaria,
 
             target_origin_ID: data.cuentaOr,
 
@@ -196,34 +199,38 @@ export class OrdenPagoService {
 
     }
 
-   enviarToken(idUser: number): Observable<any> {
-
-  const body = {
-    idUser: String(idUser),
-    id: '1'
-  };
-
-  return this.http.post(
-    `${this.baseUrl}api/v1/user/sendOperationTokenBySMS`,
-    body,
-    {
-      headers: this.getBearerHeaders()
+    private generarCadena(caracteres: string, longitud: number): string {
+        return Array.from(
+            { length: longitud },
+            () => caracteres.charAt(Math.floor(Math.random() * caracteres.length))
+        ).join('');
     }
-  );
-}
 
- validarToken(
-  token: string,
-  idUser: number
-): Observable<any> {
-
-  return this.http.get(
-    `${this.baseUrl}api/v1/user/validateOperationWithSMSToken?idUser=${idUser}&idOperationType=1&token=${token}`,
-    {
-      headers: this.getBearerHeaders()
+    enviarToken(guid: string): Observable<any> {
+        return this.http.post(
+            `${this.baseUrl}api/v1/c8m4/kwt/f3a91`,
+            {
+                guid,
+                id: '1'
+            },
+            {
+                headers: this.getBearerHeaders()
+            }
+        );
     }
-  );
 
-}
+    validarToken(token: string, userGuid: string): Observable<any> {
+        const headers = this.getBearerHeaders().set('versionApp', '3');
+
+        return this.http.post(
+            `${this.baseUrl}api/v1/c8m4-r7k-/v2/f3a917`,
+            {
+                userGuid,
+                idOperationType: 1,
+                token
+            },
+            { headers }
+        );
+    }
 
 }

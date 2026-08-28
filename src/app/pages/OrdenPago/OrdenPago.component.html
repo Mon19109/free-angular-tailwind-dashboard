@@ -187,8 +187,8 @@
           <div class="aviso-token">
             <div class="aviso-titulo">Aviso</div>
             <div class="aviso-texto">
-              Al dar clic en <strong>Finalizar</strong> se enviará un token al número de teléfono en sesión
-              <span class="telefono">tel</span>
+              Al dar clic en <strong>Finalizar</strong> se enviará un token al número de teléfono
+              <span class="telefono">{{ obtenerTelefonoSesion() }}</span>
             </div>
           </div>
 
@@ -197,7 +197,7 @@
               Atrás
             </button>
             <button type="button" class="button primary" (click)="finalizar()" [disabled]="finalizandoEnvio">
-              {{ finalizandoEnvio ? 'Enviando...' : 'Finalizar' }}
+              {{ finalizandoEnvio ? 'Procesando...' : 'Finalizar' }}
             </button>
           </div>
         </section>
@@ -206,12 +206,101 @@
   </article>
 
   <div *ngIf="mostrarModalToken" class="modal-backdrop">
-    <div class="modal-card">
-      <h3>Ingresa el token enviado a tel</h3>
-      <input type="text" [(ngModel)]="token">
-      <button type="button" class="button primary" (click)="validarToken()">
-        Validar
+    <section class="modal-card token-modal" role="dialog" aria-modal="true" aria-labelledby="token-modal-title">
+      <button
+        type="button"
+        class="modal-close"
+        aria-label="Cerrar"
+        [disabled]="validandoToken || reenviandoToken"
+        (click)="cerrarModalToken()">
+        &times;
       </button>
-    </div>
+
+      <div class="modal-icon" aria-hidden="true"><i class="fas fa-mobile-alt"></i></div>
+      <h3 id="token-modal-title">Validar operación</h3>
+      <p>Ingresa el token enviado por SMS al teléfono {{ obtenerTelefonoSesion() }}.</p>
+
+      <form (ngSubmit)="validarToken()">
+        <label for="token-operacion">Token recibido</label>
+        <input
+          id="token-operacion"
+          name="tokenOperacion"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="10"
+          [(ngModel)]="token"
+          [disabled]="validandoToken"
+          (ngModelChange)="limpiarErrorToken()">
+
+        <div class="modal-feedback success" *ngIf="tokenMensaje" role="status">{{ tokenMensaje }}</div>
+        <div class="modal-feedback error" *ngIf="tokenError" role="alert">{{ tokenError }}</div>
+
+        <div class="modal-actions">
+          <button type="button" class="button secondary" [disabled]="validandoToken || reenviandoToken" (click)="reenviarToken()">
+            {{ reenviandoToken ? 'Reenviando...' : 'Reenviar token' }}
+          </button>
+          <button type="submit" class="button primary" [disabled]="validandoToken || reenviandoToken || !token.trim()">
+            {{ validandoToken ? 'Validando...' : 'Validar' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div *ngIf="comprobanteSpei" class="modal-backdrop voucher-backdrop">
+    <section class="modal-card voucher-modal" role="dialog" aria-modal="true" aria-labelledby="voucher-title">
+      <button type="button" class="modal-close" aria-label="Cerrar comprobante" (click)="cerrarComprobante()">&times;</button>
+
+      <header class="voucher-header">
+        <span class="voucher-brand">KASHPAY</span>
+        <span>Comprobante SPEI</span>
+      </header>
+
+      <div class="voucher-body">
+        <h3 id="voucher-title">Transferencia aplicada</h3>
+        <div class="voucher-date">
+          <span><strong>Fecha:</strong> {{ comprobanteSpei.fecha }}</span>
+          <span><strong>Hora:</strong> {{ comprobanteSpei.hora }}</span>
+        </div>
+
+        <p class="voucher-success">
+          Su envío ha sido aplicado con número de autorización #{{ comprobanteSpei.autorizacion }}
+        </p>
+
+        <div class="voucher-section">
+          <h4>Cuentas</h4>
+          <div class="voucher-grid">
+            <div>
+              <span>Cuenta retiro</span>
+              <strong>KASHPAY</strong>
+              <p>{{ comprobanteSpei.cuentaRetiro }}</p>
+            </div>
+            <div>
+              <span>Cuenta beneficiaria</span>
+              <strong>{{ comprobanteSpei.cuentaBeneficiaria }}</strong>
+              <p>Banco beneficiario: {{ comprobanteSpei.banco }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="voucher-section">
+          <h4>Datos del envío</h4>
+          <dl class="voucher-details">
+            <div><dt>Monto</dt><dd>{{ comprobanteSpei.monto | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
+            <div><dt>Clave de rastreo</dt><dd>{{ comprobanteSpei.claveRastreo }}</dd></div>
+            <div><dt>Tipo de cuenta</dt><dd>{{ comprobanteSpei.tipoCuenta }}</dd></div>
+            <div><dt>Tipo de beneficiario</dt><dd>{{ comprobanteSpei.tipoBeneficiario }}</dd></div>
+            <div><dt>Referencia numérica</dt><dd>{{ comprobanteSpei.referenciaNumerica }}</dd></div>
+            <div><dt>Concepto de pago</dt><dd>{{ comprobanteSpei.concepto }}</dd></div>
+            <div><dt>Plazo</dt><dd>NA</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="modal-actions voucher-actions">
+        <button type="button" class="button primary" (click)="cerrarComprobante()">Aceptar</button>
+      </div>
+    </section>
   </div>
 </div>

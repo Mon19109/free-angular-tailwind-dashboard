@@ -136,10 +136,13 @@ export class ReportesComponent implements OnInit {
     this.reportesService.obtenerCuentas().subscribe({
       next: respuesta => {
         this.cuentas = this.normalizarLista(respuesta, [
+          'cuentas',
+          'rows',
           'data',
           'accounts',
           'concentratorAccounts',
-          'accountList'
+          'accountList',
+          'contextResponse'
         ])
           .filter(cuenta => this.debeMostrarCuenta(cuenta))
           .map(cuenta => ({
@@ -163,8 +166,9 @@ export class ReportesComponent implements OnInit {
 
     this.reportesService.obtenerSaldo(this.cuentaSeleccionada).subscribe({
       next: respuesta => {
-        const rows = respuesta?.rows || respuesta?.onsignaEntity || respuesta?.data || respuesta;
-        this.clabe = rows?.clabeAccount || rows?.virtualAccount || '';
+        const rows = respuesta?.rows || respuesta?.data || respuesta;
+        const cuenta = rows?.onsignaEntity || respuesta?.onsignaEntity || rows;
+        this.clabe = cuenta?.clabeAccount || cuenta?.virtualAccount || '';
       },
       error: () => {
         this.mensaje = 'No fue posible obtener la CLABE de la cuenta.';
@@ -303,7 +307,16 @@ export class ReportesComponent implements OnInit {
   }
 
   obtenerValorCuenta(cuenta: any): string {
-    return cuenta?.idSirio || cuenta?.sirioId || cuenta?.id || cuenta?.bundle || cuenta?.entitySonID || '';
+    return String(
+      cuenta?.idNode
+      ?? cuenta?.nodeID
+      ?? cuenta?.idSirio
+      ?? cuenta?.sirioId
+      ?? cuenta?.id
+      ?? cuenta?.bundle
+      ?? cuenta?.entitySonID
+      ?? ''
+    );
   }
 
   obtenerTextoCuenta(cuenta: any): string {
@@ -328,22 +341,26 @@ export class ReportesComponent implements OnInit {
   }
 
   private normalizarLista(response: any, keys: string[]): any[] {
-    if (Array.isArray(response)) {
-      return response;
-    }
-
-    let current = response;
+    if (Array.isArray(response)) return response;
+    if (!response || typeof response !== 'object') return [];
 
     for (const key of keys) {
-      current = current?.[key];
+      const value = response[key];
+      if (Array.isArray(value)) return value;
 
-      if (Array.isArray(current)) {
-        return current;
+      if (value && typeof value === 'object') {
+        const nested = this.normalizarLista(value, keys);
+        if (nested.length) return nested;
       }
     }
 
-    if (current && typeof current === 'object') {
-      return [current];
+    for (const value of Object.values(response)) {
+      if (Array.isArray(value)) return value;
+
+      if (value && typeof value === 'object') {
+        const nested = this.normalizarLista(value, keys);
+        if (nested.length) return nested;
+      }
     }
 
     return [];

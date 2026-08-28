@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
 
@@ -52,17 +52,33 @@ export class ReportesService {
   }
 
   obtenerCuentas(): Observable<any> {
-    const sirioId = localStorage.getItem('entitySonID') || '';
+    const idPerfil = Number(this.getStoredValue('idPerfil'));
+    const headers = this.getCommonHeaders();
+
+    if (idPerfil === 8 || idPerfil === 9) {
+      const nodeID = this.getStoredValue('nodeID');
+
+      return this.http.get(
+        `${this.baseUrl}api/nodes/${encodeURIComponent(nodeID)}/tree`,
+        {
+          headers,
+          params: new HttpParams().set('levels', '').set('type', '')
+        }
+      );
+    }
 
     return this.http.get(
-      `${this.apiV1Url}account/getConcentratorAccounts?sirioId=${sirioId}`,
-      { headers: this.getCommonHeaders() }
+      `${this.apiV1Url}account/getConcentratorAccounts`,
+      {
+        headers: headers.set('versionApp', '3'),
+        params: new HttpParams().set('sirioId', this.getStoredValue('entitySonID'))
+      }
     );
   }
 
   obtenerSaldo(idContext: string): Observable<any> {
     return this.http.get(
-      `${this.saldosUrl}getBalance/${idContext}`,
+      `${this.saldosUrl}getBalance/${encodeURIComponent(idContext)}`,
       { headers: this.getCommonHeaders() }
     );
   }
@@ -77,61 +93,61 @@ export class ReportesService {
 
   obtenerEstadoCuenta(tipo: 'PDF' | 'EXCEL', periodo: string, cuenta: string, clabe = ''): Observable<any> {
     const periodoReporte = this.parsePeriodo(periodo);
-    const params = new URLSearchParams({
-      idAffiliationLevel: localStorage.getItem('idRol') || '',
-      reportType: tipo,
-      month: String(Number(periodoReporte.mesNumero)),
-      year: periodoReporte.anio,
-      sirioId: cuenta,
-      clabe
-    });
+    const params = new HttpParams()
+      .set('idAffiliationLevel', this.getStoredValue('idRol'))
+      .set('reportType', tipo)
+      .set('month', String(Number(periodoReporte.mesNumero)))
+      .set('year', periodoReporte.anio)
+      .set('sirioId', cuenta)
+      .set('clabe', clabe);
 
-    return this.http.get(`${this.apiV1Url}account/getAccountStatus?${params.toString()}`, {
-      headers: this.getCommonHeaders()
+    return this.http.get(`${this.apiV1Url}account/getAccountStatus`, {
+      headers: this.getCommonHeaders().set('versionApp', '3'),
+      params
     });
   }
 
   obtenerCorteDia(periodo: string): Observable<any> {
     const periodoReporte = this.parsePeriodo(periodo);
-    const params = new URLSearchParams({
-      nodeID: localStorage.getItem('nodeID') || '',
-      month: String(Number(periodoReporte.mesNumero)),
-      year: periodoReporte.anio
-    });
+    const params = new HttpParams()
+      .set('nodeID', this.getStoredValue('nodeID'))
+      .set('month', String(Number(periodoReporte.mesNumero)))
+      .set('year', periodoReporte.anio);
 
-    return this.http.get(`${this.apiV1Url}reports/getReportTransactions?${params.toString()}`, {
-      headers: this.getCommonHeaders()
+    return this.http.get(`${this.apiV1Url}reports/getReportTransactions`, {
+      headers: this.getCommonHeaders(),
+      params
     });
   }
 
   obtenerDiarioTransacciones(periodo: string): Observable<any> {
     const periodoReporte = this.parsePeriodo(periodo);
-    const params = new URLSearchParams({
-      nodeID: localStorage.getItem('nodeID') || '',
-      month: String(Number(periodoReporte.mesNumero)),
-      year: periodoReporte.anio
-    });
+    const params = new HttpParams()
+      .set('nodeID', this.getStoredValue('nodeID'))
+      .set('month', String(Number(periodoReporte.mesNumero)))
+      .set('year', periodoReporte.anio);
 
-    return this.http.get(`${this.apiV1Url}reports/getDailyTransactionReport?${params.toString()}`, {
-      headers: this.getCommonHeaders()
+    return this.http.get(`${this.apiV1Url}reports/getDailyTransactionReport`, {
+      headers: this.getCommonHeaders(),
+      params
     });
   }
 
   obtenerTransaccionesSplit(periodo: string, cuenta: string): Observable<any> {
     const periodoReporte = this.parsePeriodo(periodo);
-    const params = new URLSearchParams({
-      account: cuenta,
-      month: String(Number(periodoReporte.mesNumero)),
-      year: periodoReporte.anio
-    });
+    const params = new HttpParams()
+      .set('account', cuenta)
+      .set('month', String(Number(periodoReporte.mesNumero)))
+      .set('year', periodoReporte.anio);
 
-    return this.http.get(`${this.apiV1Url}reports/getSplitTransactionReport?${params.toString()}`, {
-      headers: this.getCommonHeaders()
+    return this.http.get(`${this.apiV1Url}reports/getSplitTransactionReport`, {
+      headers: this.getCommonHeaders(),
+      params
     });
   }
 
   parsePeriodo(periodo: string): PeriodoReporte {
-    const [anio = '', mes = ''] = periodo.split(' ');
+    const [anio = '', mes = ''] = periodo.trim().split(/\s+/, 2);
     const meses: Record<string, string> = {
       Enero: '01',
       Febrero: '02',
@@ -156,28 +172,34 @@ export class ReportesService {
   }
 
   private listarDirectorio(folderName: string): Observable<ReporteArchivo[]> {
-    const params = new URLSearchParams({ folderName });
-
-    return this.http.get<ReporteArchivo[]>(`${this.documentsUrl}listFilesInDirectory?${params.toString()}`);
+    return this.http.get<ReporteArchivo[]>(`${this.documentsUrl}listFilesInDirectory`, {
+      params: new HttpParams().set('folderName', folderName)
+    });
   }
 
   private construirFolderReportes(periodo: string, tipoCuentaReporte: TipoCuentaReporte): string {
     const { anio, mesNumero } = this.parsePeriodo(periodo);
-    const sessionRaw = localStorage.getItem('auth_session');
-    let sessionGuid = '';
-
-    if (sessionRaw) {
-      try {
-        const session = JSON.parse(sessionRaw);
-        sessionGuid = session?.guidCommerce || session?.commerceGuid || session?.validate || '';
-      } catch {
-        sessionGuid = '';
-      }
-    }
-
-    const guidCommerce = localStorage.getItem('guidCommerce') || localStorage.getItem('commerceGuid') || localStorage.getItem('guid') || sessionGuid;
+    const guidCommerce = this.getStoredValue('guidCommerce')
+      || this.getStoredValue('commerceGuid')
+      || this.getStoredValue('guid')
+      || this.getStoredValue('validate');
     const tipoCuenta = tipoCuentaReporte === 'ADQUIRENTE' ? 'Adquirencia' : 'Emision';
 
     return `${guidCommerce}/Reportes/${anio}/${mesNumero}/${tipoCuenta}/`;
+  }
+
+  private getStoredValue(key: string): string {
+    const directValue = localStorage.getItem(key);
+    if (directValue) return directValue;
+
+    const sessionRaw = localStorage.getItem('auth_session');
+    if (!sessionRaw) return '';
+
+    try {
+      const session = JSON.parse(sessionRaw);
+      return session?.[key] == null ? '' : String(session[key]);
+    } catch {
+      return '';
+    }
   }
 }

@@ -29,6 +29,7 @@ export interface BeneficiarioForm {
 export class BeneficiariosService {
   private baseUrl = environment.api.kashpay;
   private apiV1Url = `${this.baseUrl}api/v1/`;
+  private aldebaranUrl = environment.api.aldebaran;
 
   constructor(private http: HttpClient) {}
 
@@ -36,19 +37,35 @@ export class BeneficiariosService {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
+      'Authorization': `Bearer ${this.getStoredToken()}`,
+      'versionApp': '3'
     });
   }
 
-  obtenerContactos(idUser: number, type = 'TR'): Observable<any> {
+  obtenerContactos(idUser: string, type = 'TR'): Observable<any> {
     const params = new HttpParams()
-      .set('idUser', String(idUser))
+      .set('idUser', idUser)
       .set('type', type);
 
-    return this.http.get(`${this.apiV1Url}contact/getContacts`, {
+    return this.http.get(`${this.apiV1Url}svc-8a7f3c/v2/h7q2_x91`, {
       headers: this.getCommonHeaders(),
       params
     });
+  }
+
+  private getStoredToken(): string {
+    const sessionRaw = localStorage.getItem('auth_session');
+
+    if (sessionRaw) {
+      try {
+        const session = JSON.parse(sessionRaw);
+        if (session?.token) return String(session.token);
+      } catch {
+        // Se usan las llaves individuales como respaldo.
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
   }
 
   obtenerGiros(): Observable<any> {
@@ -64,8 +81,10 @@ export class BeneficiariosService {
   }
 
   buscarInstitucion(cuenta: string): Observable<any> {
-    return this.http.get(`/kwt-a7f2-v1.3.2/getInstitutions?value=${encodeURIComponent(cuenta)}`, {
-      headers: this.getCommonHeaders()
+    const params = new HttpParams().set('value', cuenta);
+
+    return this.http.get(`${this.aldebaranUrl}getInstitutions`, {
+      params
     });
   }
 
