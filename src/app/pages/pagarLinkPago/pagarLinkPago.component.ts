@@ -44,8 +44,6 @@ export class PagarLinkPagoComponent implements OnInit {
   validandoBin = false;
   mensajeBin = '';
   msiDisponibles: Array<{ meses: number; descripcion: string }> = [];
-  latitud = '';
-  longitud = '';
   enviandoPago = false;
   mensajePago = '';
   errorPago = '';
@@ -53,11 +51,6 @@ export class PagarLinkPagoComponent implements OnInit {
   private temporizadorMonto?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
-    this.pagarLinkPagoService.obtenerUbicacion().subscribe(ubicacion => {
-      this.latitud = ubicacion.latitud;
-      this.longitud = ubicacion.longitud;
-    });
-
     if (!this.referencia) {
       this.cargando = false;
       this.mensajeError = 'No se proporciono una referencia para consultar el link de pago.';
@@ -243,9 +236,7 @@ export class PagarLinkPagoComponent implements OnInit {
       itInformation: {
         so: navigator.platform || 'N/D',
         fab: navigator.vendor || 'N/D',
-        model: navigator.userAgent,
-        latitude: this.latitud,
-        longitude: this.longitud
+        model: navigator.userAgent
       },
       promotion: {
         qtyPay: Number(this.formulario.controls.meses.value) || 0,

@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, switchMap } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface UbicacionPago {
@@ -45,7 +45,29 @@ export class PagarLinkPagoService {
       'Content-Type': 'application/json'
     });
 
-    return this.http.post(`${this.transactionUrl}processTransaction`, payload, { headers });
+    return this.obtenerUbicacion().pipe(
+      switchMap(ubicacion => {
+        const itInformation = payload['itInformation'];
+        const informacionDispositivo = typeof itInformation === 'object' && itInformation !== null
+          ? itInformation
+          : {};
+
+        const payloadConUbicacion = {
+          ...payload,
+          itInformation: {
+            ...informacionDispositivo,
+            latitude: ubicacion.latitud,
+            longitude: ubicacion.longitud
+          }
+        };
+
+        return this.http.post(
+          `${this.transactionUrl}processTransaction`,
+          payloadConUbicacion,
+          { headers }
+        );
+      })
+    );
   }
 
   obtenerUbicacion(): Observable<UbicacionPago> {
