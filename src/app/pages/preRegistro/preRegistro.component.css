@@ -1567,6 +1567,57 @@ small {
   line-height: 1.4;
 }
 
+.siprelad-table {
+  margin-top: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(241, 178, 61, 0.34);
+  border-radius: 6px;
+}
+
+.siprelad-head,
+.siprelad-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.9fr) minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(150px, 1fr);
+}
+
+.siprelad-head span,
+.siprelad-row span,
+.siprelad-row strong {
+  min-width: 0;
+  padding: 9px 10px;
+  border-right: 1px solid rgba(241, 178, 61, 0.24);
+  overflow-wrap: anywhere;
+}
+
+.siprelad-head span:last-child,
+.siprelad-row strong:last-child {
+  border-right: 0;
+}
+
+.siprelad-head {
+  border-bottom: 1px solid rgba(241, 178, 61, 0.34);
+  color: var(--pre-gold);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.siprelad-row {
+  border-bottom: 1px solid rgba(241, 178, 61, 0.18);
+  color: var(--pre-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.siprelad-row:last-child {
+  border-bottom: 0;
+}
+
+.siprelad-row strong {
+  color: #63d86b;
+  text-align: center;
+}
+
 .mesa-results {
   min-height: 44px;
   padding: 10px 12px;

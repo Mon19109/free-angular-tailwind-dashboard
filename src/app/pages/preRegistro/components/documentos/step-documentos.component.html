@@ -4,7 +4,26 @@
 
     <div class="mesa-siprelad-result">
       <strong>Resultado de la consulta en listas SIPRELAD:</strong>
-      <p>{{ resultadoSiprelad }}</p>
+      @if (resultadosSiprelad.length) {
+        <div class="siprelad-table">
+          <div class="siprelad-head">
+            <span>RFC</span>
+            <span>Nombre</span>
+            <span>Fecha de registro</span>
+            <span>Coincidencia en listas</span>
+          </div>
+          @for (resultado of resultadosSiprelad; track resultado.rfc + resultado.nombre + resultado.fechaRegistro) {
+            <div class="siprelad-row">
+              <span>{{ resultado.rfc || 'ND' }}</span>
+              <span>{{ resultado.nombre || 'ND' }}</span>
+              <span>{{ resultado.fechaRegistro || 'ND' }}</span>
+              <strong>{{ resultado.coincidenciaListas || 'No' }}</strong>
+            </div>
+          }
+        </div>
+      } @else {
+        <p>{{ resultadoSiprelad }}</p>
+      }
     </div>
 
     <div class="mesa-results">

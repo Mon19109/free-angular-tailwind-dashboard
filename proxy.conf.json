@@ -38,6 +38,12 @@
     },
     "logLevel": "debug"
   },
+  "/SIPRELADServices": {
+    "target": "http://10.15.5.162",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/Entities": {
     "target": "http://10.15.5.171",
     "secure": false,

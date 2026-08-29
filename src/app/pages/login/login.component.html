@@ -32,7 +32,6 @@
         </div>
         <div class="error" *ngIf="loginForm.get('passwordLogin')?.invalid && loginForm.get('passwordLogin')?.touched">
           <span *ngIf="loginForm.get('passwordLogin')?.errors?.['required']">Contraseña requerida</span>
-          <span *ngIf="loginForm.get('passwordLogin')?.errors?.['minlength']">Mínimo 6 caracteres</span>
         </div>
       </div>
 

@@ -15,6 +15,7 @@ import { StepDatosComponent } from '../preRegistro/components/datos-generales/st
 import { StepDocumentosComponent } from '../preRegistro/components/documentos/step-documentos.component';
 import { StepLiquidacionComponent } from '../preRegistro/components/liquidacion/step-liquidacion.component';
 import { DocumentoRequerido } from '../preRegistro/models/preregistro.models';
+import { SipreladResultado, SipreladService } from '../../services/siprelad.service';
 
 type NivelNodo = 'sub-afiliado' | 'referenciador' | 'entidad' | 'sucursal' | 'caja';
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
@@ -55,6 +56,7 @@ export class RegistroClienteComponent {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly sipreladService = inject(SipreladService);
   private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
   private readonly registroLocalKey = 'kashpay.registro_cliente.local.v1';
   private readonly ocultarArbolRegistroTemporal = true;
@@ -69,6 +71,10 @@ export class RegistroClienteComponent {
   datosBeneficiarioIgualComercio = false;
   modoReservaActual: ModoReserva = 'NINGUNO';
   archivosInvalidos = false;
+  pldID = '';
+  cargandoSiprelad = false;
+  resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
+  resultadosSiprelad: SipreladResultado[] = [];
   tiposComercio: string[] = [];
   arbolMinimizado = false;
   usuarioAccesoActivo: PrefijoAccesoRegistro = 'admin';
@@ -283,6 +289,7 @@ export class RegistroClienteComponent {
       correo: params.get('correo') ?? '',
       telefono: params.get('telefono') ?? ''
     };
+    this.pldID = params.get('pldID') ?? '';
     this.contextoSeleccionado = {
       idComercio: this.comercioSeleccionado.idComercio,
       nivel: this.comercioSeleccionado.nivel,
@@ -348,6 +355,7 @@ export class RegistroClienteComponent {
     this.asegurarUsuarioAccesoActivo();
     this.actualizarValidadoresAccesosRegistro();
     this.seleccionarNodoPorId(this.nodoSeleccionado);
+    this.consultarResultadoSiprelad();
   }
 
   get arbol(): NodoRegistro[] {
@@ -442,6 +450,31 @@ export class RegistroClienteComponent {
   }
   get mostrarInfoFiscalEntidadSucursal(): boolean { return this.nivelSeleccionado === 'sucursal'; }
   get nivelSeleccionado(): NivelNodo { return this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nivel ?? 'sucursal'; }
+
+  private consultarResultadoSiprelad(): void {
+    if (!this.pldID) {
+      this.resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
+      this.resultadosSiprelad = [];
+      return;
+    }
+
+    this.cargandoSiprelad = true;
+    this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
+    this.sipreladService.consultarResultadoPld(this.pldID).subscribe({
+      next: resultados => {
+        this.resultadosSiprelad = resultados;
+        this.resultadoSiprelad = resultados.length
+          ? ''
+          : 'No se encontraron registros relacionados con PLD';
+        this.cargandoSiprelad = false;
+      },
+      error: () => {
+        this.resultadosSiprelad = [];
+        this.resultadoSiprelad = 'No fue posible consultar el resultado de SIPRELAD.';
+        this.cargandoSiprelad = false;
+      }
+    });
+  }
 
   cambiarEntidades(cambio: number): void {
     this.guardarCapturaNodoActual();

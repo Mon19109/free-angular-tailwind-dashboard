@@ -36,6 +36,9 @@ export interface ConsultaComercioApi {
   status?: string;
   commerceType?: string;
   typeOfBusiness?: number;
+  pldID?: string;
+  pldId?: string;
+  PLDID?: string;
   [key: string]: unknown;
 }
 
@@ -120,14 +123,26 @@ export class ConsultaComerciosService {
   }
 
   private obtenerNodeId(): string | null {
+    const obtenerValorValido = (value: unknown): string | null => {
+      if (value === undefined || value === null) return null;
+
+      const normalizedValue = String(value).trim();
+      return normalizedValue && normalizedValue !== '0' ? normalizedValue : null;
+    };
+
     try {
       const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      if (session?.nodeID) return String(session.nodeID);
+      const sessionNodeId = obtenerValorValido(session?.nodeID);
+      if (sessionNodeId) return sessionNodeId;
+
+      const sessionContextId = obtenerValorValido(session?.idContext);
+      if (sessionContextId) return sessionContextId;
     } catch {
       // Usa llave legacy abajo.
     }
 
-    return localStorage.getItem('nodeID') || null;
+    return obtenerValorValido(localStorage.getItem('nodeID'))
+      ?? obtenerValorValido(localStorage.getItem('idContext'));
   }
 
 }

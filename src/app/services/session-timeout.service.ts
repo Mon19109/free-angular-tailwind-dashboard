@@ -1,6 +1,7 @@
 import { Injectable, NgZone, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from './auth.service';
+import { filter } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -28,34 +29,45 @@ export class SessionTimeoutService {
         this.limpiarTimer();
       }
     });
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => this.validarOProgramarSesion());
     this.zone.runOutsideAngular(() => {
       window.addEventListener('focus', this.validarExpiracion);
       document.addEventListener('visibilitychange', this.validarExpiracion);
     });
+    this.validarOProgramarSesion();
   }
 
   private iniciarTimer(): void {
-    this.limpiarTimer();
+    this.limpiarTimer(false);
     this.mostrarModal.set(false);
     if (!this.authService.hasValidSession()) {
       return;
     }
 
-    const expiresAt = Date.now() + this.timeoutMs;
-    localStorage.setItem(this.expiresAtKey, String(expiresAt));
+    const expiresAt = this.obtenerOcrearExpiracion();
+    const tiempoRestante = expiresAt - Date.now();
+    if (tiempoRestante <= 0) {
+      this.cerrarSesionPorTiempo();
+      return;
+    }
+
     this.zone.runOutsideAngular(() => {
       this.timerId = setTimeout(() => {
         this.zone.run(() => this.cerrarSesionPorTiempo());
-      }, this.timeoutMs);
+      }, tiempoRestante);
     });
   }
 
-  private limpiarTimer(): void {
+  private limpiarTimer(limpiarExpiracion = true): void {
     if (this.timerId) {
       clearTimeout(this.timerId);
       this.timerId = null;
     }
-    localStorage.removeItem(this.expiresAtKey);
+    if (limpiarExpiracion) {
+      localStorage.removeItem(this.expiresAtKey);
+    }
   }
 
   private readonly validarExpiracion = (): void => {
@@ -67,9 +79,28 @@ export class SessionTimeoutService {
     this.zone.run(() => this.cerrarSesionPorTiempo());
   };
 
-  private cerrarSesionPorTiempo(): void {
-    this.limpiarTimer();
+  private validarOProgramarSesion(): void {
     if (!this.authService.hasValidSession()) {
+      this.limpiarTimer();
+      return;
+    }
+
+    this.iniciarTimer();
+  }
+
+  private obtenerOcrearExpiracion(): number {
+    const expiresAt = Number(localStorage.getItem(this.expiresAtKey) || 0);
+    if (expiresAt) return expiresAt;
+
+    const nuevaExpiracion = Date.now() + this.timeoutMs;
+    localStorage.setItem(this.expiresAtKey, String(nuevaExpiracion));
+    return nuevaExpiracion;
+  }
+
+  private cerrarSesionPorTiempo(): void {
+    this.limpiarTimer(false);
+    if (!this.authService.hasValidSession()) {
+      localStorage.removeItem(this.expiresAtKey);
       return;
     }
 

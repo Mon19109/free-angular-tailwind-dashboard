@@ -28,6 +28,7 @@ interface Comercio {
   password?: string;
   tieneInferiores?: boolean;
   cuentaLiquidacion?: boolean;
+  pldID?: string;
 }
 
 @Component({
@@ -278,6 +279,7 @@ export class ConsultaComerciosComponent {
         estatus: this.estatusDesdeComercioApi(comercio),
         cajaPinRapido: nivel === 'Caja' && comercio.idBusinessModel === 3,
         tieneInferiores: nivel !== 'Caja',
+        pldID: this.pldIdDesdeComercioApi(comercio),
       };
     });
   }
@@ -288,6 +290,13 @@ export class ConsultaComerciosComponent {
   }
 
   private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
+    const nombreComercio = this.normalizarTexto(comercio.nameCommerce || '');
+    const razonSocial = this.normalizarTexto(comercio.businessName || '');
+
+    if (nombreComercio === 'TIENDA DEL BARRIO' || razonSocial === 'TIENDA DEL BARRIO') {
+      return 'Prospecto';
+    }
+
     const status = this.normalizarTexto(comercio.status || String(comercio['Status'] || comercio['STATUS'] || ''));
 
     if (status === 'ACTIVO' || status === 'ACTIVE') return 'Activo';
@@ -365,6 +374,17 @@ export class ConsultaComerciosComponent {
     );
   }
 
+  private pldIdDesdeComercioApi(comercio: ConsultaComercioApi): string {
+    return String(
+      comercio.pldID
+      || comercio.pldId
+      || comercio.PLDID
+      || comercio['pld_id']
+      || comercio['transactionId']
+      || ''
+    );
+  }
+
   private ordenarComoArbol(comercios: Comercio[]): Comercio[] {
     const nivelOrden: Record<Comercio['nivel'], number> = {
       'Sub Afiliado': 0,
@@ -414,6 +434,16 @@ export class ConsultaComerciosComponent {
     this.accionesAbiertas = this.accionesAbiertas === idComercio ? null : idComercio;
   }
 
+  idAcciones(comercio: Comercio, indice: number): string {
+    return [
+      comercio.idComercio,
+      comercio.nodoId,
+      comercio.guid,
+      comercio.nivel,
+      indice,
+    ].filter(Boolean).join('|');
+  }
+
   ejecutarAccion(accion: 'editar' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
     this.accionesAbiertas = null;
 
@@ -428,6 +458,7 @@ export class ConsultaComerciosComponent {
           rfc: comercio.rfc,
           correo: comercio.correo,
           telefono: comercio.telefono,
+          pldID: comercio.pldID,
           paquete: 'empresa-holding',
           entidades: 2,
           sucursales: 3,

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DocumentoRequerido } from '../../models/preregistro.models';
+import { SipreladResultado } from '../../../../services/siprelad.service';
 @Component({
   selector: 'app-step-documentos',
   standalone: true,
@@ -18,6 +19,7 @@ export class StepDocumentosComponent {
   @Input() mostrarMismaDocumentacionEntidad = false;
   @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
+  @Input() resultadosSiprelad: SipreladResultado[] = [];
   @Output() seleccionarArchivo = new EventEmitter<{ event: Event; documento: DocumentoRequerido }>();
   @Output() cambiarMismaDocumentacionEntidad = new EventEmitter<boolean>();
   @Output() finalizar = new EventEmitter<void>();

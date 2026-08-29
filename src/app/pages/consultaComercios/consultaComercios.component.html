@@ -142,7 +142,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let comercio of comerciosPaginados">
+          <tr *ngFor="let comercio of comerciosPaginados; let indice = index">
             <td>{{ comercio.idComercio }}</td>
             <td><span class="badge" [ngClass]="normalizarNivel(comercio.nivel)">{{ comercio.nivel }}</span></td>
             <td>{{ comercio.jerarquia }}</td>
@@ -152,10 +152,10 @@
             <td>{{ comercio.telefono }}</td>
             <td><span class="status" [class.inactive]="comercio.estatus !== 'Activo'"></span>{{ comercio.estatus }}</td>
             <td class="actions-cell">
-              <button class="icon-btn" type="button" (click)="toggleAcciones(comercio.idComercio)" title="Acciones">
+              <button class="icon-btn" type="button" (click)="toggleAcciones(idAcciones(comercio, indice))" title="Acciones">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
-              <div class="actions-menu" *ngIf="accionesAbiertas === comercio.idComercio">
+              <div class="actions-menu" *ngIf="accionesAbiertas === idAcciones(comercio, indice)">
                 <button *ngIf="puedeEditar(comercio)" type="button" (click)="ejecutarAccion('editar', comercio)">Editar</button>
                 <button type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
                 <button type="button" (click)="ejecutarAccion('baja', comercio)">Baja</button>
