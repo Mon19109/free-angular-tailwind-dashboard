@@ -2914,6 +2914,59 @@ small {
   font-weight: 900;
 }
 
+.registro-liquidation-top .liquidation-question {
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.registro-liquidation-top .liquidation-question strong {
+  align-self: end;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.registro-liquidation-top .radio-choice.inline-options {
+  grid-column: 2;
+  align-self: start;
+}
+
+.registro-liquidation-top .liquidation-icon {
+  width: 46px;
+  height: 46px;
+  font-size: 18px;
+}
+
+.radio-choice.inline-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 30px;
+  align-items: center;
+}
+
+.radio-choice.inline-options label {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--pre-muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.radio-choice.inline-options input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--pre-gold);
+}
+
+.radio-choice.inline-options label.active {
+  color: var(--pre-text);
+}
+
 .segmented-choice,
 .person-tabs {
   display: inline-grid;

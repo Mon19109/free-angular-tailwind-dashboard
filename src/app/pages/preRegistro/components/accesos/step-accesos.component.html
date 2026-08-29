@@ -1,64 +1,88 @@
 <form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
-  <section class="step-section access-admin-section">
-    <div class="access-admin-heading">
-      <span class="access-admin-icon" aria-hidden="true">
-        <i class="fa-regular fa-user"></i>
-      </span>
-      <div>
-        <h3>Administrador de la Plataforma</h3>
-        <p>con Acceso Total y Gestión de Pagos.</p>
-      </div>
+  <div [class.access-registro-layout]="mostrarResumenUsuarios">
+    <div class="access-registro-fields">
+      @for (usuario of usuariosVisibles(); track usuario.prefijo) {
+      <section class="step-section access-admin-section">
+        <div class="access-admin-heading">
+          <span class="access-admin-icon" aria-hidden="true">
+            <i [class]="usuario.icono || 'fa-regular fa-user'"></i>
+          </span>
+          <div>
+            <h3>{{ usuario.titulo }}</h3>
+            <p>{{ usuario.descripcion }}</p>
+          </div>
+        </div>
+
+        <div class="form-grid cols-3">
+          <div class="field">
+            <label [for]="campo(usuario.prefijo, 'Nombre')">Nombre <b>*</b></label>
+            <input [id]="campo(usuario.prefijo, 'Nombre')" [formControlName]="campo(usuario.prefijo, 'Nombre')" placeholder="Ingresa tu nombre"
+              [class.invalid]="esInvalido(campo(usuario.prefijo, 'Nombre'))" />
+            @if (esInvalido(campo(usuario.prefijo, 'Nombre'))) { <small>Debes llenar este campo.</small> }
+          </div>
+
+          <div class="field">
+            <label [for]="campo(usuario.prefijo, 'Paterno')">Apellido paterno <b>*</b></label>
+            <input [id]="campo(usuario.prefijo, 'Paterno')" [formControlName]="campo(usuario.prefijo, 'Paterno')" placeholder="Ingresa tu apellido paterno"
+              [class.invalid]="esInvalido(campo(usuario.prefijo, 'Paterno'))" />
+            @if (esInvalido(campo(usuario.prefijo, 'Paterno'))) { <small>Debes llenar este campo.</small> }
+          </div>
+
+          <div class="field">
+            <label [for]="campo(usuario.prefijo, 'Materno')">Apellido materno <b>*</b></label>
+            <input [id]="campo(usuario.prefijo, 'Materno')" [formControlName]="campo(usuario.prefijo, 'Materno')" placeholder="Ingresa tu apellido materno"
+              [class.invalid]="esInvalido(campo(usuario.prefijo, 'Materno'))" />
+            @if (esInvalido(campo(usuario.prefijo, 'Materno'))) { <small>Debes llenar este campo.</small> }
+          </div>
+
+          <div class="field">
+            <label [for]="campo(usuario.prefijo, 'Correo')">Correo electrónico <b>*</b></label>
+            <input [id]="campo(usuario.prefijo, 'Correo')" type="email" [formControlName]="campo(usuario.prefijo, 'Correo')" placeholder="ejemplo@correo.com"
+              [class.invalid]="esInvalido(campo(usuario.prefijo, 'Correo'))" />
+            @if (esInvalido(campo(usuario.prefijo, 'Correo'))) { <small>Debes llenar este campo.</small> }
+          </div>
+
+          <div class="field">
+            <label [for]="campo(usuario.prefijo, 'ConfirmarCorreo')">Confirmar correo electrónico <b>*</b></label>
+            <input [id]="campo(usuario.prefijo, 'ConfirmarCorreo')" type="email" [formControlName]="campo(usuario.prefijo, 'ConfirmarCorreo')"
+              placeholder="Confirma tu correo"
+              [class.invalid]="esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo')) || correosDistintos(usuario.prefijo)" />
+            @if (esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo'))) {
+            <small>Debes llenar este campo.</small>
+            } @else if (correosDistintos(usuario.prefijo)) {
+            <small>Los correos no coinciden.</small>
+            }
+          </div>
+
+          <div class="field">
+            <label [for]="campo(usuario.prefijo, 'Telefono')">Teléfono <b>*</b></label>
+            <input [id]="campo(usuario.prefijo, 'Telefono')" maxlength="10" inputmode="numeric" [formControlName]="campo(usuario.prefijo, 'Telefono')"
+              [class.invalid]="esInvalido(campo(usuario.prefijo, 'Telefono'))" />
+            @if (esInvalido(campo(usuario.prefijo, 'Telefono'))) { <small>Debes llenar este campo.</small> }
+          </div>
+        </div>
+      </section>
+      }
     </div>
 
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label for="adminNombre">Nombre <b>*</b></label>
-        <input id="adminNombre" formControlName="adminNombre" placeholder="Ingresa tu nombre"
-          [class.invalid]="esInvalido('adminNombre')" />
-        @if (esInvalido('adminNombre')) { <small>Debes llenar este campo.</small> }
-      </div>
-
-      <div class="field">
-        <label for="adminPaterno">Apellido paterno <b>*</b></label>
-        <input id="adminPaterno" formControlName="adminPaterno" placeholder="Ingresa tu apellido paterno"
-          [class.invalid]="esInvalido('adminPaterno')" />
-        @if (esInvalido('adminPaterno')) { <small>Debes llenar este campo.</small> }
-      </div>
-
-      <div class="field">
-        <label for="adminMaterno">Apellido materno <b>*</b></label>
-        <input id="adminMaterno" formControlName="adminMaterno" placeholder="Ingresa tu apellido materno"
-          [class.invalid]="esInvalido('adminMaterno')" />
-        @if (esInvalido('adminMaterno')) { <small>Debes llenar este campo.</small> }
-      </div>
-
-      <div class="field">
-        <label for="adminCorreo">Correo electrónico <b>*</b></label>
-        <input id="adminCorreo" type="email" formControlName="adminCorreo" placeholder="ejemplo@correo.com"
-          [class.invalid]="esInvalido('adminCorreo')" />
-        @if (esInvalido('adminCorreo')) { <small>Debes llenar este campo.</small> }
-      </div>
-
-      <div class="field">
-        <label for="adminConfirmarCorreo">Confirmar correo electrónico <b>*</b></label>
-        <input id="adminConfirmarCorreo" type="email" formControlName="adminConfirmarCorreo"
-          placeholder="Confirma tu correo"
-          [class.invalid]="esInvalido('adminConfirmarCorreo') || (form.hasError('adminCorreosDistintos') && form.get('adminConfirmarCorreo')?.touched)" />
-        @if (esInvalido('adminConfirmarCorreo')) {
-        <small>Debes llenar este campo.</small>
-        } @else if (form.hasError('adminCorreosDistintos') && form.get('adminConfirmarCorreo')?.touched) {
-        <small>Los correos no coinciden.</small>
-        }
-      </div>
-
-      <div class="field">
-        <label for="adminTelefono">Teléfono <b>*</b></label>
-        <input id="adminTelefono" maxlength="10" inputmode="numeric" formControlName="adminTelefono"
-          [class.invalid]="esInvalido('adminTelefono')" />
-        @if (esInvalido('adminTelefono')) { <small>Debes llenar este campo.</small> }
-      </div>
-    </div>
-  </section>
+    @if (mostrarResumenUsuarios) {
+    <aside class="access-registro-summary">
+      <h3>Accesos a la plataforma</h3>
+      @for (usuario of usuarios; track usuario.prefijo) {
+      <button
+        type="button"
+        class="access-registro-user"
+        [class.active]="usuario.prefijo === usuarioActivo"
+        (click)="seleccionarUsuario(usuario.prefijo)">
+        <span aria-hidden="true">
+          <i [class]="usuario.icono || 'fa-regular fa-user'"></i>
+        </span>
+        <strong>{{ usuario.titulo }}</strong>
+      </button>
+      }
+    </aside>
+    }
+  </div>
 
   <div class="step-actions">
     <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>

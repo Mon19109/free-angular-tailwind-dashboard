@@ -224,6 +224,10 @@
   grid-template-columns: minmax(72px, 96px) minmax(0, 1fr);
 }
 
+.registro-layout.without-tree {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .tree-panel,
 .context-strip,
 .section-card {
@@ -735,15 +739,7 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px rgba(22, 101, 52, 0.18);
 }
 
-:host-context(html:not(.dark)) .section-card.done .step-status,
-:host-context(html:not(.dark)) .section-card.readonly-existing.open .step-status {
-  color: #ffffff;
-  border-color: rgba(22, 101, 52, 0.5);
-  background: linear-gradient(180deg, #22c55e 0%, #16a34a 42%, #0f7a35 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px rgba(22, 101, 52, 0.18);
-}
-
-.section-card.readonly-existing.open .step-status {
+:host-context(html:not(.dark)) .section-card.done .step-status {
   color: #ffffff;
   border-color: rgba(22, 101, 52, 0.5);
   background: linear-gradient(180deg, #22c55e 0%, #16a34a 42%, #0f7a35 100%);
@@ -751,8 +747,7 @@
 }
 
 :host-context(html.dark) .section-card.done .step-status,
-:host-context(html.dark) .section-card.done.open .step-status,
-:host-context(html.dark) .section-card.readonly-existing.open .step-status {
+:host-context(html.dark) .section-card.done.open .step-status {
   color: #ffffff !important;
   border-color: rgba(74, 222, 128, 0.42) !important;
   background:
@@ -837,9 +832,105 @@
   width: 100%;
 }
 
+:host ::ng-deep app-step-accesos .access-registro-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 22px;
+  align-items: start;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-fields {
+  display: grid;
+  gap: 18px;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-fields .access-admin-section {
+  margin: 0;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-fields .access-admin-heading {
+  display: none;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-fields .form-grid {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-summary {
+  position: sticky;
+  top: 18px;
+  min-height: 100%;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(10, 16, 27, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+:host ::ng-deep app-step-accesos .access-registro-summary h3 {
+  margin: 0 0 22px;
+  color: var(--reg-text);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: 96px;
+  padding: 18px 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user.active {
+  border-top-color: rgba(241, 178, 61, 0.34);
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user span {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #f1b23d;
+  border-radius: 14px;
+  color: #f1b23d;
+  background: rgba(241, 178, 61, 0.06);
+  font-size: 27px;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user.active span {
+  color: #140e02;
+  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  box-shadow: 0 14px 28px rgba(241, 178, 61, 0.16);
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user strong {
+  min-width: 0;
+  color: var(--reg-text);
+  font-size: 15px;
+  line-height: 1.28;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user.active strong {
+  color: #ffd56b;
+}
+
 :host ::ng-deep app-step-liquidacion .beneficiary-toolbar {
-  grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
 }
 
 :host ::ng-deep app-step-liquidacion .person-tabs label {
@@ -853,10 +944,10 @@
 
 :host ::ng-deep app-step-liquidacion .document-actions {
   display: grid;
-  grid-template-columns: minmax(190px, max-content) auto minmax(110px, max-content) auto;
+  grid-template-columns: minmax(220px, max-content) auto minmax(120px, max-content) auto;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px 12px;
+  gap: 12px 14px;
   font-size: 14px;
 }
 
@@ -869,6 +960,77 @@
   gap: 8px;
   padding: 0 14px;
   font-size: 13px;
+}
+
+:host ::ng-deep app-step-liquidacion .same-beneficiary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 620px;
+  min-height: 46px;
+  margin: 2px 0 4px;
+  padding: 10px 14px;
+  border: 1px solid rgba(241, 178, 61, 0.24);
+  border-radius: 12px;
+  color: rgba(246, 247, 251, 0.9);
+  background: rgba(241, 178, 61, 0.06);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+:host ::ng-deep app-step-liquidacion .same-beneficiary input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  flex: 0 0 auto;
+  accent-color: #f1b23d;
+}
+
+:host ::ng-deep app-step-liquidacion .same-beneficiary span {
+  line-height: 1.3;
+}
+
+:host ::ng-deep app-step-liquidacion .lookup-field {
+  gap: 0;
+}
+
+:host ::ng-deep app-step-liquidacion .lookup-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 116px;
+  align-items: stretch;
+  gap: 10px;
+}
+
+:host ::ng-deep app-step-liquidacion .lookup-control input,
+:host ::ng-deep app-step-liquidacion .lookup-control select {
+  min-width: 0;
+}
+
+:host ::ng-deep app-step-liquidacion .lookup-button {
+  width: 116px;
+  min-height: 44px;
+  height: 44px;
+  border-radius: 12px;
+  padding: 0 12px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+:host ::ng-deep app-step-liquidacion .field-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 560px;
+  margin-top: 8px;
+  color: rgba(246, 247, 251, 0.58);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+:host ::ng-deep app-step-liquidacion .field-hint i {
+  color: #f1b23d;
+  font-size: 11px;
 }
 
 :host ::ng-deep app-step-comercio .step-section,
@@ -1043,6 +1205,15 @@
     grid-template-columns: 1fr;
   }
 
+  :host ::ng-deep app-step-accesos .access-registro-layout {
+    grid-template-columns: 1fr;
+  }
+
+  :host ::ng-deep app-step-accesos .access-registro-summary {
+    position: static;
+    order: -1;
+  }
+
   :host ::ng-deep app-step-liquidacion .beneficiary-toolbar {
     grid-template-columns: 1fr;
   }
@@ -1050,6 +1221,24 @@
   :host ::ng-deep app-step-liquidacion .document-actions {
     grid-template-columns: minmax(0, 1fr) auto;
     justify-content: stretch;
+  }
+
+  :host ::ng-deep app-step-liquidacion .lookup-control {
+    grid-template-columns: minmax(0, 1fr) 108px;
+  }
+
+  :host ::ng-deep app-step-liquidacion .lookup-button {
+    width: 108px;
+  }
+}
+
+@media (max-width: 680px) {
+  :host ::ng-deep app-step-liquidacion .lookup-control {
+    grid-template-columns: 1fr;
+  }
+
+  :host ::ng-deep app-step-liquidacion .lookup-button {
+    width: 100%;
   }
 }
 
@@ -1089,10 +1278,8 @@
 
 :host-context(.dark) .section-card.done .step-status,
 :host-context(.dark) .section-card.done.open .step-status,
-:host-context(.dark) .section-card.readonly-existing.open .step-status,
 :host-context(html.dark) .section-card.done .step-status,
-:host-context(html.dark) .section-card.done.open .step-status,
-:host-context(html.dark) .section-card.readonly-existing.open .step-status {
+:host-context(html.dark) .section-card.done.open .step-status {
   min-height: 34px !important;
   padding: 0 18px !important;
   color: rgba(192, 255, 205, 0.95) !important;
@@ -1104,10 +1291,8 @@
 
 :host-context(.dark) .section-card.done .section-icon,
 :host-context(.dark) .section-card.done.open .section-icon,
-:host-context(.dark) .section-card.readonly-existing.open .section-icon,
 :host-context(html.dark) .section-card.done .section-icon,
-:host-context(html.dark) .section-card.done.open .section-icon,
-:host-context(html.dark) .section-card.readonly-existing.open .section-icon {
+:host-context(html.dark) .section-card.done.open .section-icon {
   color: #22c55e !important;
   border-color: rgba(34, 197, 94, 0.36) !important;
   background: rgba(34, 197, 94, 0.12) !important;

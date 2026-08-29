@@ -9,7 +9,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { StepAccesosComponent } from '../preRegistro/components/accesos/step-accesos.component';
+import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
 import { StepDocumentosComponent } from '../preRegistro/components/documentos/step-documentos.component';
@@ -19,6 +19,7 @@ import { DocumentoRequerido } from '../preRegistro/models/preregistro.models';
 type NivelNodo = 'sub-afiliado' | 'referenciador' | 'entidad' | 'sucursal' | 'caja';
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
+type PrefijoAccesoRegistro = 'admin' | 'fac' | 'tkt' | 'controlador' | 'supervisor';
 
 interface NodoRegistro {
   id: string;
@@ -56,9 +57,11 @@ export class RegistroClienteComponent {
   private readonly router = inject(Router);
   private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
   private readonly registroLocalKey = 'kashpay.registro_cliente.local.v1';
+  private readonly ocultarArbolRegistroTemporal = true;
+  private readonly mostrarSoloPasosTresCincoRegistroTemporal = true;
 
-  pasoActual = 1;
-  seccionAbierta: SeccionRegistro['id'] | null = 'comercio';
+  pasoActual = 3;
+  seccionAbierta: SeccionRegistro['id'] | null = 'liquidacion';
   pasosCompletados = new Set<string>();
   nodoSeleccionado = 'entidad-1-sucursal-1-caja-3';
   nodosColapsados = new Set<string>();
@@ -68,6 +71,7 @@ export class RegistroClienteComponent {
   archivosInvalidos = false;
   tiposComercio: string[] = [];
   arbolMinimizado = false;
+  usuarioAccesoActivo: PrefijoAccesoRegistro = 'admin';
   private comercioPorNodo: Record<string, ReturnType<typeof this.comercioForm.getRawValue>> = {};
   private datosPorNodo: Record<string, ReturnType<typeof this.datosForm.getRawValue>> = {};
   private accesosPorNodo: Record<string, ReturnType<typeof this.accesosForm.getRawValue>> = {};
@@ -119,6 +123,38 @@ export class RegistroClienteComponent {
     '626 - Régimen Simplificado de Confianza'
   ];
   readonly girosComerciales: string[] = [];
+  readonly usuariosAccesoBase: Record<PrefijoAccesoRegistro, UsuarioAccesoConfig> = {
+    admin: {
+      prefijo: 'admin',
+      titulo: 'Usuario Administrador',
+      descripcion: 'con acceso a la plataforma y gestión general.',
+      icono: 'fa-regular fa-user'
+    },
+    fac: {
+      prefijo: 'fac',
+      titulo: 'Usuario Administrador FAC',
+      descripcion: 'con permisos para administración de facturación.',
+      icono: 'fa-solid fa-file-invoice'
+    },
+    tkt: {
+      prefijo: 'tkt',
+      titulo: 'Usuario Administrador TKT',
+      descripcion: 'con permisos para administración de tickets.',
+      icono: 'fa-solid fa-ticket'
+    },
+    controlador: {
+      prefijo: 'controlador',
+      titulo: 'Usuario Controlador de Recursos',
+      descripcion: 'para comercios tipo Agrupadora Controladora.',
+      icono: 'fa-solid fa-user-gear'
+    },
+    supervisor: {
+      prefijo: 'supervisor',
+      titulo: 'Usuario Supervisor de Terminales',
+      descripcion: 'para comercios tipo Agrupadora Supervisora.',
+      icono: 'fa-solid fa-user-check'
+    }
+  };
 
   readonly tiposComercioPorNivel: Record<string, string[]> = {
     'Sub Afiliado': ['Empresa Holding'],
@@ -159,7 +195,8 @@ export class RegistroClienteComponent {
     { numero: 11, nombre: 'E-Firma', obligatorio: false },
     { numero: 12, nombre: 'Identificación Oficial del Representante Legal', obligatorio: false },
     { numero: 13, nombre: 'Identificación Oficial de un tercero', obligatorio: false },
-    { numero: 14, nombre: 'Carátula de Estado Cuenta para Liquidación', obligatorio: true }
+    { numero: 14, nombre: 'Carátula de Estado Cuenta para Liquidación', obligatorio: true },
+    { numero: 15, nombre: 'Carta de Liquidación Otros Bancos', obligatorio: true }
   ];
 
   readonly documentosPorTipoComercio: Record<string, Array<Pick<DocumentoRequerido, 'numero' | 'obligatorio'>>> = {
@@ -199,6 +236,10 @@ export class RegistroClienteComponent {
     reservaSplit: [''],
     adminNombre: ['', Validators.required], adminPaterno: ['', Validators.required], adminMaterno: ['', Validators.required],
     adminCorreo: ['', [Validators.required, Validators.email]], adminConfirmarCorreo: ['', [Validators.required, Validators.email]], adminTelefono: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    facNombre: [''], facPaterno: [''], facMaterno: [''], facCorreo: ['', Validators.email], facConfirmarCorreo: ['', Validators.email], facTelefono: [''],
+    tktNombre: [''], tktPaterno: [''], tktMaterno: [''], tktCorreo: ['', Validators.email], tktConfirmarCorreo: ['', Validators.email], tktTelefono: [''],
+    controladorNombre: [''], controladorPaterno: [''], controladorMaterno: [''], controladorCorreo: ['', Validators.email], controladorConfirmarCorreo: ['', Validators.email], controladorTelefono: [''],
+    supervisorNombre: [''], supervisorPaterno: [''], supervisorMaterno: [''], supervisorCorreo: ['', Validators.email], supervisorConfirmarCorreo: ['', Validators.email], supervisorTelefono: [''],
     perfilReservaNombre: [''], perfilReservaPaterno: [''], perfilReservaMaterno: [''], perfilReservaCorreo: [''], perfilReservaConfirmarCorreo: [''], perfilReservaTelefono: [''],
     cajasTPV: ['1', [Validators.required, Validators.pattern(/^[1-9]\d*$/)]],
     tieneSupervisor: ['si', Validators.required],
@@ -206,13 +247,17 @@ export class RegistroClienteComponent {
   }, {
     validators: [
       this.camposCoincidenValidator('adminCorreo', 'adminConfirmarCorreo', 'adminCorreosDistintos'),
+      this.camposCoincidenValidator('facCorreo', 'facConfirmarCorreo', 'facCorreosDistintos'),
+      this.camposCoincidenValidator('tktCorreo', 'tktConfirmarCorreo', 'tktCorreosDistintos'),
+      this.camposCoincidenValidator('controladorCorreo', 'controladorConfirmarCorreo', 'controladorCorreosDistintos'),
+      this.camposCoincidenValidator('supervisorCorreo', 'supervisorConfirmarCorreo', 'supervisorCorreosDistintos'),
       this.camposCoincidenValidator('perfilReservaCorreo', 'perfilReservaConfirmarCorreo', 'perfilCorreosDistintos'),
       this.camposCoincidenValidator('pinCorreo', 'pinConfirmarCorreo', 'pinCorreosDistintos')
     ]
   });
 
   readonly liquidacionForm = this.fb.nonNullable.group({
-    cuentaFueraRed: ['no', Validators.required],
+    cuentaFueraRed: ['otros-bancos', Validators.required],
     digitoVerificador: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]],
     tipoPersonaBeneficiario: ['fisica' as TipoPersonaBeneficiario, Validators.required],
     beneficiarioIgualComercio: [false],
@@ -274,19 +319,34 @@ export class RegistroClienteComponent {
       this.comercioForm.controls.tipoComercio.updateValueAndValidity({ emitEvent: false });
       this.actualizarValidadoresDatos();
     });
-    this.comercioForm.controls.tipoComercio.valueChanges.subscribe(() => this.actualizarValidadoresDatos());
+    this.comercioForm.controls.tipoComercio.valueChanges.subscribe(() => {
+      this.actualizarValidadoresDatos();
+      this.actualizarValidadoresAccesosRegistro();
+    });
     this.liquidacionForm.controls.tipoPersonaBeneficiario.valueChanges.subscribe(tipo => {
       this.tipoPersonaBeneficiario = tipo as TipoPersonaBeneficiario;
       this.actualizarValidadoresBeneficiario(tipo as TipoPersonaBeneficiario);
     });
+    this.liquidacionForm.controls.cuentaFueraRed.valueChanges.subscribe(() => {
+      this.actualizarEstadoLiquidacionRegistro();
+      this.asegurarUsuarioAccesoActivo();
+      this.actualizarValidadoresAccesosRegistro();
+    });
     this.liquidacionForm.controls.beneficiarioIgualComercio.valueChanges.subscribe(valor => {
       this.datosBeneficiarioIgualComercio = valor;
-      if (valor) this.sincronizarBeneficiarioDesdeComercio();
+      if (valor) {
+        this.sincronizarBeneficiarioDesdeComercio();
+      } else {
+        this.limpiarDatosBeneficiarioLiquidacion();
+      }
     });
     this.datosForm.controls.mismoDomicilio.valueChanges.subscribe(valor => {
       if (valor) this.copiarDomicilioFiscal();
     });
     this.actualizarValidadoresDatos();
+    this.actualizarEstadoLiquidacionRegistro();
+    this.asegurarUsuarioAccesoActivo();
+    this.actualizarValidadoresAccesosRegistro();
     this.seleccionarNodoPorId(this.nodoSeleccionado);
   }
 
@@ -306,7 +366,7 @@ export class RegistroClienteComponent {
   }
 
   get pasosVisiblesRegistro() {
-    return this.seccionesVisibles.map((seccion, index) => ({
+    return this.secciones.map((seccion, index) => ({
       id: seccion.id,
       numero: index + 1,
       titulo: seccion.titulo
@@ -318,9 +378,22 @@ export class RegistroClienteComponent {
       if (seccion.id === 'datos') return this.camposDatosGenerales.length > 0;
       if (seccion.id === 'accesos') return this.mostrarPasoAccesos;
       if (seccion.id === 'liquidacion') return this.nivelSeleccionado !== 'caja';
-      if (seccion.id === 'documentos') return this.documentosVisibles.length > 0;
+      if (seccion.id === 'documentos') return this.mostrarSoloPasosTresCincoRegistroTemporal || this.documentosVisibles.length > 0;
       return true;
     });
+  }
+
+  get seccionesCardsVisibles(): SeccionRegistro[] {
+    if (!this.mostrarSoloPasosTresCincoRegistroTemporal) return this.seccionesVisibles;
+    return this.seccionesVisibles.filter(seccion => ['liquidacion', 'accesos', 'documentos'].includes(seccion.id));
+  }
+
+  get mostrarArbolRegistro(): boolean {
+    return !this.ocultarArbolRegistroTemporal;
+  }
+
+  numeroPasoRegistro(id: SeccionRegistro['id']): number {
+    return this.secciones.findIndex(seccion => seccion.id === id) + 1;
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
@@ -343,6 +416,26 @@ export class RegistroClienteComponent {
   get documentosPendientes(): number { return this.documentosVisibles.filter(documento => documento.obligatorio && !(documento.archivo || documento.archivoNombre)).length; }
   get esNodoExistente(): boolean { return !this.nodosNuevos.has(this.nodoSeleccionado); }
   get mostrarPasoAccesos(): boolean { return this.nivelSeleccionado !== 'caja'; }
+  get esSucursalAgrupadora(): boolean {
+    return this.comercioForm.getRawValue().nivel === 'Sucursal'
+      && this.comercioForm.getRawValue().tipoComercio === 'Sucursales de Grupo';
+  }
+  get usuariosAcceso(): UsuarioAccesoConfig[] {
+    if (this.esSucursalAgrupadora) {
+      return [this.usuariosAccesoBase.controlador, this.usuariosAccesoBase.supervisor];
+    }
+
+    const cuentaLiquidacion = this.liquidacionForm.controls.cuentaFueraRed.value;
+    if (cuentaLiquidacion === 'otros-bancos-en-red') {
+      return [this.usuariosAccesoBase.fac, this.usuariosAccesoBase.tkt];
+    }
+
+    if (cuentaLiquidacion === 'otros-bancos' || cuentaLiquidacion === 'en-red' || cuentaLiquidacion === 'si') {
+      return [this.usuariosAccesoBase.admin];
+    }
+
+    return [];
+  }
   get nivelesNodoActual(): string[] {
     const nivel = this.comercioForm.getRawValue().nivel;
     return nivel ? [nivel] : this.niveles;
@@ -434,6 +527,8 @@ export class RegistroClienteComponent {
       rfc: registro.rfc || this.rfcFake(nodo.id)
     };
     this.cargarCapturaNodo(nodo.id);
+    this.asegurarUsuarioAccesoActivo();
+    this.actualizarValidadoresAccesosRegistro();
     this.seccionAbierta = this.resolverSeccionVisible(this.seccionAbierta ?? 'comercio');
     this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta ?? 'comercio');
   }
@@ -468,7 +563,8 @@ export class RegistroClienteComponent {
   }
 
   pasoCompletado(id: SeccionRegistro['id']): boolean {
-    return this.pasosCompletados.has(this.clavePasoNodo(id));
+    return this.pasosCompletados.has(this.clavePasoNodo(id))
+      || (this.mostrarSoloPasosTresCincoRegistroTemporal && ['comercio', 'datos'].includes(id));
   }
 
   completarPaso(id: SeccionRegistro['id'], siguiente?: SeccionRegistro['id']): void {
@@ -487,14 +583,15 @@ export class RegistroClienteComponent {
     this.guardarComercioLocal();
     this.guardarEstadoRegistroLocal();
     this.liquidacionPorNodo = { ...this.liquidacionPorNodo };
-    if (!this.esNodoExistente) {
+    if (this.mostrarPasoAccesos) {
       this.seccionAbierta = this.resolverSeccionVisible('accesos', 'liquidacion');
       this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
     }
   }
 
   estadoPaso(id: SeccionRegistro['id']): string {
-    if (this.esNodoExistente && id !== 'liquidacion' && id !== 'accesos') return 'Completado';
+    if (this.mostrarSoloPasosTresCincoRegistroTemporal && ['comercio', 'datos'].includes(id)) return 'Completado';
+    if (this.esNodoExistente && id !== 'liquidacion' && id !== 'accesos' && id !== 'documentos') return 'Completado';
     if (id === 'liquidacion' && this.tieneLiquidacion(this.nodoSeleccionado)) return 'Completado';
     if (id === 'accesos' && this.pasoCompletado(id) && this.accesosTieneContenido(this.accesosForm.getRawValue())) return 'Completado';
     if (this.seccionAbierta === id) return 'En curso';
@@ -525,6 +622,11 @@ export class RegistroClienteComponent {
     }
   }
 
+  seleccionarUsuarioAcceso(prefijo: string): void {
+    this.usuarioAccesoActivo = prefijo as PrefijoAccesoRegistro;
+    this.actualizarValidadoresAccesosRegistro();
+  }
+
   private nodoInicialPorNivel(nivel: string): string {
     if (nivel === 'Sub Afiliado') return 'sub-afiliado-1';
     if (nivel === 'Entidad') return 'entidad-1';
@@ -552,7 +654,7 @@ export class RegistroClienteComponent {
   }
 
   private numeroPasoPorSeccion(id: SeccionRegistro['id']): number {
-    const index = this.seccionesVisibles.findIndex(seccion => seccion.id === id);
+    const index = this.secciones.findIndex(seccion => seccion.id === id);
     return index >= 0 ? index + 1 : 1;
   }
 
@@ -719,7 +821,7 @@ export class RegistroClienteComponent {
       this.accesosForm.reset();
     }
     this.liquidacionForm.reset({
-      cuentaFueraRed: 'no',
+      cuentaFueraRed: 'otros-bancos',
       digitoVerificador: '',
       tipoPersonaBeneficiario: 'fisica',
       beneficiarioIgualComercio: false,
@@ -811,7 +913,7 @@ export class RegistroClienteComponent {
     } else {
       this.comercioForm.disable(opciones);
       this.datosForm.disable(opciones);
-      this.accesosForm.disable(opciones);
+      this.accesosForm.enable(opciones);
     }
 
     this.liquidacionForm.enable(opciones);
@@ -997,6 +1099,30 @@ export class RegistroClienteComponent {
       adminCorreo: `admin.${slug || 'comercio'}@subnorte.com`,
       adminConfirmarCorreo: `admin.${slug || 'comercio'}@subnorte.com`,
       adminTelefono: '5512345678',
+      facNombre: 'Administrador',
+      facPaterno: 'FAC',
+      facMaterno: 'Kashpay',
+      facCorreo: `fac.${slug || 'comercio'}@subnorte.com`,
+      facConfirmarCorreo: `fac.${slug || 'comercio'}@subnorte.com`,
+      facTelefono: '5512345678',
+      tktNombre: 'Administrador',
+      tktPaterno: 'TKT',
+      tktMaterno: 'Kashpay',
+      tktCorreo: `tkt.${slug || 'comercio'}@subnorte.com`,
+      tktConfirmarCorreo: `tkt.${slug || 'comercio'}@subnorte.com`,
+      tktTelefono: '5512345678',
+      controladorNombre: 'Controlador',
+      controladorPaterno: 'Recursos',
+      controladorMaterno: 'Kashpay',
+      controladorCorreo: `controlador.${slug || 'comercio'}@subnorte.com`,
+      controladorConfirmarCorreo: `controlador.${slug || 'comercio'}@subnorte.com`,
+      controladorTelefono: '5512345678',
+      supervisorNombre: 'Supervisor',
+      supervisorPaterno: 'Terminales',
+      supervisorMaterno: 'Kashpay',
+      supervisorCorreo: `supervisor.${slug || 'comercio'}@subnorte.com`,
+      supervisorConfirmarCorreo: `supervisor.${slug || 'comercio'}@subnorte.com`,
+      supervisorTelefono: '5512345678',
       perfilReservaNombre: 'Reserva',
       perfilReservaPaterno: 'Operativa',
       perfilReservaMaterno: 'Kashpay',
@@ -1102,6 +1228,115 @@ export class RegistroClienteComponent {
     materno.setValidators(tipo === 'fisica' ? [Validators.required] : []);
     paterno.updateValueAndValidity({ emitEvent: false });
     materno.updateValueAndValidity({ emitEvent: false });
+    this.liquidacionForm.controls.actividadBeneficiario.setValidators(tipo === 'fisica' ? [Validators.required] : []);
+    this.liquidacionForm.controls.giroBeneficiario.setValidators(tipo === 'moral' ? [Validators.required] : []);
+    this.liquidacionForm.controls.actividadBeneficiario.updateValueAndValidity({ emitEvent: false });
+    this.liquidacionForm.controls.giroBeneficiario.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private limpiarDatosBeneficiarioLiquidacion(): void {
+    this.liquidacionForm.patchValue({
+      nombreBeneficiario: '',
+      apellidoPaternoBeneficiario: '',
+      apellidoMaternoBeneficiario: '',
+      correoBeneficiario: '',
+      direccionBeneficiario: '',
+      rfcBeneficiario: '',
+      actividadBeneficiario: '',
+      giroBeneficiario: '',
+    }, { emitEvent: false });
+  }
+
+  private actualizarEstadoLiquidacionRegistro(): void {
+    const requiereDatos = ['otros-bancos', 'otros-bancos-en-red'].includes(this.liquidacionForm.controls.cuentaFueraRed.value);
+    const controles = [
+      this.liquidacionForm.controls.tipoPersonaBeneficiario,
+      this.liquidacionForm.controls.nombreBeneficiario,
+      this.liquidacionForm.controls.apellidoPaternoBeneficiario,
+      this.liquidacionForm.controls.apellidoMaternoBeneficiario,
+      this.liquidacionForm.controls.correoBeneficiario,
+      this.liquidacionForm.controls.direccionBeneficiario,
+      this.liquidacionForm.controls.rfcBeneficiario,
+      this.liquidacionForm.controls.actividadBeneficiario,
+      this.liquidacionForm.controls.giroBeneficiario,
+      this.liquidacionForm.controls.tipoCuenta,
+      this.liquidacionForm.controls.cuentaClabe,
+      this.liquidacionForm.controls.nombreBanco,
+      this.liquidacionForm.controls.direccionBanco,
+      this.liquidacionForm.controls.telefonoBanco,
+      this.liquidacionForm.controls.emailBanco,
+    ];
+
+    if (!requiereDatos) {
+      controles.forEach(control => {
+        control.clearValidators();
+        control.disable({ emitEvent: false });
+        control.updateValueAndValidity({ emitEvent: false });
+      });
+      this.liquidacionForm.patchValue({
+        beneficiarioIgualComercio: false,
+        tipoCuenta: '',
+        cuentaClabe: '',
+        nombreBanco: '',
+        direccionBanco: '',
+        telefonoBanco: '',
+        emailBanco: '',
+      }, { emitEvent: false });
+      this.limpiarDatosBeneficiarioLiquidacion();
+      return;
+    }
+
+    controles.forEach(control => control.enable({ emitEvent: false }));
+    this.liquidacionForm.controls.nombreBeneficiario.setValidators([Validators.required]);
+    this.liquidacionForm.controls.correoBeneficiario.setValidators([Validators.required, Validators.email]);
+    this.liquidacionForm.controls.direccionBeneficiario.setValidators([Validators.required]);
+    this.liquidacionForm.controls.rfcBeneficiario.setValidators([Validators.required]);
+    this.liquidacionForm.controls.tipoCuenta.setValidators([Validators.required]);
+    this.liquidacionForm.controls.cuentaClabe.setValidators([Validators.required]);
+    this.liquidacionForm.controls.nombreBanco.setValidators([Validators.required]);
+    this.liquidacionForm.controls.direccionBanco.setValidators([Validators.required]);
+    this.liquidacionForm.controls.telefonoBanco.setValidators([Validators.required, Validators.pattern(/^\d{10}$/)]);
+    this.liquidacionForm.controls.emailBanco.setValidators([Validators.required, Validators.email]);
+    this.actualizarValidadoresBeneficiario(this.liquidacionForm.controls.tipoPersonaBeneficiario.value as TipoPersonaBeneficiario);
+    controles.forEach(control => control.updateValueAndValidity({ emitEvent: false }));
+  }
+
+  private actualizarValidadoresAccesosRegistro(): void {
+    const prefijos: PrefijoAccesoRegistro[] = ['admin', 'fac', 'tkt', 'controlador', 'supervisor'];
+    const activos = new Set([this.usuarioAccesoActivo]);
+    const campos = ['Nombre', 'Paterno', 'Materno', 'Correo', 'ConfirmarCorreo', 'Telefono'] as const;
+
+    prefijos.forEach(prefijo => {
+      campos.forEach(campo => {
+        const control = this.accesosForm.get(`${prefijo}${campo}`);
+        if (!control) return;
+
+        if (!activos.has(prefijo)) {
+          control.clearValidators();
+          if (campo === 'Correo' || campo === 'ConfirmarCorreo') control.setValidators([Validators.email]);
+          control.updateValueAndValidity({ emitEvent: false });
+          return;
+        }
+
+        if (campo === 'Correo' || campo === 'ConfirmarCorreo') {
+          control.setValidators([Validators.required, Validators.email]);
+        } else if (campo === 'Telefono') {
+          control.setValidators([Validators.required, Validators.pattern(/^\d{10}$/)]);
+        } else {
+          control.setValidators([Validators.required]);
+        }
+        control.updateValueAndValidity({ emitEvent: false });
+      });
+    });
+
+    this.accesosForm.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private asegurarUsuarioAccesoActivo(): void {
+    const usuarios = this.usuariosAcceso.map(usuario => usuario.prefijo as PrefijoAccesoRegistro);
+    if (usuarios.length && !usuarios.includes(this.usuarioAccesoActivo)) {
+      this.usuarioAccesoActivo = usuarios[0];
+    }
   }
 
   private sincronizarBeneficiarioDesdeComercio(): void {

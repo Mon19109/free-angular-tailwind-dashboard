@@ -1,7 +1,18 @@
 <form class="step-form liquidacion-form" [formGroup]="form" (ngSubmit)="submit()">
-  <section class="step-section liquidation-top">
+  <section class="step-section liquidation-top" [class.registro-liquidation-top]="varianteRegistro">
     <div class="liquidation-question">
-      <span class="liquidation-icon"><i class="fa-solid fa-building-columns"></i></span>
+      <span class="liquidation-icon"><i class="fa-solid" [ngClass]="varianteRegistro ? 'fa-right-left' : 'fa-building-columns'"></i></span>
+      @if (varianteRegistro) {
+      <strong>Deseo recibir el total de las transacciones realizadas en las terminales en:</strong>
+      <div class="radio-choice inline-options">
+        @for (opcion of opcionesRecepcionRegistro; track opcion.valor) {
+        <label [class.active]="form.get('cuentaFueraRed')?.value === opcion.valor">
+          <input type="radio" [value]="opcion.valor" formControlName="cuentaFueraRed">
+          <span>{{ opcion.etiqueta }}</span>
+        </label>
+        }
+      </div>
+      } @else {
       <strong>Tengo una cuenta fuera de RED en otros BANCOS</strong>
       <div class="segmented-choice">
         <label [class.active]="form.get('cuentaFueraRed')?.value === 'si'">
@@ -13,8 +24,10 @@
           <span>No <i class="fa-solid fa-check"></i></span>
         </label>
       </div>
+      }
     </div>
 
+    @if (!varianteRegistro) {
     <div class="field verifier-field">
       <label for="digitoVerificador">Dígito Verificador (5 dígitos) <b>*</b></label>
       <div class="input-with-icon">
@@ -25,8 +38,10 @@
       </div>
       @if (esInvalido('digitoVerificador')) { <small>{{ mensajeCampo('digitoVerificador') }}</small> }
     </div>
+    }
   </section>
 
+  @if (requiereDatosLiquidacion) {
   <section class="step-section liquidation-section">
     <div class="liquidation-section-heading">
       <span class="liquidation-icon small"><i class="fa-solid fa-user"></i></span>
@@ -39,7 +54,7 @@
     @if (mostrarBeneficiarioIgualComercio) {
     <label class="checkbox-option same-beneficiary">
       <input type="checkbox" formControlName="beneficiarioIgualComercio" />
-      <span>Los datos del beneficiario son los mismos del comercio</span>
+      <span>La información del beneficiario es igual a la del comercio</span>
     </label>
     }
 
@@ -57,12 +72,14 @@
         </label>
       </div>
 
+      @if (mostrarDocumentosLiquidacion) {
       <div class="document-actions">
         <span>Carta Liquidación Otros Bancos</span>
         <button type="button"><i class="fa-solid fa-download"></i> Ver</button>
         <span>Carátula EDC</span>
         <button type="button"><i class="fa-solid fa-download"></i> Ver</button>
       </div>
+      }
     </div>
 
     <div class="form-grid cols-3">
@@ -109,18 +126,44 @@
           [class.invalid]="esInvalido('rfcBeneficiario')" />
         @if (esInvalido('rfcBeneficiario')) { <small>{{ mensajeCampo('rfcBeneficiario') }}</small> }
       </div>
-      <div class="field">
+      @if (tipoPersonaBeneficiario === 'fisica') {
+      <div class="field span-2 lookup-field">
         <label for="actividadBeneficiario">Actividad <b>*</b></label>
-        <input id="actividadBeneficiario" formControlName="actividadBeneficiario" placeholder="Seleccione actividad"
-          [class.invalid]="esInvalido('actividadBeneficiario')" />
+        <div class="lookup-control">
+          <input id="actividadBeneficiario" formControlName="actividadBeneficiario" placeholder="Seleccione actividad"
+            [readonly]="habilitarBusquedasCatalogo" [class.invalid]="esInvalido('actividadBeneficiario')" />
+          @if (habilitarBusquedasCatalogo && tipoPersonaBeneficiario === 'fisica') {
+          <button type="button" class="button primary small lookup-button" (click)="abrirModalActividad()">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            Buscar
+          </button>
+          }
+        </div>
+        @if (habilitarBusquedasCatalogo) {
+        <span class="field-hint"><i class="fa-solid fa-circle-info"></i> Da clic en Buscar para seleccionar y llenar la actividad.</span>
+        }
         @if (esInvalido('actividadBeneficiario')) { <small>{{ mensajeCampo('actividadBeneficiario') }}</small> }
       </div>
-      <div class="field span-2">
+      }
+      @if (tipoPersonaBeneficiario === 'moral') {
+      <div class="field span-2 lookup-field">
         <label for="giroBeneficiario">Giro <b>*</b></label>
-        <input id="giroBeneficiario" formControlName="giroBeneficiario" placeholder="Seleccione giro"
-          [class.invalid]="esInvalido('giroBeneficiario')" />
+        <div class="lookup-control">
+          <input id="giroBeneficiario" formControlName="giroBeneficiario" placeholder="Seleccione giro"
+            [readonly]="habilitarBusquedasCatalogo" [class.invalid]="esInvalido('giroBeneficiario')" />
+          @if (habilitarBusquedasCatalogo && tipoPersonaBeneficiario === 'moral') {
+          <button type="button" class="button primary small lookup-button" (click)="abrirModalGiro()">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            Buscar
+          </button>
+          }
+        </div>
+        @if (habilitarBusquedasCatalogo) {
+        <span class="field-hint"><i class="fa-solid fa-circle-info"></i> Da clic en Buscar para seleccionar y llenar el giro.</span>
+        }
         @if (esInvalido('giroBeneficiario')) { <small>{{ mensajeCampo('giroBeneficiario') }}</small> }
       </div>
+      }
     </div>
   </section>
 
@@ -143,17 +186,38 @@
         @if (esInvalido('tipoCuenta')) { <small>{{ mensajeCampo('tipoCuenta') }}</small> }
       </div>
 
-      <div class="field">
+      <div class="field lookup-field">
         <label for="cuentaClabe">{{ etiquetaCuenta }} <b>*</b></label>
-        <input id="cuentaClabe" [attr.maxlength]="longitudCuenta" inputmode="numeric" formControlName="cuentaClabe"
-          placeholder="Ingrese cuenta CLABE (18 dígitos)" [class.invalid]="esInvalido('cuentaClabe')" />
+        <div class="lookup-control">
+          <input id="cuentaClabe" [attr.maxlength]="longitudCuenta" inputmode="numeric" formControlName="cuentaClabe"
+            placeholder="Ingrese cuenta CLABE (18 dígitos)" [class.invalid]="esInvalido('cuentaClabe')" />
+          <button
+            type="button"
+            class="button primary small lookup-button"
+            [disabled]="buscandoInstitucion"
+            (click)="buscarBanco()">
+            <i class="fa-solid" [ngClass]="buscandoInstitucion ? 'fa-spinner' : 'fa-magnifying-glass'"></i>
+            @if (buscandoInstitucion) { Cargando... } @else { Buscar }
+          </button>
+        </div>
+        <span class="field-hint"><i class="fa-solid fa-circle-info"></i> Captura la cuenta y da clic en Buscar para llenar el banco.</span>
         @if (esInvalido('cuentaClabe')) { <small>{{ mensajeCampo('cuentaClabe') }}</small> }
+        @if (errorInstituciones) { <small>{{ errorInstituciones }}</small> }
       </div>
 
       <div class="field">
         <label for="nombreBanco">Nombre del Banco <b>*</b></label>
+        @if (instituciones.length) {
+        <select id="nombreBanco" formControlName="nombreBanco" [class.invalid]="esInvalido('nombreBanco')">
+          <option value="">Seleccione banco</option>
+          @for (institucion of instituciones; track obtenerInstitucionId(institucion)) {
+          <option [value]="obtenerInstitucionTexto(institucion)">{{ obtenerInstitucionTexto(institucion) }}</option>
+          }
+        </select>
+        } @else {
         <input id="nombreBanco" formControlName="nombreBanco" placeholder="Seleccione banco"
-          [class.invalid]="esInvalido('nombreBanco')" />
+          [class.invalid]="esInvalido('nombreBanco')" readonly />
+        }
         @if (esInvalido('nombreBanco')) { <small>{{ mensajeCampo('nombreBanco') }}</small> }
       </div>
 
@@ -179,9 +243,76 @@
       </div>
     </div>
   </section>
+  }
 
   <div class="step-actions">
     <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
     <button type="submit" class="button primary">{{ textoContinuar }}</button>
   </div>
+
+  @if (mostrarModalGiro) {
+  <div class="modal-backdrop giro-backdrop" (click)="cerrarModalGiro()">
+    <div class="modal-card giro-modal-card" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" (click)="cerrarModalGiro()">✕</button>
+      <p class="giro-modal-instruccion">Ingresa palabras para buscar el giro comercial:</p>
+      <div class="giro-search-row">
+        <input type="text" class="giro-search-input" placeholder="Escribe para buscar..." [formControl]="terminoBusqueda" />
+      </div>
+      <p class="giro-modal-sub">Selecciona en el siguiente listado de coincidencias, el giro:</p>
+      <div class="giro-lista">
+        @if (cargandoGiros) { <div class="giro-item giro-item--empty">Cargando giros...</div> }
+        @if (errorGiros) { <div class="giro-item giro-item--empty">{{ errorGiros }}</div> }
+        @for (giro of girosFiltrados; track giro.mcc || giro.descripcion || giro.familia) {
+        <div class="giro-item" [class.selected]="giroSeleccionado === giro" (click)="seleccionarGiroModal(giro)">
+          <span class="giro-item-desc">{{ giro.descripcion || giro.familia }}</span>
+          @if (giro.mcc) { <span class="giro-item-mcc">MCC: {{ giro.mcc }}</span> }
+        </div>
+        }
+        @if (!cargandoGiros && girosFiltrados.length === 0 && (terminoBusqueda.value ?? '').trim().length >= minimoCaracteresBusqueda) {
+        <div class="giro-item giro-item--empty">Sin coincidencias</div>
+        }
+        @if (!cargandoGiros && (terminoBusqueda.value ?? '').trim().length < minimoCaracteresBusqueda) {
+        <div class="giro-item giro-item--empty">Escribe al menos una palabra para buscar</div>
+        }
+      </div>
+      <div class="step-actions">
+        <button type="button" class="button ghost" (click)="cerrarModalGiro()">CANCELAR</button>
+        <button type="button" class="button primary" [disabled]="!giroSeleccionado" (click)="guardarGiroModal()">GUARDAR</button>
+      </div>
+    </div>
+  </div>
+  }
+
+  @if (mostrarModalActividad) {
+  <div class="modal-backdrop giro-backdrop" (click)="cerrarModalActividad()">
+    <div class="modal-card giro-modal-card" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" (click)="cerrarModalActividad()">✕</button>
+      <p class="giro-modal-instruccion">Ingresa palabras para buscar la actividad:</p>
+      <div class="giro-search-row">
+        <input type="text" class="giro-search-input" placeholder="Escribe para buscar..." [formControl]="terminoActividad" />
+      </div>
+      <p class="giro-modal-sub">Selecciona en el siguiente listado de coincidencias, la actividad:</p>
+      <div class="giro-lista">
+        @if (cargandoActividades) { <div class="giro-item giro-item--empty">Cargando actividades...</div> }
+        @if (errorActividades) { <div class="giro-item giro-item--empty">{{ errorActividades }}</div> }
+        @for (actividad of actividadesFiltradas; track actividad.id || actividad.descripcion) {
+        <div class="giro-item" [class.selected]="actividadSeleccionada === actividad" (click)="seleccionarActividadModal(actividad)">
+          <span class="giro-item-desc">{{ actividad.descripcion }}</span>
+          @if (actividad.id) { <span class="giro-item-mcc">ID: {{ actividad.id }}</span> }
+        </div>
+        }
+        @if (!cargandoActividades && actividadesFiltradas.length === 0 && (terminoActividad.value ?? '').trim().length >= minimoCaracteresBusqueda) {
+        <div class="giro-item giro-item--empty">Sin coincidencias</div>
+        }
+        @if (!cargandoActividades && (terminoActividad.value ?? '').trim().length < minimoCaracteresBusqueda) {
+        <div class="giro-item giro-item--empty">Escribe al menos una palabra para buscar</div>
+        }
+      </div>
+      <div class="step-actions">
+        <button type="button" class="button ghost" (click)="cerrarModalActividad()">CANCELAR</button>
+        <button type="button" class="button primary" [disabled]="!actividadSeleccionada" (click)="guardarActividadModal()">GUARDAR</button>
+      </div>
+    </div>
+  </div>
+  }
 </form>

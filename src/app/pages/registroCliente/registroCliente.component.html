@@ -14,8 +14,8 @@
       </div>
     </nav>
 
-    <div class="registro-layout" [class.tree-collapsed]="arbolMinimizado">
-      <aside class="tree-panel" [class.collapsed]="arbolMinimizado">
+    <div class="registro-layout" [class.tree-collapsed]="arbolMinimizado || !mostrarArbolRegistro" [class.without-tree]="!mostrarArbolRegistro">
+      <aside class="tree-panel" [class.collapsed]="arbolMinimizado" *ngIf="mostrarArbolRegistro">
         <div class="panel-heading">
           <div>
             <h2>Niveles de Ubicación</h2>
@@ -62,14 +62,14 @@
 
         <article
           class="section-card"
-          *ngFor="let seccion of seccionesVisibles; let i = index"
+          *ngFor="let seccion of seccionesCardsVisibles"
           [class.open]="seccionAbierta === seccion.id"
-          [class.done]="pasoCompletado(seccion.id) || (esNodoExistente && seccion.id !== 'liquidacion')"
-          [class.readonly-existing]="esNodoExistente && seccion.id !== 'liquidacion'">
+          [class.done]="estadoPaso(seccion.id) === 'Completado'"
+          [class.readonly-existing]="esNodoExistente && seccion.id !== 'liquidacion' && seccion.id !== 'documentos'">
           <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)">
             <span class="section-icon"><i class="fa-solid" [ngClass]="seccion.icono"></i></span>
             <span class="section-copy">
-              <strong>{{ i + 1 }}. {{ seccion.titulo }}</strong>
+              <strong>{{ numeroPasoRegistro(seccion.id) }}. {{ seccion.titulo }}</strong>
               <small>{{ seccion.descripcion }}</small>
             </span>
             <span class="step-status">{{ estadoPaso(seccion.id) }}</span>
@@ -106,7 +106,11 @@
             <app-step-accesos
               *ngIf="seccion.id === 'accesos'"
               [form]="accesosForm"
+              [usuarios]="usuariosAcceso"
+              [mostrarResumenUsuarios]="true"
+              [usuarioActivo]="usuarioAccesoActivo"
               textoContinuar="Guardar y continuar"
+              (usuarioActivoChange)="seleccionarUsuarioAcceso($event)"
               (continuar)="completarPaso('accesos', 'documentos')"
               (volver)="continuarSeccion('liquidacion')" />
 
@@ -116,7 +120,9 @@
               [tiposCuenta]="tiposCuenta"
               [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio"
               [mostrarBeneficiarioIgualComercio]="true"
+              [habilitarBusquedasCatalogo]="true"
               [permitirVacio]="true"
+              [varianteRegistro]="true"
               [textoContinuar]="esNodoExistente ? 'Guardar cuenta de liquidación' : 'Guardar y continuar'"
               (continuar)="guardarLiquidacion()"
               (volver)="continuarSeccion('datos')" />
