@@ -16,6 +16,12 @@ import { StepDocumentosComponent } from '../preRegistro/components/documentos/st
 import { StepLiquidacionComponent } from '../preRegistro/components/liquidacion/step-liquidacion.component';
 import { DocumentoRequerido } from '../preRegistro/models/preregistro.models';
 import { SipreladResultado, SipreladService } from '../../services/siprelad.service';
+import {
+  DocumentoProspectoApi,
+  DocumentosProspectoResponse,
+  DocumentosProspectoService,
+  EstatusDocumentoProspecto
+} from '../../services/documentos-prospecto.service';
 
 type NivelNodo = 'sub-afiliado' | 'referenciador' | 'entidad' | 'sucursal' | 'caja';
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
@@ -57,6 +63,7 @@ export class RegistroClienteComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly sipreladService = inject(SipreladService);
+  private readonly documentosProspectoService = inject(DocumentosProspectoService);
   private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
   private readonly registroLocalKey = 'kashpay.registro_cliente.local.v1';
   private readonly ocultarArbolRegistroTemporal = true;
@@ -75,6 +82,12 @@ export class RegistroClienteComponent {
   cargandoSiprelad = false;
   resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
   resultadosSiprelad: SipreladResultado[] = [];
+  commerceID = '';
+  documentosProspecto: DocumentoProspectoApi[] = [];
+  cargandoDocumentosProspecto = false;
+  guardandoRevisionDocumentos = false;
+  errorDocumentosProspecto = '';
+  observacionesInternasMesaDigital = '';
   tiposComercio: string[] = [];
   arbolMinimizado = false;
   usuarioAccesoActivo: PrefijoAccesoRegistro = 'admin';
@@ -290,6 +303,7 @@ export class RegistroClienteComponent {
       telefono: params.get('telefono') ?? ''
     };
     this.pldID = params.get('pldID') ?? '';
+    this.commerceID = params.get('commerceID') ?? '';
     this.contextoSeleccionado = {
       idComercio: this.comercioSeleccionado.idComercio,
       nivel: this.comercioSeleccionado.nivel,
@@ -356,6 +370,7 @@ export class RegistroClienteComponent {
     this.actualizarValidadoresAccesosRegistro();
     this.seleccionarNodoPorId(this.nodoSeleccionado);
     this.consultarResultadoSiprelad();
+    this.consultarDocumentosProspecto();
   }
 
   get arbol(): NodoRegistro[] {
@@ -405,6 +420,10 @@ export class RegistroClienteComponent {
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
+    if (this.esNodoExistente && this.documentosProspecto.length) {
+      return this.documentosProspecto.map((documentoProspecto, index) => this.documentoRequeridoDesdeProspecto(documentoProspecto, index));
+    }
+
     const nivel = this.comercioForm.getRawValue().nivel;
     const tipo = this.comercioForm.getRawValue().tipoComercio;
     const tipoEfectivo = ['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo;
@@ -414,7 +433,14 @@ export class RegistroClienteComponent {
       if (!documento) return undefined;
       const documentoVisible = { ...documento, obligatorio: regla.obligatorio };
       if (this.esNodoExistente) {
-        documentoVisible.archivoNombre = this.nombreDocumentoCargado(documentoVisible);
+        const documentoProspecto = this.documentoProspectoPara(documentoVisible);
+        documentoVisible.archivoNombre = this.nombreDocumentoCargado(documentoVisible, documentoProspecto);
+        documentoVisible.archivoUrl = this.urlDocumentoCargado(documentoProspecto);
+        documentoVisible.archivoId = this.idDocumentoCargado(documentoProspecto);
+        documentoVisible.s3Key = this.s3KeyDocumentoCargado(documentoProspecto);
+        documentoVisible.tipoArchivo = this.tipoDocumentoCargado(documentoProspecto);
+        documentoVisible.estado = this.estadoDocumentoCargado(documentoProspecto);
+        documentoVisible.estatusRevision = this.estatusRevisionDocumento(documentoProspecto);
       }
       return this.esNodoExistente ? documentoVisible : Object.assign(documento, { obligatorio: regla.obligatorio });
     }).filter((documento): documento is DocumentoRequerido => !!documento);
@@ -472,6 +498,35 @@ export class RegistroClienteComponent {
         this.resultadosSiprelad = [];
         this.resultadoSiprelad = 'No fue posible consultar el resultado de SIPRELAD.';
         this.cargandoSiprelad = false;
+      }
+    });
+  }
+
+  private consultarDocumentosProspecto(): void {
+    if (!this.commerceID) {
+      this.documentosProspecto = [];
+      return;
+    }
+
+    this.cargandoDocumentosProspecto = true;
+    this.errorDocumentosProspecto = '';
+    this.documentosProspectoService.consultarDocumentos(this.commerceID).subscribe({
+      next: respuesta => {
+        if (respuesta.success === false) {
+          this.documentosProspecto = [];
+          this.errorDocumentosProspecto = respuesta.error?.message || 'No fue posible consultar los documentos del comercio.';
+          this.cargandoDocumentosProspecto = false;
+          return;
+        }
+
+        this.documentosProspecto = this.documentosDesdeRespuesta(respuesta);
+        this.observacionesInternasMesaDigital = respuesta.internalObservations ?? '';
+        this.cargandoDocumentosProspecto = false;
+      },
+      error: () => {
+        this.documentosProspecto = [];
+        this.errorDocumentosProspecto = 'No fue posible consultar los documentos del comercio.';
+        this.cargandoDocumentosProspecto = false;
       }
     });
   }
@@ -587,6 +642,11 @@ export class RegistroClienteComponent {
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   finalizar(): void {
+    if (this.esNodoExistente && this.documentosProspecto.length) {
+      this.guardarRevisionDocumentos();
+      return;
+    }
+
     this.guardarCapturaNodoActual();
     const nodoGuardado = this.nodoSeleccionado;
     this.guardarLiquidacionActual();
@@ -643,6 +703,60 @@ export class RegistroClienteComponent {
     if (!archivo) return;
     documento.archivo = archivo;
     documento.archivoNombre = archivo.name;
+  }
+
+  actualizarEstatusDocumento(documento: DocumentoRequerido, estado: EstatusDocumentoProspecto): void {
+    documento.estatusRevision = estado;
+    documento.estado = this.traducirEstatusDocumento(estado);
+
+    const documentoProspecto = this.documentosProspecto.find(item => this.idDocumentoCargado(item) === documento.archivoId);
+    if (documentoProspecto) {
+      documentoProspecto.status = estado;
+    }
+  }
+
+  verDocumentoProspecto(documento: DocumentoRequerido): void {
+    if (documento.archivoUrl) {
+      window.open(documento.archivoUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    this.errorDocumentosProspecto = 'El servicio no regreso una URL para abrir este documento.';
+  }
+
+  private guardarRevisionDocumentos(): void {
+    const legalDocuments = this.documentosProspecto
+      .map(documento => ({
+        id: this.idDocumentoCargado(documento),
+        status: this.estatusDocumentoParaEnvio(documento),
+      }))
+      .filter(documento => !!documento.id);
+
+    if (!this.commerceID || !legalDocuments.length) return;
+
+    this.guardandoRevisionDocumentos = true;
+    this.errorDocumentosProspecto = '';
+    this.documentosProspectoService.actualizarRevision({
+      commerceId: this.commerceID,
+      generalStatus: this.estatusGeneralParaEnvio(legalDocuments.map(documento => documento.status)),
+      internalObservations: this.observacionesInternasMesaDigital.trim() || null,
+      reviewedBy: this.usuarioRevision(),
+      legalDocuments,
+    }).subscribe({
+      next: () => {
+        this.guardandoRevisionDocumentos = false;
+        this.guardarCapturaNodoActual();
+        const nodoGuardado = this.nodoSeleccionado;
+        this.guardarLiquidacionActual();
+        this.consolidarNodoActual();
+        if (this.seleccionarPrimerHijoNuevo(nodoGuardado)) return;
+        this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta ?? 'comercio');
+      },
+      error: () => {
+        this.guardandoRevisionDocumentos = false;
+        this.errorDocumentosProspecto = 'No fue posible guardar la revisión de documentos.';
+      }
+    });
   }
 
   alternarInfoFiscalEntidad(usarInfoEntidad: boolean): void {
@@ -1171,8 +1285,178 @@ export class RegistroClienteComponent {
     };
   }
 
-  private nombreDocumentoCargado(documento: DocumentoRequerido): string {
+  private documentosDesdeRespuesta(respuesta: unknown): DocumentoProspectoApi[] {
+    if (!respuesta) return [];
+    if (Array.isArray(respuesta)) return respuesta.filter(this.esDocumentoProspecto);
+    if (typeof respuesta !== 'object') return [];
+
+    const data = respuesta as DocumentosProspectoResponse;
+    if (Array.isArray(data.legalDocuments)) return data.legalDocuments;
+    if (Array.isArray(data.documents)) return data.documents;
+    if (Array.isArray(data.data)) return data.data;
+    if (data.data && typeof data.data === 'object' && Array.isArray(data.data.documents)) {
+      return data.data.documents;
+    }
+
+    return [];
+  }
+
+  private esDocumentoProspecto(valor: unknown): valor is DocumentoProspectoApi {
+    return !!valor && typeof valor === 'object';
+  }
+
+  private documentoRequeridoDesdeProspecto(documentoProspecto: DocumentoProspectoApi, index: number): DocumentoRequerido {
+    const nombre = this.nombreDocumentoDesdeProspecto(documentoProspecto);
+
+    return {
+      numero: index + 1,
+      nombre,
+      obligatorio: true,
+      archivoNombre: this.nombreDocumentoCargado({ numero: index + 1, nombre, obligatorio: true }, documentoProspecto),
+      archivoUrl: this.urlDocumentoCargado(documentoProspecto),
+      archivoId: this.idDocumentoCargado(documentoProspecto),
+      s3Key: this.s3KeyDocumentoCargado(documentoProspecto),
+      tipoArchivo: this.tipoDocumentoCargado(documentoProspecto),
+      estado: this.estadoDocumentoCargado(documentoProspecto),
+      estatusRevision: this.estatusRevisionDocumento(documentoProspecto),
+    };
+  }
+
+  private nombreDocumentoDesdeProspecto(documentoProspecto: DocumentoProspectoApi): string {
+    const nombre = documentoProspecto.documentName || documentoProspecto.name || documentoProspecto.fileName || documentoProspecto.originalName;
+    if (typeof nombre === 'string' && nombre.trim()) return nombre;
+
+    const s3Key = typeof documentoProspecto.s3Key === 'string' ? documentoProspecto.s3Key : '';
+    const sufijo = this.sufijoDocumentoDesdeS3Key(s3Key);
+    const nombresPorSufijo: Record<string, string> = {
+      COMP_DOM: 'Comprobante de domicilio',
+      CONS: 'Acta Constitutiva',
+      INE: 'Identificación Oficial del Propietario',
+      IMGE: 'Imagen Frente',
+      IMGI: 'Imagen Interior',
+      IMGI2: 'Imagen Interior 2 del comercio',
+      CONT: 'Contrato',
+      CSF: 'Constancia Situación Fiscal',
+      EFIRMA: 'E-Firma',
+      ID_REP: 'Identificación Oficial del Representante Legal',
+      CAR_EST_CTA: 'Carátula de Estado Cuenta para Liquidación',
+      CARTA_LIQ: 'Carta de Liquidación Otros Bancos',
+    };
+
+    return nombresPorSufijo[sufijo] ?? this.nombreArchivoDesdeS3Key(s3Key) ?? 'Documento del comercio';
+  }
+
+  private sufijoDocumentoDesdeS3Key(s3Key: string): string {
+    const archivo = this.nombreArchivoDesdeS3Key(s3Key) ?? '';
+    const sinExtension = archivo.replace(/\.[^.]+$/, '');
+    const partes = sinExtension.split('_');
+    return partes.slice(1).join('_').toUpperCase();
+  }
+
+  private nombreArchivoDesdeS3Key(s3Key: string): string | undefined {
+    const archivo = s3Key.split('/').pop()?.trim();
+    return archivo || undefined;
+  }
+
+  private documentoProspectoPara(documento: DocumentoRequerido): DocumentoProspectoApi | undefined {
+    const numeroDocumento = String(documento.numero);
+    const nombreDocumento = this.normalizarTexto(documento.nombre);
+
+    return this.documentosProspecto.find(documentoProspecto => {
+      const id = String(documentoProspecto.documentID ?? documentoProspecto.documentId ?? documentoProspecto.id ?? '');
+      const nombre = this.normalizarTexto(
+        documentoProspecto.documentName
+        || documentoProspecto.name
+        || documentoProspecto.fileName
+        || documentoProspecto.originalName
+        || this.nombreDocumentoDesdeProspecto(documentoProspecto)
+        || ''
+      );
+
+      return id === numeroDocumento || (!!nombre && (nombre.includes(nombreDocumento) || nombreDocumento.includes(nombre)));
+    });
+  }
+
+  private nombreDocumentoCargado(documento: DocumentoRequerido, documentoProspecto?: DocumentoProspectoApi): string {
+    const nombre = documentoProspecto?.fileName
+      || documentoProspecto?.originalName
+      || documentoProspecto?.documentName
+      || documentoProspecto?.name
+      || (typeof documentoProspecto?.s3Key === 'string' ? this.nombreArchivoDesdeS3Key(documentoProspecto.s3Key) : undefined);
+
+    if (typeof nombre === 'string' && nombre.trim()) return nombre;
+
     return `${documento.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'documento'}-${this.contextoSeleccionado.idComercio || this.nodoSeleccionado}.pdf`;
+  }
+
+  private urlDocumentoCargado(documentoProspecto?: DocumentoProspectoApi): string {
+    const url = documentoProspecto?.url || documentoProspecto?.fileUrl || documentoProspecto?.path;
+    return typeof url === 'string' ? url : '';
+  }
+
+  private idDocumentoCargado(documentoProspecto?: DocumentoProspectoApi): string {
+    const id = documentoProspecto?.documentID ?? documentoProspecto?.documentId ?? documentoProspecto?.id;
+    return id === undefined || id === null ? '' : String(id);
+  }
+
+  private tipoDocumentoCargado(documentoProspecto?: DocumentoProspectoApi): string {
+    const tipo = documentoProspecto?.documentType;
+    return typeof tipo === 'string' ? tipo : '';
+  }
+
+  private s3KeyDocumentoCargado(documentoProspecto?: DocumentoProspectoApi): string {
+    const s3Key = documentoProspecto?.s3Key;
+    return typeof s3Key === 'string' ? s3Key : '';
+  }
+
+  private estadoDocumentoCargado(documentoProspecto?: DocumentoProspectoApi): string {
+    const estado = documentoProspecto?.status || documentoProspecto?.documentStatus;
+    return this.traducirEstatusDocumento(estado);
+  }
+
+  private estatusRevisionDocumento(documentoProspecto?: DocumentoProspectoApi): EstatusDocumentoProspecto {
+    const estado = documentoProspecto?.status || documentoProspecto?.documentStatus;
+    if (estado === 'APPROVED' || estado === 'REJECTED' || estado === 'IN_REVIEW') return estado;
+    return 'IN_REVIEW';
+  }
+
+  private traducirEstatusDocumento(estado?: string): string {
+    if (estado === 'APPROVED') return 'Aprobado';
+    if (estado === 'REJECTED') return 'Rechazado';
+    if (estado === 'IN_REVIEW') return 'En revisión';
+    return 'Subido';
+  }
+
+  private estatusDocumentoParaEnvio(documento: DocumentoProspectoApi): EstatusDocumentoProspecto {
+    const estado = documento.status || documento.documentStatus;
+    if (estado === 'APPROVED' || estado === 'REJECTED' || estado === 'IN_REVIEW') return estado;
+    return 'IN_REVIEW';
+  }
+
+  private estatusGeneralParaEnvio(estatusDocumentos: EstatusDocumentoProspecto[]): EstatusDocumentoProspecto {
+    if (estatusDocumentos.some(estado => estado === 'REJECTED')) return 'REJECTED';
+    if (estatusDocumentos.length && estatusDocumentos.every(estado => estado === 'APPROVED')) return 'APPROVED';
+    return 'IN_REVIEW';
+  }
+
+  private usuarioRevision(): string {
+    try {
+      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
+      const correo = session?.email || session?.userName || session?.username;
+      if (correo) return String(correo);
+    } catch {
+      // Usa llaves legacy abajo.
+    }
+
+    return localStorage.getItem('email') || localStorage.getItem('userName') || '';
+  }
+
+  private normalizarTexto(valor?: string): string {
+    return (valor || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase();
   }
 
   private idFakeNodo(nodoId: string): string {

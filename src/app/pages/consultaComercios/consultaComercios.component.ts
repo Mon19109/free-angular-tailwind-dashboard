@@ -458,6 +458,7 @@ export class ConsultaComerciosComponent {
           rfc: comercio.rfc,
           correo: comercio.correo,
           telefono: comercio.telefono,
+          commerceID: comercio.guid,
           pldID: comercio.pldID,
           paquete: 'empresa-holding',
           entidades: 2,

@@ -47,8 +47,14 @@
         <div class="mesa-row">
           <span class="mesa-number">{{ i + 1 }}</span>
           <strong>{{ documento.nombre }}@if (documento.obligatorio) { <b>*</b> }</strong>
-          <span>Subido</span>
-          <button type="button" class="mesa-view"><i class="fa-solid fa-file-arrow-down"></i> Ver</button>
+          <span>{{ documento.estado || 'Subido' }}</span>
+          <button
+            type="button"
+            class="mesa-view"
+            [disabled]="!documento.archivoUrl"
+            (click)="verDocumento(documento)">
+            <i class="fa-solid fa-file-arrow-down"></i> Ver
+          </button>
           <div class="mesa-switch" role="group" aria-label="Validación de documento">
             <button
               type="button"
@@ -75,7 +81,10 @@
       </label>
       <label>
         <span>Observaciones Internas</span>
-        <input type="text">
+        <input
+          type="text"
+          [value]="observacionesInternas"
+          (input)="observacionesInternasChange.emit($any($event.target).value)">
       </label>
       <label>
         <span>Enviar por Email</span>

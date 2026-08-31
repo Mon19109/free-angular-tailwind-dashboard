@@ -20,7 +20,11 @@ export class StepDocumentosComponent {
   @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
   @Input() resultadosSiprelad: SipreladResultado[] = [];
+  @Input() observacionesInternas = '';
   @Output() seleccionarArchivo = new EventEmitter<{ event: Event; documento: DocumentoRequerido }>();
+  @Output() verArchivo = new EventEmitter<DocumentoRequerido>();
+  @Output() validarArchivo = new EventEmitter<{ documento: DocumentoRequerido; estado: 'APPROVED' | 'REJECTED' }>();
+  @Output() observacionesInternasChange = new EventEmitter<string>();
   @Output() cambiarMismaDocumentacionEntidad = new EventEmitter<boolean>();
   @Output() finalizar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
@@ -28,15 +32,15 @@ export class StepDocumentosComponent {
   validacionesMesaDigital: Record<number, 'cumple' | 'no-cumple'> = {};
 
   get documentosValidados(): number {
-    return Object.keys(this.validacionesMesaDigital).length;
+    return this.documentos.filter(documento => this.estadoDocumento(documento)).length;
   }
 
   get documentosAprobados(): number {
-    return Object.values(this.validacionesMesaDigital).filter(estado => estado === 'cumple').length;
+    return this.documentos.filter(documento => this.estadoDocumento(documento) === 'cumple').length;
   }
 
   get documentosRechazados(): number {
-    return Object.values(this.validacionesMesaDigital).filter(estado => estado === 'no-cumple').length;
+    return this.documentos.filter(documento => this.estadoDocumento(documento) === 'no-cumple').length;
   }
 
   get documentosSinValidar(): number {
@@ -50,9 +54,23 @@ export class StepDocumentosComponent {
 
   validarDocumento(documento: DocumentoRequerido, estado: 'cumple' | 'no-cumple'): void {
     this.validacionesMesaDigital[documento.numero] = estado;
+    this.validarArchivo.emit({
+      documento,
+      estado: estado === 'cumple' ? 'APPROVED' : 'REJECTED',
+    });
   }
 
   estadoDocumento(documento: DocumentoRequerido): 'cumple' | 'no-cumple' | undefined {
-    return this.validacionesMesaDigital[documento.numero];
+    return this.validacionesMesaDigital[documento.numero] ?? this.estadoDocumentoDesdeApi(documento);
+  }
+
+  verDocumento(documento: DocumentoRequerido): void {
+    this.verArchivo.emit(documento);
+  }
+
+  private estadoDocumentoDesdeApi(documento: DocumentoRequerido): 'cumple' | 'no-cumple' | undefined {
+    if (documento.estatusRevision === 'APPROVED') return 'cumple';
+    if (documento.estatusRevision === 'REJECTED') return 'no-cumple';
+    return undefined;
   }
 }

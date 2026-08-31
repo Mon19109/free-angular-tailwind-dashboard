@@ -136,8 +136,12 @@
               [mostrarMesaDigital]="esNodoExistente"
               [resultadoSiprelad]="resultadoSiprelad"
               [resultadosSiprelad]="resultadosSiprelad"
+              [observacionesInternas]="observacionesInternasMesaDigital"
               textoFinalizar="Guardar registro"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
+              (verArchivo)="verDocumentoProspecto($event)"
+              (validarArchivo)="actualizarEstatusDocumento($event.documento, $event.estado)"
+              (observacionesInternasChange)="observacionesInternasMesaDigital = $event"
               (finalizar)="completarPaso('documentos'); finalizar()"
               (volver)="continuarSeccion('accesos')" />
           </div>
