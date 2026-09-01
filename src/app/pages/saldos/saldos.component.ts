@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { SaldosService } from '../../services/saldos.service';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
 import { SelectComponent } from '../../shared/components/form/select/select.component';
-//import * as XLSX from 'xlsx';
-//import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 @Component({
   selector: 'app-saldos',
@@ -165,68 +166,64 @@ export class SaldosComponent implements OnInit {
 
 
   exportarPDF(): void {
+    if (!this.saldos.length) return;
 
-  const url =
-  `https://sdbx-portal-antares.kashplataforma.com/public/assets/php/exportar_detalle_pdf.php?urlRep=http://10.15.5.171&fatherID=${this.fatherIDActual}&type=1&status=25&total=${this.saldos.length}`;
+    const fecha = this.obtenerFechaArchivo();
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-  window.open(url, '_blank');
+    doc.setFontSize(18);
+    doc.text(`Detalle de saldos - ${fecha}`, 148, 20, { align: 'center' });
+
+    autoTable(doc, {
+      startY: 28,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [199, 146, 75], textColor: [20, 20, 20], fontStyle: 'bold' },
+      head: [this.encabezadosExportacion()],
+      body: this.filasExportacion()
+    });
+
+    doc.save(`DetalleSaldos-${fecha}.pdf`);
 
 }
 
 exportarExcel(): void {
+  if (!this.saldos.length) return;
 
-  const data = this.saldos.map(item => ({
-    ID: item.id,
-    Nombre: item.nombre,
-    Email: item.email,
-    Telefono: item.telefono,
-    SaldoPrincipal: item.saldoPrincipal,
-    SaldoGarantia: item.saldoGarantia,
-    SaldoPendiente: item.saldoPendiente,
-    SaldoTarjeta: item.saldoTarjeta
-  }));
-
- /* const worksheet = XLSX.utils.json_to_sheet(data);
+  const fecha = this.obtenerFechaArchivo();
+  const worksheet = XLSX.utils.aoa_to_sheet([
+    [`DetalleSaldos-${fecha}`],
+    this.encabezadosExportacion(),
+    ...this.filasExportacion()
+  ]);
+  worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+  worksheet['!cols'] = this.encabezadosExportacion().map(() => ({ wch: 22 }));
 
   const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'DetalleSaldos');
+  XLSX.writeFile(workbook, `DetalleSaldos-${fecha}.xlsx`);
 
-  XLSX.utils.book_append_sheet(
-    workbook,
-    worksheet,
-    'DetalleSaldos'
-  );
+}
 
-  const excelBuffer =
-    XLSX.write(workbook, {
-      bookType: 'xlsx',
-      type: 'array'
-    });
+private encabezadosExportacion(): string[] {
+  return ['ID', 'Nombre', 'Email', 'Telefono', 'Saldo Principal', 'Saldo Garantia', 'Saldo Pendiente', 'Saldo Tarjeta'];
+}
 
-  const blob = new Blob(
-    [excelBuffer],
-    {
-      type:
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    }
-  );*/
+private filasExportacion(): string[][] {
+  return this.saldos.map(item => [
+    item.id,
+    item.nombre,
+    item.email,
+    item.telefono,
+    item.saldoPrincipal,
+    item.saldoGarantia,
+    item.saldoPendiente,
+    item.saldoTarjeta
+  ]);
+}
 
+private obtenerFechaArchivo(): string {
   const fecha = new Date();
-
-  const nombreArchivo =
-    `DetalleSaldos-${fecha.getFullYear()}-${
-      String(fecha.getMonth() + 1).padStart(2, '0')
-    }-${
-      String(fecha.getDate()).padStart(2, '0')
-    }_${
-      String(fecha.getHours()).padStart(2, '0')
-    }_${
-      String(fecha.getMinutes()).padStart(2, '0')
-    }_${
-      String(fecha.getSeconds()).padStart(2, '0')
-    }.xlsx`;
-
-  //saveAs(blob, nombreArchivo);
-
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
 }
 
 }
