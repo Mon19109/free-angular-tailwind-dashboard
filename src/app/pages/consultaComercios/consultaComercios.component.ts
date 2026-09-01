@@ -66,20 +66,6 @@ export class ConsultaComerciosComponent {
   };
 
   comercios: Comercio[] = [];
-  private readonly comercioProspecto: Comercio = {
-    idComercio: 'PROS-000001',
-    nodoId: 'prospecto-1',
-    nivel: 'Prospecto',
-    jerarquia: 'Prospecto',
-    nombreComercial: 'Prospecto Comercio Demo',
-    razonSocial: 'Prospecto Comercio Demo SA de CV',
-    rfc: 'PCD260826AB1',
-    correo: 'prospecto.demo@kashpay.mx',
-    telefono: '5512345678',
-    estatus: 'Prospecto',
-    tieneInferiores: false,
-  };
-
   resultados = [...this.comercios];
   cargando = false;
   errorConsulta = '';
@@ -185,15 +171,13 @@ export class ConsultaComerciosComponent {
           return;
         }
 
-        this.comercios = this.ordenarComoArbol(this.comerciosConProspecto(
-          this.normalizarComerciosApi(respuesta.commerces ?? [])
-        ));
+        this.comercios = this.ordenarComoArbol(this.normalizarComerciosApi(respuesta.commerces ?? []));
         this.aplicarFiltroNivel();
         this.cargando = false;
       },
       error: () => {
         this.errorConsulta = 'No fue posible consultar los comercios.';
-        this.comercios = this.ordenarComoArbol(this.comerciosConProspecto([]));
+        this.comercios = [];
         this.aplicarFiltroNivel();
         this.cargando = false;
       }
@@ -265,6 +249,7 @@ export class ConsultaComerciosComponent {
 
   private normalizarComerciosApi(commerces: ConsultaComercioApi[]): Comercio[] {
     return commerces.map(comercio => {
+      const estatus = this.estatusDesdeComercioApi(comercio);
       const nivel = this.nivelDesdeComercioApi(comercio);
       return {
         idComercio: comercio.entitySonID || this.idComercioDesdeApi(comercio),
@@ -276,7 +261,7 @@ export class ConsultaComerciosComponent {
         rfc: comercio.rfc || 'ND',
         correo: comercio.email || 'ND',
         telefono: comercio.phoneNumber || 'ND',
-        estatus: this.estatusDesdeComercioApi(comercio),
+        estatus,
         cajaPinRapido: nivel === 'Caja' && comercio.idBusinessModel === 3,
         tieneInferiores: nivel !== 'Caja',
         pldID: this.pldIdDesdeComercioApi(comercio),
@@ -284,27 +269,15 @@ export class ConsultaComerciosComponent {
     });
   }
 
-  private comerciosConProspecto(comercios: Comercio[]): Comercio[] {
-    const sinProspectoDemo = comercios.filter(comercio => comercio.idComercio !== this.comercioProspecto.idComercio);
-    return [...sinProspectoDemo, this.comercioProspecto];
-  }
-
   private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
-    const nombreComercio = this.normalizarTexto(comercio.nameCommerce || '');
-    const razonSocial = this.normalizarTexto(comercio.businessName || '');
-
-    if (nombreComercio === 'TIENDA DEL BARRIO' || razonSocial === 'TIENDA DEL BARRIO') {
-      return 'Prospecto';
-    }
-
     const status = this.normalizarTexto(comercio.status || String(comercio['Status'] || comercio['STATUS'] || ''));
 
     if (status === 'ACTIVO' || status === 'ACTIVE') return 'Activo';
     if (status === 'INACTIVO' || status === 'INACTIVE') return 'Inactivo';
     if (status === 'BAJA' || status === 'BAJA DEFINITIVA' || status === 'BAJA_DEFINITIVA') return 'Baja definitiva';
-    if (status === 'PROSPECTO' || status === 'PROSPECTOS') return 'Prospecto';
+    if (status === 'PROSPECTO_A_CLIENTE') return 'Prospecto';
 
-    return this.nivelDesdeComercioApi(comercio) === 'Prospecto' ? 'Prospecto' : 'Activo';
+    return 'Activo';
   }
 
   private nivelDesdeComercioApi(comercio: ConsultaComercioApi): Comercio['nivel'] {
@@ -342,14 +315,21 @@ export class ConsultaComerciosComponent {
   }
 
   private jerarquiaDesdeComercioApi(comercio: ConsultaComercioApi, nivel: Comercio['nivel']): string {
-    const partes = [
-      comercio.contextID ? `Sub ${comercio.contextID}` : '',
-      comercio.entityID ? `Entidad ${comercio.entityID}` : '',
-      comercio.terminalID ? `Sucursal ${comercio.terminalID}` : '',
-      comercio.terminalUserID ? `Caja ${comercio.terminalUserID}` : '',
-    ].filter(Boolean);
+    const entidad = comercio.entityID ? `Entidad ${comercio.entityID}` : '';
+    const sucursal = comercio.terminalID ? `Sucursal ${comercio.terminalID}` : '';
+    const caja = comercio.terminalUserID ? `Caja ${comercio.terminalUserID}` : '';
+    const subAfiliado = comercio.contextID ? `Sub ${comercio.contextID}` : '';
 
-    return partes.length ? partes.join(' / ') : nivel;
+    const partes = nivel === 'Caja'
+      ? [sucursal, caja]
+      : nivel === 'Sucursal'
+        ? [entidad, sucursal]
+        : nivel === 'Entidad'
+          ? [entidad]
+          : [subAfiliado || entidad];
+
+    const partesVisibles = partes.filter(Boolean);
+    return partesVisibles.length ? partesVisibles.join(' / ') : nivel;
   }
 
   private idComercioDesdeApi(comercio: ConsultaComercioApi): string {
@@ -395,6 +375,9 @@ export class ConsultaComerciosComponent {
     };
 
     return [...comercios].sort((a, b) => {
+      const nivelDiff = nivelOrden[a.nivel] - nivelOrden[b.nivel];
+      if (nivelDiff !== 0) return nivelDiff;
+
       const rutaA = this.rutaOrden(a);
       const rutaB = this.rutaOrden(b);
       for (let i = 0; i < Math.max(rutaA.length, rutaB.length); i += 1) {
@@ -402,8 +385,6 @@ export class ConsultaComerciosComponent {
         if (diff !== 0) return diff;
       }
 
-      const nivelDiff = nivelOrden[a.nivel] - nivelOrden[b.nivel];
-      if (nivelDiff !== 0) return nivelDiff;
       return a.nombreComercial.localeCompare(b.nombreComercial);
     });
   }
@@ -415,7 +396,6 @@ export class ConsultaComerciosComponent {
     const caja = this.extraerNumero(ruta, /caja[-\s]*0?(\d+)/i);
 
     if (comercio.nivel === 'Sub Afiliado') return [0, 0, 0];
-    if (comercio.nivel === 'Prospecto') return [99, 99, 99];
     if (comercio.nivel === 'Entidad') return [entidad || this.extraerNumero(comercio.nombreComercial, /(\d+)/), 0, 0];
     if (comercio.nivel === 'Sucursal') return [entidad || 1, sucursal || this.extraerNumero(comercio.nombreComercial, /(\d+)/), 0];
     return [entidad || 1, sucursal || 1, caja || this.extraerNumero(comercio.nombreComercial, /(\d+)/)];
@@ -457,6 +437,7 @@ export class ConsultaComerciosComponent {
           nombre: comercio.nombreComercial,
           rfc: comercio.rfc,
           correo: comercio.correo,
+          email: comercio.correo,
           telefono: comercio.telefono,
           commerceID: comercio.guid,
           pldID: comercio.pldID,

@@ -1620,13 +1620,12 @@ small {
 
 .mesa-results {
   min-height: 44px;
-  padding: 10px 12px;
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  overflow-x: auto;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: stretch;
+  overflow: visible;
   border: 1px solid rgba(241, 178, 61, 0.28);
   border-radius: 6px;
   color: var(--pre-muted);
@@ -1636,10 +1635,20 @@ small {
 }
 
 .mesa-results span {
-  flex: 0 0 auto;
-  min-width: max-content;
-  white-space: nowrap;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  text-align: center;
+  white-space: normal;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .mesa-results i,
@@ -1770,14 +1779,15 @@ small {
 }
 
 .mesa-observations {
-  margin-top: 10px;
+  margin-top: 18px;
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(160px, 0.6fr) auto;
-  gap: 10px;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(360px, 1.15fr);
+  gap: 12px 18px;
   align-items: end;
 }
 
 .mesa-observations label {
+  min-width: 0;
   display: grid;
   gap: 4px;
   color: var(--pre-muted);
@@ -1786,25 +1796,79 @@ small {
 }
 
 .mesa-observations input {
-  min-height: 34px;
+  min-height: 42px;
   width: 100%;
+  min-width: 0;
   border: 1px solid rgba(241, 178, 61, 0.26);
-  border-radius: 5px;
+  border-radius: 8px;
   color: var(--pre-text);
   background: rgba(255, 255, 255, 0.04);
-  padding: 0 10px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 850;
 }
 
-.mesa-observations button {
-  min-height: 34px;
-  padding: 0 12px;
+.mesa-email-field {
+  width: 100%;
+}
+
+.mesa-email-control {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(170px, auto);
+  gap: 10px;
+  align-items: center;
+}
+
+.mesa-email-control button {
+  min-height: 42px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 8px;
   color: #140e02;
   background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  box-shadow: 0 12px 24px rgba(241, 178, 61, 0.18);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
+  white-space: nowrap;
+}
+
+.mesa-register-action {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.mesa-register-action .button {
+  min-width: 230px;
+  min-height: 46px;
+}
+
+.mesa-register-action .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+  transform: none;
+}
+
+.mesa-email-control button:disabled {
+  cursor: wait;
+  opacity: 0.74;
+}
+
+.mesa-notification-message {
+  margin: 8px 0 0;
+  color: var(--pre-gold-strong);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
 }
 
 .mesa-footer {
@@ -1873,6 +1937,11 @@ small {
   color: #667085;
   border-color: rgba(241, 178, 61, 0.28);
   background: linear-gradient(90deg, rgba(255, 252, 244, 0.96), rgba(248, 250, 252, 0.96));
+}
+
+:host-context(html:not(.dark)) .mesa-results span {
+  border-color: rgba(209, 219, 233, 0.95);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 :host-context(html:not(.dark)) .mesa-results i,
@@ -1950,6 +2019,10 @@ small {
 
 :host-context(html:not(.dark)) .mesa-observations input::placeholder {
   color: #98a2b3;
+}
+
+:host-context(html:not(.dark)) .mesa-notification-message {
+  color: #a16207;
 }
 
 @media (min-width: 1440px) {
@@ -2187,7 +2260,7 @@ small {
   }
 
   .mesa-review {
-    overflow-x: auto;
+    overflow-x: hidden;
   }
 
   .documents-table-head,
@@ -2195,14 +2268,29 @@ small {
     min-width: 0;
   }
 
-  .mesa-results,
   .mesa-table-head,
   .mesa-row {
     min-width: 760px;
   }
 
+  .mesa-results {
+    min-width: 0;
+  }
+
   .mesa-observations {
-    min-width: 760px;
+    min-width: 0;
+  }
+
+  .mesa-observations {
+    grid-template-columns: 1fr;
+  }
+
+  .mesa-email-control {
+    grid-template-columns: 1fr;
+  }
+
+  .mesa-register-action .button {
+    width: 100%;
   }
 }
 

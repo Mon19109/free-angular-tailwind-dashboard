@@ -51,7 +51,7 @@
           <button
             type="button"
             class="mesa-view"
-            [disabled]="!documento.archivoUrl"
+            [disabled]="!documento.archivoUrl && !documento.s3Key"
             (click)="verDocumento(documento)">
             <i class="fa-solid fa-file-arrow-down"></i> Ver
           </button>
@@ -77,7 +77,10 @@
     <div class="mesa-observations">
       <label>
         <span>Observaciones al Cliente</span>
-        <input type="text">
+        <input
+          type="text"
+          [value]="observacionesCliente"
+          (input)="observacionesClienteChange.emit($any($event.target).value)">
       </label>
       <label>
         <span>Observaciones Internas</span>
@@ -86,17 +89,36 @@
           [value]="observacionesInternas"
           (input)="observacionesInternasChange.emit($any($event.target).value)">
       </label>
-      <label>
+      <label class="mesa-email-field">
         <span>Enviar por Email</span>
-        <input type="email" placeholder="Email del Cliente">
+        <div class="mesa-email-control">
+          <input
+            type="email"
+            placeholder="Email del Cliente"
+            autocomplete="email"
+            [value]="emailNotificacion"
+            (input)="emailNotificacionChange.emit($any($event.target).value)">
+          <button type="button" [disabled]="enviandoNotificacion" (click)="enviarNotificacion.emit()">
+            <i class="fa-solid" [ngClass]="enviandoNotificacion ? 'fa-spinner fa-spin' : 'fa-envelope'"></i>
+            {{ enviandoNotificacion ? 'Enviando...' : 'Enviar Notificación' }}
+          </button>
+        </div>
       </label>
-      <button type="button"><i class="fa-solid fa-envelope"></i> Enviar Notificación</button>
     </div>
-
-    <div class="mesa-footer">
-      <button type="button" class="button ghost"><i class="fa-regular fa-folder"></i> Guardar Borrador</button>
-      <button type="button" class="button primary">Siguiente <i class="fa-solid fa-chevron-right"></i></button>
+    <div class="mesa-register-action">
+      <button
+        type="button"
+        class="button ghost"
+        [disabled]="guardandoBorrador"
+        (click)="guardarBorrador.emit()">
+        <i class="fa-regular" [ngClass]="guardandoBorrador ? 'fa-hourglass-half' : 'fa-folder'"></i>
+        {{ guardandoBorrador ? 'Guardando...' : 'Guardar Borrador' }}
+      </button>
+      <button type="button" class="button primary" disabled>Registrar Cliente</button>
     </div>
+    @if (mensajeNotificacion) {
+      <p class="mesa-notification-message">{{ mensajeNotificacion }}</p>
+    }
   </section>
 } @else {
   <section class="step-section documents-panel">
@@ -167,5 +189,7 @@
 
 <div class="step-actions">
   <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
-  <button type="button" class="button primary" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
+  @if (!mostrarMesaDigital) {
+    <button type="button" class="button primary" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
+  }
 </div>

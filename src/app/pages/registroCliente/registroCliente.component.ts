@@ -86,8 +86,12 @@ export class RegistroClienteComponent {
   documentosProspecto: DocumentoProspectoApi[] = [];
   cargandoDocumentosProspecto = false;
   guardandoRevisionDocumentos = false;
+  enviandoNotificacionMesaDigital = false;
   errorDocumentosProspecto = '';
+  mensajeObservacionesCliente = '';
+  observacionesClienteMesaDigital = '';
   observacionesInternasMesaDigital = '';
+  emailNotificacionMesaDigital = '';
   tiposComercio: string[] = [];
   arbolMinimizado = false;
   usuarioAccesoActivo: PrefijoAccesoRegistro = 'admin';
@@ -294,16 +298,18 @@ export class RegistroClienteComponent {
 
   constructor() {
     const params = this.route.snapshot.queryParamMap;
+    const emailComercioServicio = this.correoParametro(params.get('email')) || this.correoParametro(params.get('correo'));
     this.comercioSeleccionado = {
       idComercio: params.get('id') ?? '',
       nivel: params.get('nivel') ?? 'Sucursal',
       nombreComercial: params.get('nombre') ?? '',
       rfc: params.get('rfc') ?? '',
-      correo: params.get('correo') ?? '',
+      correo: emailComercioServicio,
       telefono: params.get('telefono') ?? ''
     };
     this.pldID = params.get('pldID') ?? '';
     this.commerceID = params.get('commerceID') ?? '';
+    this.emailNotificacionMesaDigital = this.comercioSeleccionado.correo;
     this.contextoSeleccionado = {
       idComercio: this.comercioSeleccionado.idComercio,
       nivel: this.comercioSeleccionado.nivel,
@@ -421,7 +427,9 @@ export class RegistroClienteComponent {
 
   get documentosVisibles(): DocumentoRequerido[] {
     if (this.esNodoExistente && this.documentosProspecto.length) {
-      return this.documentosProspecto.map((documentoProspecto, index) => this.documentoRequeridoDesdeProspecto(documentoProspecto, index));
+      return this.documentosProspecto
+        .map((documentoProspecto, index) => this.documentoRequeridoDesdeProspecto(documentoProspecto, index))
+        .sort((a, b) => a.numero - b.numero);
     }
 
     const nivel = this.comercioForm.getRawValue().nivel;
@@ -643,7 +651,7 @@ export class RegistroClienteComponent {
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   finalizar(): void {
     if (this.esNodoExistente && this.documentosProspecto.length) {
-      this.guardarRevisionDocumentos();
+      this.guardarRevisionDocumentos(true);
       return;
     }
 
@@ -716,6 +724,32 @@ export class RegistroClienteComponent {
   }
 
   verDocumentoProspecto(documento: DocumentoRequerido): void {
+    if (documento.s3Key) {
+      const ventanaDocumento = window.open('about:blank', '_blank');
+      if (ventanaDocumento) ventanaDocumento.opener = null;
+
+      this.documentosProspectoService.consultarUrlArchivo(documento.s3Key).subscribe({
+        next: url => {
+          if (url) {
+            if (ventanaDocumento) {
+              ventanaDocumento.location.href = url;
+            } else {
+              window.open(url, '_blank', 'noopener,noreferrer');
+            }
+            return;
+          }
+
+          ventanaDocumento?.close();
+          this.errorDocumentosProspecto = 'El servicio no regreso una URL para abrir este documento.';
+        },
+        error: () => {
+          ventanaDocumento?.close();
+          this.errorDocumentosProspecto = 'No fue posible consultar la URL del documento.';
+        }
+      });
+      return;
+    }
+
     if (documento.archivoUrl) {
       window.open(documento.archivoUrl, '_blank', 'noopener,noreferrer');
       return;
@@ -724,7 +758,43 @@ export class RegistroClienteComponent {
     this.errorDocumentosProspecto = 'El servicio no regreso una URL para abrir este documento.';
   }
 
-  private guardarRevisionDocumentos(): void {
+  enviarNotificacionMesaDigital(): void {
+    const email = this.emailNotificacionMesaDigital.trim();
+    const observations = this.observacionesClienteMesaDigital.trim();
+
+    this.mensajeObservacionesCliente = '';
+
+    if (!email) {
+      this.mensajeObservacionesCliente = 'Captura el email del cliente.';
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      this.mensajeObservacionesCliente = 'Captura un email válido.';
+      return;
+    }
+
+    if (!observations) {
+      this.mensajeObservacionesCliente = 'Captura las observaciones para el cliente.';
+      return;
+    }
+
+    this.enviandoNotificacionMesaDigital = true;
+    this.documentosProspectoService.enviarObservaciones({ email, observations }).subscribe({
+      next: () => {
+        this.enviandoNotificacionMesaDigital = false;
+        this.observacionesClienteMesaDigital = '';
+        this.emailNotificacionMesaDigital = '';
+        this.mensajeObservacionesCliente = 'Notificación enviada correctamente.';
+      },
+      error: () => {
+        this.enviandoNotificacionMesaDigital = false;
+        this.mensajeObservacionesCliente = 'No fue posible enviar la notificación.';
+      }
+    });
+  }
+
+  guardarRevisionDocumentos(finalizarDespues = false): void {
     const legalDocuments = this.documentosProspecto
       .map(documento => ({
         id: this.idDocumentoCargado(documento),
@@ -745,6 +815,11 @@ export class RegistroClienteComponent {
     }).subscribe({
       next: () => {
         this.guardandoRevisionDocumentos = false;
+        if (!finalizarDespues) {
+          this.mensajeObservacionesCliente = 'Borrador guardado correctamente.';
+          return;
+        }
+
         this.guardarCapturaNodoActual();
         const nodoGuardado = this.nodoSeleccionado;
         this.guardarLiquidacionActual();
@@ -755,6 +830,7 @@ export class RegistroClienteComponent {
       error: () => {
         this.guardandoRevisionDocumentos = false;
         this.errorDocumentosProspecto = 'No fue posible guardar la revisión de documentos.';
+        this.mensajeObservacionesCliente = 'No fue posible guardar el borrador.';
       }
     });
   }
@@ -784,6 +860,11 @@ export class RegistroClienteComponent {
   private numeroParametro(valor: string | null, respaldo: number): number {
     const numero = Number(valor);
     return Number.isFinite(numero) && numero > 0 ? Math.floor(numero) : respaldo;
+  }
+
+  private correoParametro(valor: string | null): string {
+    const correo = (valor ?? '').trim();
+    return correo && correo.toUpperCase() !== 'ND' ? correo : '';
   }
 
   private inicializarEstructuraFake(): void {
@@ -1307,12 +1388,13 @@ export class RegistroClienteComponent {
 
   private documentoRequeridoDesdeProspecto(documentoProspecto: DocumentoProspectoApi, index: number): DocumentoRequerido {
     const nombre = this.nombreDocumentoDesdeProspecto(documentoProspecto);
+    const documentoCatalogo = this.documentoCatalogoDesdeProspecto(documentoProspecto, nombre);
 
     return {
-      numero: index + 1,
-      nombre,
-      obligatorio: true,
-      archivoNombre: this.nombreDocumentoCargado({ numero: index + 1, nombre, obligatorio: true }, documentoProspecto),
+      numero: documentoCatalogo?.numero ?? 100 + index,
+      nombre: documentoCatalogo?.nombre ?? nombre,
+      obligatorio: documentoCatalogo?.obligatorio ?? false,
+      archivoNombre: this.nombreDocumentoCargado(documentoCatalogo ?? { numero: 100 + index, nombre, obligatorio: false }, documentoProspecto),
       archivoUrl: this.urlDocumentoCargado(documentoProspecto),
       archivoId: this.idDocumentoCargado(documentoProspecto),
       s3Key: this.s3KeyDocumentoCargado(documentoProspecto),
@@ -1320,6 +1402,43 @@ export class RegistroClienteComponent {
       estado: this.estadoDocumentoCargado(documentoProspecto),
       estatusRevision: this.estatusRevisionDocumento(documentoProspecto),
     };
+  }
+
+  private documentoCatalogoDesdeProspecto(documentoProspecto: DocumentoProspectoApi, nombre: string): DocumentoRequerido | undefined {
+    const sufijo = this.sufijoDocumentoDesdeS3Key(this.s3KeyDocumentoCargado(documentoProspecto));
+    const numeroPorSufijo: Record<string, number> = {
+      COMP_DOM: 1,
+      CONS: 2,
+      ACTA_CONST: 2,
+      INE: 3,
+      ID_PROP: 3,
+      CONT: 4,
+      CONTRATO: 4,
+      IMGE: 5,
+      IMG_FRENTE: 5,
+      IMGI: 6,
+      IMG_INTERIOR: 6,
+      IMGI2: 7,
+      IMGI_2: 7,
+      IMG_INTERIOR_2: 7,
+      ESCRITURAS: 8,
+      PODER_REP: 9,
+      CSF: 10,
+      CONST_SIT_FISCAL: 10,
+      EFIRMA: 11,
+      E_FIRMA: 11,
+      ID_REP: 12,
+      ID_TERCERO: 13,
+    };
+
+    const numero = numeroPorSufijo[sufijo];
+    if (numero) return this.documentos.find(documento => documento.numero === numero);
+
+    const nombreNormalizado = this.normalizarTexto(nombre);
+    return this.documentos.find(documento => {
+      const catalogoNormalizado = this.normalizarTexto(documento.nombre);
+      return nombreNormalizado.includes(catalogoNormalizado) || catalogoNormalizado.includes(nombreNormalizado);
+    });
   }
 
   private nombreDocumentoDesdeProspecto(documentoProspecto: DocumentoProspectoApi): string {
