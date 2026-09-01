@@ -30,7 +30,7 @@
     <form (ngSubmit)="buscar()">
       <fieldset class="level-grid">
         <legend>Buscar por Nivel</legend>
-        <label class="level-option" *ngFor="let nivel of niveles" [class.active]="filtros.nivel === nivel.id">
+        <label class="level-option" *ngFor="let nivel of nivelesVisibles" [class.active]="filtros.nivel === nivel.id">
           <input type="radio" name="nivel" [value]="nivel.id" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
           <i class="fa-solid" [ngClass]="nivel.icon"></i>
           <span>{{ nivel.label }}</span>

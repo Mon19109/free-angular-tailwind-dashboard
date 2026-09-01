@@ -55,6 +55,18 @@ export class ConsultaComerciosComponent {
     { id: 'prospectos' as NivelComercio, label: 'Prospectos', icon: 'fa-user-clock' }
   ];
 
+  get nivelesVisibles() {
+    return this.niveles.filter(nivel => nivel.id === 'todos' || this.tieneComerciosPorNivel(nivel.id));
+  }
+
+  private tieneComerciosPorNivel(nivel: NivelComercio): boolean {
+    return this.comercios.some(comercio =>
+      nivel === 'prospectos'
+        ? comercio.estatus === 'Prospecto'
+        : this.normalizarNivel(comercio.nivel) === nivel
+    );
+  }
+
   filtros = {
     nivel: 'todos' as NivelComercio,
     entidad: '',
@@ -172,6 +184,9 @@ export class ConsultaComerciosComponent {
         }
 
         this.comercios = this.ordenarComoArbol(this.normalizarComerciosApi(respuesta.commerces ?? []));
+        if (this.filtros.nivel !== 'todos' && !this.tieneComerciosPorNivel(this.filtros.nivel)) {
+          this.filtros.nivel = 'todos';
+        }
         this.aplicarFiltroNivel();
         this.cargando = false;
       },
@@ -275,7 +290,7 @@ export class ConsultaComerciosComponent {
     if (status === 'ACTIVO' || status === 'ACTIVE') return 'Activo';
     if (status === 'INACTIVO' || status === 'INACTIVE') return 'Inactivo';
     if (status === 'BAJA' || status === 'BAJA DEFINITIVA' || status === 'BAJA_DEFINITIVA') return 'Baja definitiva';
-    if (status === 'PROSPECTO_A_CLIENTE') return 'Prospecto';
+    if (this.esProspectoCliente(comercio)) return 'Prospecto';
 
     return 'Activo';
   }
@@ -284,7 +299,8 @@ export class ConsultaComerciosComponent {
     const nivelServicio = this.nivelDesdeAffilationLevel(comercio.idAffilationLevel);
     if (nivelServicio) return nivelServicio;
 
-    // Respaldo para registros viejos que todavia no manden idAffilationLevel.
+    if (this.esProspectoCliente(comercio)) return 'Prospecto';
+
     if (Number(comercio.terminalUserID) > 0) return 'Caja';
     if (Number(comercio.terminalID) > 0) return 'Sucursal';
     if (Number(comercio.entityID) > 0) return 'Entidad';
@@ -304,6 +320,12 @@ export class ConsultaComerciosComponent {
     if (normalizado === 'REFERENCIADOR' || normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospecto';
 
     return null;
+  }
+
+  private esProspectoCliente(comercio: ConsultaComercioApi): boolean {
+    const status = this.normalizarTexto(comercio.status || String(comercio['Status'] || comercio['STATUS'] || ''));
+
+    return status === 'PROSPECTO_CLIENTE' || status === 'PROSPECTO_A_CLIENTE';
   }
 
   private normalizarTexto(valor?: string): string {
