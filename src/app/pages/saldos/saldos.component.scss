@@ -251,6 +251,10 @@ tbody td {
   vertical-align: middle;
 }
 
+.amount-cell {
+  text-align: left;
+}
+
 thead th:nth-child(1),
 tbody td:nth-child(1) {
   width: 15%;

@@ -443,7 +443,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(num);
   }
   
@@ -474,7 +475,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   processTransactions(data: any) {
-    const transacciones = this.obtenerTransaccionesRespuesta(data);
+    const transacciones = this.aplicarFiltrosLocales(this.obtenerTransaccionesRespuesta(data));
     console.log('[Transacciones Adquirencia] searchOperations response:', data);
     console.log('[Transacciones Adquirencia] primeros estatus recibidos:', transacciones.slice(0, 10).map((transaccion: any) => ({
       idOperation: transaccion?.idOperation,
@@ -486,6 +487,119 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       respCodeDescription: transaccion?.respCodeDescription
     })));
     this.transacciones.set(transacciones);
+  }
+
+  private aplicarFiltrosLocales(transacciones: Transaccion[]): Transaccion[] {
+    return transacciones.filter(transaccion =>
+      this.coincideSeleccion(this.filtros.subafiliado, transaccion, this.subafiliados(), ['contextID', 'context', 'entityName'])
+      && this.coincideSeleccion(this.filtros.entidad, transaccion, this.entidades(), ['entityName'])
+      && this.coincideSeleccion(this.filtros.sucursal, transaccion, this.sucursales(), ['terminalID', 'terminalName'])
+      && this.coincideSeleccion(this.filtros.caja, transaccion, this.cajas(), ['terminalUserName'])
+      && this.coincideOperacion(transaccion)
+      && this.coincideEstatus(transaccion)
+      && this.coincideMonto(transaccion.amount)
+      && this.coincideTexto(this.filtros.referencia, transaccion.authorizationRrcext, transaccion.referenceOne, transaccion.referenceTwo, transaccion.referenceThree, transaccion.paymentLink)
+      && this.coincideTexto(this.filtros.autorizacion, transaccion.authorizationNumber)
+      && this.coincideTexto(this.filtros.numTarjeta, transaccion.card)
+      && this.coincideTexto(this.filtros.bin, transaccion.bin)
+      && this.coincideTexto(this.filtros.email, transaccion.payEmail, transaccion.terminalUserName)
+    );
+  }
+
+  private coincideSeleccion(filtro: string | undefined, transaccion: Transaccion, opciones: any[], campos: string[]): boolean {
+    const valor = this.normalizarFiltro(filtro);
+    if (!valor) return true;
+
+    const opcion = opciones.find(item => this.normalizarFiltro(item.idNode ?? item.nodeID) === valor);
+    const textos = [
+      valor,
+      opcion?.name,
+      opcion?.contextDescription,
+      opcion?.entityDescription,
+      opcion?.businessName,
+      opcion?.tuName,
+      ...campos.map(campo => (transaccion as any)[campo])
+    ].map(item => this.normalizarFiltro(item)).filter(Boolean);
+
+    return textos.some(texto => texto === valor)
+      || campos.some(campo => textos.some(texto => this.normalizarFiltro((transaccion as any)[campo]).includes(texto)));
+  }
+
+  private coincideOperacion(transaccion: Transaccion): boolean {
+    const valor = this.normalizarFiltro(this.filtros.operacion);
+    if (!valor) return true;
+
+    const operacion = this.operaciones().find(item => this.normalizarFiltro(this.valorOperacion(item)) === valor);
+    const tipoTransaccion = this.normalizarFiltro([transaccion.transactiontype, transaccion.entryMode].filter(Boolean).join(' '));
+    const textosOperacion = [valor, operacion?.tTypeInternalkey, operacion?.description]
+      .map(item => this.normalizarFiltro(item))
+      .filter(Boolean);
+
+    return textosOperacion.some(texto => tipoTransaccion.includes(texto) || texto.includes(tipoTransaccion));
+  }
+
+  private coincideEstatus(transaccion: Transaccion): boolean {
+    const valor = this.normalizarFiltro(this.filtros.edoTransaccion);
+    if (!valor) return true;
+
+    const estatus = this.estadosTransaccion().find(item => this.normalizarFiltro(this.valorEstadoTransaccion(item)) === valor);
+    const textoTransaccion = this.normalizarFiltro([transaccion.status, transaccion.responseDescription].filter(Boolean).join(' '));
+    const textosEstatus = [valor, estatus?.respCodeDescription, estatus?.responseDescription]
+      .map(item => this.normalizarFiltro(item))
+      .filter(Boolean);
+
+    return textosEstatus.some(texto => textoTransaccion.includes(texto) || texto.includes(textoTransaccion));
+  }
+
+  private coincideMonto(value: string | number): boolean {
+    const monto = this.toNumber(this.filtros.monto || this.filtros.montoDesde || '');
+    if (!monto) return true;
+    return this.toNumber(value) === monto;
+  }
+
+  private coincideTexto(filtro: unknown, ...valores: unknown[]): boolean {
+    const textoFiltro = this.normalizarFiltro(filtro);
+    if (!textoFiltro) return true;
+    return valores.some(valor => this.normalizarFiltro(valor).includes(textoFiltro));
+  }
+
+  private normalizarFiltro(value: unknown): string {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  valorOperacion(item: any): string {
+    return String(
+      item?.idTransactionType
+      ?? item?.transactionType
+      ?? item?.id
+      ?? item?.code
+      ?? item?.tTypeInternalkey
+      ?? item?.description
+      ?? ''
+    );
+  }
+
+  textoOperacion(item: any): string {
+    return String(item?.tTypeInternalkey ?? item?.description ?? item?.name ?? this.valorOperacion(item));
+  }
+
+  valorEstadoTransaccion(item: any): string {
+    return String(
+      item?.responseCode
+      ?? item?.idResponseCode
+      ?? item?.status
+      ?? item?.idStatus
+      ?? item?.code
+      ?? ''
+    );
+  }
+
+  textoEstadoTransaccion(item: any): string {
+    return String(item?.respCodeDescription ?? item?.responseDescription ?? item?.statusDescription ?? item?.description ?? this.valorEstadoTransaccion(item));
   }
 
   private obtenerTransaccionesRespuesta(data: any): Transaccion[] {
@@ -618,7 +732,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(this.toNumber(value));
   }
 
@@ -743,7 +858,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       SUCURSAL: transaccion.terminalName,
       CAJA: transaccion.terminalUserName,
       'TIPO TRANSACCION': transaccion.transactiontype,
-      MONTO: this.toNumber(transaccion.amount),
+      MONTO: this.formatCurrency(transaccion.amount),
       ESTATUS: this.obtenerEstatusTransaccion(transaccion),
       USUARIO: transaccion.payEmail || transaccion.terminalUserName
     };

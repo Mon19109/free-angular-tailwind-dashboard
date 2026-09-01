@@ -272,7 +272,7 @@ getOperaciones(): Observable<any> {
       .set('endDate', filtros.fechaFin || '')
       .set('liquidationID', '')
       .set('page', '')
-      .set('status', '')
+      .set('status', filtros.edoTransaccion || '')
       .set('searchBy', '')
       .set('rootNodeID', rootNodeID);
 

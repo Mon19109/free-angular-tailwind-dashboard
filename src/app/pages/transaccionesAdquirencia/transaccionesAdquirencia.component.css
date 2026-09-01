@@ -118,6 +118,7 @@
 }
 
 .amount {
+  text-align: left;
   color: #16a34a;
   font-weight: 850;
 }

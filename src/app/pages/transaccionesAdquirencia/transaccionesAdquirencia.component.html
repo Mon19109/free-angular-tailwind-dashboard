@@ -81,8 +81,8 @@
               <span>Operación</span>
               <select name="operacion" [(ngModel)]="filtros.operacion">
                 <option value="">Todas las operaciones</option>
-                @for (item of operaciones(); track item.idTransactionType) {
-                  <option [value]="item.idTransactionType">{{ item.tTypeInternalkey || item.description }}</option>
+                @for (item of operaciones(); track valorOperacion(item)) {
+                  <option [value]="valorOperacion(item)">{{ textoOperacion(item) }}</option>
                 }
               </select>
             </label>
@@ -91,8 +91,8 @@
               <span>Estado de la Transacción</span>
               <select name="edoTransaccion" [(ngModel)]="filtros.edoTransaccion">
                 <option value="">Todos los estados</option>
-                @for (item of estadosTransaccion(); track item.responseCode) {
-                  <option [value]="item.responseCode">{{ item.respCodeDescription || item.responseDescription }}</option>
+                @for (item of estadosTransaccion(); track valorEstadoTransaccion(item)) {
+                  <option [value]="valorEstadoTransaccion(item)">{{ textoEstadoTransaccion(item) }}</option>
                 }
               </select>
             </label>

@@ -150,10 +150,10 @@ export class SaldosComponent implements OnInit {
             nombre: item.name,
             email: item.email,
             telefono: item.phoneNumber,
-            saldoPrincipal: `$${item.balance ?? 0}`,
-            saldoGarantia: `$${item.warrantyBalance ?? 0}`,
-            saldoPendiente: `$${item.customerNetworkBalance ?? 0}`,
-            saldoTarjeta: `$${item.cardAvailableBalance ?? 0}`
+            saldoPrincipal: this.formatCurrency(item.balance),
+            saldoGarantia: this.formatCurrency(item.warrantyBalance),
+            saldoPendiente: this.formatCurrency(item.customerNetworkBalance),
+            saldoTarjeta: this.formatCurrency(item.cardAvailableBalance)
           }));
 
         },
@@ -219,6 +219,20 @@ private filasExportacion(): string[][] {
     item.saldoPendiente,
     item.saldoTarjeta
   ]);
+}
+
+private formatCurrency(value: string | number): string {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(this.toNumber(value));
+}
+
+private toNumber(value: string | number): number {
+  if (value === null || value === undefined || value === '') return 0;
+  return typeof value === 'number' ? value : Number(String(value).replace(/[$,]/g, '')) || 0;
 }
 
 private obtenerFechaArchivo(): string {

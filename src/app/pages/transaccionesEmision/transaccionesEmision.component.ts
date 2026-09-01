@@ -65,8 +65,9 @@ export class TransaccionesEmisionComponent implements OnInit {
 
     this.transEmiService.obtenerStatus().subscribe({
       next: data => this.estatusOptions = this.extraerLista(data).map((item: any) => ({
-        value: item.idStatus ?? item.id ?? item.codigo,
-        label: item.statusDescription ?? item.nombre ?? item.descripcion
+        ...item,
+        value: item.idStatus ?? item.id ?? item.codigo ?? item.status ?? item.code,
+        label: item.statusDescription ?? item.nombre ?? item.descripcion ?? item.description
       })),
       error: error => console.error('Error al cargar estatus:', error)
     });
@@ -96,7 +97,7 @@ export class TransaccionesEmisionComponent implements OnInit {
 
     this.transEmiService.enviarFormulario(request).subscribe({
       next: response => {
-        this.operaciones = this.extraerOperaciones(response);
+        this.operaciones = this.aplicarFiltrosLocales(this.extraerOperaciones(response));
         this.paginaActual = 1;
         this.loading = false;
       },
@@ -186,6 +187,77 @@ export class TransaccionesEmisionComponent implements OnInit {
     return this.operacionesFiltradasTabla.slice(inicio, inicio + this.elementosPorPagina);
   }
 
+  private aplicarFiltrosLocales(operaciones: any[]): any[] {
+    return operaciones.filter(operacion =>
+      this.coincideTexto(this.filtros.cuenta, this.valorCuenta(operacion), operacion?.numCuenta, operacion?.account)
+      && this.coincideEntidad(operacion)
+      && this.coincideTipoOperacion(operacion)
+      && this.coincideEstatus(operacion)
+      && this.coincideMonto(this.valorMonto(operacion))
+      && this.coincideTexto(this.filtros.numAuto, this.valorAutorizacion(operacion))
+      && this.coincideTexto(this.filtros.email, operacion?.email, operacion?.payEmail, operacion?.userEmail)
+      && this.coincideTexto(this.filtros.tel, operacion?.telephoneNumber, operacion?.phoneNumber, operacion?.payPhone, operacion?.telefono)
+    );
+  }
+
+  private coincideEntidad(operacion: any): boolean {
+    const valor = this.normalizarFiltro(this.filtros.idEntidad);
+    if (!valor) return true;
+
+    const cuenta = this.cuentas.find(item => this.normalizarFiltro(this.valorEntidad(item)) === valor);
+    return this.coincideTexto(
+      valor,
+      this.valorCuenta(operacion),
+      operacion?.sirioId,
+      operacion?.sirioID,
+      operacion?.bundle,
+      operacion?.entityName,
+      cuenta ? this.textoEntidad(cuenta) : ''
+    );
+  }
+
+  private coincideTipoOperacion(operacion: any): boolean {
+    const valor = this.normalizarFiltro(this.filtros.tipoOperacion);
+    if (!valor) return true;
+
+    const tipo = this.tiposOperacion.find(item =>
+      this.normalizarFiltro(this.valorTipoOperacion(item)) === valor
+    );
+    const textoOperacion = this.normalizarFiltro(this.valorTipo(operacion));
+    const textosTipo = [
+      valor,
+      tipo?.name,
+      tipo?.nombre,
+      tipo?.descripcion,
+      tipo?.codigo
+    ].map(item => this.normalizarFiltro(item)).filter(Boolean);
+
+    return textosTipo.some(texto => textoOperacion.includes(texto) || texto.includes(textoOperacion));
+  }
+
+  private coincideEstatus(operacion: any): boolean {
+    const valor = this.normalizarFiltro(this.filtros.estatus);
+    if (!valor) return true;
+
+    const estatus = this.estatusOptions.find(item => this.normalizarFiltro(item.value) === valor);
+    const textoOperacion = this.normalizarFiltro(this.valorEstatus(operacion));
+    const textosEstatus = [valor, estatus?.label].map(item => this.normalizarFiltro(item)).filter(Boolean);
+
+    return textosEstatus.some(texto => textoOperacion.includes(texto) || texto.includes(textoOperacion));
+  }
+
+  private coincideMonto(value: string | number): boolean {
+    const monto = this.toNumber(this.filtros.monto || this.filtros.montoDesde || '');
+    if (!monto) return true;
+    return this.toNumber(value) === monto;
+  }
+
+  private coincideTexto(filtro: unknown, ...valores: unknown[]): boolean {
+    const textoFiltro = this.normalizarFiltro(filtro);
+    if (!textoFiltro) return true;
+    return valores.some(valor => this.normalizarFiltro(valor).includes(textoFiltro));
+  }
+
   get totalPaginas(): number {
     return Math.max(1, Math.ceil(this.operacionesFiltradasTabla.length / this.elementosPorPagina));
   }
@@ -202,7 +274,8 @@ export class TransaccionesEmisionComponent implements OnInit {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(this.toNumber(value));
   }
 
@@ -367,13 +440,40 @@ export class TransaccionesEmisionComponent implements OnInit {
     return [id, nombre].filter(Boolean).join(' - ');
   }
 
+  valorTipoOperacion(tipo: any): string {
+    return String(
+      tipo?.idOperationType
+      ?? tipo?.idTransactionType
+      ?? tipo?.transactionType
+      ?? tipo?.id
+      ?? tipo?.codigo
+      ?? tipo?.code
+      ?? tipo?.name
+      ?? tipo?.nombre
+      ?? tipo?.descripcion
+      ?? ''
+    );
+  }
+
+  textoTipoOperacion(tipo: any): string {
+    return String(tipo?.name ?? tipo?.nombre ?? tipo?.descripcion ?? tipo?.description ?? tipo?.codigo ?? this.valorTipoOperacion(tipo));
+  }
+
+  valorStatusOperacion(estatus: any): string {
+    return String(estatus?.value ?? estatus?.idStatus ?? estatus?.id ?? estatus?.codigo ?? estatus?.status ?? estatus?.code ?? '');
+  }
+
+  textoStatusOperacion(estatus: any): string {
+    return String(estatus?.label ?? estatus?.statusDescription ?? estatus?.nombre ?? estatus?.descripcion ?? estatus?.description ?? this.valorStatusOperacion(estatus));
+  }
+
   private exportRow(item: any) {
     return {
       ID: this.valorId(item),
       'FECHA / HORA': this.valorFecha(item),
       CUENTA: this.valorCuenta(item),
       TIPO: this.valorTipo(item),
-      MONTO: this.toNumber(this.valorMonto(item)),
+      MONTO: this.formatCurrency(this.valorMonto(item)),
       ESTATUS: this.valorEstatus(item),
       AUTORIZACION: this.valorAutorizacion(item)
     };
@@ -411,6 +511,14 @@ export class TransaccionesEmisionComponent implements OnInit {
     return (value || '')
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
+  private normalizarFiltro(value: unknown): string {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
       .toLowerCase();
   }
 }

@@ -39,8 +39,8 @@
               <span>Tipo de operación</span>
               <select name="tipoOperacion" [(ngModel)]="filtros.tipoOperacion">
                 <option value="">Seleccione un tipo de operación</option>
-                <option *ngFor="let tipo of tiposOperacion" [value]="tipo.idOperationType || tipo.id || tipo.codigo">
-                  {{ tipo.name || tipo.nombre || tipo.descripcion }}
+                <option *ngFor="let tipo of tiposOperacion" [value]="valorTipoOperacion(tipo)">
+                  {{ textoTipoOperacion(tipo) }}
                 </option>
               </select>
             </label>
@@ -82,7 +82,7 @@
               <span>Estatus de la operación</span>
               <select name="estatus" [(ngModel)]="filtros.estatus">
                 <option value="">Seleccione un estatus</option>
-                <option *ngFor="let estatus of estatusOptions" [value]="estatus.value">{{ estatus.label }}</option>
+                <option *ngFor="let estatus of estatusOptions" [value]="valorStatusOperacion(estatus)">{{ textoStatusOperacion(estatus) }}</option>
               </select>
             </label>
 
