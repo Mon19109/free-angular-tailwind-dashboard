@@ -2230,13 +2230,17 @@ export class PreRegistroComponent {
     const sucursales = (entidad?.hijos ?? this.aplanarArbolNegocio(this.arbolNegocioWizard))
       .filter(nodo => nodo.nivel === 'sucursal');
 
-    const { poss: _possEntidad, ...payloadEntidad } = this.construirComercioPayload(entidadId);
+    const { poss: _possEntidad, ...payloadEntidad } = this.construirComercioPayload(entidadId, { usarFormularioActual: false });
 
     return {
       entitys: [
         {
           ...payloadEntidad,
-          branchOficces: sucursales.map(sucursal => this.construirComercioPayload(sucursal.id, { omitirDatosContactoPrincipal: true })),
+          branchOficces: sucursales.map(sucursal => this.construirComercioPayload(sucursal.id, {
+            omitirDatosContactoPrincipal: true,
+            omitirEmailTelefonoPrincipal: true,
+            usarFormularioActual: false,
+          })),
         },
       ],
     };
@@ -2245,7 +2249,7 @@ export class PreRegistroComponent {
   private construirPayloadPaqueteSubAfiliado(): PayloadPreRegistro {
     const subAfiliado = this.arbolNegocioWizard.find(nodo => nodo.nivel === 'sub-afiliado');
     const subAfiliadoId = subAfiliado?.id || 'sub-afiliado-1';
-    const { poss: _possSubAfiliado, ...payloadSubAfiliado } = this.construirComercioPayload(subAfiliadoId);
+    const { poss: _possSubAfiliado, ...payloadSubAfiliado } = this.construirComercioPayload(subAfiliadoId, { usarFormularioActual: false });
     const entidades = (subAfiliado?.hijos ?? [])
       .filter(nodo => nodo.nivel === 'entidad')
       .map(entidad => this.construirEntidadConSucursalesPayload(entidad));
@@ -2257,7 +2261,11 @@ export class PreRegistroComponent {
   }
 
   private construirEntidadConSucursalesPayload(entidad: NodoArbolNegocio): any {
-    const { poss: _possEntidad, ...payloadEntidad } = this.construirComercioPayload(entidad.id, { omitirDatosContactoPrincipal: true });
+    const { poss: _possEntidad, ...payloadEntidad } = this.construirComercioPayload(entidad.id, {
+      omitirDatosContactoPrincipal: true,
+      omitirEmailTelefonoPrincipal: true,
+      usarFormularioActual: false,
+    });
     return {
       ...payloadEntidad,
       branchOficces: (entidad.hijos ?? [])
@@ -2267,18 +2275,27 @@ export class PreRegistroComponent {
   }
 
   private construirSucursalConCajasPayload(sucursal: NodoArbolNegocio): any {
-    const { poss: _possSucursal, ...payloadSucursal } = this.construirComercioPayload(sucursal.id, { omitirDatosContactoPrincipal: true });
+    const { poss: _possSucursal, ...payloadSucursal } = this.construirComercioPayload(sucursal.id, {
+      omitirDatosContactoPrincipal: true,
+      omitirEmailTelefonoPrincipal: true,
+      usarFormularioActual: false,
+    });
     return {
       ...payloadSucursal,
       poss: this.construirPossPayloadPorSucursal(sucursal),
     };
   }
 
-  private construirComercioPayload(nodoId: string, opciones: { omitirDatosContactoPrincipal?: boolean } = {}): any {
+  private construirComercioPayload(nodoId: string, opciones: { omitirDatosContactoPrincipal?: boolean; omitirEmailTelefonoPrincipal?: boolean; usarFormularioActual?: boolean } = {}): any {
     const datosPorSucursal = this.obtenerDatosPorSucursal();
     const accesosPorSucursal = this.obtenerAccesosPorSucursal();
-    let datos = this.combinarPreferirLlenos(datosPorSucursal[nodoId] ?? {}, this.datosForm.getRawValue());
-    const accesos = this.combinarPreferirLlenos(accesosPorSucursal[nodoId] ?? {}, this.accesosForm.getRawValue());
+    const usarFormularioActual = opciones.usarFormularioActual !== false;
+    let datos = usarFormularioActual
+      ? this.combinarPreferirLlenos(datosPorSucursal[nodoId] ?? {}, this.datosForm.getRawValue())
+      : datosPorSucursal[nodoId] ?? {};
+    const accesos = usarFormularioActual
+      ? this.combinarPreferirLlenos(accesosPorSucursal[nodoId] ?? {}, this.accesosForm.getRawValue())
+      : accesosPorSucursal[nodoId] ?? {};
     const comercioGuardado = this.obtenerComercioPorNodo()[nodoId];
     const comercio = comercioGuardado ?? this.comercioForm.getRawValue();
     const tipoComercioPayload = this.tipoComercioPayload(nodoId, comercio.tipoComercio);
@@ -2298,12 +2315,12 @@ export class PreRegistroComponent {
       businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
       idBussinesLine: this.valorNumero(datos['mcc']),
       idActivity: this.valorNumero(datos['actividadId']),
-      email: incluirContactoPrincipal ? emailComercio : '',
+      email: opciones.omitirEmailTelefonoPrincipal ? '' : emailComercio,
       password: this.valorTexto(accesos['pinContrasena']),
       name: incluirContactoPrincipal ? this.valorTexto(datos['nombre']) || this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(accesos['adminNombre']) : '',
       paternalSurname: incluirContactoPrincipal ? this.valorTexto(datos['apellidoPaterno']) || this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(accesos['adminPaterno']) : '',
       maternalSurname: incluirContactoPrincipal ? this.valorTexto(datos['apellidoMaterno']) || this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(accesos['adminMaterno']) : '',
-      phoneNumber: incluirContactoPrincipal ? telefonoComercio : '',
+      phoneNumber: opciones.omitirEmailTelefonoPrincipal ? '' : telefonoComercio,
       rfc: this.valorTexto(datos['rfc']),
       curp: this.valorTexto(datos['curp']),
       fiscalRegime: this.codigoRegimenFiscal(datos['regimenFiscal']),
@@ -2903,12 +2920,12 @@ export class PreRegistroComponent {
   }
 
   private primerNodoCapturableArbol(): NodoArbolNegocio | undefined {
-    return this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.nivel !== 'caja');
+    return this.nodosCapturablesParaFlujo()[0];
   }
 
   private nodosCapturablesParaFlujo(): NodoArbolNegocio[] {
     const nodos = this.aplanarArbolNegocio(this.arbolNegocioWizard);
-    return this.tipoNegocioSeleccionado?.id === 'auditor-unico'
+    return this.configuracionArbol.mostrarCajas
       ? nodos
       : nodos.filter(nodo => nodo.nivel !== 'caja');
   }
