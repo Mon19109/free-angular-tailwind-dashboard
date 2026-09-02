@@ -126,7 +126,7 @@
 
 .flow-stepper {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   padding: clamp(16px, 2.2vw, 24px);
 }
@@ -148,8 +148,8 @@
   content: "";
   position: absolute;
   top: 27px;
-  left: calc(50% + 34px);
-  width: calc(100% - 68px);
+  left: calc(50% + 46px);
+  width: calc(100% - 92px);
   height: 2px;
   background: var(--reg-line);
 }

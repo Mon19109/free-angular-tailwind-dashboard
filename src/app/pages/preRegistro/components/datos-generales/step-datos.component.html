@@ -101,6 +101,7 @@
       <div class="field">
         <label for="actividad">Actividad <b>*</b></label>
         <input id="actividad" formControlName="actividad" readonly placeholder="Selecciona una actividad"
+          [class.readonly-locked]="bloquearActividad"
           (click)="abrirModalActividad()" (focus)="abrirModalActividad()" [class.invalid]="esInvalido('actividad')" />
         @if (esInvalido('actividad')) { <small>{{ mensajeCampo('actividad') }}</small> }
       </div>
@@ -139,7 +140,7 @@
       </div>
       }
 
-      @if (tiene('descripcionGiro') && esPersonaMoral) {
+      @if (mostrarBusquedaAvanzadaGiro && tiene('descripcionGiro') && esPersonaMoral) {
       <div class="field field-btn-avanzada">
         <span class="label-spacer"></span>
         <button type="button" class="btn-busqueda-avanzada" (click)="abrirModalGiro()">

@@ -22,6 +22,10 @@ import {
   DocumentosProspectoService,
   EstatusDocumentoProspecto
 } from '../../services/documentos-prospecto.service';
+import { CuentaComercioService } from '../../services/cuenta-comercio.service';
+import { Actividad, ActividadesService } from '../../services/actividades.service';
+import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/localidades.service';
+import { GiroComercial, PreRegistroService } from '../../services/preregistro.service';
 
 type NivelNodo = 'sub-afiliado' | 'referenciador' | 'entidad' | 'sucursal' | 'caja';
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
@@ -64,13 +68,17 @@ export class RegistroClienteComponent {
   private readonly router = inject(Router);
   private readonly sipreladService = inject(SipreladService);
   private readonly documentosProspectoService = inject(DocumentosProspectoService);
+  private readonly cuentaComercioService = inject(CuentaComercioService);
+  private readonly actividadesService = inject(ActividadesService);
+  private readonly localidadesService = inject(LocalidadesService);
+  private readonly preRegistroService = inject(PreRegistroService);
   private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
   private readonly registroLocalKey = 'kashpay.registro_cliente.local.v1';
   private readonly ocultarArbolRegistroTemporal = true;
-  private readonly mostrarSoloPasosTresCincoRegistroTemporal = true;
+  private readonly mostrarSoloPasosTresCincoRegistroTemporal = false;
 
-  pasoActual = 3;
-  seccionAbierta: SeccionRegistro['id'] | null = 'liquidacion';
+  pasoActual = 1;
+  seccionAbierta: SeccionRegistro['id'] | null = 'comercio';
   pasosCompletados = new Set<string>();
   nodoSeleccionado = 'entidad-1-sucursal-1-caja-3';
   nodosColapsados = new Set<string>();
@@ -85,6 +93,14 @@ export class RegistroClienteComponent {
   commerceID = '';
   documentosProspecto: DocumentoProspectoApi[] = [];
   cargandoDocumentosProspecto = false;
+  cargandoCuentaComercio = false;
+  errorCuentaComercio = '';
+  localidadesFiscal: CodigoPostalLocalizacion[] = [];
+  localidadesComercial: CodigoPostalLocalizacion[] = [];
+  localidadesRepresentante: CodigoPostalLocalizacion[] = [];
+  cargandoLocalidadesFiscal = false;
+  cargandoLocalidadesComercial = false;
+  cargandoLocalidadesRepresentante = false;
   guardandoRevisionDocumentos = false;
   enviandoNotificacionMesaDigital = false;
   errorDocumentosProspecto = '';
@@ -189,19 +205,19 @@ export class RegistroClienteComponent {
   };
 
   readonly datosGeneralesPorTipo: Record<string, string[]> = {
-    'Empresa Grupo': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Persona Física': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Empresa Holding': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursales de Grupo': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursal Persona Física': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Sucursales Únicas': ['rfc', 'razonSocial', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Empresa Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Persona Física': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'nombreComercial', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Empresa Holding': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursales de Grupo': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursal Persona Física': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Sucursales Únicas': ['tipoPersona', 'rfc', 'razonSocial', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'nombreComercial', 'regimenFiscal', 'actividad', 'giroComercial', 'descripcionGiro', 'mcc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
     'Caja con Tarjeta sólo Fondeo': [],
     'Caja con Tarjeta SPEI': [],
     'Cuenta Entidad': [],
     'Cuenta Terminal': [],
     'Cuenta Terminal Pin Rapido': [],
-    'Referenciador': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
-    'Comisionista': ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle']
+    'Referenciador': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'nombreComercial', 'giroComercial', 'descripcionGiro', 'mcc', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle'],
+    'Comisionista': ['tipoPersona', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'nombreComercial', 'giroComercial', 'descripcionGiro', 'mcc', 'rfc', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle']
   };
 
   readonly documentos: DocumentoRequerido[] = [
@@ -248,9 +264,9 @@ export class RegistroClienteComponent {
     razonSocial: [''], nombreComercial: [''], rfc: [''], regimenFiscal: [''], giroComercial: [''], descripcionGiro: [''], mcc: [''],
     mismaInfoFiscalEntidad: [false], nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''],
     tipoPersona: [''], correo: ['', Validators.email], telefono: [''], departamento: [''], ciudad: [''], direccionComercial: [''],
-    codigoPostal: [''], tipoVialidad: [''], nombreVialidad: [''], numeroExterior: [''], numeroInterior: [''], colonia: [''], localidad: [''], municipio: [''], entidadFederativa: [''], entreCalle: [''], yCalle: [''],
-    nombreRepresentante: [''], apellidoPaternoRepresentante: [''], apellidoMaternoRepresentante: [''], calleRepresentante: [''], numeroExteriorRepresentante: [''], numeroInteriorRepresentante: [''], codigoPostalRepresentante: [''], coloniaRepresentante: [''], municipioRepresentante: [''], estadoRepresentante: [''], correoRepresentante: [''], telefonoRepresentante: [''], telefonoAdicionalRepresentante: [''],
-    mismoDomicilio: [false], codigoPostalComercial: ['', Validators.required], tipoVialidadComercial: ['', Validators.required], nombreVialidadComercial: ['', Validators.required], numeroExteriorComercial: [''], numeroInteriorComercial: [''], coloniaComercial: ['', Validators.required], localidadComercial: ['', Validators.required], municipioComercial: ['', Validators.required], entidadFederativaComercial: ['', Validators.required], entreCalleComercial: [''], yCalleComercial: [''],
+    codigoPostal: [''], tipoVialidad: [''], nombreVialidad: [''], numeroExterior: [''], numeroInterior: [''], colonia: [''], localidad: [''], municipio: [''], entidadFederativa: [''], locationID: [''], entreCalle: [''], yCalle: [''],
+    nombreRepresentante: [''], apellidoPaternoRepresentante: [''], apellidoMaternoRepresentante: [''], calleRepresentante: [''], numeroExteriorRepresentante: [''], numeroInteriorRepresentante: [''], codigoPostalRepresentante: [''], coloniaRepresentante: [''], municipioRepresentante: [''], estadoRepresentante: [''], locationIDRepresentante: [''], correoRepresentante: [''], telefonoRepresentante: [''], telefonoAdicionalRepresentante: [''],
+    mismoDomicilio: [false], codigoPostalComercial: ['', Validators.required], tipoVialidadComercial: ['', Validators.required], nombreVialidadComercial: ['', Validators.required], numeroExteriorComercial: [''], numeroInteriorComercial: [''], coloniaComercial: ['', Validators.required], localidadComercial: ['', Validators.required], municipioComercial: ['', Validators.required], entidadFederativaComercial: ['', Validators.required], locationIDComercial: [''], entreCalleComercial: [''], yCalleComercial: [''],
     correoComercial: ['', [Validators.required, Validators.email]], telefonoComercial: ['', Validators.required], telefonoAdicionalComercial: ['']
   });
 
@@ -300,7 +316,7 @@ export class RegistroClienteComponent {
     const params = this.route.snapshot.queryParamMap;
     const emailComercioServicio = this.correoParametro(params.get('email')) || this.correoParametro(params.get('correo'));
     this.comercioSeleccionado = {
-      idComercio: params.get('id') ?? '',
+      idComercio: params.get('entitySonID') || params.get('id') || '',
       nivel: params.get('nivel') ?? 'Sucursal',
       nombreComercial: params.get('nombre') ?? '',
       rfc: params.get('rfc') ?? '',
@@ -331,8 +347,8 @@ export class RegistroClienteComponent {
       nombreComercial: this.comercioSeleccionado.nombreComercial,
       razonSocial: this.comercioSeleccionado.nombreComercial,
       rfc: this.comercioSeleccionado.rfc,
-      correoComercial: this.comercioSeleccionado.correo,
-      telefonoComercial: this.comercioSeleccionado.telefono
+      correo: this.comercioSeleccionado.correo,
+      telefono: this.comercioSeleccionado.telefono
     }, { emitEvent: false });
 
     this.comercioForm.controls.nivel.valueChanges.subscribe(nuevoNivel => {
@@ -377,6 +393,7 @@ export class RegistroClienteComponent {
     this.seleccionarNodoPorId(this.nodoSeleccionado);
     this.consultarResultadoSiprelad();
     this.consultarDocumentosProspecto();
+    this.consultarCuentaComercio();
   }
 
   get arbol(): NodoRegistro[] {
@@ -395,7 +412,7 @@ export class RegistroClienteComponent {
   }
 
   get pasosVisiblesRegistro() {
-    return this.secciones.map((seccion, index) => ({
+    return this.seccionesVisibles.map((seccion, index) => ({
       id: seccion.id,
       numero: index + 1,
       titulo: seccion.titulo
@@ -404,9 +421,9 @@ export class RegistroClienteComponent {
 
   get seccionesVisibles(): SeccionRegistro[] {
     return this.secciones.filter(seccion => {
+      if (this.nivelSeleccionado === 'caja') return seccion.id === 'comercio';
+      if (['liquidacion', 'accesos'].includes(seccion.id)) return false;
       if (seccion.id === 'datos') return this.camposDatosGenerales.length > 0;
-      if (seccion.id === 'accesos') return this.mostrarPasoAccesos;
-      if (seccion.id === 'liquidacion') return this.nivelSeleccionado !== 'caja';
       if (seccion.id === 'documentos') return this.mostrarSoloPasosTresCincoRegistroTemporal || this.documentosVisibles.length > 0;
       return true;
     });
@@ -422,7 +439,8 @@ export class RegistroClienteComponent {
   }
 
   numeroPasoRegistro(id: SeccionRegistro['id']): number {
-    return this.secciones.findIndex(seccion => seccion.id === id) + 1;
+    const indexVisible = this.seccionesVisibles.findIndex(seccion => seccion.id === id);
+    return indexVisible >= 0 ? indexVisible + 1 : this.secciones.findIndex(seccion => seccion.id === id) + 1;
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
@@ -482,7 +500,7 @@ export class RegistroClienteComponent {
     const nivel = this.comercioForm.getRawValue().nivel;
     return nivel ? [nivel] : this.niveles;
   }
-  get mostrarInfoFiscalEntidadSucursal(): boolean { return this.nivelSeleccionado === 'sucursal'; }
+  get mostrarInfoFiscalEntidadSucursal(): boolean { return false; }
   get nivelSeleccionado(): NivelNodo { return this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nivel ?? 'sucursal'; }
 
   private consultarResultadoSiprelad(): void {
@@ -537,6 +555,416 @@ export class RegistroClienteComponent {
         this.cargandoDocumentosProspecto = false;
       }
     });
+  }
+
+  private consultarCuentaComercio(): void {
+    const sirioId = this.comercioSeleccionado.idComercio.trim();
+    if (!sirioId) return;
+
+    this.cargandoCuentaComercio = true;
+    this.errorCuentaComercio = '';
+    this.cuentaComercioService.consultarCuenta(sirioId).subscribe({
+      next: respuesta => {
+        const cuenta = this.registroCuentaDesdeRespuesta(respuesta);
+        this.pintarCuentaComercio(cuenta);
+        this.cargandoCuentaComercio = false;
+      },
+      error: () => {
+        this.errorCuentaComercio = 'No fue posible consultar los datos del comercio.';
+        this.cargandoCuentaComercio = false;
+      }
+    });
+  }
+
+  private pintarCuentaComercio(cuenta: Record<string, unknown>): void {
+    if (!Object.keys(cuenta).length) return;
+
+    const direccionFiscal = this.direccionCuenta(cuenta, 'DF');
+    const direccionComercial = this.direccionCuenta(cuenta, 'DC') || direccionFiscal;
+    const contactoRepresentante = this.contactoCuenta(cuenta, 1);
+    const contactoComercial = this.contactoCuenta(cuenta, 2);
+    const tieneContactoComercial = Object.keys(contactoComercial).length > 0;
+    const direccionRepresentante = this.direccionContactoCuenta(contactoRepresentante);
+    const nombre = this.valorCuenta(cuenta, ['name', 'firstName', 'nombre', 'names']);
+    const apellidoPaterno = this.valorCuenta(cuenta, ['patSurname', 'paternalSurname', 'apellidoPaterno', 'lastName']);
+    const apellidoMaterno = this.valorCuenta(cuenta, ['matSurname', 'maternalSurname', 'apellidoMaterno', 'secondLastName']);
+    const razonSocial = this.valorCuenta(cuenta, ['businessName', 'companyName', 'razonSocial']);
+    const nombreComercial = this.valorCuenta(cuenta, ['nameCommerce', 'commercialName', 'nombreComercial']);
+    const rfc = this.valorCuenta(cuenta, ['rfc', 'RFC']);
+    const email = this.valorCuenta(cuenta, ['email', 'correo', 'mail']);
+    const phone = this.valorCuenta(cuenta, ['phoneNumber', 'phone', 'telefono']);
+    const tipoPersona = this.tipoPersonaDesdeCuenta(cuenta, rfc);
+    const tipoComercio = this.valorCuenta(cuenta, ['commerceType', 'typeCommerce', 'businessModelName', 'typeOfBusinessName']);
+    const tipoComercioPorPersona = tipoPersona === 'PF' && this.tiposComercio.includes('Persona Física') ? 'Persona Física' : '';
+
+    if (tipoComercioPorPersona || (tipoComercio && this.tiposComercio.includes(tipoComercio))) {
+      this.comercioForm.patchValue({ tipoComercio: tipoComercioPorPersona || tipoComercio }, { emitEvent: false });
+    }
+
+    this.datosForm.patchValue(this.valoresConContenido({
+      tipoPersona,
+      razonSocial,
+      nombreComercial: nombreComercial || razonSocial || this.comercioSeleccionado.nombreComercial,
+      rfc,
+      nombre,
+      apellidoPaterno,
+      apellidoMaterno,
+      curp: this.valorCuenta(cuenta, ['curp', 'CURP']),
+      regimenFiscal: this.regimenFiscalDesdeCuenta(this.valorCuenta(cuenta, ['fiscalRegime', 'regimenFiscal'])),
+      actividad: this.valorCuenta(cuenta, ['activityDescription', 'actividad']) || this.valorCuenta(cuenta, ['idActivity']),
+      giroComercial: this.valorCuentaNoCero(cuenta, ['businessLine', 'giroComercial', 'giro', 'idBussinesLine']),
+      descripcionGiro: this.valorCuentaNoCero(cuenta, ['bussinesLineDescription', 'businessLineDescription', 'descripcionGiro']),
+      mcc: this.valorCuentaNoCero(cuenta, ['businessActivityCode', 'mcc', 'MCC']),
+      correo: email,
+      telefono: phone,
+      codigoPostal: this.valorDireccionCuenta(direccionFiscal, ['postalCode']),
+      tipoVialidad: this.valorDireccionCuenta(direccionFiscal, ['roadType']),
+      nombreVialidad: this.valorDireccionCuenta(direccionFiscal, ['roadName']),
+      numeroExterior: this.valorDireccionCuenta(direccionFiscal, ['extNum']),
+      numeroInterior: this.valorDireccionCuenta(direccionFiscal, ['intNum']),
+      colonia: this.valorDireccionCuenta(direccionFiscal, ['district']),
+      localidad: this.valorDireccionCuenta(direccionFiscal, ['location']),
+      municipio: this.valorDireccionCuenta(direccionFiscal, ['municipality']),
+      entidadFederativa: this.valorDireccionCuenta(direccionFiscal, ['federativeEntity']),
+      locationID: this.valorDireccionCuenta(direccionFiscal, ['locationID']),
+      entreCalle: this.valorDireccionCuenta(direccionFiscal, ['betweenStreet']),
+      yCalle: this.valorDireccionCuenta(direccionFiscal, ['andStreet']),
+      codigoPostalComercial: this.valorDireccionCuenta(direccionComercial, ['postalCode']),
+      tipoVialidadComercial: this.valorDireccionCuenta(direccionComercial, ['roadType']),
+      nombreVialidadComercial: this.valorDireccionCuenta(direccionComercial, ['roadName']),
+      numeroExteriorComercial: this.valorDireccionCuenta(direccionComercial, ['extNum']),
+      numeroInteriorComercial: this.valorDireccionCuenta(direccionComercial, ['intNum']),
+      coloniaComercial: this.valorDireccionCuenta(direccionComercial, ['district']),
+      localidadComercial: this.valorDireccionCuenta(direccionComercial, ['location']),
+      municipioComercial: this.valorDireccionCuenta(direccionComercial, ['municipality']),
+      entidadFederativaComercial: this.valorDireccionCuenta(direccionComercial, ['federativeEntity']),
+      locationIDComercial: this.valorDireccionCuenta(direccionComercial, ['locationID']),
+      entreCalleComercial: this.valorDireccionCuenta(direccionComercial, ['betweenStreet']),
+      yCalleComercial: this.valorDireccionCuenta(direccionComercial, ['andStreet']),
+      nombreRepresentante: this.valorCuenta(contactoRepresentante, ['name', 'nombre']),
+      apellidoPaternoRepresentante: this.valorCuenta(contactoRepresentante, ['paternalSurname', 'apellidoPaterno']),
+      apellidoMaternoRepresentante: this.valorCuenta(contactoRepresentante, ['maternalSurname', 'apellidoMaterno']),
+      correoRepresentante: this.valorCuenta(contactoRepresentante, ['email', 'correo']),
+      telefonoRepresentante: this.valorCuenta(contactoRepresentante, ['phoneNumber', 'telefono']),
+      telefonoAdicionalRepresentante: this.valorCuenta(contactoRepresentante, ['additionaPhoneNumber', 'additionalPhoneNumber', 'telefonoAdicional']),
+      calleRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['street', 'roadName', 'calle']),
+      numeroExteriorRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['exteriorNumber', 'extNum', 'numeroExterior']),
+      numeroInteriorRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['interiorNumber', 'intNum', 'numeroInterior']),
+      codigoPostalRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['postalCode', 'codigoPostal']),
+      coloniaRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['district', 'colonia']),
+      municipioRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['municipality', 'municipio']),
+      estadoRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['state', 'federativeEntity', 'estado']),
+      locationIDRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['idLocation', 'locationID']),
+    }), { emitEvent: false });
+
+    this.datosForm.patchValue({
+      correoComercial: tieneContactoComercial ? this.valorCuenta(contactoComercial, ['email', 'correo']) : '',
+      telefonoComercial: tieneContactoComercial ? this.valorCuenta(contactoComercial, ['phoneNumber', 'telefono']) : '',
+      telefonoAdicionalComercial: tieneContactoComercial ? this.valorCuenta(contactoComercial, ['additionaPhoneNumber', 'additionalPhoneNumber', 'telefonoAdicional']) : ''
+    }, { emitEvent: false });
+
+    this.resolverActividadCuenta(cuenta);
+    this.resolverGiroCuenta(cuenta);
+    this.consultarLocalidadesCuenta('DF', direccionFiscal);
+    this.consultarLocalidadesCuenta('DC', direccionComercial);
+
+    this.contextoSeleccionado = {
+      ...this.contextoSeleccionado,
+      nombreComercial: nombreComercial || razonSocial || this.contextoSeleccionado.nombreComercial,
+      rfc: rfc || this.contextoSeleccionado.rfc
+    };
+    this.actualizarValidadoresDatos();
+  }
+
+  private registroCuentaDesdeRespuesta(respuesta: unknown): Record<string, unknown> {
+    const registros = this.registrosCuentaDesdeRespuesta(respuesta);
+    return registros[0] ?? {};
+  }
+
+  private registrosCuentaDesdeRespuesta(respuesta: unknown): Array<Record<string, unknown>> {
+    if (Array.isArray(respuesta)) return respuesta.filter(this.esRegistroCuenta);
+    if (!this.esRegistroCuenta(respuesta)) return [];
+
+    const data = respuesta as Record<string, unknown>;
+    for (const llave of ['entityInfo', 'data', 'account', 'result', 'commerce', 'customer']) {
+      const valor = data[llave];
+      if (Array.isArray(valor)) return valor.filter(this.esRegistroCuenta);
+      if (this.esRegistroCuenta(valor)) return [valor];
+    }
+
+    return [data];
+  }
+
+  private valorCuenta(registro: Record<string, unknown>, llaves: string[]): string {
+    for (const llave of llaves) {
+      const valor = registro[llave];
+      if (valor !== undefined && valor !== null && String(valor).trim()) return String(valor).trim();
+    }
+
+    for (const valor of Object.values(registro)) {
+      if (this.esRegistroCuenta(valor)) {
+        const encontrado = this.valorCuenta(valor, llaves);
+        if (encontrado) return encontrado;
+      }
+    }
+
+    return '';
+  }
+
+  private valorCuentaNoCero(registro: Record<string, unknown>, llaves: string[]): string {
+    const valor = this.valorCuenta(registro, llaves);
+    return valor && valor !== '0' ? valor : '';
+  }
+
+  private contactoCuenta(registro: Record<string, unknown>, type: 1 | 2): Record<string, unknown> {
+    const contactos = this.listaContactosCuenta(registro);
+    return contactos.find(contacto => Number(contacto['type']) === type) ?? {};
+  }
+
+  private listaContactosCuenta(registro: Record<string, unknown>): Array<Record<string, unknown>> {
+    const contacts = registro['contacts'];
+    if (Array.isArray(contacts)) return contacts.filter(this.esRegistroCuenta);
+
+    for (const valor of Object.values(registro)) {
+      if (this.esRegistroCuenta(valor)) {
+        const encontrados = this.listaContactosCuenta(valor);
+        if (encontrados.length) return encontrados;
+      }
+    }
+
+    return [];
+  }
+
+  private direccionContactoCuenta(contacto: Record<string, unknown>): Record<string, unknown> | null {
+    const address = contacto['address'];
+    return this.esRegistroCuenta(address) ? address : null;
+  }
+
+  private direccionCuenta(registro: Record<string, unknown>, addressType: 'DF' | 'DC'): Record<string, unknown> | null {
+    const direcciones = this.listaDireccionesCuenta(registro);
+    const encontrada = direcciones.find(direccion => this.normalizarTexto(String(direccion['addressType'] ?? '')) === addressType);
+    return encontrada ?? null;
+  }
+
+  private listaDireccionesCuenta(registro: Record<string, unknown>): Array<Record<string, unknown>> {
+    const commerceAddress = registro['commerceAddress'];
+    if (Array.isArray(commerceAddress)) return commerceAddress.filter(this.esRegistroCuenta);
+
+    for (const valor of Object.values(registro)) {
+      if (this.esRegistroCuenta(valor)) {
+        const direcciones = this.listaDireccionesCuenta(valor);
+        if (direcciones.length) return direcciones;
+      }
+    }
+
+    return [];
+  }
+
+  private valorDireccionCuenta(registro: Record<string, unknown> | null, llaves: string[]): string {
+    return registro ? this.valorCuenta(registro, llaves) : '';
+  }
+
+  private valorDireccionRepresentanteCuenta(registro: Record<string, unknown> | null, llaves: string[]): string {
+    return registro ? this.valorCuenta(registro, llaves) : '';
+  }
+
+  private resolverActividadCuenta(cuenta: Record<string, unknown>): void {
+    const descripcion = this.valorCuenta(cuenta, ['activityDescription', 'actividad']);
+    if (descripcion) {
+      this.datosForm.patchValue({ actividad: descripcion }, { emitEvent: false });
+      return;
+    }
+
+    const idActivity = this.valorCuenta(cuenta, ['idActivity']);
+    if (!idActivity) return;
+
+    this.actividadesService.getActividades().subscribe({
+      next: actividades => {
+        const actividad = actividades.find(item => this.idActividad(item) === idActivity);
+        this.datosForm.patchValue({
+          actividad: this.descripcionActividad(actividad) || idActivity
+        }, { emitEvent: false });
+      }
+    });
+  }
+
+  private resolverGiroCuenta(cuenta: Record<string, unknown>): void {
+    const familia = this.valorCuentaNoCero(cuenta, ['businessLine', 'giroComercial', 'giro']);
+    const descripcion = this.valorCuentaNoCero(cuenta, ['bussinesLineDescription', 'businessLineDescription', 'descripcionGiro']);
+    const mcc = this.valorCuentaNoCero(cuenta, ['businessActivityCode', 'mcc', 'MCC']);
+    const idGiro = this.valorCuentaNoCero(cuenta, ['idBussinesLine']);
+
+    if (familia || descripcion || mcc) {
+      this.datosForm.patchValue({
+        giroComercial: familia,
+        descripcionGiro: descripcion,
+        mcc
+      }, { emitEvent: false });
+      return;
+    }
+
+    if (!idGiro) return;
+
+    this.preRegistroService.getGirosByFamily(idGiro).subscribe({
+      next: respuesta => {
+        const giro = this.girosDesdeRespuesta(respuesta).find(item => this.valorCuenta(item, ['idGiro', 'id', 'mcc', 'MCC']) === idGiro);
+        if (!giro) return;
+
+        this.datosForm.patchValue({
+          giroComercial: this.valorCuenta(giro, ['familia', 'family', 'giro', 'giroComercial', 'name', 'nombre']),
+          descripcionGiro: this.valorCuenta(giro, ['descripcion', 'description', 'desGiro', 'actividad', 'activity', 'label', 'nombreGiro']),
+          mcc: this.valorCuenta(giro, ['mcc', 'MCC', 'codigoMcc', 'codigoMCC', 'idGiro', 'id', 'code', 'codigo'])
+        }, { emitEvent: false });
+      }
+    });
+  }
+
+  private girosDesdeRespuesta(respuesta: unknown): GiroComercial[] {
+    if (Array.isArray(respuesta)) return respuesta as GiroComercial[];
+    if (!respuesta || typeof respuesta !== 'object') return [];
+
+    const body = respuesta as Record<string, unknown>;
+    for (const key of ['rows', 'data', 'giros', 'catGiroResponse', 'result', 'response', 'items', 'list', 'content']) {
+      const value = body[key];
+      if (Array.isArray(value)) return value as GiroComercial[];
+      const nested = this.girosDesdeRespuesta(value);
+      if (nested.length) return nested;
+    }
+
+    return ['familia', 'family', 'giro', 'descripcion', 'description', 'mcc', 'MCC'].some(key => body[key] !== undefined)
+      ? [body as GiroComercial]
+      : [];
+  }
+
+  private idActividad(actividad: Actividad | undefined): string {
+    if (!actividad) return '';
+    return this.valorCuenta(actividad, ['idcat_actividades', 'idActivity', 'id', 'code']);
+  }
+
+  private descripcionActividad(actividad: Actividad | undefined): string {
+    if (!actividad) return '';
+    return this.valorCuenta(actividad, ['descripcion', 'description', 'actividad', 'activity', 'nombre', 'name', 'label']);
+  }
+
+  private consultarLocalidadesCuenta(addressType: 'DF' | 'DC', direccion: Record<string, unknown> | null): void {
+    const codigoPostal = this.valorDireccionCuenta(direccion, ['postalCode']);
+    const locationID = this.valorDireccionCuenta(direccion, ['locationID']);
+    if (!/^\d{5}$/.test(codigoPostal)) return;
+
+    if (addressType === 'DF') this.cargandoLocalidadesFiscal = true;
+    if (addressType === 'DC') this.cargandoLocalidadesComercial = true;
+
+    this.localidadesService.obtenerPorCodigoPostal(codigoPostal).subscribe({
+      next: localidades => {
+        const localidad = this.localidadPorId(localidades, locationID);
+        if (addressType === 'DF') {
+          this.localidadesFiscal = localidades;
+          this.cargandoLocalidadesFiscal = false;
+          this.pintarLocalidadFiscal(localidad, direccion);
+          return;
+        }
+
+        this.localidadesComercial = localidades;
+        this.cargandoLocalidadesComercial = false;
+        this.pintarLocalidadComercial(localidad, direccion);
+      },
+      error: () => {
+        if (addressType === 'DF') {
+          this.localidadesFiscal = [];
+          this.cargandoLocalidadesFiscal = false;
+        }
+        if (addressType === 'DC') {
+          this.localidadesComercial = [];
+          this.cargandoLocalidadesComercial = false;
+        }
+      }
+    });
+  }
+
+  seleccionarLocalidad(idLocalidad: string, addressType: 'DF' | 'DC' | 'REP'): void {
+    const localidades = addressType === 'DF'
+      ? this.localidadesFiscal
+      : addressType === 'DC'
+        ? this.localidadesComercial
+        : this.localidadesRepresentante;
+    const localidad = this.localidadPorId(localidades, idLocalidad);
+    if (!localidad) return;
+
+    if (addressType === 'DF') {
+      this.pintarLocalidadFiscal(localidad);
+      return;
+    }
+
+    if (addressType === 'DC') {
+      this.pintarLocalidadComercial(localidad);
+      return;
+    }
+
+    this.datosForm.patchValue({
+      coloniaRepresentante: this.coloniaLocalidad(localidad),
+      municipioRepresentante: this.municipioLocalidad(localidad),
+      estadoRepresentante: this.estadoLocalidad(localidad),
+      locationIDRepresentante: this.idLocalidad(localidad),
+    });
+  }
+
+  private pintarLocalidadFiscal(localidad: CodigoPostalLocalizacion | null, respaldo?: Record<string, unknown> | null): void {
+    this.datosForm.patchValue({
+      colonia: localidad ? this.coloniaLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['district']),
+      localidad: localidad ? this.coloniaLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['location']),
+      municipio: localidad ? this.municipioLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['municipality']),
+      entidadFederativa: localidad ? this.estadoLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['federativeEntity']),
+      locationID: localidad ? this.idLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['locationID']),
+    }, { emitEvent: false });
+  }
+
+  private pintarLocalidadComercial(localidad: CodigoPostalLocalizacion | null, respaldo?: Record<string, unknown> | null): void {
+    this.datosForm.patchValue({
+      coloniaComercial: localidad ? this.coloniaLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['district']),
+      localidadComercial: localidad ? this.coloniaLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['location']),
+      municipioComercial: localidad ? this.municipioLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['municipality']),
+      entidadFederativaComercial: localidad ? this.estadoLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['federativeEntity']),
+      locationIDComercial: localidad ? this.idLocalidad(localidad) : this.valorDireccionCuenta(respaldo ?? null, ['locationID']),
+    }, { emitEvent: false });
+  }
+
+  private localidadPorId(localidades: CodigoPostalLocalizacion[], locationID: string): CodigoPostalLocalizacion | null {
+    return localidades.find(localidad => this.idLocalidad(localidad) === locationID) ?? null;
+  }
+
+  private idLocalidad(localidad: CodigoPostalLocalizacion): string {
+    return String(localidad.idLocalidad ?? localidad.locationID ?? '');
+  }
+
+  private coloniaLocalidad(localidad: CodigoPostalLocalizacion): string {
+    return String(localidad.colonia ?? localidad.district ?? '');
+  }
+
+  private municipioLocalidad(localidad: CodigoPostalLocalizacion): string {
+    return String(localidad.municipio ?? localidad.municipality ?? '');
+  }
+
+  private estadoLocalidad(localidad: CodigoPostalLocalizacion): string {
+    return String(localidad.estado ?? localidad.federativeEntity ?? '');
+  }
+
+  private tipoPersonaDesdeCuenta(registro: Record<string, unknown>, rfc: string): string {
+    const valor = this.normalizarTexto(this.valorCuenta(registro, ['personType', 'tipoPersona', 'typePerson']));
+    if (['PF', 'FISICA', 'FÍSICA', 'PERSONA FISICA', 'PERSONA FÍSICA'].includes(valor)) return 'PF';
+    if (['PM', 'MORAL', 'PERSONA MORAL'].includes(valor)) return 'PM';
+    return rfc.length === 12 ? 'PM' : rfc.length === 13 ? 'PF' : '';
+  }
+
+  private regimenFiscalDesdeCuenta(valor: string): string {
+    const codigo = valor.trim();
+    if (!codigo) return '';
+
+    return this.regimenesFiscales.find(regimen => regimen.startsWith(`${codigo} `) || regimen.startsWith(`${codigo} -`))
+      ?? codigo;
+  }
+
+  private esRegistroCuenta(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
   }
 
   cambiarEntidades(cambio: number): void {

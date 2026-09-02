@@ -14,6 +14,7 @@ type FiltroJerarquia = 'entidad' | 'sucursal' | 'caja';
 
 interface Comercio {
   idComercio: string;
+  entitySonID?: string;
   nodoId?: string;
   guid?: string;
   nivel: 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja' | 'Prospecto';
@@ -268,6 +269,7 @@ export class ConsultaComerciosComponent {
       const nivel = this.nivelDesdeComercioApi(comercio);
       return {
         idComercio: comercio.entitySonID || this.idComercioDesdeApi(comercio),
+        entitySonID: comercio.entitySonID,
         guid: this.guidDesdeComercioApi(comercio),
         nivel,
         jerarquia: this.jerarquiaDesdeComercioApi(comercio, nivel),
@@ -455,6 +457,7 @@ export class ConsultaComerciosComponent {
       this.router.navigate(['/registro_cliente'], {
         queryParams: {
           id: comercio.idComercio,
+          entitySonID: comercio.entitySonID || comercio.idComercio,
           nivel: comercio.nivel,
           nombre: comercio.nombreComercial,
           rfc: comercio.rfc,

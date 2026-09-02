@@ -51,6 +51,8 @@ export class StepDatosComponent implements OnInit {
   @Input() mismaInfoAccesoActiva = false;
   @Input() mostrarMismoDomicilio = true;
   @Input() bloquearTipoPersona = false;
+  @Input() bloquearActividad = false;
+  @Input() mostrarBusquedaAvanzadaGiro = true;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
@@ -211,6 +213,7 @@ export class StepDatosComponent implements OnInit {
   }
 
   abrirModalActividad(): void {
+    if (this.bloquearActividad) return;
     if (!this.esPersonaFisica) return;
     this.terminoActividad.setValue('');
     this.actividadSeleccionada = null;
