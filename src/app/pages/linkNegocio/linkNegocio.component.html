@@ -1,0 +1,164 @@
+<div class="allcp-form theme-primary">
+  <div class="row">
+    <form class="form-kash" name="form-pay" id="form-pay">
+      <div class="col-md-2"></div>
+
+      <div class="col-md-8">
+        <div class="row">
+          <h5 class="text-center text-dorado">PAGOS A DISTANCIA</h5>
+        </div>
+
+        <div class="panel panel-visible infoOcultar">
+          <div class="panel-body pn areaForm">
+            <div class="row">
+              <div class="col-md-12 mb-5">
+                <p class="text-16 text-center"><b>¡Bienvenido! a la página de pago de:</b></p>
+                <p class="text-16" id="nombre-comercio"></p>
+                <p class="text-16">Celular: <span id="telefono-comercio"></span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel panel-visible">
+          <div class="panel-body pn">
+            <div class="col-md-12">
+              <div class="p-3 border rounded m-10" style="margin: 5% 0">
+                <p>Ingresa el monto y concepto para que puedan identificar tu pago.</p>
+                <p>Recuerda que puedes pagar con tarjeta de crédito, débito, pagos en efectivo o SPEI.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="credit-card-div" id="pay_option">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <div class="row">
+                <div class="col-md-12 pad-adjust mb-5">
+                  <img
+                    src="/pagosDistancia/Marcas.png"
+                    alt="Métodos de pago disponibles"
+                    style="width: 100%; padding: 15px 0"
+                  >
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-12 pad-adjust">
+                  <label for="monto" class="help-block text-black small-font">Monto</label>
+                  <input
+                    type="text"
+                    id="monto"
+                    name="monto"
+                    class="form-control monto"
+                    inputmode="decimal"
+                    placeholder="0.00"
+                  >
+                  <small class="error" id="error-monto"></small>
+                </div>
+
+                <div class="col-md-12 pad-adjust">
+                  <label for="concepto" class="help-block text-black small-font">Concepto</label>
+                  <input
+                    maxlength="60"
+                    type="text"
+                    id="concepto"
+                    name="concepto"
+                    class="form-control"
+                  >
+                  <small class="error" id="error-concepto"></small>
+                </div>
+
+                <input type="hidden" id="sirio" name="sirio">
+                <input type="hidden" id="emailComer" name="emailComer">
+                <input type="hidden" id="orderingAccount" name="orderingAccount">
+
+                <div class="col-md-12 pad-adjust">
+                  <label for="nombre" class="help-block text-black small-font">Nombre</label>
+                  <input
+                    maxlength="30"
+                    type="text"
+                    id="nombre"
+                    name="nombre"
+                    class="form-control"
+                    autocomplete="given-name"
+                  >
+                  <small class="error" id="error-nombre"></small>
+                </div>
+
+                <div class="col-md-12 pad-adjust">
+                  <label for="apaterno" class="help-block text-black small-font">Apellido Paterno</label>
+                  <input
+                    maxlength="30"
+                    type="text"
+                    id="apaterno"
+                    name="apaterno"
+                    class="form-control"
+                    autocomplete="family-name"
+                  >
+                  <small class="error" id="error-apaterno"></small>
+                </div>
+
+                <div class="col-md-12 pad-adjust">
+                  <label for="amaterno" class="help-block text-black small-font">Apellido Materno</label>
+                  <input
+                    maxlength="30"
+                    type="text"
+                    id="amaterno"
+                    name="amaterno"
+                    class="form-control"
+                    autocomplete="additional-name"
+                  >
+                  <small class="error" id="error-amaterno"></small>
+                </div>
+
+                <div class="col-md-12 pad-adjust">
+                  <label for="email" class="help-block text-black small-font">Correo Electrónico</label>
+                  <input
+                    maxlength="100"
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="form-control"
+                    autocomplete="email"
+                  >
+                  <small class="error" id="error-email"></small>
+                </div>
+
+                <div class="col-md-12 pad-adjust">
+                  <label for="telefono" class="help-block text-black small-font">Teléfono</label>
+                  <input
+                    maxlength="10"
+                    type="tel"
+                    id="telefono"
+                    name="telefono"
+                    class="form-control soloNum"
+                    inputmode="numeric"
+                    autocomplete="tel"
+                  >
+                  <small class="error" id="error-tel"></small>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top: 15px">
+                <div class="col-md-12 col-sm-12 col-xs-12">
+                  <button type="submit" id="btn-add" name="btn-add" class="btn btn-azul btn-block">
+                    Continuar
+                  </button>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-2 pad-adjust mb-5"></div>
+                <div class="col-md-1 pad-adjust mb-5"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-2"></div>
+    </form>
+  </div>
+</div>

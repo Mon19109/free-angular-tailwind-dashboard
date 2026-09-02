@@ -1,0 +1,180 @@
+<div class="operations-shell page-container">
+  <div *ngIf="mensajeError" class="link-status-message error" role="alert">
+    {{ mensajeError }}
+  </div>
+
+  <div *ngIf="!mostrarDetalle" id="formulario">
+    <article class="operation-card intro-card">
+      <div class="operation-card-body">
+        <section class="intro-section">
+          <img
+            class="logo-pago"
+            src="/iconos/Pagos%20a%20distancia/botonPago.png"
+            alt="Botón de pago"
+          >
+          <h3><span>Botón</span> de pago</h3>
+          <p>Personaliza el botón que podrás insertar en tu sitio para recibir pagos.</p>
+        </section>
+      </div>
+    </article>
+
+    <article class="operation-card customize-card">
+      <header class="operation-card-header">
+        <div>
+          <span class="eyebrow">Personalización</span>
+          <h2>Botón de pago</h2>
+        </div>
+      </header>
+
+      <div class="operation-card-body">
+        <section class="operation-section">
+          <div class="section-heading center-heading">
+            <h3>¡Personaliza tu link de negocio!</h3>
+            <p>Selecciona el tipo de botón que deseas establecer para tus cobros.</p>
+          </div>
+
+          <div class="link-result business-link">
+            <a [href]="urlNegocio" target="_blank" rel="noopener noreferrer" id="texto_a_copiar">
+              {{ urlNegocio }}
+            </a>
+            <button type="button" class="copy-button" (click)="copyLink()" aria-label="Copiar link">
+              <i class="far fa-copy" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <p *ngIf="mensajeCopiado" class="copy-feedback" role="status">{{ mensajeCopiado }}</p>
+
+          <div class="button-options-grid">
+            <div
+              class="button-option btn-select"
+              [class.selected]="botonSeleccionado === 'btn-azul'"
+              (click)="seleccionarBoton('btn-azul')"
+            >
+              <a class="pay-button btn-azul">Pagar con Kashpay</a>
+            </div>
+            <div
+              class="button-option btn-select"
+              [class.selected]="botonSeleccionado === 'btn-azul-degradado'"
+              (click)="seleccionarBoton('btn-azul-degradado')"
+            >
+              <a class="pay-button btn-azul-degradado">Pagar con Kashpay</a>
+            </div>
+            <div
+              class="button-option btn-select"
+              [class.selected]="botonSeleccionado === 'btn-blanco'"
+              (click)="seleccionarBoton('btn-blanco')"
+            >
+              <a class="pay-button btn-blanco">Pagar con Kashpay</a>
+            </div>
+            <div
+              class="button-option btn-select"
+              [class.selected]="botonSeleccionado === 'btn-blanco-sombra'"
+              (click)="seleccionarBoton('btn-blanco-sombra')"
+            >
+              <a class="pay-button btn-blanco-sombra">Pagar con Kashpay</a>
+            </div>
+            <div
+              class="button-option btn-select"
+              [class.selected]="botonSeleccionado === 'btn-azul-redondo'"
+              (click)="seleccionarBoton('btn-azul-redondo')"
+            >
+              <a class="pay-button btn-azul-redondo">Pagar con Kashpay</a>
+            </div>
+            <div
+              class="button-option btn-select"
+              [class.selected]="botonSeleccionado === 'btn-blanco-redondo'"
+              (click)="seleccionarBoton('btn-blanco-redondo')"
+            >
+              <a class="pay-button btn-blanco-redondo">Pagar con Kashpay</a>
+            </div>
+            <div
+              class="button-option btn-select"
+              [class.selected]="botonSeleccionado === 'btn-blanco-sombra-redondo'"
+              (click)="seleccionarBoton('btn-blanco-sombra-redondo')"
+            >
+              <a class="pay-button btn-blanco-sombra-redondo">Pagar con Kashpay</a>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="btn-add" class="button primary" (click)="generarBoton()">
+              GENERAR
+            </button>
+          </div>
+        </section>
+      </div>
+    </article>
+  </div>
+
+  <div *ngIf="mostrarDetalle" id="detalleBoton">
+    <article class="operation-card details-card">
+      <header class="operation-card-header">
+        <div>
+          <span class="eyebrow">Código generado</span>
+          <h2>Detalle del botón de pago</h2>
+        </div>
+      </header>
+
+      <div class="operation-card-body">
+        <section class="operation-section details-section">
+          <div class="success-detail-icon" aria-hidden="true">&#10003;</div>
+          <div class="section-heading center-heading">
+            <h3>Botón creado exitosamente</h3>
+            <p>Copia el código o compártelo para insertarlo en el sitio que necesites.</p>
+          </div>
+
+          <div class="link-result">
+            <a [href]="urlNegocio" target="_blank" rel="noopener noreferrer">
+              {{ urlNegocio }}
+            </a>
+            <button type="button" class="copy-button" (click)="copyLink()" aria-label="Copiar link">
+              <i class="far fa-copy" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <p *ngIf="mensajeCopiado" class="copy-feedback" role="status">{{ mensajeCopiado }}</p>
+
+          <div class="payment-preview">
+            <a
+              id="btn-pago"
+              [href]="urlNegocio"
+              target="_blank"
+              rel="noopener noreferrer"
+              [ngClass]="['pay-button', botonSeleccionado]"
+            >
+              Pagar con Kash
+            </a>
+            <p>Débito | crédito | efectivo | SPEI</p>
+            <img src="/pagosDistancia/Marcas.png" alt="Métodos de pago">
+          </div>
+
+          <div class="code-section">
+            <div class="code-heading">
+              <label for="copy_link">Código para insertar en tu sitio</label>
+              <button type="button" class="copy-code-button" (click)="copyClipboard()">
+                <i class="far fa-copy" aria-hidden="true"></i>
+                Copiar código
+              </button>
+            </div>
+            <textarea id="copy_link" class="codebtn" rows="9" readonly [value]="codigoBoton"></textarea>
+          </div>
+
+          <div class="detail-actions" id="detalles">
+            <button type="button" class="share-action whatsapp" (click)="btnWApp()" aria-label="Compartir por WhatsApp">
+              <i class="fab fa-whatsapp" aria-hidden="true"></i>
+              <span>WhatsApp</span>
+            </button>
+            <button type="button" class="share-action correo" (click)="btnEmail()" aria-label="Compartir por correo">
+              <i class="fas fa-at" aria-hidden="true"></i>
+              <span>Correo</span>
+            </button>
+            <button type="button" class="share-action" (click)="regresarFormulario()" aria-label="Regresar al formulario">
+              <i class="fas fa-undo" aria-hidden="true"></i>
+              <span>Regresar</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </article>
+  </div>
+</div>

@@ -11,7 +11,24 @@ type NavItem = {
   icon: string;
   path?: string;
   new?: boolean;
+  access?: MenuAccess;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+};
+
+type MenuAccess =
+  | 'reportesAdquirencia'
+  | 'reportesEmision'
+  | 'saldos'
+  | 'centroReportes'
+  | 'usuarios'
+  | 'gestionNegocio'
+  | 'pagosDigitales'
+  | 'gestionPagos';
+
+type MenuSection = {
+  title: string;
+  access?: MenuAccess;
+  items: NavItem[];
 };
 
 @Component({
@@ -26,6 +43,9 @@ type NavItem = {
 })
 export class AppSidebarComponent {
 
+  private readonly idBusinessModel = this.getSessionNumber('idBusinessModel');
+  private readonly idPerfil = this.getSessionNumber('idPerfil');
+
  panelPrincipalItems: NavItem[] = [
     {
       name: 'PANEL PRINCIPAL',
@@ -34,13 +54,14 @@ export class AppSidebarComponent {
     }
   ];
 
-  menuSections = [
+  private readonly allMenuSections: MenuSection[] = [
     {
       title: 'REPORTES',
       items: [
         {
           name: 'REPORTES ADQUIRENCIA',
           icon: '<i class="fas fa-chart-line fa-lg"></i>',
+          access: 'reportesAdquirencia',
   
           subItems: [
             {
@@ -56,6 +77,7 @@ export class AppSidebarComponent {
         {
           name: 'REPORTES EMISION',
            icon: '<i class="fas fa-chart-pie fa-lg"></i>',
+          access: 'reportesEmision',
           subItems: [
             {
               name: 'Transacciones',
@@ -74,6 +96,7 @@ export class AppSidebarComponent {
         {
           name: 'USUARIOS',
            icon: '<i class="fas fa-users fa-lg"></i>',
+          access: 'usuarios',
     
          subItems: [
             {
@@ -84,25 +107,23 @@ export class AppSidebarComponent {
          
         },
         {
-          name: 'ESTADO DE CUENTA',
-           icon: '<i class="fas fa-file-alt fa-lg"></i>',
-          path: '/estado_cuenta'
-        },
-        {
           name: 'SALDOS',
             icon: '<i class="fas fa-dollar-sign fa-lg"></i>',
-          path: '/saldos'
+          path: '/saldos',
+          access: 'saldos'
         },
         {
           name: 'CENTRO DE REPORTES',
           icon: '<i class="fas fa-sitemap fa-lg"></i>',
-          path: '/reportes'
+          path: '/reportes',
+          access: 'centroReportes'
         }
       ]
     },
 
     {
       title: 'PAGOS DIGITALES',
+      access: 'pagosDigitales',
       items: [
         {
           name: 'PAGO A DISTANCIA',
@@ -114,6 +135,7 @@ export class AppSidebarComponent {
 
     {
       title: 'GESTIÓN DE PAGOS',
+      access: 'gestionPagos',
       items: [
         {
           name: 'ALTAS DE BENEFICIARIO',
@@ -130,6 +152,7 @@ export class AppSidebarComponent {
 
     {
       title: 'GESTIÓN DE NEGOCIO',
+      access: 'gestionNegocio',
       items: [
         {
           name: 'CONSULTA DE COMERCIOS',
@@ -143,6 +166,11 @@ export class AppSidebarComponent {
       title: 'OTROS',
       items: [
         {
+          name: 'INFORMACIÓN DE CUENTA',
+          icon: '<i class="fas fa-circle-info fa-lg"></i>',
+          path: '/informacion_cuenta'
+        },
+        {
           name: 'ENVIAR INVITACIÓN A COMERCIO',
           icon: '<i class="fas fa-paper-plane fa-lg"></i>',
           path: '/enviar_invitacion_comercio'
@@ -155,6 +183,8 @@ export class AppSidebarComponent {
       ]
     }
   ];
+
+  menuSections: MenuSection[] = [];
 
 
   openSubmenu: string | null | number = null;
@@ -178,6 +208,14 @@ export class AppSidebarComponent {
   }
 
   ngOnInit() {
+    this.menuSections = this.allMenuSections
+      .filter(section => this.hasMenuAccess(section.access))
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => this.hasMenuAccess(item.access))
+      }))
+      .filter(section => section.items.length > 0);
+
     // Subscribe to router events
     this.subscription.add(
       this.router.events.subscribe(event => {
@@ -292,6 +330,47 @@ export class AppSidebarComponent {
       }
     }).unsubscribe();
   }  
+
+  private hasMenuAccess(access?: MenuAccess): boolean {
+    if (!access) return true;
+
+    const accesoTotalModeloCero = this.idBusinessModel === 0 && this.idPerfil === 9;
+    if (accesoTotalModeloCero) return true;
+
+    switch (access) {
+      case 'reportesAdquirencia':
+      case 'pagosDigitales':
+        return this.idBusinessModel === 2 || this.idBusinessModel === 3;
+      case 'reportesEmision':
+      case 'usuarios':
+        return this.idBusinessModel === 1 || this.idBusinessModel === 3;
+      case 'saldos':
+      case 'centroReportes':
+      case 'gestionNegocio':
+        return [1, 2, 3].includes(this.idBusinessModel);
+      case 'gestionPagos':
+        return [1, 2, 3].includes(this.idBusinessModel) && this.idPerfil !== 4;
+    }
+  }
+
+  private getSessionNumber(key: 'idBusinessModel' | 'idPerfil'): number {
+    const storedValue = localStorage.getItem(key);
+    if (storedValue !== null) return Number(storedValue) || 0;
+
+    for (const sessionKey of ['auth_session', 'user_data']) {
+      const rawSession = localStorage.getItem(sessionKey);
+      if (!rawSession) continue;
+
+      try {
+        const value = JSON.parse(rawSession)?.[key];
+        if (value !== undefined && value !== null) return Number(value) || 0;
+      } catch {
+        // Se ignora una sesión inválida y se usa el valor predeterminado.
+      }
+    }
+
+    return 0;
+  }
 
   
 }

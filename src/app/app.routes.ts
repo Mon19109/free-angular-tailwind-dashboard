@@ -33,7 +33,9 @@ import { TarjetaComponent } from '../app/pages/tarjeta/tarjeta.component';
 import { PagoDistanciaComponent } from '../app/pages/pagoDistancia/pagoDistancia.component';
 import { DetalleLinkPagoComponent } from './pages/detalleLinkpago/detalleLinkpago.component';
 import { NuevoLinkPagoComponent } from './pages/nuevoLinkPago/nuevoLinkPago.component';
+import { AddBotonPagoComponent } from './pages/addBotonPago/addBotonPago.component';
 import { AddLinkPagoComponent } from './pages/addLinkPago/addLinkPago.component';
+import { LinkNegocioComponent } from './pages/linkNegocio/linkNegocio.component';
 import { SaldosComponent } from '../app/pages/saldos/saldos.component';
 import { PagarLinkPagoComponent } from '../app/pages/pagarLinkPago/pagarLinkPago.component';
 import { OrdenPagoComponent } from './pages/OrdenPago/OrdenPago.component';
@@ -243,19 +245,31 @@ export const routes: Routes = [
       { 
         path: 'add_linkpago', 
         component: AddLinkPagoComponent, 
+        canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+      { 
+        path: 'add_botonpago', 
+        component: AddBotonPagoComponent, 
+        canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
+      { 
+        path: 'linkNegocio', 
+        component: LinkNegocioComponent, 
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },
       { 
         path: 'orden_pago', 
         component: OrdenPagoComponent, 
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title:'KASHPAY'
       },
       {
         path: 'beneficiarios',
         component: BeneficiariosComponent,
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title:'KASHPAY'
       },
 
