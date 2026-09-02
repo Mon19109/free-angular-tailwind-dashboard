@@ -6,7 +6,7 @@ function getStoredAccessToken(): string | null {
   if (rawSession) {
     try {
       const session = JSON.parse(rawSession);
-      if (session?.token) {
+      if (session?.smsValidated === true && session?.token) {
         return session.token;
       }
     } catch {

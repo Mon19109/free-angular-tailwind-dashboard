@@ -55,7 +55,7 @@ export class AuthService {
 
   constructor(private http: HttpClient) {
     const session = this.getSession();
-    if (session) {
+    if (session?.smsValidated === true) {
       this.syncLegacySessionValues(session);
     }
   }
@@ -64,9 +64,23 @@ export class AuthService {
   // MANEJO DE SESIÓN
   // ============================================
 
-  private saveSession(data: any): void {
-    localStorage.setItem(this.SESSION_KEY, JSON.stringify(data));
-    this.syncLegacySessionValues(data);
+  private saveSession(data: any, isAuthenticated = true): void {
+    const sessionData = {
+      ...data,
+      smsValidated: isAuthenticated
+    };
+
+    localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionData));
+
+    if (!isAuthenticated) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
+      this.LEGACY_SESSION_KEYS.forEach(key => localStorage.removeItem(key));
+      this.authStatusSubject.next(false);
+      return;
+    }
+
+    this.syncLegacySessionValues(sessionData);
     this.authStatusSubject.next(true);
   }
 
@@ -105,11 +119,21 @@ export class AuthService {
 
   hasValidSession(): boolean {
     const session = this.getSession();
-    return session !== null && session.token !== undefined && session.token !== '';
+    return session !== null && session.smsValidated === true && session.token !== undefined && session.token !== '';
+  }
+
+  completeSmsValidation(): void {
+    const session = this.getSession();
+
+    if (!session || !session.token || !session.validate) {
+      return;
+    }
+
+    this.saveSession(session, true);
   }
 
   getToken(): string | null {
-    return this.getSessionValue('token');
+    return this.hasValidSession() ? this.getSessionValue('token') : null;
   }
 
   getUserData(): any {
@@ -504,7 +528,7 @@ export class AuthService {
 
         this.movilEncrip = terminalInfo.phoneNumber.slice(-2);
 
-        this.saveSession(sessionData);
+        this.saveSession(sessionData, false);
 
         return {
           success: true,
@@ -649,7 +673,7 @@ export class AuthService {
   validateToken(): any {
     const session = this.getSession();
     
-    if (!session || !session.token || !session.validate) {
+    if (!this.hasValidSession() || !session?.validate) {
       return {
         success: false,
         message: 'No hay token de sesión',

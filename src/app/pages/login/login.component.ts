@@ -123,6 +123,7 @@ export class LoginComponent implements OnInit {
     ).subscribe({
       next: (result: any) => {
         if (result.success) {
+          this.authService.completeSmsValidation();
           this.router.navigate(['/dashboard']);
           this.errorMessage = '';
           this.tokenValue = '';
