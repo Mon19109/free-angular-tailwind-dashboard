@@ -23,13 +23,44 @@ export class AddBotonPagoComponent implements OnInit {
     const queryParams = this.route.snapshot.queryParamMap;
     const params = new URLSearchParams();
 
-    for (const key of ['email', 'validate', 'ordering']) {
-      const value = queryParams.get(key);
+    const sessionParams = {
+      email: this.getSessionValue('mail'),
+      validate: this.getSessionValue('acquiringId', 'aquaringid'),
+      ordering: this.getSessionValue('cuenta')
+    };
+
+    for (const [key, value] of Object.entries(sessionParams)) {
       if (value) params.set(key, value);
     }
 
     if (queryParams.has('isMovil')) params.set('isMovil', '0');
     this.urlNegocio = `${window.location.origin}/linkNegocio?${params.toString()}`;
+  }
+
+  private getSessionValue(...keys: string[]): string {
+    for (const sessionKey of ['auth_session', 'user_data']) {
+      const rawSession = localStorage.getItem(sessionKey);
+      if (!rawSession) continue;
+
+      try {
+        const session = JSON.parse(rawSession);
+        for (const key of keys) {
+          const value = session?.[key];
+          if (value !== undefined && value !== null && String(value).trim()) {
+            return String(value).trim();
+          }
+        }
+      } catch {
+        // Si la sesión no es válida, se consultan las claves individuales.
+      }
+    }
+
+    for (const key of keys) {
+      const value = localStorage.getItem(key);
+      if (value?.trim()) return value.trim();
+    }
+
+    return '';
   }
 
   seleccionarBoton(clase: string): void {

@@ -78,6 +78,12 @@ export const routes: Routes = [
     //canActivate: [AuthGuard],
     title:'KASHPAY'
   },
+  { 
+    path: 'linkNegocio', 
+    component: LinkNegocioComponent, 
+    //canActivate: [AuthGuard],
+    title:'KASHPAY'
+  },
   {
     path:'',
     component:AppLayoutComponent,
@@ -252,12 +258,6 @@ export const routes: Routes = [
         path: 'add_botonpago', 
         component: AddBotonPagoComponent, 
         canActivate: [AuthGuard],
-        title:'KASHPAY'
-      },
-      { 
-        path: 'linkNegocio', 
-        component: LinkNegocioComponent, 
-        //canActivate: [AuthGuard],
         title:'KASHPAY'
       },
       { 

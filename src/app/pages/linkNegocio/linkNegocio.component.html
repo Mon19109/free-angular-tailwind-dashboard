@@ -1,164 +1,231 @@
-<div class="allcp-form theme-primary">
-  <div class="row">
-    <form class="form-kash" name="form-pay" id="form-pay">
-      <div class="col-md-2"></div>
+<app-payment-header></app-payment-header>
 
-      <div class="col-md-8">
-        <div class="row">
-          <h5 class="text-center text-dorado">PAGOS A DISTANCIA</h5>
-        </div>
+<main class="business-payment-page">
+  <div class="payment-shell">
+    <div
+      *ngIf="mensajeEstado"
+      class="status-message"
+      [class.error]="mensajeEsError"
+      role="status"
+      aria-live="polite"
+    >
+      {{ mensajeEstado }}
+    </div>
 
-        <div class="panel panel-visible infoOcultar">
-          <div class="panel-body pn areaForm">
-            <div class="row">
-              <div class="col-md-12 mb-5">
-                <p class="text-16 text-center"><b>¡Bienvenido! a la página de pago de:</b></p>
-                <p class="text-16" id="nombre-comercio"></p>
-                <p class="text-16">Celular: <span id="telefono-comercio"></span></p>
-              </div>
+    <div class="payment-layout">
+      <aside class="summary-column" aria-label="Información del comercio">
+        <section class="summary-card merchant-card">
+          <div class="merchant-icon" aria-hidden="true">
+            <i class="fas fa-store"></i>
+          </div>
+          <span class="card-kicker">Estás pagando a</span>
+          <h2 id="nombre-comercio">Comercio Kashpay</h2>
+          <p class="merchant-phone">
+            <i class="fas fa-phone" aria-hidden="true"></i>
+            <span id="telefono-comercio">Información de contacto</span>
+          </p>
+        </section>
+
+        <section class="summary-card instructions-card">
+          <div class="card-heading">
+            <span class="heading-icon" aria-hidden="true"><i class="fas fa-circle-info"></i></span>
+            <div>
+              <span class="card-kicker">Antes de continuar</span>
+              <h2>Identifica tu pago</h2>
             </div>
           </div>
-        </div>
+          <p>Ingresa el monto y un concepto claro para que el comercio pueda reconocer la operación.</p>
+        </section>
 
-        <div class="panel panel-visible">
-          <div class="panel-body pn">
-            <div class="col-md-12">
-              <div class="p-3 border rounded m-10" style="margin: 5% 0">
-                <p>Ingresa el monto y concepto para que puedan identificar tu pago.</p>
-                <p>Recuerda que puedes pagar con tarjeta de crédito, débito, pagos en efectivo o SPEI.</p>
-              </div>
-            </div>
+        <section class="summary-card methods-card">
+          <span class="card-kicker">Métodos disponibles</span>
+          <h2>Paga como prefieras</h2>
+          <p>Tarjeta de crédito, débito, efectivo o transferencia SPEI.</p>
+          <img src="/pagosDistancia/Marcas.png" alt="Métodos de pago disponibles">
+        </section>
+      </aside>
+
+      <section class="form-card">
+        <header class="form-card-header">
+          <div>
+            <span class="eyebrow">DATOS DEL PAGO</span>
+            <h2>Completa la información</h2>
           </div>
-        </div>
+          <span class="secure-badge">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+            Seguro
+          </span>
+        </header>
 
-        <div class="credit-card-div" id="pay_option">
-          <div class="panel panel-default">
-            <div class="panel-heading">
-              <div class="row">
-                <div class="col-md-12 pad-adjust mb-5">
-                  <img
-                    src="/pagosDistancia/Marcas.png"
-                    alt="Métodos de pago disponibles"
-                    style="width: 100%; padding: 15px 0"
-                  >
-                </div>
-              </div>
+        <form class="payment-form" name="form-pay" id="form-pay" [formGroup]="formulario" (ngSubmit)="continuar()">
+          <input type="hidden" id="sirio" name="sirio" formControlName="sirio">
+          <input type="hidden" id="emailComer" name="emailComer" formControlName="emailComer">
+          <input type="hidden" id="orderingAccount" name="orderingAccount" formControlName="orderingAccount">
 
-              <div class="row">
-                <div class="col-md-12 pad-adjust">
-                  <label for="monto" class="help-block text-black small-font">Monto</label>
+          <fieldset class="form-section amount-section">
+            <legend>Información del cobro</legend>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="monto">Monto <span class="required-mark" aria-hidden="true">*</span></label>
+                <div class="input-with-prefix">
+                  <span aria-hidden="true">$</span>
                   <input
                     type="text"
                     id="monto"
                     name="monto"
                     class="form-control monto"
+                    formControlName="monto"
                     inputmode="decimal"
                     placeholder="0.00"
+                    autocomplete="off"
+                    (input)="procesarMonto($event)"
+                    aria-required="true"
+                    required
                   >
-                  <small class="error" id="error-monto"></small>
                 </div>
-
-                <div class="col-md-12 pad-adjust">
-                  <label for="concepto" class="help-block text-black small-font">Concepto</label>
-                  <input
-                    maxlength="60"
-                    type="text"
-                    id="concepto"
-                    name="concepto"
-                    class="form-control"
-                  >
-                  <small class="error" id="error-concepto"></small>
-                </div>
-
-                <input type="hidden" id="sirio" name="sirio">
-                <input type="hidden" id="emailComer" name="emailComer">
-                <input type="hidden" id="orderingAccount" name="orderingAccount">
-
-                <div class="col-md-12 pad-adjust">
-                  <label for="nombre" class="help-block text-black small-font">Nombre</label>
-                  <input
-                    maxlength="30"
-                    type="text"
-                    id="nombre"
-                    name="nombre"
-                    class="form-control"
-                    autocomplete="given-name"
-                  >
-                  <small class="error" id="error-nombre"></small>
-                </div>
-
-                <div class="col-md-12 pad-adjust">
-                  <label for="apaterno" class="help-block text-black small-font">Apellido Paterno</label>
-                  <input
-                    maxlength="30"
-                    type="text"
-                    id="apaterno"
-                    name="apaterno"
-                    class="form-control"
-                    autocomplete="family-name"
-                  >
-                  <small class="error" id="error-apaterno"></small>
-                </div>
-
-                <div class="col-md-12 pad-adjust">
-                  <label for="amaterno" class="help-block text-black small-font">Apellido Materno</label>
-                  <input
-                    maxlength="30"
-                    type="text"
-                    id="amaterno"
-                    name="amaterno"
-                    class="form-control"
-                    autocomplete="additional-name"
-                  >
-                  <small class="error" id="error-amaterno"></small>
-                </div>
-
-                <div class="col-md-12 pad-adjust">
-                  <label for="email" class="help-block text-black small-font">Correo Electrónico</label>
-                  <input
-                    maxlength="100"
-                    type="email"
-                    id="email"
-                    name="email"
-                    class="form-control"
-                    autocomplete="email"
-                  >
-                  <small class="error" id="error-email"></small>
-                </div>
-
-                <div class="col-md-12 pad-adjust">
-                  <label for="telefono" class="help-block text-black small-font">Teléfono</label>
-                  <input
-                    maxlength="10"
-                    type="tel"
-                    id="telefono"
-                    name="telefono"
-                    class="form-control soloNum"
-                    inputmode="numeric"
-                    autocomplete="tel"
-                  >
-                  <small class="error" id="error-tel"></small>
-                </div>
+                <small class="error" id="error-monto">
+                  <span *ngIf="mostrarError('monto')">Captura un monto válido con máximo dos decimales.</span>
+                </small>
               </div>
 
-              <div class="row" style="margin-top: 15px">
-                <div class="col-md-12 col-sm-12 col-xs-12">
-                  <button type="submit" id="btn-add" name="btn-add" class="btn btn-azul btn-block">
-                    Continuar
-                  </button>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="col-md-2 pad-adjust mb-5"></div>
-                <div class="col-md-1 pad-adjust mb-5"></div>
+              <div class="form-field">
+                <label for="concepto">Concepto <span class="required-mark" aria-hidden="true">*</span></label>
+                <input
+                  maxlength="60"
+                  type="text"
+                  id="concepto"
+                  name="concepto"
+                  class="form-control"
+                  formControlName="concepto"
+                  placeholder="Ej. Pago de servicio"
+                  (input)="procesarSoloLetras($event)"
+                  aria-required="true"
+                  required
+                >
+                <small class="error" id="error-concepto">
+                  <span *ngIf="mostrarError('concepto')">El concepto es obligatorio y solo acepta letras.</span>
+                </small>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </fieldset>
 
-      <div class="col-md-2"></div>
-    </form>
+          <fieldset class="form-section">
+            <legend>Datos de contacto</legend>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="nombre">Nombre <span class="required-mark" aria-hidden="true">*</span></label>
+                <input
+                  maxlength="30"
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  class="form-control"
+                  formControlName="nombre"
+                  placeholder="Nombre"
+                  autocomplete="given-name"
+                  (input)="procesarSoloLetras($event)"
+                  aria-required="true"
+                  required
+                >
+                <small class="error" id="error-nombre">
+                  <span *ngIf="mostrarError('nombre')">El nombre es obligatorio.</span>
+                </small>
+              </div>
+
+              <div class="form-field">
+                <label for="apaterno">Apellido paterno <span class="required-mark" aria-hidden="true">*</span></label>
+                <input
+                  maxlength="30"
+                  type="text"
+                  id="apaterno"
+                  name="apaterno"
+                  class="form-control"
+                  formControlName="apaterno"
+                  placeholder="Apellido paterno"
+                  autocomplete="family-name"
+                  (input)="procesarSoloLetras($event)"
+                  aria-required="true"
+                  required
+                >
+                <small class="error" id="error-apaterno">
+                  <span *ngIf="mostrarError('apaterno')">El apellido paterno es obligatorio.</span>
+                </small>
+              </div>
+
+              <div class="form-field">
+                <label for="amaterno">Apellido materno <span class="required-mark" aria-hidden="true">*</span></label>
+                <input
+                  maxlength="30"
+                  type="text"
+                  id="amaterno"
+                  name="amaterno"
+                  class="form-control"
+                  formControlName="amaterno"
+                  placeholder="Apellido materno"
+                  autocomplete="additional-name"
+                  (input)="procesarSoloLetras($event)"
+                  aria-required="true"
+                  required
+                >
+                <small class="error" id="error-amaterno">
+                  <span *ngIf="mostrarError('amaterno')">El apellido materno es obligatorio.</span>
+                </small>
+              </div>
+
+              <div class="form-field">
+                <label for="telefono">Teléfono <span class="required-mark" aria-hidden="true">*</span></label>
+                <input
+                  maxlength="10"
+                  type="tel"
+                  id="telefono"
+                  name="telefono"
+                  class="form-control soloNum"
+                  formControlName="telefono"
+                  inputmode="numeric"
+                  placeholder="10 dígitos"
+                  autocomplete="tel"
+                  (input)="procesarTelefono($event)"
+                  aria-required="true"
+                  required
+                >
+                <small class="error" id="error-tel">
+                  <span *ngIf="mostrarError('telefono')">Captura un teléfono de 10 dígitos.</span>
+                </small>
+              </div>
+
+              <div class="form-field full-width">
+                <label for="email">Correo electrónico <span class="required-mark" aria-hidden="true">*</span></label>
+                <input
+                  maxlength="100"
+                  type="email"
+                  id="email"
+                  name="email"
+                  class="form-control"
+                  formControlName="email"
+                  placeholder="correo@ejemplo.com"
+                  autocomplete="email"
+                  aria-required="true"
+                  required
+                >
+                <small class="error" id="error-email">
+                  <span *ngIf="mostrarError('email')">Captura un correo electrónico válido.</span>
+                </small>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="form-footer">
+            <p>
+              <i class="fas fa-shield-halved" aria-hidden="true"></i>
+              Tus datos se transmiten de forma segura.
+            </p>
+            <button type="submit" id="btn-add" name="btn-add" class="continue-button" [disabled]="enviando">
+              {{ enviando ? 'Procesando...' : 'Continuar' }}
+              <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
-</div>
+</main>
