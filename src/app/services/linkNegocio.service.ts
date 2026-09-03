@@ -24,6 +24,8 @@ export interface AddLinkNegocioResponse<T = any> {
 export class LinkNegocioService {
   private readonly http = inject(HttpClient);
   private readonly orderUrl = `${environment.api.linkpago}order`;
+  private readonly bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
+
 
   addLink(formData: LinkNegocioFormData): Observable<AddLinkNegocioResponse> {
     const monto = Number(String(formData.monto ?? '0').replace(/[$,\s]/g, ''));
@@ -72,9 +74,9 @@ export class LinkNegocioService {
     };
 
     const headers = new HttpHeaders({
-      Authorization: `Bearer ${this.getStoredToken()}`,
+      'Authorization': `Bearer ${this.bearerToken}`,
       'Entity-i': 'com.onsigna',
-      versionApp: '3',
+      'versionApp': '3',
       'Content-Type': 'application/json'
     });
 

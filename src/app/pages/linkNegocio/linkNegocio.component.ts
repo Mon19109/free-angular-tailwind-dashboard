@@ -70,9 +70,23 @@ export class LinkNegocioComponent implements OnInit {
           return;
         }
 
+        if (resultado?.success === true) {
+          const payOrder = String(resultado?.payOrderResponse?.payOrder || '').trim();
+
+          if (this.isSafePaymentUrl(payOrder)) {
+            window.location.assign(payOrder);
+            return;
+          }
+
+          this.mensajeEstado = 'La solicitud fue generada, pero la respuesta no contiene una URL de pago válida.';
+          this.mensajeEsError = true;
+          return;
+        }
+
         this.mensajeEstado = resultado?.message
           || resultado?.mensaje
-          || 'La solicitud de pago fue generada correctamente.';
+          || 'La respuesta del servicio no pudo ser procesada.';
+        this.mensajeEsError = true;
       },
       error: error => {
         this.enviando = false;
@@ -117,5 +131,14 @@ export class LinkNegocioComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     input.value = input.value.replace(/\D/g, '').slice(0, 10);
     this.formulario.controls.telefono.setValue(input.value);
+  }
+
+  private isSafePaymentUrl(value: string): boolean {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    } catch {
+      return false;
+    }
   }
 }
