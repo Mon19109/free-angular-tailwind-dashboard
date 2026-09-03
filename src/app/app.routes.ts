@@ -53,6 +53,7 @@ import { ConsultaComerciosComponent } from './pages/consultaComercios/consultaCo
 import { RegistroClienteComponent } from './pages/registroCliente/registroCliente.component';
 import { ReportesComponent } from './pages/reportes/reportes.component';
 import { VoucherComponent } from './pages/voucher/voucher.component';
+import { RecuperarCuentaComponent } from './pages/recuperarCuenta/recuperarCuenta.component';
 
 export const routes: Routes = [
   { 
@@ -65,6 +66,11 @@ export const routes: Routes = [
     path: 'preregistro',
     component: PreRegistroComponent,
     title: 'Pre registro | KASHPAY'
+  },
+  {
+    path: 'recuperarCuenta',
+    component: RecuperarCuentaComponent,
+    title: 'Recuperar cuenta | KASHPAY'
   },
   { 
     path: 'pagar_linkpago', 

@@ -10,6 +10,7 @@ import { environment } from '../environments/environments';
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
   private readonly SESSION_KEY = 'auth_session';
   private readonly LEGACY_SESSION_KEYS = [
     'idUser',
@@ -606,20 +607,15 @@ export class AuthService {
 
   // Recuperar contraseña
   forgotPassword(email: string): Observable<any> {
-    const session = this.getSession();
-    
-    if (!session || !session.token) {
-      return throwError(() => new Error('No hay sesión activa'));
-    }
-
-    const url = `${environment.api.kashpay}api/v1/user/forgotPassword?email=${encodeURIComponent(email)}`;
-    
+    const url = `${environment.api.kashpay}api/v1/t4x97p2d/auth/fgpwd`;
+    const body = { email };
     const headers = {
-      'Authorization': `Bearer ${session.token}`,
-      'Cookie': 'JSESSIONID=ccc03bb85d66a6037878f6eb8ad9'
+      Authorization: `Bearer ${this.bearerToken}`,
+      versionApp: '3',
+      'Content-Type': 'application/json'
     };
 
-    return this.http.post(url, {}, { headers: this.getHeaders(headers) });
+    return this.http.post(url, body, { headers: this.getHeaders(headers) });
   }
 
   // Actualizar contraseña
@@ -638,7 +634,8 @@ export class AuthService {
     };
 
     const headers = {
-      'Authorization': `Bearer ${session.token}`,
+      'Authorization': `Bearer ${this.bearerToken}`,
+      'versionApp': '3',
       'Content-Type': 'application/json'
     };
 

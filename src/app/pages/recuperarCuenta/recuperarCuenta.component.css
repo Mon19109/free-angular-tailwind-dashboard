@@ -1,0 +1,140 @@
+.recovery-card {
+  max-width: 460px;
+}
+
+.login-header h2 {
+  margin: 0 0 10px;
+  color: #ffffff;
+  font-size: 25px;
+  font-weight: 750;
+}
+
+.password-input-wrapper .toggle-password {
+  color: #667085;
+}
+
+.required-mark {
+  color: #f87171;
+}
+
+.password-strength,
+.confirmation-error {
+  display: block;
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.password-strength.weak,
+.confirmation-error {
+  color: #f87171;
+}
+
+.password-strength.medium {
+  color: #fbbf24;
+}
+
+.password-strength.secure {
+  color: #4ade80;
+}
+
+.password-requirements {
+  margin: 4px 0 24px;
+  padding: 16px;
+  display: grid;
+  gap: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.42);
+  list-style: none;
+}
+
+.password-requirements li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.password-requirements li i {
+  width: 16px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.password-requirements li.completed {
+  color: #bbf7d0;
+}
+
+.password-requirements li.completed i {
+  color: #4ade80;
+}
+
+.recovery-status {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  border-radius: 6px;
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.35);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.recovery-status.error {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+  background: rgba(153, 27, 27, 0.35);
+}
+
+.back-login {
+  display: block;
+  margin-top: 20px;
+  color: #d9b664;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: center;
+  text-decoration: none;
+}
+
+.back-login:hover {
+  text-decoration: underline;
+}
+
+:host-context(html:not(.dark)) .login-header h2 {
+  color: var(--app-text);
+}
+
+:host-context(html:not(.dark)) .password-requirements {
+  border-color: var(--app-border);
+  background: var(--app-surface-alt);
+}
+
+:host-context(html:not(.dark)) .password-requirements li {
+  color: var(--app-text-muted);
+}
+
+:host-context(html:not(.dark)) .password-requirements li.completed {
+  color: #166534;
+}
+
+:host-context(html:not(.dark)) .recovery-status {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+:host-context(html:not(.dark)) .recovery-status.error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+@media (max-width: 520px) {
+  .recovery-card {
+    padding: 28px 22px;
+  }
+}

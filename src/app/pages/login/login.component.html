@@ -64,11 +64,68 @@
         <div class="text-center mt-4">
           <p class="mb-0">
             ¿Olvidaste tu contraseña?
-            <a href="#" class="text-decoration-none fw-bold">
+            <a href="#" class="text-decoration-none fw-bold" (click)="openRecoveryModal(); $event.preventDefault()">
               Recuperar cuenta
             </a>
           </p>
         </div>
+    </form>
+  </div>
+</div>
+
+<div class="token-modal-backdrop" *ngIf="showRecoveryModal">
+  <div class="token-modal recovery-modal" role="dialog" aria-modal="true" aria-labelledby="recovery-modal-title">
+    <button
+      type="button"
+      class="token-modal-close"
+      aria-label="Cerrar recuperación de cuenta"
+      [disabled]="recovering"
+      (click)="closeRecoveryModal()"
+    >
+      &times;
+    </button>
+
+    <form [formGroup]="recoveryForm" (ngSubmit)="recoverAccount()">
+      <div class="token-modal-body">
+        <h2 id="recovery-modal-title" class="recovery-title">Recuperar cuenta</h2>
+        <p class="recovery-description">
+          Ingresa el correo electrónico asociado a tu cuenta.
+        </p>
+
+        <label for="recovery-email">Correo electrónico</label>
+        <input
+          id="recovery-email"
+          class="recovery-input"
+          type="email"
+          formControlName="email"
+          placeholder="usuario@ejemplo.com"
+          autocomplete="email"
+          [class.is-invalid]="recoveryForm.controls['email'].invalid && recoveryForm.controls['email'].touched"
+          [disabled]="recovering"
+          autofocus
+        >
+        <div class="token-error" *ngIf="recoveryForm.controls['email'].invalid && recoveryForm.controls['email'].touched">
+          Captura un correo electrónico válido.
+        </div>
+        <div
+          *ngIf="recoveryMessage"
+          class="recovery-message"
+          [class.error]="recoveryMessageIsError"
+          role="status"
+          aria-live="polite"
+        >
+          {{ recoveryMessage }}
+        </div>
+      </div>
+
+      <div class="token-modal-actions">
+        <button type="submit" class="token-btn token-btn-primary" [disabled]="recovering">
+          {{ recovering ? 'ENVIANDO...' : 'RECUPERAR' }}
+        </button>
+        <button type="button" class="token-btn token-btn-secondary" [disabled]="recovering" (click)="closeRecoveryModal()">
+          CANCELAR
+        </button>
+      </div>
     </form>
   </div>
 </div>

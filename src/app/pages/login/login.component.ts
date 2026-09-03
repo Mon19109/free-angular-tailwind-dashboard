@@ -32,6 +32,11 @@ export class LoginComponent implements OnInit {
   tokenValue = '';
   tokenErrorMessage = '';
   telModal = '';
+  showRecoveryModal = false;
+  recovering = false;
+  recoveryMessage = '';
+  recoveryMessageIsError = false;
+  recoveryForm: FormGroup;
 
   private modalService = inject( NgxTailwindModalService);
   private vcr = inject(ViewContainerRef);
@@ -46,6 +51,9 @@ export class LoginComponent implements OnInit {
     this.loginForm = this.fb.group({
       userLogin: ['', [Validators.required, Validators.email]],
       passwordLogin: ['', [Validators.required]]
+    });
+    this.recoveryForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]]
     });
   }
 
@@ -208,6 +216,53 @@ export class LoginComponent implements OnInit {
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  openRecoveryModal(): void {
+    const loginEmail = String(this.loginForm.controls['userLogin'].value || '').trim();
+    this.recoveryForm.reset({ email: loginEmail });
+    this.recoveryMessage = '';
+    this.recoveryMessageIsError = false;
+    this.showRecoveryModal = true;
+  }
+
+  closeRecoveryModal(): void {
+    if (this.recovering) return;
+    this.showRecoveryModal = false;
+    this.recoveryForm.reset();
+    this.recoveryMessage = '';
+    this.recoveryMessageIsError = false;
+  }
+
+  recoverAccount(): void {
+    this.recoveryForm.markAllAsTouched();
+    if (this.recoveryForm.invalid || this.recovering) return;
+
+    const email = String(this.recoveryForm.controls['email'].value || '').trim();
+    this.recovering = true;
+    this.recoveryMessage = '';
+    this.recoveryMessageIsError = false;
+
+    this.authService.forgotPassword(email).pipe(
+      finalize(() => this.recovering = false)
+    ).subscribe({
+      next: (response: any) => {
+        if (response?.success === false) {
+          this.recoveryMessage = response?.message || 'No fue posible recuperar la cuenta.';
+          this.recoveryMessageIsError = true;
+          return;
+        }
+
+        this.recoveryMessage = response?.message
+          || 'Se enviaron las instrucciones de recuperación a tu correo.';
+      },
+      error: (error: any) => {
+        this.recoveryMessage = error?.error?.message
+          || error?.message
+          || 'No fue posible recuperar la cuenta.';
+        this.recoveryMessageIsError = true;
+      }
+    });
   }
   modalPreregistro() {
     if (event) {

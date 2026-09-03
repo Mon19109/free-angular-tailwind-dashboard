@@ -1,0 +1,106 @@
+<div class="login-container bg-login">
+  <div class="login-card recovery-card">
+    <div class="login-header">
+      <img src="/kashpay_dorado.png" alt="Kashpay" class="logo">
+      <h2>Recuperar cuenta</h2>
+      <p class="text-muted">Crea una nueva contraseña para ingresar nuevamente a tu cuenta.</p>
+    </div>
+
+    <form id="recuperarForm" name="recuperarForm" [formGroup]="recuperarForm" (ngSubmit)="recuperarCuenta()">
+      <input type="hidden" name="info" id="info" formControlName="info" required>
+
+      <div class="form-group">
+        <label for="contrasena">Nueva contraseña <span class="required-mark" aria-hidden="true">*</span></label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="mostrarContrasena ? 'text' : 'password'"
+            class="form-control"
+            name="contrasena"
+            id="contrasena"
+            formControlName="contrasena"
+            autocomplete="new-password"
+            placeholder="Ingresa tu nueva contraseña"
+            (input)="procesarContrasena($event, 'contrasena')"
+            aria-required="true"
+            required
+          >
+          <button
+            type="button"
+            class="toggle-password"
+            (click)="mostrarContrasena = !mostrarContrasena"
+            [attr.aria-label]="mostrarContrasena ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+          >
+            <i [class]="mostrarContrasena ? 'fa fa-eye-slash' : 'fa fa-eye'" aria-hidden="true"></i>
+          </button>
+        </div>
+        <small
+          id="contrasenaHelp"
+          class="password-strength"
+          [ngClass]="claseSeguridad"
+          *ngIf="recuperarForm.controls.contrasena.value || recuperarForm.controls.contrasena.touched"
+        >
+          {{ nivelSeguridad }}
+        </small>
+        <small class="confirmation-error" *ngIf="recuperarForm.controls.contrasena.hasError('required') && recuperarForm.controls.contrasena.touched">
+          La nueva contraseña es obligatoria.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="contrasenaCon">Confirmar contraseña <span class="required-mark" aria-hidden="true">*</span></label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="mostrarConfirmacion ? 'text' : 'password'"
+            class="form-control"
+            name="contrasenaCon"
+            id="contrasenaCon"
+            formControlName="contrasenaCon"
+            autocomplete="new-password"
+            placeholder="Confirma tu nueva contraseña"
+            (input)="procesarContrasena($event, 'contrasenaCon')"
+            aria-required="true"
+            required
+          >
+          <button
+            type="button"
+            class="toggle-password"
+            (click)="mostrarConfirmacion = !mostrarConfirmacion"
+            [attr.aria-label]="mostrarConfirmacion ? 'Ocultar confirmación' : 'Mostrar confirmación'"
+          >
+            <i [class]="mostrarConfirmacion ? 'fa fa-eye-slash' : 'fa fa-eye'" aria-hidden="true"></i>
+          </button>
+        </div>
+        <small class="confirmation-error" *ngIf="recuperarForm.hasError('passwordsMismatch') && recuperarForm.controls.contrasenaCon.touched">
+          Las contraseñas no coinciden.
+        </small>
+        <small class="confirmation-error" *ngIf="recuperarForm.controls.contrasenaCon.hasError('required') && recuperarForm.controls.contrasenaCon.touched">
+          La confirmación de contraseña es obligatoria.
+        </small>
+      </div>
+
+      <ul class="password-requirements" aria-label="Requisitos de contraseña">
+        <li *ngFor="let requisito of requisitos" [class.completed]="requisito.cumplido">
+          <i [class]="requisito.cumplido ? 'fas fa-check-circle' : 'far fa-circle'" aria-hidden="true"></i>
+          {{ requisito.texto }}
+        </li>
+      </ul>
+
+      <div
+        class="recovery-status"
+        *ngIf="mensajeEstado"
+        [class.error]="mensajeEsError"
+        role="status"
+        aria-live="polite"
+      >
+        {{ mensajeEstado }}
+      </div>
+
+      <button type="submit" id="btn-add" class="btn-login" [disabled]="enviando">
+        <span *ngIf="!enviando">Recuperar cuenta</span>
+        <span *ngIf="enviando" class="spinner"></span>
+      </button>
+
+      <a routerLink="/" class="back-login">Regresar al inicio de sesión</a>
+    </form>
+  </div>
+</div>
