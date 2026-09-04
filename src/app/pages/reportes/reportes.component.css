@@ -339,54 +339,54 @@
 }
 
 :host-context(html.dark) .reporte-card-pdf .reporte-icon::before {
-  mask-image: url("assets/reportes/DescargaPDF.png");
-  -webkit-mask-image: url("assets/reportes/DescargaPDF.png");
+  mask-image: url("/mi-angular/assets/reportes/DescargaPDF.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/DescargaPDF.png");
 }
 
 :host-context(html.dark) .reporte-card-excel .reporte-icon::before {
-  mask-image: url("assets/reportes/DescargarXLS.png");
-  -webkit-mask-image: url("assets/reportes/DescargarXLS.png");
+  mask-image: url("/mi-angular/assets/reportes/DescargarXLS.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/DescargarXLS.png");
 }
 
 :host-context(html.dark) .reporte-card-corte .reporte-icon::before {
-  mask-image: url("assets/reportes/Transacciones.png");
-  -webkit-mask-image: url("assets/reportes/Transacciones.png");
+  mask-image: url("/mi-angular/assets/reportes/Transacciones.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/Transacciones.png");
 }
 
 :host-context(html.dark) .reporte-card-diario .reporte-icon::before {
-  mask-image: url("assets/reportes/TransaccionesDia.png");
-  -webkit-mask-image: url("assets/reportes/TransaccionesDia.png");
+  mask-image: url("/mi-angular/assets/reportes/TransaccionesDia.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/TransaccionesDia.png");
 }
 
 :host-context(html.dark) .reporte-card-split .reporte-icon::before {
-  mask-image: url("assets/reportes/Split.png");
-  -webkit-mask-image: url("assets/reportes/Split.png");
+  mask-image: url("/mi-angular/assets/reportes/Split.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/Split.png");
 }
 
 :host-context(html.dark) .reporte-card-liquidacion .reporte-icon::before {
-  mask-image: url("assets/reportes/Liquidacion.png");
-  -webkit-mask-image: url("assets/reportes/Liquidacion.png");
+  mask-image: url("/mi-angular/assets/reportes/Liquidacion.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/Liquidacion.png");
 }
 
 :host-context(html.dark) .reporte-card-bancos .reporte-icon::before {
-  mask-image: url("assets/reportes/Bancos.png");
-  -webkit-mask-image: url("assets/reportes/Bancos.png");
+  mask-image: url("/mi-angular/assets/reportes/Bancos.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/Bancos.png");
 }
 
 :host-context(html.dark) .reporte-card-comision .reporte-icon::before,
 :host-context(html.dark) .reporte-card-reserva .reporte-icon::before {
-  mask-image: url("assets/reportes/Compensacion.png");
-  -webkit-mask-image: url("assets/reportes/Compensacion.png");
+  mask-image: url("/mi-angular/assets/reportes/Compensacion.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/Compensacion.png");
 }
 
 :host-context(html.dark) .reporte-card-conciliacion .reporte-icon::before {
-  mask-image: url("assets/reportes/Conciliacion.png");
-  -webkit-mask-image: url("assets/reportes/Conciliacion.png");
+  mask-image: url("/mi-angular/assets/reportes/Conciliacion.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/Conciliacion.png");
 }
 
 :host-context(html.dark) .reporte-card-internacional .reporte-icon::before {
-  mask-image: url("assets/reportes/Internacional.png");
-  -webkit-mask-image: url("assets/reportes/Internacional.png");
+  mask-image: url("/mi-angular/assets/reportes/Internacional.png");
+  -webkit-mask-image: url("/mi-angular/assets/reportes/Internacional.png");
 }
 
 :host-context(html.dark) .reporte-card-pdf {

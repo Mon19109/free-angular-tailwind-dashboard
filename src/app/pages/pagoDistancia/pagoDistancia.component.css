@@ -180,30 +180,30 @@
 }
 
 .link-icon::before {
-  mask-image: url("pagosDistancia/enlace.png");
-  -webkit-mask-image: url("pagosDistancia/enlace.png");
+  mask-image: url("/mi-angular/pagosDistancia/enlace.png");
+  -webkit-mask-image: url("/mi-angular/pagosDistancia/enlace.png");
 }
 
 .button-icon::before {
-  mask-image: url("pagosDistancia/boton_pago.png");
-  -webkit-mask-image: url("pagosDistancia/boton_pago.png");
+  mask-image: url("/mi-angular/pagosDistancia/boton_pago.png");
+  -webkit-mask-image: url("/mi-angular/pagosDistancia/boton_pago.png");
 }
 
 .api-icon::before {
-  mask-image: url("pagosDistancia/api_azul.png");
-  -webkit-mask-image: url("pagosDistancia/api_azul.png");
+  mask-image: url("/mi-angular/pagosDistancia/api_azul.png");
+  -webkit-mask-image: url("/mi-angular/pagosDistancia/api_azul.png");
 }
 
 :host-context(html:not(.dark)) .link-icon::before {
-  background-image: url("pagosDistancia/enlace.png");
+  background-image: url("/mi-angular/pagosDistancia/enlace.png");
 }
 
 :host-context(html:not(.dark)) .button-icon::before {
-  background-image: url("pagosDistancia/boton_pago.png");
+  background-image: url("/mi-angular/pagosDistancia/boton_pago.png");
 }
 
 :host-context(html:not(.dark)) .api-icon::before {
-  background-image: url("pagosDistancia/api_azul.png");
+  background-image: url("/mi-angular/pagosDistancia/api_azul.png");
 }
 
 .payment-access-content {
