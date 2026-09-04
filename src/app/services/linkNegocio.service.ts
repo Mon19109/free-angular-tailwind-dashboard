@@ -31,7 +31,7 @@ export class LinkNegocioService {
     const monto = Number(String(formData.monto ?? '0').replace(/[$,\s]/g, ''));
     const expiration = `${this.getExpirationDate()}T23:59:59`;
     const reference = this.generateNumericReference();
-    const urlImage = `${window.location.origin}/pagosDistancia/tienda.png`;
+    const urlImage = new URL('pagosDistancia/tienda.png', document.baseURI).toString();
 
     const payload = {
       user: formData.emailComer,

@@ -443,7 +443,7 @@ export class AddLinkPagoComponent {
       'btn-blanco-sombra-redondo': 'color:#243247;background:#fff;border-radius:999px;box-shadow:0 12px 24px rgba(35,50,77,.16);'
     };
     const estiloBoton = estilos[this.botonSeleccionado] || estilos['btn-azul'];
-    const marcasUrl = `${window.location.origin}/pagosDistancia/Marcas.png`;
+    const marcasUrl = new URL('pagosDistancia/Marcas.png', document.baseURI).toString();
 
     return `<div style="max-width:640px;margin:auto;text-align:center;">\n` +
       `  <a href="${formUrl}" target="_blank" rel="noopener noreferrer" style="display:block;padding:14px 20px;text-decoration:none;font-weight:700;${estiloBoton}">Pagar con Kash</a>\n` +

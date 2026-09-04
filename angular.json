@@ -40,6 +40,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/mi-angular/",
               "budgets": [
                 {
                   "type": "initial",

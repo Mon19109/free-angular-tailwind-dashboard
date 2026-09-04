@@ -34,7 +34,7 @@ export class AddBotonPagoComponent implements OnInit {
     }
 
     if (queryParams.has('isMovil')) params.set('isMovil', '0');
-    this.urlNegocio = `${window.location.origin}/linkNegocio?${params.toString()}`;
+    this.urlNegocio = new URL(`linkNegocio?${params.toString()}`, document.baseURI).toString();
   }
 
   private getSessionValue(...keys: string[]): string {
@@ -75,7 +75,7 @@ export class AddBotonPagoComponent implements OnInit {
       return;
     }
 
-    const marcasUrl = `${window.location.origin}/pagosDistancia/Marcas.png`;
+    const marcasUrl = new URL('pagosDistancia/Marcas.png', document.baseURI).toString();
     this.codigoBoton = [
       '<div class="panel pn">',
       '  <div class="row">',
