@@ -31,12 +31,14 @@ interface CuentaReporteDisponible {
   styleUrls: ['./reportes.component.css']
 })
 export class ReportesComponent implements OnInit {
+  private readonly assetBaseUrl = '/mi-angular/';
+
   private readonly reportesFijos: ReporteDisponible[] = [
     {
       id: 'ESTADO_PDF',
       titulo: 'Estado de Cuenta en PDF',
       descripcion: 'Este reporte es correspondiente al periodo de consulta, proporcionando el detalle de los movimientos registrados, incluyendo cargos, abonos, saldos y demás operaciones, descarga en formato PDF',
-      imagen: 'assets/reportes/DescargaPDF.png',
+      imagen: this.assetUrl('assets/reportes/DescargaPDF.png'),
       variante: 'pdf',
       origen: 'fijo'
     },
@@ -44,7 +46,7 @@ export class ReportesComponent implements OnInit {
       id: 'ESTADO_EXCEL',
       titulo: 'Estado de Cuenta en EXCEL',
       descripcion: 'Este reporte muestra el reporte correspondiente al periodo de consulta, proporcionando el detalle de los movimientos registrados, incluyendo cargos, abonos, saldos y demás operaciones, descarga en formato Excel',
-      imagen: 'assets/reportes/DescargarXLS.png',
+      imagen: this.assetUrl('assets/reportes/DescargarXLS.png'),
       variante: 'excel',
       origen: 'fijo'
     },
@@ -52,7 +54,7 @@ export class ReportesComponent implements OnInit {
       id: 'CORTE_DIA',
       titulo: 'Corte del día',
       descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, no esta ligada al periodo de tiempo seleccionado del filtro superior',
-      imagen: 'assets/reportes/Transacciones.png',
+      imagen: this.assetUrl('assets/reportes/Transacciones.png'),
       variante: 'corte',
       origen: 'fijo'
     },
@@ -60,7 +62,7 @@ export class ReportesComponent implements OnInit {
       id: 'DIARIO_TRANSACCIONES',
       titulo: 'Diario de Transacciones',
       descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, no esta ligada al periodo de tiempo seleccionado del filtro superior',
-      imagen: 'assets/reportes/TransaccionesDia.png',
+      imagen: this.assetUrl('assets/reportes/TransaccionesDia.png'),
       variante: 'diario',
       origen: 'fijo'
     },
@@ -68,7 +70,7 @@ export class ReportesComponent implements OnInit {
       id: 'TRANSACCIONES_SPLIT',
       titulo: 'Transacciones Split',
       descripcion: 'La información presentada corresponde a las transacciones procesadas considerando la solicitud del cliente para facilidad de análisis y proceso con sus sistemas internos',
-      imagen: 'assets/reportes/Split.png',
+      imagen: this.assetUrl('assets/reportes/Split.png'),
       variante: 'split',
       origen: 'fijo'
     }
@@ -78,37 +80,37 @@ export class ReportesComponent implements OnInit {
     EnRed: {
       titulo: 'Liquidaciones',
       descripcion: 'Dashboard ejecutivo, liquidaciones pendientes, detalle de transacciones liquidadas y liquidación al comercio.',
-      imagen: 'assets/reportes/Liquidacion.png',
+      imagen: this.assetUrl('assets/reportes/Liquidacion.png'),
       variante: 'liquidacion'
     },
     Factura: {
       titulo: 'Liquidaciones en otros Bancos',
       descripcion: 'Dashboard ejecutivo, liquidaciones pendientes, detalle de transacciones liquidadas y liquidación en otros bancos.',
-      imagen: 'assets/reportes/Bancos.png',
+      imagen: this.assetUrl('assets/reportes/Bancos.png'),
       variante: 'bancos'
     },
     Comision: {
       titulo: 'Compensaciones',
       descripcion: 'Reporte de Comisiones en Red y Reporte de Comisiones Fuera de Red.',
-      imagen: 'assets/reportes/Compensacion.png',
+      imagen: this.assetUrl('assets/reportes/Compensacion.png'),
       variante: 'comision'
     },
     Conciliacion: {
       titulo: 'Conciliación',
       descripcion: 'Ventas pendientes de liquidar y detalle de ventas liquidadas.',
-      imagen: 'assets/reportes/Conciliacion.png',
+      imagen: this.assetUrl('assets/reportes/Conciliacion.png'),
       variante: 'conciliacion'
     },
     Internacionales: {
       titulo: 'Liquidaciones Internacionales',
       descripcion: 'Dashboard ejecutivo, liquidaciones pendientes, detalle de transacciones liquidadas y liquidación al comercio.',
-      imagen: 'assets/reportes/Internacional.png',
+      imagen: this.assetUrl('assets/reportes/Internacional.png'),
       variante: 'internacional'
     },
     Reserva: {
       titulo: 'Reserva',
       descripcion: 'Reporte de Comisiones en Red y Reporte de Comisiones Fuera de Red.',
-      imagen: 'assets/reportes/Compensacion.png',
+      imagen: this.assetUrl('assets/reportes/Compensacion.png'),
       variante: 'reserva'
     }
   };
@@ -126,6 +128,10 @@ export class ReportesComponent implements OnInit {
   reportes: ReporteDisponible[] = [...this.reportesFijos];
 
   constructor(private reportesService: ReportesService) {}
+
+  private assetUrl(path: string): string {
+    return `${this.assetBaseUrl}${path}`;
+  }
 
   ngOnInit(): void {
     this.periodos = this.generarPeriodos();
