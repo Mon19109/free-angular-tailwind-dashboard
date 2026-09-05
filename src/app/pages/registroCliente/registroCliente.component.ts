@@ -9,6 +9,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -26,6 +27,8 @@ import { CuentaComercioService } from '../../services/cuenta-comercio.service';
 import { Actividad, ActividadesService } from '../../services/actividades.service';
 import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/localidades.service';
 import { GiroComercial, PreRegistroService } from '../../services/preregistro.service';
+import { ArbolNodoApi, ArbolNodosService } from '../../services/arbol-nodos.service';
+import { ActivarProspectoService } from '../../services/activar-prospecto.service';
 
 type NivelNodo = 'sub-afiliado' | 'referenciador' | 'entidad' | 'sucursal' | 'caja';
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
@@ -36,6 +39,11 @@ interface NodoRegistro {
   id: string;
   nombre: string;
   nivel: NivelNodo;
+  idSirio?: string;
+  levelType?: number;
+  commerceID?: string;
+  commerceGuid?: string;
+  pldID?: string;
   hijos?: NodoRegistro[];
 }
 
@@ -72,9 +80,11 @@ export class RegistroClienteComponent {
   private readonly actividadesService = inject(ActividadesService);
   private readonly localidadesService = inject(LocalidadesService);
   private readonly preRegistroService = inject(PreRegistroService);
+  private readonly arbolNodosService = inject(ArbolNodosService);
+  private readonly activarProspectoService = inject(ActivarProspectoService);
   private readonly comerciosLocalesKey = 'kashpay.consulta_comercios.local.v1';
   private readonly registroLocalKey = 'kashpay.registro_cliente.local.v1';
-  private readonly ocultarArbolRegistroTemporal = true;
+  private readonly ocultarArbolRegistroTemporal = false;
   private readonly mostrarSoloPasosTresCincoRegistroTemporal = false;
 
   pasoActual = 1;
@@ -91,10 +101,13 @@ export class RegistroClienteComponent {
   resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
   resultadosSiprelad: SipreladResultado[] = [];
   commerceID = '';
+  commerceGuidRaizRegistro = '';
   documentosProspecto: DocumentoProspectoApi[] = [];
   cargandoDocumentosProspecto = false;
   cargandoCuentaComercio = false;
+  cargandoArbol = false;
   errorCuentaComercio = '';
+  errorArbol = '';
   localidadesFiscal: CodigoPostalLocalizacion[] = [];
   localidadesComercial: CodigoPostalLocalizacion[] = [];
   localidadesRepresentante: CodigoPostalLocalizacion[] = [];
@@ -103,6 +116,7 @@ export class RegistroClienteComponent {
   cargandoLocalidadesRepresentante = false;
   guardandoRevisionDocumentos = false;
   enviandoNotificacionMesaDigital = false;
+  registrandoCliente = false;
   errorDocumentosProspecto = '';
   mensajeObservacionesCliente = '';
   observacionesClienteMesaDigital = '';
@@ -311,6 +325,9 @@ export class RegistroClienteComponent {
   cajasBase = 2;
   sucursalesPorEntidad: Record<string, number> = { 'entidad-1': 3, 'entidad-2': 3 };
   cajasPorSucursal: Record<string, number> = {};
+  arbolServicio: NodoRegistro[] = [];
+  nodeIDEdicion = '';
+  documentosProspectoPorNodo: Record<string, DocumentoProspectoApi[]> = {};
 
   constructor() {
     const params = this.route.snapshot.queryParamMap;
@@ -325,6 +342,8 @@ export class RegistroClienteComponent {
     };
     this.pldID = params.get('pldID') ?? '';
     this.commerceID = params.get('commerceID') ?? '';
+    this.commerceGuidRaizRegistro = this.commerceID;
+    this.nodeIDEdicion = params.get('nodeID') ?? '';
     this.emailNotificacionMesaDigital = this.comercioSeleccionado.correo;
     this.contextoSeleccionado = {
       idComercio: this.comercioSeleccionado.idComercio,
@@ -336,9 +355,11 @@ export class RegistroClienteComponent {
     this.sucursalesBase = this.numeroParametro(params.get('sucursales'), 3);
     this.cajasBase = this.numeroParametro(params.get('cajas'), 2);
     this.cargarEstadoRegistroLocal();
-    this.inicializarEstructuraFake();
+    if (!this.nodeIDEdicion) {
+      this.inicializarEstructuraFake();
+    }
 
-    this.nodoSeleccionado = params.get('selectedNode') ?? this.nodoInicialPorNivel(this.comercioSeleccionado.nivel);
+    this.nodoSeleccionado = this.nodeIDEdicion || params.get('selectedNode') || this.nodoInicialPorNivel(this.comercioSeleccionado.nivel);
     const nivel = this.comercioSeleccionado.nivel || 'Sucursal';
     const tipo = nivel === 'Caja' ? 'Cuenta Terminal' : nivel === 'Entidad' ? 'Empresa Grupo' : nivel === 'Sub Afiliado' ? 'Empresa Holding' : 'Sucursales de Grupo';
     this.tiposComercio = this.tiposComercioPorNivel[nivel] ?? [];
@@ -390,13 +411,21 @@ export class RegistroClienteComponent {
     this.actualizarEstadoLiquidacionRegistro();
     this.asegurarUsuarioAccesoActivo();
     this.actualizarValidadoresAccesosRegistro();
-    this.seleccionarNodoPorId(this.nodoSeleccionado);
-    this.consultarResultadoSiprelad();
-    this.consultarDocumentosProspecto();
-    this.consultarCuentaComercio();
+    if (!this.nodeIDEdicion) {
+      this.seleccionarNodoPorId(this.nodoSeleccionado);
+    }
+    this.consultarArbolEdicion();
+    if (!this.nodeIDEdicion) {
+      this.consultarResultadoSiprelad();
+      this.consultarDocumentosProspecto();
+      this.consultarCuentaComercio();
+    }
   }
 
   get arbol(): NodoRegistro[] {
+    if (this.arbolServicio.length) return this.arbolServicio;
+    if (this.nodeIDEdicion) return [];
+
     return [{
       id: 'sub-afiliado-1',
       nombre: 'Sub Afiliado Norte',
@@ -504,7 +533,7 @@ export class RegistroClienteComponent {
   get nivelSeleccionado(): NivelNodo { return this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nivel ?? 'sucursal'; }
 
   private consultarResultadoSiprelad(): void {
-    if (!this.pldID) {
+    if (!this.pldID || this.pldID === 'ND') {
       this.resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
       this.resultadosSiprelad = [];
       return;
@@ -529,7 +558,7 @@ export class RegistroClienteComponent {
   }
 
   private consultarDocumentosProspecto(): void {
-    if (!this.commerceID) {
+    if (!this.commerceID || this.commerceID === 'ND') {
       this.documentosProspecto = [];
       return;
     }
@@ -546,6 +575,7 @@ export class RegistroClienteComponent {
         }
 
         this.documentosProspecto = this.documentosDesdeRespuesta(respuesta);
+        this.documentosProspectoPorNodo[this.nodoSeleccionado] = this.documentosProspecto;
         this.observacionesInternasMesaDigital = respuesta.internalObservations ?? '';
         this.cargandoDocumentosProspecto = false;
       },
@@ -557,8 +587,8 @@ export class RegistroClienteComponent {
     });
   }
 
-  private consultarCuentaComercio(): void {
-    const sirioId = this.comercioSeleccionado.idComercio.trim();
+  private consultarCuentaComercio(sirioIdNodo?: string): void {
+    const sirioId = (sirioIdNodo || this.comercioSeleccionado.idComercio).trim();
     if (!sirioId) return;
 
     this.cargandoCuentaComercio = true;
@@ -566,7 +596,10 @@ export class RegistroClienteComponent {
     this.cuentaComercioService.consultarCuenta(sirioId).subscribe({
       next: respuesta => {
         const cuenta = this.registroCuentaDesdeRespuesta(respuesta);
+        this.actualizarIdentificadoresDesdeCuenta(cuenta);
         this.pintarCuentaComercio(cuenta);
+        this.consultarResultadoSiprelad();
+        this.consultarDocumentosProspecto();
         this.cargandoCuentaComercio = false;
       },
       error: () => {
@@ -574,6 +607,181 @@ export class RegistroClienteComponent {
         this.cargandoCuentaComercio = false;
       }
     });
+  }
+
+  private consultarArbolEdicion(): void {
+    if (!this.nodeIDEdicion) return;
+
+    this.cargandoArbol = true;
+    this.errorArbol = '';
+    this.arbolNodosService.obtenerArbol(this.nodeIDEdicion).subscribe({
+      next: respuesta => {
+        this.arbolServicio = this.nodosRegistroDesdeArbol(respuesta);
+        this.cargandoArbol = false;
+
+        const nodoSeleccionado = this.buscarNodo(this.arbolServicio, this.nodeIDEdicion)
+          ?? this.buscarPrimerNodoPorNivel(this.arbolServicio, this.nivelApiARegistro(this.comercioSeleccionado.nivel));
+        if (!nodoSeleccionado) return;
+
+        this.abrirRutaNodo(this.arbolServicio, nodoSeleccionado.id);
+        this.seleccionarNodoPorId(nodoSeleccionado.id);
+      },
+      error: () => {
+        this.errorArbol = 'No fue posible consultar el árbol del comercio.';
+        this.cargandoArbol = false;
+      }
+    });
+  }
+
+  private nodosRegistroDesdeArbol(respuesta: unknown): NodoRegistro[] {
+    const nodos = this.listaNodosArbol(respuesta);
+    if (nodos.some(nodo => nodo.depth !== undefined)) return this.arbolPlanoPorProfundidad(nodos);
+
+    return nodos.map(nodo => this.nodoRegistroDesdeApi(nodo)).filter((nodo): nodo is NodoRegistro => !!nodo);
+  }
+
+  private nodoRegistroDesdeApi(nodo: ArbolNodoApi, indice = 0): NodoRegistro | null {
+    if (!nodo || typeof nodo !== 'object') return null;
+
+    const id = this.valorNodo(nodo, ['nodeID', 'idNode', 'id', 'contextID', 'entityID', 'terminalID', 'terminalUserID']) || `nodo-${indice + 1}`;
+    const hijos = this.hijosNodosArbol(nodo).map((hijo, index) => this.nodoRegistroDesdeApi(hijo, index)).filter((hijo): hijo is NodoRegistro => !!hijo);
+
+    return {
+      id,
+      nombre: this.valorNodo(nodo, ['name', 'nodeName', 'contextDescription', 'nameCommerce', 'businessName', 'tuName', 'description']) || id,
+      nivel: this.nivelNodoDesdeApi(nodo),
+      idSirio: this.valorNodo(nodo, ['idSirio', 'sirioId', 'entitySonID']),
+      levelType: this.numeroNodo(nodo, ['levelType']),
+      commerceID: this.valorNodo(nodo, ['commerceGuid', 'guid', 'commerceID']),
+      commerceGuid: this.valorNodo(nodo, ['commerceGuid', 'guid', 'commerceID']),
+      pldID: this.valorNodo(nodo, ['pldID', 'pldId', 'PLDID']),
+      hijos: hijos.length ? hijos : undefined
+    };
+  }
+
+  private arbolPlanoPorProfundidad(nodosApi: ArbolNodoApi[]): NodoRegistro[] {
+    const raiz: NodoRegistro[] = [];
+    const pilaPorProfundidad: NodoRegistro[] = [];
+
+    nodosApi.forEach((nodoApi, index) => {
+      const nodo = this.nodoRegistroDesdeApi(nodoApi, index);
+      if (!nodo) return;
+
+      const profundidad = Math.max(0, this.numeroNodo(nodoApi, ['depth']));
+      const padre = profundidad > 0 ? pilaPorProfundidad[profundidad - 1] : undefined;
+      if (padre) {
+        padre.hijos = [...(padre.hijos ?? []), nodo];
+      } else {
+        raiz.push(nodo);
+      }
+
+      pilaPorProfundidad[profundidad] = nodo;
+      pilaPorProfundidad.length = profundidad + 1;
+    });
+
+    return raiz;
+  }
+
+  private listaNodosArbol(valor: unknown): ArbolNodoApi[] {
+    if (Array.isArray(valor)) return valor.filter(this.esNodoArbolApi);
+    if (!valor || typeof valor !== 'object') return [];
+
+    const data = valor as ArbolNodoApi;
+    for (const llave of ['children', 'childs', 'nodes', 'tree', 'items', 'content']) {
+      const hijos = data[llave];
+      if (Array.isArray(hijos)) return hijos.filter(this.esNodoArbolApi);
+    }
+
+    if (Array.isArray(data.data)) return data.data.filter(this.esNodoArbolApi);
+    if (data.data && typeof data.data === 'object') return this.listaNodosArbol(data.data);
+
+    return this.esNodoArbolApi(data) ? [data] : [];
+  }
+
+  private hijosNodosArbol(nodo: ArbolNodoApi): ArbolNodoApi[] {
+    for (const llave of ['children', 'childs', 'nodes', 'tree', 'items', 'content']) {
+      const hijos = nodo[llave];
+      if (Array.isArray(hijos)) return hijos.filter(this.esNodoArbolApi);
+    }
+
+    if (Array.isArray(nodo.data)) return nodo.data.filter(this.esNodoArbolApi);
+    return [];
+  }
+
+  private esNodoArbolApi(valor: unknown): valor is ArbolNodoApi {
+    return !!valor && typeof valor === 'object';
+  }
+
+  private valorNodo(nodo: ArbolNodoApi, llaves: string[]): string {
+    for (const llave of llaves) {
+      const valor = nodo[llave];
+      if (valor !== undefined && valor !== null && String(valor).trim()) return String(valor).trim();
+    }
+
+    return '';
+  }
+
+  private numeroNodo(nodo: ArbolNodoApi, llaves: string[]): number {
+    const valor = Number(this.valorNodo(nodo, llaves));
+    return Number.isFinite(valor) ? valor : 0;
+  }
+
+  private nivelNodoDesdeApi(nodo: ArbolNodoApi): NivelNodo {
+    const levelType = this.numeroNodo(nodo, ['levelType']);
+    if (levelType === 3) return 'sub-afiliado';
+    if (levelType === 4) return 'entidad';
+    if (levelType === 5) return 'sucursal';
+    if (levelType === 6) return 'caja';
+
+    const nivel = this.normalizarTexto(this.valorNodo(nodo, ['idAffilationLevel', 'level', 'type', 'nodeType']));
+    if (nivel.includes('SUB')) return 'sub-afiliado';
+    if (nivel.includes('ENTIDAD') || nivel.includes('ENTITY')) return 'entidad';
+    if (nivel.includes('SUCURSAL') || nivel.includes('TERMINAL')) return 'sucursal';
+    if (nivel.includes('CAJA') || nivel.includes('USER')) return 'caja';
+    if (nivel.includes('REFERENCIADOR')) return 'referenciador';
+
+    if (this.valorNodo(nodo, ['terminalUserID'])) return 'caja';
+    if (this.valorNodo(nodo, ['terminalID'])) return 'sucursal';
+    if (this.valorNodo(nodo, ['entityID'])) return 'entidad';
+    return 'sub-afiliado';
+  }
+
+  private nivelApiARegistro(nivel: string): NivelNodo {
+    const normalizado = this.normalizarTexto(nivel);
+    if (normalizado === 'SUB AFILIADO') return 'sub-afiliado';
+    if (normalizado === 'ENTIDAD') return 'entidad';
+    if (normalizado === 'SUCURSAL') return 'sucursal';
+    if (normalizado === 'CAJA') return 'caja';
+    return 'sucursal';
+  }
+
+  private nombreNivelNodo(nivel: NivelNodo): string {
+    if (nivel === 'sub-afiliado') return 'Sub Afiliado';
+    if (nivel === 'entidad') return 'Entidad';
+    if (nivel === 'sucursal') return 'Sucursal';
+    if (nivel === 'caja') return 'Caja';
+    return 'Referenciador';
+  }
+
+  private buscarPrimerNodoPorNivel(nodos: NodoRegistro[], nivel: NivelNodo): NodoRegistro | undefined {
+    for (const nodo of nodos) {
+      if (nodo.nivel === nivel) return nodo;
+      const encontrado = this.buscarPrimerNodoPorNivel(nodo.hijos ?? [], nivel);
+      if (encontrado) return encontrado;
+    }
+    return undefined;
+  }
+
+  private abrirRutaNodo(nodos: NodoRegistro[], id: string, ruta: string[] = []): boolean {
+    for (const nodo of nodos) {
+      const nuevaRuta = [...ruta, nodo.id];
+      if (nodo.id === id) {
+        nuevaRuta.forEach(nodoId => this.nodosColapsados.delete(nodoId));
+        return true;
+      }
+      if (this.abrirRutaNodo(nodo.hijos ?? [], id, nuevaRuta)) return true;
+    }
+    return false;
   }
 
   private pintarCuentaComercio(cuenta: Record<string, unknown>): void {
@@ -674,6 +882,50 @@ export class RegistroClienteComponent {
       rfc: rfc || this.contextoSeleccionado.rfc
     };
     this.actualizarValidadoresDatos();
+  }
+
+  private actualizarIdentificadoresDesdeCuenta(cuenta: Record<string, unknown>): void {
+    if (!Object.keys(cuenta).length) return;
+
+    const commerceID = this.valorCuenta(cuenta, ['commerceGuid', 'guid', 'commerceID', 'commerceId']);
+    const pldID = this.valorCuenta(cuenta, ['pldID', 'pldId', 'PLDID', 'transactionId']);
+    const rfc = this.valorCuenta(cuenta, ['rfc', 'RFC']);
+    const email = this.valorCuenta(cuenta, ['email', 'correo', 'mail']);
+    const phone = this.valorCuenta(cuenta, ['phoneNumber', 'phone', 'telefono']);
+    const nombreComercial = this.valorCuenta(cuenta, ['nameCommerce', 'commercialName', 'nombreComercial'])
+      || this.valorCuenta(cuenta, ['businessName', 'companyName', 'razonSocial'])
+      || this.contextoSeleccionado.nombreComercial;
+
+    if (commerceID) this.commerceID = commerceID;
+    if (pldID && pldID !== 'ND') this.pldID = pldID;
+    this.actualizarIdentificadoresNodoSeleccionado(commerceID, pldID);
+
+    this.comercioSeleccionado = {
+      ...this.comercioSeleccionado,
+      nombreComercial,
+      rfc: rfc || this.comercioSeleccionado.rfc,
+      correo: email || this.comercioSeleccionado.correo,
+      telefono: phone || this.comercioSeleccionado.telefono
+    };
+    this.contextoSeleccionado = {
+      ...this.contextoSeleccionado,
+      nombreComercial,
+      rfc: rfc || this.contextoSeleccionado.rfc
+    };
+    this.emailNotificacionMesaDigital = email || this.emailNotificacionMesaDigital;
+  }
+
+  private actualizarIdentificadoresNodoSeleccionado(commerceGuid: string, pldID: string): void {
+    const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    if (!nodo) return;
+
+    if (commerceGuid) {
+      nodo.commerceID = commerceGuid;
+      nodo.commerceGuid = commerceGuid;
+    }
+    if (pldID && pldID !== 'ND') {
+      nodo.pldID = pldID;
+    }
   }
 
   private registroCuentaDesdeRespuesta(respuesta: unknown): Record<string, unknown> {
@@ -1044,13 +1296,33 @@ export class RegistroClienteComponent {
     this.comercioForm.controls.tipoComercio.updateValueAndValidity({ emitEvent: false });
     this.comercioForm.patchValue({ nivel, tipoComercio: tipo }, { emitEvent: false });
     const registro = this.registroFakePorNodo(nodo.id);
+    const esNodoEditado = !!this.nodeIDEdicion && nodo.id === this.nodeIDEdicion;
+    const idComercio = nodo.idSirio || (esNodoEditado ? this.comercioSeleccionado.idComercio : nodo.id);
+    const nombreComercial = esNodoEditado ? this.comercioSeleccionado.nombreComercial : registro.nombreComercial || nodo.nombre;
+    if (this.nodeIDEdicion) {
+      this.comercioSeleccionado = {
+        ...this.comercioSeleccionado,
+        idComercio,
+        nivel,
+        nombreComercial,
+        rfc: esNodoEditado ? this.comercioSeleccionado.rfc : ''
+      };
+      this.commerceID = nodo.commerceID || '';
+      this.pldID = nodo.pldID || '';
+      this.documentosProspecto = [];
+      this.resultadosSiprelad = [];
+      this.resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
+    }
     this.contextoSeleccionado = {
-      idComercio: this.idFakeNodo(nodo.id),
+      idComercio,
       nivel,
-      nombreComercial: registro.nombreComercial || nodo.nombre,
-      rfc: registro.rfc || this.rfcFake(nodo.id)
+      nombreComercial,
+      rfc: esNodoEditado ? this.comercioSeleccionado.rfc : registro.rfc || ''
     };
     this.cargarCapturaNodo(nodo.id);
+    if (this.nodeIDEdicion) {
+      this.consultarCuentaComercio(idComercio);
+    }
     this.asegurarUsuarioAccesoActivo();
     this.actualizarValidadoresAccesosRegistro();
     this.seccionAbierta = this.resolverSeccionVisible(this.seccionAbierta ?? 'comercio');
@@ -1063,6 +1335,9 @@ export class RegistroClienteComponent {
 
   nodoExpandido(id: string): boolean { return !this.nodosColapsados.has(id); }
   esNodoSeleccionado(nodo: NodoRegistro): boolean { return this.nodoSeleccionado === nodo.id; }
+  etiquetaNodo(nodo: NodoRegistro): string {
+    return `${this.nombreNivelNodo(nodo.nivel)} - ${nodo.nombre}`;
+  }
   iconoNodo(nivel: NivelNodo): string {
     if (nivel === 'caja') return 'fa-cash-register';
     if (nivel === 'referenciador') return 'fa-user-tag';
@@ -1078,6 +1353,18 @@ export class RegistroClienteComponent {
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   finalizar(): void {
+    if (this.nodeIDEdicion) {
+      if (this.mostrarRegistrarClienteDocumentos) {
+        this.registrarClienteProspecto();
+        return;
+      }
+      if (this.esNodoExistente && this.documentosProspecto.length) {
+        this.guardarRevisionDocumentos(false);
+      }
+      this.seleccionarSiguienteNodoArbol();
+      return;
+    }
+
     if (this.esNodoExistente && this.documentosProspecto.length) {
       this.guardarRevisionDocumentos(true);
       return;
@@ -1133,6 +1420,154 @@ export class RegistroClienteComponent {
     return this.buscarRuta(this.arbol, this.nodoSeleccionado).join(' > ');
   }
 
+  rutaSeleccionadaConNivel(): string {
+    return this.buscarRutaConNivel(this.arbol, this.nodoSeleccionado).join(' > ');
+  }
+
+  documentosNodoValidados(nodoId: string): boolean {
+    const documentos = nodoId === this.nodoSeleccionado
+      ? this.documentosProspecto
+      : this.documentosProspectoPorNodo[nodoId] ?? [];
+    return this.documentosValidadosParaRegistro(documentos);
+  }
+
+  get mostrarRegistrarClienteDocumentos(): boolean {
+    return this.nodeIDEdicion ? this.nivelSeleccionado === 'sucursal' : false;
+  }
+
+  get textoFinalizarDocumentos(): string {
+    if (this.registrandoCliente) return 'Registrando...';
+    return this.mostrarRegistrarClienteDocumentos ? 'Registrar Cliente' : 'Siguiente';
+  }
+
+  get municipioComercialSeleccionado(): string {
+    return this.datosForm.controls.municipioComercial.value?.trim() || '';
+  }
+
+  private registrarClienteProspecto(): void {
+    const commerceGuid = this.commerceGuidPadreNodoSeleccionado();
+    if (!commerceGuid) {
+      this.mensajeObservacionesCliente = 'No se encontró el commerceGuid del nodo padre.';
+      return;
+    }
+
+    this.registrandoCliente = true;
+    this.mensajeObservacionesCliente = '';
+    this.validarDocumentosRutaRegistro().subscribe({
+      next: nivelPendiente => {
+        if (nivelPendiente) {
+          this.registrandoCliente = false;
+          this.mensajeObservacionesCliente = `Falta validar documentos en ${nivelPendiente}. Todos deben estar aprobados.`;
+          window.alert(this.mensajeObservacionesCliente);
+          return;
+        }
+
+        this.activarProspectoService.activarProspecto(commerceGuid).subscribe({
+          next: () => {
+            this.registrandoCliente = false;
+            this.mensajeObservacionesCliente = 'Cliente registrado correctamente.';
+            this.seleccionarSiguienteNodoArbol();
+          },
+          error: () => {
+            this.registrandoCliente = false;
+            this.mensajeObservacionesCliente = 'No fue posible registrar el cliente.';
+          }
+        });
+      },
+      error: () => {
+        this.registrandoCliente = false;
+        this.mensajeObservacionesCliente = 'No fue posible validar los documentos antes del registro.';
+        window.alert(this.mensajeObservacionesCliente);
+      }
+    });
+  }
+
+  private validarDocumentosRutaRegistro(): Observable<string> {
+    const ruta = this.buscarRutaNodos(this.arbol, this.nodoSeleccionado);
+    const niveles = ruta.filter(nodo => nodo.nivel !== 'caja');
+    if (!niveles.length) return of('');
+
+    return forkJoin(niveles.map(nodo => this.documentosNodoParaValidacion(nodo))).pipe(
+      map(resultados => resultados.find(resultado => !resultado.validado)?.nivel || '')
+    );
+  }
+
+  private documentosNodoParaValidacion(nodo: NodoRegistro): Observable<{ nivel: string; validado: boolean }> {
+    const documentosCache = this.documentosProspectoPorNodo[nodo.id];
+    if (documentosCache) {
+      return of({ nivel: this.etiquetaNodo(nodo), validado: this.documentosValidadosParaRegistro(documentosCache) });
+    }
+
+    const commerceID = nodo.commerceID || nodo.commerceGuid || '';
+    if (!commerceID || commerceID === 'ND') return of({ nivel: this.etiquetaNodo(nodo), validado: false });
+
+    return this.documentosProspectoService.consultarDocumentos(commerceID).pipe(
+      map(respuesta => {
+        const documentos = respuesta.success === false ? [] : this.documentosDesdeRespuesta(respuesta);
+        this.documentosProspectoPorNodo[nodo.id] = documentos;
+        return {
+          nivel: this.etiquetaNodo(nodo),
+          validado: this.documentosValidadosParaRegistro(documentos)
+        };
+      }),
+      catchError(() => of({ nivel: this.etiquetaNodo(nodo), validado: false }))
+    );
+  }
+
+  private documentosValidadosParaRegistro(documentos: DocumentoProspectoApi[]): boolean {
+    return documentos.length > 0 && documentos.every(documento => {
+      const estado = this.estatusRevisionDocumento(documento);
+      return estado === 'APPROVED';
+    });
+  }
+
+  private commerceGuidPadreNodoSeleccionado(): string {
+    const padre = this.buscarPadreNodo(this.arbol, this.nodoSeleccionado);
+    const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    return this.commerceGuidRaizRegistro
+      || padre?.commerceGuid
+      || padre?.commerceID
+      || nodo?.commerceGuid
+      || nodo?.commerceID
+      || this.commerceID
+      || '';
+  }
+
+  private buscarPadreNodo(nodos: NodoRegistro[], id: string, padre?: NodoRegistro): NodoRegistro | undefined {
+    for (const nodo of nodos) {
+      if (nodo.id === id) return padre;
+      const encontrado = this.buscarPadreNodo(nodo.hijos ?? [], id, nodo);
+      if (encontrado) return encontrado;
+    }
+    return undefined;
+  }
+
+  private buscarRutaNodos(nodos: NodoRegistro[], id: string, ruta: NodoRegistro[] = []): NodoRegistro[] {
+    for (const nodo of nodos) {
+      const nuevaRuta = [...ruta, nodo];
+      if (nodo.id === id) return nuevaRuta;
+      const encontrada = this.buscarRutaNodos(nodo.hijos ?? [], id, nuevaRuta);
+      if (encontrada.length) return encontrada;
+    }
+    return [];
+  }
+
+  private seleccionarSiguienteNodoArbol(): void {
+    const nodos = this.nodosPlanos(this.arbol);
+    const indiceActual = nodos.findIndex(nodo => nodo.id === this.nodoSeleccionado);
+    const siguiente = indiceActual >= 0 ? nodos[indiceActual + 1] : nodos[0];
+    if (!siguiente) return;
+
+    this.abrirRutaNodo(this.arbol, siguiente.id);
+    this.seleccionarNodo(siguiente);
+    this.seccionAbierta = this.resolverSeccionVisible('comercio');
+    this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
+  }
+
+  private nodosPlanos(nodos: NodoRegistro[]): NodoRegistro[] {
+    return nodos.flatMap(nodo => [nodo, ...this.nodosPlanos(nodo.hijos ?? [])]);
+  }
+
   seleccionarArchivo(event: Event, documento: DocumentoRequerido): void {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
@@ -1149,6 +1584,7 @@ export class RegistroClienteComponent {
     if (documentoProspecto) {
       documentoProspecto.status = estado;
     }
+    this.documentosProspectoPorNodo[this.nodoSeleccionado] = this.documentosProspecto;
   }
 
   verDocumentoProspecto(documento: DocumentoRequerido): void {
@@ -1465,7 +1901,8 @@ export class RegistroClienteComponent {
     if (comercio) this.comercioForm.patchValue(comercio, { emitEvent: false });
     if (!this.nodosNuevos.has(nodoId)) {
       this.datosForm.reset();
-      this.datosForm.patchValue({ ...this.datosFakeNodo(nodoId), ...this.valoresConContenido(datos) }, { emitEvent: false });
+      const datosBase = this.nodeIDEdicion ? this.datosNodoEditado(nodoId) : this.datosFakeNodo(nodoId);
+      this.datosForm.patchValue({ ...datosBase, ...this.valoresConContenido(datos) }, { emitEvent: false });
     } else if (datos) {
       this.datosForm.patchValue(datos, { emitEvent: false });
     } else {
@@ -1657,6 +2094,20 @@ export class RegistroClienteComponent {
       entidadFederativaComercial: 'Estado de México',
       entreCalleComercial: 'Independencia',
       yCalleComercial: 'Reforma'
+    };
+  }
+
+  private datosNodoEditado(nodoId: string): Partial<ReturnType<typeof this.datosForm.getRawValue>> {
+    if (nodoId !== this.nodeIDEdicion) return {};
+
+    return {
+      nombreComercial: this.comercioSeleccionado.nombreComercial,
+      razonSocial: this.comercioSeleccionado.nombreComercial,
+      rfc: this.comercioSeleccionado.rfc,
+      correo: this.comercioSeleccionado.correo,
+      telefono: this.comercioSeleccionado.telefono,
+      correoComercial: this.comercioSeleccionado.correo,
+      telefonoComercial: this.comercioSeleccionado.telefono
     };
   }
 
@@ -2055,6 +2506,16 @@ export class RegistroClienteComponent {
       const nuevaRuta = [...ruta, nodo.nombre];
       if (nodo.id === id) return nuevaRuta;
       const encontrada = this.buscarRuta(nodo.hijos ?? [], id, nuevaRuta);
+      if (encontrada.length) return encontrada;
+    }
+    return [];
+  }
+
+  private buscarRutaConNivel(nodos: NodoRegistro[], id: string, ruta: string[] = []): string[] {
+    for (const nodo of nodos) {
+      const nuevaRuta = [...ruta, `${this.nombreNivelNodo(nodo.nivel)} - ${nodo.nombre}`];
+      if (nodo.id === id) return nuevaRuta;
+      const encontrada = this.buscarRutaConNivel(nodo.hijos ?? [], id, nuevaRuta);
       if (encontrada.length) return encontrada;
     }
     return [];

@@ -98,14 +98,18 @@
             autocomplete="email"
             [value]="emailNotificacion"
             (input)="emailNotificacionChange.emit($any($event.target).value)">
-          <button type="button" [disabled]="enviandoNotificacion" (click)="enviarNotificacion.emit()">
-            <i class="fa-solid" [ngClass]="enviandoNotificacion ? 'fa-spinner fa-spin' : 'fa-envelope'"></i>
-            {{ enviandoNotificacion ? 'Enviando...' : 'Enviar Notificación' }}
-          </button>
         </div>
       </label>
     </div>
     <div class="mesa-register-action">
+      <button
+        type="button"
+        class="button primary"
+        [disabled]="enviandoNotificacion"
+        (click)="enviarNotificacion.emit()">
+        <i class="fa-solid" [ngClass]="enviandoNotificacion ? 'fa-spinner fa-spin' : 'fa-envelope'"></i>
+        {{ enviandoNotificacion ? 'Enviando...' : 'Enviar Notificación' }}
+      </button>
       <button
         type="button"
         class="button ghost"
@@ -114,7 +118,7 @@
         <i class="fa-regular" [ngClass]="guardandoBorrador ? 'fa-hourglass-half' : 'fa-folder'"></i>
         {{ guardandoBorrador ? 'Guardando...' : 'Guardar Borrador' }}
       </button>
-      <button type="button" class="button primary" disabled>Registrar Cliente</button>
+      <button type="button" class="button primary" [disabled]="deshabilitarFinalizar" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
     </div>
     @if (mensajeNotificacion) {
       <p class="mesa-notification-message">{{ mensajeNotificacion }}</p>

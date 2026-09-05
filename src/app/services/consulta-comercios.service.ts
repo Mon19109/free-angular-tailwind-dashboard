@@ -9,6 +9,7 @@ export interface ConsultaComerciosFiltros {
   email?: string;
   telefono?: string;
   rfc?: string;
+  status?: string;
 }
 
 export interface ConsultaComercioApi {
@@ -39,6 +40,7 @@ export interface ConsultaComercioApi {
   pldID?: string;
   pldId?: string;
   PLDID?: string;
+  nodeID?: number | string;
   [key: string]: unknown;
 }
 
@@ -87,7 +89,8 @@ export class ConsultaComerciosService {
       .set('nameCommerce', filtros.nameCommerce ?? '')
       .set('email', filtros.email ?? '')
       .set('telefono', filtros.telefono ?? '')
-      .set('rfc', filtros.rfc ?? '');
+      .set('rfc', filtros.rfc ?? '')
+      .set('status', filtros.status ?? '');
 
     return this.http.get<ConsultaComerciosResponse>(`${this.baseUrl}searchCommercesByLevel`, {
       headers: this.headers(),

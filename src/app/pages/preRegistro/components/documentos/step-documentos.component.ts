@@ -25,6 +25,7 @@ export class StepDocumentosComponent {
   @Input() emailNotificacion = '';
   @Input() enviandoNotificacion = false;
   @Input() guardandoBorrador = false;
+  @Input() deshabilitarFinalizar = false;
   @Input() mensajeNotificacion = '';
   @Output() seleccionarArchivo = new EventEmitter<{ event: Event; documento: DocumentoRequerido }>();
   @Output() verArchivo = new EventEmitter<DocumentoRequerido>();

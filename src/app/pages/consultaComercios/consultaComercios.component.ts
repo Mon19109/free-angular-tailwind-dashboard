@@ -16,6 +16,7 @@ interface Comercio {
   idComercio: string;
   entitySonID?: string;
   nodoId?: string;
+  nodeID?: string;
   guid?: string;
   nivel: 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja' | 'Prospecto';
   jerarquia: string;
@@ -25,6 +26,7 @@ interface Comercio {
   correo: string;
   telefono: string;
   estatus: EstatusComercio;
+  statusOriginal?: string;
   cajaPinRapido?: boolean;
   password?: string;
   tieneInferiores?: boolean;
@@ -63,7 +65,7 @@ export class ConsultaComerciosComponent {
   private tieneComerciosPorNivel(nivel: NivelComercio): boolean {
     return this.comercios.some(comercio =>
       nivel === 'prospectos'
-        ? comercio.estatus === 'Prospecto'
+        ? this.esProspectoAdmin(comercio)
         : this.normalizarNivel(comercio.nivel) === nivel
     );
   }
@@ -175,6 +177,7 @@ export class ConsultaComerciosComponent {
       nameCommerce: this.filtros.nombre.trim(),
       rfc: this.filtros.rfc.trim(),
       email: this.filtros.correo.trim(),
+      status: this.filtros.nivel === 'prospectos' ? 'PROSPECTO_ADMIN' : '',
     }).subscribe({
       next: respuesta => {
         if (respuesta.success === false) {
@@ -224,7 +227,7 @@ export class ConsultaComerciosComponent {
     const nivel = this.filtros.nivel;
     this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
       const coincideNivel = nivel === 'todos'
-        || (nivel === 'prospectos' ? comercio.estatus === 'Prospecto' : this.normalizarNivel(comercio.nivel) === nivel);
+        || (nivel === 'prospectos' ? this.esProspectoAdmin(comercio) : this.normalizarNivel(comercio.nivel) === nivel);
 
       return coincideNivel && this.coincideFiltrosJerarquia(comercio);
     }));
@@ -270,6 +273,7 @@ export class ConsultaComerciosComponent {
       return {
         idComercio: comercio.entitySonID || this.idComercioDesdeApi(comercio),
         entitySonID: comercio.entitySonID,
+        nodeID: this.nodeIdDesdeComercioApi(comercio),
         guid: this.guidDesdeComercioApi(comercio),
         nivel,
         jerarquia: this.jerarquiaDesdeComercioApi(comercio, nivel),
@@ -279,6 +283,7 @@ export class ConsultaComerciosComponent {
         correo: comercio.email || 'ND',
         telefono: comercio.phoneNumber || 'ND',
         estatus,
+        statusOriginal: String(comercio.status || comercio['Status'] || comercio['STATUS'] || ''),
         cajaPinRapido: nivel === 'Caja' && comercio.idBusinessModel === 3,
         tieneInferiores: nivel !== 'Caja',
         pldID: this.pldIdDesdeComercioApi(comercio),
@@ -327,7 +332,11 @@ export class ConsultaComerciosComponent {
   private esProspectoCliente(comercio: ConsultaComercioApi): boolean {
     const status = this.normalizarTexto(comercio.status || String(comercio['Status'] || comercio['STATUS'] || ''));
 
-    return status === 'PROSPECTO_CLIENTE' || status === 'PROSPECTO_A_CLIENTE';
+    return status === 'PROSPECTO_CLIENTE' || status === 'PROSPECTO_A_CLIENTE' || status === 'PROSPECTO_ADMIN';
+  }
+
+  private esProspectoAdmin(comercio: Comercio): boolean {
+    return this.normalizarTexto(comercio.statusOriginal || '') === 'PROSPECTO_ADMIN';
   }
 
   private normalizarTexto(valor?: string): string {
@@ -385,6 +394,16 @@ export class ConsultaComerciosComponent {
       || comercio.PLDID
       || comercio['pld_id']
       || comercio['transactionId']
+      || ''
+    );
+  }
+
+  private nodeIdDesdeComercioApi(comercio: ConsultaComercioApi): string {
+    return String(
+      comercio.nodeID
+      || comercio['nodeId']
+      || comercio['idNode']
+      || comercio['id_node']
       || ''
     );
   }
@@ -466,11 +485,7 @@ export class ConsultaComerciosComponent {
           telefono: comercio.telefono,
           commerceID: comercio.guid,
           pldID: comercio.pldID,
-          paquete: 'empresa-holding',
-          entidades: 2,
-          sucursales: 3,
-          cajas: 2,
-          selectedNode: this.nodoRegistroPorComercio(comercio)
+          nodeID: comercio.nodeID
         }
       });
       return;

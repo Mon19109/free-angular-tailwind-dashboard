@@ -20,7 +20,7 @@
           <div>
             <h2>Niveles de Ubicación</h2>
             <h3>Árbol de negocio</h3>
-            <p>Selecciona la sucursal o caja que vas a capturar.</p>
+            <p>Selecciona el nodo que vas a consultar.</p>
           </div>
           <button
             type="button"
@@ -42,12 +42,15 @@
         </button>
 
         <div class="tree-list" *ngIf="!arbolMinimizado">
+          <p class="tree-state" *ngIf="cargandoArbol">Cargando árbol...</p>
+          <p class="tree-state error" *ngIf="errorArbol">{{ errorArbol }}</p>
           <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: arbol, nivel: 0 }"></ng-container>
         </div>
 
         <section class="selected-box" *ngIf="!arbolMinimizado">
           <span>Ubicación seleccionada</span>
-          <strong><i class="fa-solid fa-location-dot"></i>{{ rutaSeleccionada() }}</strong>
+          <strong><i class="fa-solid fa-location-dot"></i>{{ rutaSeleccionadaConNivel() }}</strong>
+          <small *ngIf="municipioComercialSeleccionado">Municipio: {{ municipioComercialSeleccionado }}</small>
         </section>
       </aside>
 
@@ -153,8 +156,9 @@
               [emailNotificacion]="emailNotificacionMesaDigital"
               [enviandoNotificacion]="enviandoNotificacionMesaDigital"
               [guardandoBorrador]="guardandoRevisionDocumentos"
+              [deshabilitarFinalizar]="registrandoCliente"
               [mensajeNotificacion]="mensajeObservacionesCliente"
-              textoFinalizar="Guardar registro"
+              [textoFinalizar]="textoFinalizarDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (verArchivo)="verDocumentoProspecto($event)"
               (validarArchivo)="actualizarEstatusDocumento($event.documento, $event.estado)"
@@ -169,7 +173,7 @@
         </article>
 
         <footer class="footer-actions">
-          <button class="button ghost" type="button" (click)="volver()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+          <button class="button ghost" type="button" (click)="volver()"><i class="fa-solid fa-xmark"></i> Cerrar</button>
           <button *ngIf="!esNodoExistente" class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
         </footer>
       </section>
@@ -184,32 +188,12 @@
         <button type="button" class="tree-toggle" *ngIf="nodo.hijos?.length" (pointerdown)="alternarNodo(nodo.id); $event.preventDefault(); $event.stopPropagation()">
           <i class="fa-solid" [ngClass]="nodoExpandido(nodo.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
         </button>
-        <button type="button" class="tree-node" [class.selected]="esNodoSeleccionado(nodo)" [class.leaf]="!nodo.hijos?.length" (pointerdown)="seleccionarNodo(nodo); $event.preventDefault(); $event.stopPropagation()">
+        <button type="button" class="tree-node" [class.selected]="esNodoSeleccionado(nodo)" [class.validated]="documentosNodoValidados(nodo.id)" [class.leaf]="!nodo.hijos?.length" (pointerdown)="seleccionarNodo(nodo); $event.preventDefault(); $event.stopPropagation()">
           <i class="fa-solid" [ngClass]="iconoNodo(nodo.nivel)"></i>
-          <span>{{ nodo.nombre }}</span>
+          <span>{{ etiquetaNodo(nodo) }}</span>
+          <i *ngIf="documentosNodoValidados(nodo.id)" class="fa-solid fa-circle-check documentos-validados-mark" title="Documentos validados"></i>
           <i *ngIf="tieneLiquidacion(nodo.id)" class="fa-solid fa-building-columns liquidacion-mark" title="Cuenta de liquidación capturada"></i>
         </button>
-      </div>
-
-      <div class="tree-actions nested group-action" *ngIf="nodo.nivel === 'sub-afiliado' && nodoExpandido(nodo.id)">
-        <i class="fa-solid fa-folder"></i>
-        <span>Entidades</span>
-        <button type="button" (pointerdown)="cambiarEntidades(-1); $event.preventDefault(); $event.stopPropagation()" title="Quitar entidad"><i class="fa-solid fa-minus"></i></button>
-        <button type="button" (pointerdown)="cambiarEntidades(1); $event.preventDefault(); $event.stopPropagation()" title="Agregar entidad"><i class="fa-solid fa-plus"></i></button>
-      </div>
-
-      <div class="tree-actions nested group-action" *ngIf="nodo.nivel === 'entidad' && nodoExpandido(nodo.id)">
-        <i class="fa-solid fa-folder"></i>
-        <span>Sucursales</span>
-        <button type="button" (pointerdown)="cambiarSucursales(nodo.id, -1); $event.preventDefault(); $event.stopPropagation()" title="Quitar sucursal"><i class="fa-solid fa-minus"></i></button>
-        <button type="button" (pointerdown)="cambiarSucursales(nodo.id, 1); $event.preventDefault(); $event.stopPropagation()" title="Agregar sucursal"><i class="fa-solid fa-plus"></i></button>
-      </div>
-
-      <div class="tree-actions nested group-action" *ngIf="nodo.nivel === 'sucursal' && nodoExpandido(nodo.id)">
-        <i class="fa-solid fa-folder"></i>
-        <span>Cajas</span>
-        <button type="button" (pointerdown)="cambiarCajas(nodo.id, -1); $event.preventDefault(); $event.stopPropagation()" title="Quitar caja"><i class="fa-solid fa-minus"></i></button>
-        <button type="button" (pointerdown)="cambiarCajas(nodo.id, 1); $event.preventDefault(); $event.stopPropagation()" title="Agregar caja"><i class="fa-solid fa-plus"></i></button>
       </div>
 
       <ng-container *ngIf="nodo.hijos?.length && nodoExpandido(nodo.id)">
