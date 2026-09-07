@@ -505,6 +505,7 @@ export class RegistroClienteComponent {
   get documentosPendientes(): number { return this.documentosVisibles.filter(documento => documento.obligatorio && !(documento.archivo || documento.archivoNombre)).length; }
   get esNodoExistente(): boolean { return !this.nodosNuevos.has(this.nodoSeleccionado); }
   get mostrarPasoAccesos(): boolean { return this.nivelSeleccionado !== 'caja'; }
+  get esEdicionCaja(): boolean { return !!this.nodeIDEdicion && this.nivelSeleccionado === 'caja'; }
   get esSucursalAgrupadora(): boolean {
     return this.comercioForm.getRawValue().nivel === 'Sucursal'
       && this.comercioForm.getRawValue().tipoComercio === 'Sucursales de Grupo';
@@ -625,6 +626,7 @@ export class RegistroClienteComponent {
 
         this.abrirRutaNodo(this.arbolServicio, nodoSeleccionado.id);
         this.seleccionarNodoPorId(nodoSeleccionado.id);
+        this.precargarDocumentosRuta(nodoSeleccionado.id);
       },
       error: () => {
         this.errorArbol = 'No fue posible consultar el árbol del comercio.';
@@ -1322,6 +1324,7 @@ export class RegistroClienteComponent {
     this.cargarCapturaNodo(nodo.id);
     if (this.nodeIDEdicion) {
       this.consultarCuentaComercio(idComercio);
+      this.precargarDocumentosRuta(nodo.id);
     }
     this.asegurarUsuarioAccesoActivo();
     this.actualizarValidadoresAccesosRegistro();
@@ -1410,10 +1413,16 @@ export class RegistroClienteComponent {
     if (this.esNodoExistente && id !== 'liquidacion' && id !== 'accesos' && id !== 'documentos') return 'Completado';
     if (id === 'liquidacion' && this.tieneLiquidacion(this.nodoSeleccionado)) return 'Completado';
     if (id === 'accesos' && this.pasoCompletado(id) && this.accesosTieneContenido(this.accesosForm.getRawValue())) return 'Completado';
+    if (id === 'documentos' && this.documentosNodoValidados(this.nodoSeleccionado)) return 'Terminado';
     if (this.seccionAbierta === id) return 'En curso';
     if (id === 'accesos') return 'Pendiente';
     if (this.pasoCompletado(id)) return 'Completado';
     return 'Pendiente';
+  }
+
+  pasoTerminado(id: SeccionRegistro['id']): boolean {
+    const estado = this.estadoPaso(id);
+    return estado === 'Completado' || estado === 'Terminado';
   }
 
   rutaSeleccionada(): string {
@@ -1428,11 +1437,20 @@ export class RegistroClienteComponent {
     const documentos = nodoId === this.nodoSeleccionado
       ? this.documentosProspecto
       : this.documentosProspectoPorNodo[nodoId] ?? [];
-    return this.documentosValidadosParaRegistro(documentos);
+    if (this.documentosValidadosParaRegistro(documentos)) return true;
+
+    const nodo = this.buscarNodo(this.arbol, nodoId);
+    if (this.nodeIDEdicion && nodo?.nivel === 'caja') {
+      const rutaPadres = this.buscarRutaNodos(this.arbol, nodoId).filter(item => item.nivel !== 'caja');
+      return rutaPadres.length > 0
+        && rutaPadres.every(item => this.documentosValidadosParaRegistro(this.documentosProspectoPorNodo[item.id] ?? []));
+    }
+
+    return false;
   }
 
   get mostrarRegistrarClienteDocumentos(): boolean {
-    return this.nodeIDEdicion ? this.nivelSeleccionado === 'sucursal' : false;
+    return this.esEdicionCaja;
   }
 
   get textoFinalizarDocumentos(): string {
@@ -1444,7 +1462,7 @@ export class RegistroClienteComponent {
     return this.datosForm.controls.municipioComercial.value?.trim() || '';
   }
 
-  private registrarClienteProspecto(): void {
+  registrarClienteProspecto(): void {
     const commerceGuid = this.commerceGuidPadreNodoSeleccionado();
     if (!commerceGuid) {
       this.mensajeObservacionesCliente = 'No se encontró el commerceGuid del nodo padre.';
@@ -1512,6 +1530,14 @@ export class RegistroClienteComponent {
       }),
       catchError(() => of({ nivel: this.etiquetaNodo(nodo), validado: false }))
     );
+  }
+
+  private precargarDocumentosRuta(nodoId: string): void {
+    const ruta = this.buscarRutaNodos(this.arbol, nodoId).filter(nodo => nodo.nivel !== 'caja');
+    const pendientes = ruta.filter(nodo => !this.documentosProspectoPorNodo[nodo.id]);
+    if (!pendientes.length) return;
+
+    forkJoin(pendientes.map(nodo => this.documentosNodoParaValidacion(nodo))).subscribe();
   }
 
   private documentosValidadosParaRegistro(documentos: DocumentoProspectoApi[]): boolean {

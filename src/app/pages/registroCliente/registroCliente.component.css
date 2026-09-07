@@ -830,6 +830,7 @@
 
 .footer-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
   padding-top: 10px;
@@ -1255,7 +1256,7 @@
 
 :host ::ng-deep app-step-documentos .mesa-register-action {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 14px;
   align-items: stretch;
   margin-top: 22px;
