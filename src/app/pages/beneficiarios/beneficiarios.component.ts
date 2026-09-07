@@ -30,6 +30,7 @@ export class BeneficiariosComponent implements OnInit {
   estatusFileKey = '';
   altaMasiva = false;
   cuentaMostrada = '';
+  mostrarModalBeneficiarioAgregado = false;
 
   private ultimaCuentaBuscada = '';
   private busquedaInstitucion?: Subscription;
@@ -193,15 +194,18 @@ export class BeneficiariosComponent implements OnInit {
 
     this.cargando = true;
     this.beneficiariosService.agregarContacto(idUser, this.form).subscribe({
-      next: () => {
-        this.mensaje = 'Beneficiario agregado correctamente.';
-        this.form = this.formInicial();
-        this.cuentaMostrada = '';
-        this.ultimaCuentaBuscada = '';
-        this.instituciones = [];
+      next: response => {
         this.cargando = false;
-        this.cargarContactos();
-        this.vista = 'lista';
+
+        if (response?.success !== true) {
+          this.error = response?.message
+            || response?.mensaje
+            || response?.error?.message
+            || 'No fue posible agregar el beneficiario.';
+          return;
+        }
+
+        this.mostrarModalBeneficiarioAgregado = true;
       },
       error: error => {
         console.error('Error al agregar beneficiario:', error);
@@ -209,6 +213,10 @@ export class BeneficiariosComponent implements OnInit {
         this.cargando = false;
       }
     });
+  }
+
+  actualizarPaginaBeneficiarios(): void {
+    window.location.reload();
   }
 
   toggleEliminar(id: string, checked: boolean): void {

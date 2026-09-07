@@ -290,3 +290,27 @@
     </section>
   </article>
 </div>
+
+<div class="beneficiary-modal-backdrop" *ngIf="mostrarModalBeneficiarioAgregado">
+  <section
+    class="beneficiary-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="beneficiary-success-title"
+    aria-describedby="beneficiary-success-message">
+    <div class="beneficiary-modal-body">
+      <i class="far fa-check-circle beneficiary-modal-icon" aria-hidden="true"></i>
+      <h2 id="beneficiary-success-title">Operación exitosa</h2>
+      <p id="beneficiary-success-message">Beneficiario agregado correctamente.</p>
+    </div>
+    <footer class="beneficiary-modal-footer">
+      <button
+        type="button"
+        class="button primary beneficiary-modal-ok"
+        (click)="actualizarPaginaBeneficiarios()"
+        autofocus>
+        OK
+      </button>
+    </footer>
+  </section>
+</div>

@@ -71,14 +71,17 @@ export class LinkNegocioComponent implements OnInit {
         }
 
         if (resultado?.success === true) {
-          const payOrder = String(resultado?.payOrderResponse?.payOrder || '').trim();
+          const formUrl = String(resultado?.payOrderResponse?.formUrl || '').trim();
+          const referencia = this.obtenerReferencia(formUrl);
 
-          if (this.isSafePaymentUrl(payOrder)) {
-            window.location.assign(payOrder);
+          if (referencia) {
+            const paymentUrl = new URL('paymentLink', document.baseURI);
+            paymentUrl.searchParams.set('reference', referencia);
+            window.location.assign(paymentUrl.toString());
             return;
           }
 
-          this.mensajeEstado = 'La solicitud fue generada, pero la respuesta no contiene una URL de pago válida.';
+          this.mensajeEstado = 'La solicitud fue generada, pero la respuesta no contiene una referencia de pago válida.';
           this.mensajeEsError = true;
           return;
         }
@@ -133,12 +136,15 @@ export class LinkNegocioComponent implements OnInit {
     this.formulario.controls.telefono.setValue(input.value);
   }
 
-  private isSafePaymentUrl(value: string): boolean {
+  private obtenerReferencia(formUrl: string): string {
+    if (!formUrl) return '';
+
     try {
-      const url = new URL(value);
-      return url.protocol === 'https:' || url.protocol === 'http:';
+      const url = new URL(formUrl, document.baseURI);
+      return String(url.searchParams.get('reference') || '').trim();
     } catch {
-      return false;
+      const [, referencia = ''] = formUrl.split('?reference=');
+      return referencia.split('&')[0].trim();
     }
   }
 }

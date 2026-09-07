@@ -78,6 +78,11 @@ export const routes: Routes = [
     //canActivate: [AuthGuard],
     title:'KASHPAY'
   },
+  {
+    path: 'paymentLink',
+    component: PagarLinkPagoComponent,
+    title: 'KASHPAY'
+  },
   { 
     path: 'voucher', 
     component: VoucherComponent, 
