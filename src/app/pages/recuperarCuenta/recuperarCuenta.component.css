@@ -104,6 +104,38 @@
   text-decoration: underline;
 }
 
+.recovery-success-modal {
+  width: min(88vw, 430px);
+}
+
+.recovery-success-body {
+  padding-bottom: 26px;
+  text-align: center;
+}
+
+.recovery-success-icon {
+  display: block;
+  margin-bottom: 16px;
+  color: #22a06b;
+  font-size: 58px;
+}
+
+.recovery-success-body .recovery-title {
+  margin: 0 0 10px;
+}
+
+.recovery-success-body .recovery-description {
+  margin: 0;
+}
+
+.recovery-success-actions {
+  justify-content: center;
+}
+
+.recovery-success-actions .token-btn {
+  min-width: 120px;
+}
+
 :host-context(html:not(.dark)) .login-header h2 {
   color: var(--app-text);
 }

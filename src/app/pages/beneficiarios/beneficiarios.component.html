@@ -230,26 +230,31 @@
         <div class="form-grid">
           <div class="field">
             <label>Tipo de Cuenta*</label>
-            <select class="form-control" [(ngModel)]="form.tipoCuenta" name="tipoCuenta">
+            <select
+              class="form-control"
+              [ngModel]="form.tipoCuenta"
+              (ngModelChange)="cambiarTipoCuenta($event)"
+              name="tipoCuenta">
               <option value="">Selecciona tipo</option>
               <option value="2">Tarjeta de Débito</option>
               <option value="4">CLABE</option>
             </select>
           </div>
           <div class="field">
-            <label>Numero de cuenta*</label>
-            <div class="input-action">
-              <input class="form-control" type="text" maxlength="18" [(ngModel)]="form.cuenta" name="cuenta">
-              <button
-                type="button"
-                class="button primary small"
-                [disabled]="buscandoInstitucion"
-                [attr.aria-busy]="buscandoInstitucion"
-                (click)="buscarBanco()">
-                <span class="loading-spinner" *ngIf="buscandoInstitucion" aria-hidden="true"></span>
-                {{ buscandoInstitucion ? 'Cargando información...' : 'Buscar' }}
-              </button>
-            </div>
+            <label for="cuentaBeneficiario">Número de cuenta*</label>
+            <input
+              id="cuentaBeneficiario"
+              class="form-control"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              [disabled]="!form.tipoCuenta"
+              [maxlength]="form.tipoCuenta === '2' ? 19 : 18"
+              [placeholder]="form.tipoCuenta === '2' ? '0000 0000 0000 0000' : (form.tipoCuenta === '4' ? '18 dígitos' : 'Selecciona el tipo de cuenta')"
+              [ngModel]="cuentaMostrada"
+              (ngModelChange)="capturarCuenta($event)"
+              name="cuenta"
+              [attr.aria-busy]="buscandoInstitucion">
             <span class="loading-message" *ngIf="buscandoInstitucion" role="status" aria-live="polite">
               Cargando información de la institución...
             </span>

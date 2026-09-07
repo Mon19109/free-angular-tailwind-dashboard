@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { BeneficiarioForm, BeneficiariosService } from '../../services/beneficiarios.service';
 
 type VistaBeneficiarios = 'lista' | 'agregar' | 'eliminar' | 'estatus';
@@ -29,6 +29,10 @@ export class BeneficiariosComponent implements OnInit {
   buscandoInstitucion = false;
   estatusFileKey = '';
   altaMasiva = false;
+  cuentaMostrada = '';
+
+  private ultimaCuentaBuscada = '';
+  private busquedaInstitucion?: Subscription;
 
   form: BeneficiarioForm = this.formInicial();
 
@@ -75,24 +79,63 @@ export class BeneficiariosComponent implements OnInit {
     this.error = '';
   }
 
+  cambiarTipoCuenta(tipoCuenta: string): void {
+    this.busquedaInstitucion?.unsubscribe();
+    this.form.tipoCuenta = tipoCuenta;
+    this.form.cuenta = '';
+    this.cuentaMostrada = '';
+    this.ultimaCuentaBuscada = '';
+    this.buscandoInstitucion = false;
+    this.limpiarInstitucion();
+  }
+
+  capturarCuenta(valor: string): void {
+    const limite = this.longitudCuenta;
+    const cuenta = String(valor || '').replace(/\D/g, '').slice(0, limite);
+    const cuentaCambio = cuenta !== this.form.cuenta;
+
+    this.form.cuenta = cuenta;
+    this.cuentaMostrada = this.form.tipoCuenta === '2'
+      ? cuenta.replace(/(\d{4})(?=\d)/g, '$1 ')
+      : cuenta;
+
+    if (cuentaCambio) {
+      this.busquedaInstitucion?.unsubscribe();
+      this.buscandoInstitucion = false;
+      this.ultimaCuentaBuscada = '';
+      this.limpiarInstitucion();
+      this.error = '';
+    }
+
+    if (limite > 0 && cuenta.length === limite && cuenta !== this.ultimaCuentaBuscada) {
+      this.buscarBanco();
+    }
+  }
+
+  get longitudCuenta(): number {
+    if (this.form.tipoCuenta === '2') return 16;
+    if (this.form.tipoCuenta === '4') return 18;
+    return 0;
+  }
+
   buscarBanco(): void {
     this.error = '';
-    this.instituciones = [];
-    this.form.institucion = '';
-    this.form.nameIns = '';
-    this.form.accountNumber = '';
+    this.limpiarInstitucion();
 
-    if (!this.form.cuenta) {
-      this.error = 'Captura una cuenta o tarjeta para buscar el banco.';
+    if (!this.longitudCuenta || this.form.cuenta.length !== this.longitudCuenta) {
+      this.error = `La cuenta debe contener ${this.longitudCuenta || 16} dígitos.`;
       return;
     }
 
+    this.busquedaInstitucion?.unsubscribe();
+    this.ultimaCuentaBuscada = this.form.cuenta;
     this.buscandoInstitucion = true;
-    this.beneficiariosService.buscarInstitucion(this.form.cuenta).pipe(
+    this.busquedaInstitucion = this.beneficiariosService.buscarInstitucion(this.form.cuenta).pipe(
       finalize(() => this.buscandoInstitucion = false)
     ).subscribe({
       next: resp => {
         if (resp?.success === false) {
+          this.ultimaCuentaBuscada = '';
           this.error = resp?.error?.message || 'No fue posible buscar el banco.';
           return;
         }
@@ -106,6 +149,7 @@ export class BeneficiariosComponent implements OnInit {
           : [];
 
         if (!this.instituciones.length) {
+          this.ultimaCuentaBuscada = '';
           this.error = 'No se encontraron instituciones para la cuenta capturada.';
           return;
         }
@@ -119,6 +163,7 @@ export class BeneficiariosComponent implements OnInit {
       },
       error: error => {
         console.error('Error al buscar institución:', error);
+        this.ultimaCuentaBuscada = '';
         this.error = 'No fue posible buscar el banco.';
       }
     });
@@ -151,6 +196,8 @@ export class BeneficiariosComponent implements OnInit {
       next: () => {
         this.mensaje = 'Beneficiario agregado correctamente.';
         this.form = this.formInicial();
+        this.cuentaMostrada = '';
+        this.ultimaCuentaBuscada = '';
         this.instituciones = [];
         this.cargando = false;
         this.cargarContactos();
@@ -294,7 +341,7 @@ export class BeneficiariosComponent implements OnInit {
       this.form.dirBanco
     );
 
-    if (!base) return false;
+    if (!base || this.form.cuenta.length !== this.longitudCuenta) return false;
     if (this.form.tipoBen === 'PM') return Boolean(this.form.giro && this.form.desGiro);
     return Boolean(this.form.actividad);
   }
@@ -320,6 +367,13 @@ export class BeneficiariosComponent implements OnInit {
 
   private obtenerIdUser(): number {
     return Number(localStorage.getItem('idUser') || localStorage.getItem('userId') || 0);
+  }
+
+  private limpiarInstitucion(): void {
+    this.instituciones = [];
+    this.form.institucion = '';
+    this.form.nameIns = '';
+    this.form.accountNumber = '';
   }
 
   private formInicial(): BeneficiarioForm {

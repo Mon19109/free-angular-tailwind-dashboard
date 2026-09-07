@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
 
@@ -17,6 +17,7 @@ const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\
 export class RecuperarCuentaComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly recuperarCuentaService = inject(RecuperarCuentaService);
 
   readonly recuperarForm = this.fb.nonNullable.group({
@@ -28,6 +29,7 @@ export class RecuperarCuentaComponent implements OnInit {
   mostrarContrasena = false;
   mostrarConfirmacion = false;
   enviando = false;
+  mostrarModalExito = false;
   mensajeEstado = '';
   mensajeEsError = false;
 
@@ -94,17 +96,16 @@ export class RecuperarCuentaComponent implements OnInit {
       finalize(() => this.enviando = false)
     ).subscribe({
       next: response => {
-        if (response?.success === false) {
+        if (response?.success !== true) {
           this.mensajeEstado = response?.message || response?.mensaje || 'No fue posible recuperar la cuenta.';
           this.mensajeEsError = true;
           return;
         }
 
-        this.mensajeEstado = response?.message
-          || response?.mensaje
-          || 'La contraseña fue actualizada correctamente. Ya puedes iniciar sesión.';
+        this.mensajeEstado = '';
         this.recuperarForm.controls.contrasena.reset();
         this.recuperarForm.controls.contrasenaCon.reset();
+        this.mostrarModalExito = true;
       },
       error: error => {
         this.mensajeEstado = error?.error?.message
@@ -113,6 +114,11 @@ export class RecuperarCuentaComponent implements OnInit {
         this.mensajeEsError = true;
       }
     });
+  }
+
+  irAlLogin(): void {
+    this.mostrarModalExito = false;
+    void this.router.navigate(['/']);
   }
 }
 

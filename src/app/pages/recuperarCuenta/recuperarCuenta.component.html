@@ -104,3 +104,27 @@
     </form>
   </div>
 </div>
+
+<div class="token-modal-backdrop" *ngIf="mostrarModalExito">
+  <section
+    class="token-modal recovery-success-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="recovery-success-title"
+    aria-describedby="recovery-success-description"
+  >
+    <div class="token-modal-body recovery-success-body">
+      <i class="far fa-check-circle recovery-success-icon" aria-hidden="true"></i>
+      <h2 id="recovery-success-title" class="recovery-title">Cuenta recuperada</h2>
+      <p id="recovery-success-description" class="recovery-description">
+        La cuenta ha sido recuperada exitosamente.
+      </p>
+    </div>
+
+    <div class="token-modal-actions recovery-success-actions">
+      <button type="button" class="token-btn token-btn-primary" (click)="irAlLogin()" autofocus>
+        OK
+      </button>
+    </div>
+  </section>
+</div>
