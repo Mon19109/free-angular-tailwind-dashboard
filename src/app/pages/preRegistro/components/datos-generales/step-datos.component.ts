@@ -153,7 +153,7 @@ export class StepDatosComponent implements OnInit {
     return lista.map(giro => ({
       familia: this.obtenerTexto(giro, ['familia', 'family', 'giro', 'giroComercial', 'businessLine', 'name', 'nombre']),
       descripcion: this.obtenerTexto(giro, ['descripcion', 'description', 'desGiro', 'actividad', 'activity', 'label', 'nombreGiro']),
-      mcc: this.obtenerTexto(giro, ['mcc', 'MCC', 'codigoMcc', 'codigoMCC', 'idGiro', 'id', 'code', 'codigo'])
+      mcc: this.obtenerTexto(giro, ['giro', 'mcc', 'MCC', 'codigoMcc', 'codigoMCC', 'idGiro', 'code', 'codigo'])
     })).filter(giro => giro.descripcion || giro.familia || giro.mcc);
   }
 
