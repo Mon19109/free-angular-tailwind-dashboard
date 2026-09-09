@@ -1,4 +1,13 @@
 <main class="preregistro-shell">
+  @if (enviandoPreRegistro) {
+  <div class="processing-overlay" role="status" aria-live="polite">
+    <div class="processing-card">
+      <span class="processing-spinner" aria-hidden="true"></span>
+      <strong>Enviando preregistro...</strong>
+      <small>Estamos guardando la información y los documentos. Espera un momento.</small>
+    </div>
+  </div>
+  }
 
   <header class="topbar">
     <a routerLink="/" class="brand-link" aria-label="Volver al inicio">
@@ -144,7 +153,6 @@
                 <div class="caja-actions-row">
                   <i class="fa-solid fa-folder" aria-hidden="true"></i>
                   <span>Cajas</span>
-                  @if (!esComercioUnico) {
                   <div class="branch-actions" aria-label="Editar cajas de la sucursal">
                     <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel1.id, -1, nivel1.hijos?.length || 1)">
                       <i class="fa-solid fa-minus"></i>
@@ -153,7 +161,6 @@
                       <i class="fa-solid fa-plus"></i>
                     </button>
                   </div>
-                  }
                 </div>
                 }
                 <ul class="location-list level-2">
@@ -191,7 +198,6 @@
                     <div class="caja-actions-row">
                       <i class="fa-solid fa-folder" aria-hidden="true"></i>
                       <span>Cajas</span>
-                      @if (!esComercioUnico) {
                       <div class="branch-actions" aria-label="Editar cajas de la sucursal">
                         <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel2.id, -1, nivel2.hijos?.length || 1)">
                           <i class="fa-solid fa-minus"></i>
@@ -200,7 +206,6 @@
                           <i class="fa-solid fa-plus"></i>
                         </button>
                       </div>
-                      }
                     </div>
                     }
                     <ul class="location-list level-3">
@@ -229,7 +234,6 @@
                         <div class="caja-actions-row">
                           <i class="fa-solid fa-folder" aria-hidden="true"></i>
                           <span>Cajas</span>
-                          @if (!esComercioUnico) {
                           <div class="branch-actions" aria-label="Editar cajas de la sucursal">
                             <button type="button" title="Quitar caja" (click)="cambiarCajasSucursal(nivel3.id, -1, nivel3.hijos?.length || 1)">
                               <i class="fa-solid fa-minus"></i>
@@ -238,7 +242,6 @@
                               <i class="fa-solid fa-plus"></i>
                             </button>
                           </div>
-                          }
                         </div>
                         }
                         <ul class="location-list leaf-list">
@@ -317,6 +320,7 @@
             @switch (paso.numero) {
             @case (1) {
             <app-step-comercio [form]="comercioForm" [datosForm]="datosForm" [niveles]="nivelesComercioVisibles" [tiposComercio]="tiposComercio"
+              [nombreCaja]="nombreCajaSeleccionada"
               [bloquearNivel]="bloquearNivelComercio" [bloquearTipoComercio]="bloquearTipoComercio"
               [bloquearTipoPersona]="bloquearTipoPersonaSucursal"
               [mostrarTipoPersona]="camposDatosGenerales.includes('tipoPersona')"

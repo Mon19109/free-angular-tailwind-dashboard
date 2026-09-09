@@ -22,6 +22,7 @@ export class StepComercioComponent {
   @Input() mostrarTipoPersona = false;
   @Input() ocultarContactoPersonaMoral = false;
   @Input() mostrarContactoAcceso = false;
+  @Input() nombreCaja = '';
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() abrirComisionista = new EventEmitter<void>();

@@ -1,4 +1,9 @@
 <form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
+  @if (nombreCaja) {
+  <div class="field span-2 caja-name-context">
+    <strong>{{ nombreCaja }}</strong>
+  </div>
+  }
   <div class="form-grid cols-2">
     <div class="field">
       <label for="nivel">Nivel del cliente <b>*</b></label>

@@ -13,7 +13,7 @@ export class PreregistroCompletoService {
 
   enviarPreRegistro(payload: unknown): Observable<unknown> {
     return this.http.post(
-      `${this.apiUrl}merchant/pre-register`,
+      `${this.apiUrl}erchant/pre-register`,
       payload,
       { headers: this.getHeaders() }
     );

@@ -195,7 +195,7 @@
       </div>
       }
       @if (tiene('numeroExterior')) {
-      <div class="field"><label for="numeroExterior">Número Exterior</label>
+      <div class="field"><label for="numeroExterior">Número Exterior <b>*</b></label>
         <input id="numeroExterior" formControlName="numeroExterior" [class.invalid]="esInvalido('numeroExterior')" />
         @if (esInvalido('numeroExterior')) { <small>{{ mensajeCampo('numeroExterior') }}</small> }
       </div>
@@ -239,7 +239,7 @@
       @if (tiene('entidadFederativa')) {
       <div class="field"><label for="entidadFederativa">Entidad Federativa <b>*</b></label>
         <input id="entidadFederativa" formControlName="entidadFederativa"
-          [class.invalid]="esInvalido('entidadFederativa')" />
+          [class.invalid]="esInvalido('entidadFederativa')" readonly />
         @if (esInvalido('entidadFederativa')) { <small>{{ mensajeCampo('entidadFederativa') }}</small> }
       </div>
       }
@@ -267,7 +267,7 @@
       <h3>Representante Legal</h3>
     </div>
     <div class="form-grid cols-3">
-      <div class="field"><label for="nombreRepresentante">Nombre</label>
+      <div class="field"><label for="nombreRepresentante">Nombre <b>*</b></label>
         <input id="nombreRepresentante" formControlName="nombreRepresentante"
           [class.invalid]="esInvalido('nombreRepresentante')" />
         @if (esInvalido('nombreRepresentante')) { <small>{{ mensajeCampo('nombreRepresentante') }}</small> }
@@ -298,7 +298,7 @@
           [class.invalid]="esInvalido('calleRepresentante')" />
         @if (esInvalido('calleRepresentante')) { <small>{{ mensajeCampo('calleRepresentante') }}</small> }
       </div>
-      <div class="field"><label for="numeroExteriorRepresentante">Número Exterior</label>
+      <div class="field"><label for="numeroExteriorRepresentante">Número Exterior <b>*</b></label>
         <input id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante"
           [class.invalid]="esInvalido('numeroExteriorRepresentante')" />
         @if (esInvalido('numeroExteriorRepresentante')) { <small>{{ mensajeCampo('numeroExteriorRepresentante') }}</small> }
@@ -453,7 +453,7 @@
       <div class="field">
         <label for="entidadFederativaComercial">Entidad Federativa <b>*</b></label>
         <input id="entidadFederativaComercial" formControlName="entidadFederativaComercial"
-          [class.invalid]="esInvalido('entidadFederativaComercial')">
+          [class.invalid]="esInvalido('entidadFederativaComercial')" readonly>
         @if (esInvalido('entidadFederativaComercial')) { <small>{{ mensajeCampo('entidadFederativaComercial') }}</small> }
       </div>
 

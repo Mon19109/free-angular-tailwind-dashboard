@@ -1,4 +1,11 @@
 <div class="registro-shell">
+  <div class="processing-overlay" *ngIf="registrandoCliente" role="status" aria-live="polite">
+    <div class="processing-card">
+      <span class="processing-spinner" aria-hidden="true"></span>
+      <strong>Registrando cliente...</strong>
+      <small>Estamos validando la información. Espera un momento.</small>
+    </div>
+  </div>
   <article class="registro-card">
     <header class="registro-card-header">
       <div>
@@ -173,6 +180,10 @@
         </article>
 
         <footer class="footer-actions">
+          <p class="registration-message error" *ngIf="mensajeRegistroCliente" role="alert">
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+            {{ mensajeRegistroCliente }}
+          </p>
           <button class="button ghost" type="button" (click)="volver()"><i class="fa-solid fa-xmark"></i> Cerrar</button>
           <button *ngIf="esEdicionCaja" class="button primary" type="button" [disabled]="registrandoCliente" (click)="registrarClienteProspecto()">
             {{ registrandoCliente ? 'Registrando...' : 'Registrar Cliente' }} <i class="fa-solid" [ngClass]="registrandoCliente ? 'fa-spinner fa-spin' : 'fa-check'"></i>

@@ -119,6 +119,7 @@ export class RegistroClienteComponent {
   registrandoCliente = false;
   errorDocumentosProspecto = '';
   mensajeObservacionesCliente = '';
+  mensajeRegistroCliente = '';
   observacionesClienteMesaDigital = '';
   observacionesInternasMesaDigital = '';
   emailNotificacionMesaDigital = '';
@@ -1463,9 +1464,11 @@ export class RegistroClienteComponent {
   }
 
   registrarClienteProspecto(): void {
+    this.mensajeRegistroCliente = '';
+    if (this.registrandoCliente) return;
     const commerceGuid = this.commerceGuidPadreNodoSeleccionado();
     if (!commerceGuid) {
-      this.mensajeObservacionesCliente = 'No se encontró el commerceGuid del nodo padre.';
+      this.mensajeRegistroCliente = 'No se encontró el commerceGuid del nodo padre.';
       return;
     }
 
@@ -1475,8 +1478,7 @@ export class RegistroClienteComponent {
       next: nivelPendiente => {
         if (nivelPendiente) {
           this.registrandoCliente = false;
-          this.mensajeObservacionesCliente = `Falta validar documentos en ${nivelPendiente}. Todos deben estar aprobados.`;
-          window.alert(this.mensajeObservacionesCliente);
+          this.mensajeRegistroCliente = `Falta validar documentos en ${nivelPendiente}. Todos deben estar aprobados.`;
           return;
         }
 
@@ -1494,8 +1496,7 @@ export class RegistroClienteComponent {
       },
       error: () => {
         this.registrandoCliente = false;
-        this.mensajeObservacionesCliente = 'No fue posible validar los documentos antes del registro.';
-        window.alert(this.mensajeObservacionesCliente);
+        this.mensajeRegistroCliente = 'No fue posible validar los documentos antes del registro.';
       }
     });
   }
@@ -2313,7 +2314,7 @@ export class RegistroClienteComponent {
     const sufijo = this.sufijoDocumentoDesdeS3Key(this.s3KeyDocumentoCargado(documentoProspecto));
     const numeroPorSufijo: Record<string, number> = {
       COMP_DOM: 1,
-      CONS: 2,
+      CONS: 10,
       ACTA_CONST: 2,
       INE: 3,
       ID_PROP: 3,
@@ -2354,7 +2355,8 @@ export class RegistroClienteComponent {
     const sufijo = this.sufijoDocumentoDesdeS3Key(s3Key);
     const nombresPorSufijo: Record<string, string> = {
       COMP_DOM: 'Comprobante de domicilio',
-      CONS: 'Acta Constitutiva',
+      CONS: 'Constancia Situación Fiscal',
+      ACTA_CONST: 'Acta Constitutiva',
       INE: 'Identificación Oficial del Propietario',
       IMGE: 'Imagen Frente',
       IMGI: 'Imagen Interior',
