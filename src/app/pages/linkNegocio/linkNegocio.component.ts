@@ -31,16 +31,25 @@ export class LinkNegocioComponent implements OnInit {
   });
 
   enviando = false;
+  cargandoNegocio = false;
+  negocioCargado = false;
+  nombreComercio = 'Comercio Kashpay';
+  telefonoComercio = 'Información de contacto';
   mensajeEstado = '';
   mensajeEsError = false;
 
   ngOnInit(): void {
     const params = this.route.snapshot.queryParamMap;
-    this.formulario.patchValue({
-      emailComer: params.get('email') || '',
-      sirio: params.get('validate') || '',
-      orderingAccount: params.get('ordering') || ''
-    });
+    const sirioId = String(params.get('validate') || '').trim();
+    this.formulario.controls.sirio.setValue(sirioId);
+
+    if (!sirioId) {
+      this.mensajeEstado = 'El link de negocio no contiene un identificador válido.';
+      this.mensajeEsError = true;
+      return;
+    }
+
+    this.consultarNegocio(sirioId);
   }
 
   continuar(): void {
@@ -54,7 +63,7 @@ export class LinkNegocioComponent implements OnInit {
       return;
     }
 
-    if (this.enviando) return;
+    if (this.enviando || !this.negocioCargado) return;
     this.enviando = true;
 
     this.linkNegocioService.addLink(this.formulario.getRawValue()).subscribe({
@@ -146,5 +155,96 @@ export class LinkNegocioComponent implements OnInit {
       const [, referencia = ''] = formUrl.split('?reference=');
       return referencia.split('&')[0].trim();
     }
+  }
+
+  private consultarNegocio(sirioId: string): void {
+    this.cargandoNegocio = true;
+    this.linkNegocioService.obtenerNegocio(sirioId).subscribe({
+      next: respuesta => {
+        this.cargandoNegocio = false;
+
+        if (respuesta?.success === false) {
+          this.mostrarErrorNegocio(respuesta?.message || respuesta?.mensaje);
+          return;
+        }
+
+        const negocio = this.obtenerDatosNegocio(respuesta);
+        if (!negocio) {
+          this.mostrarErrorNegocio('No se encontró información para este link de negocio.');
+          return;
+        }
+
+        const nombrePersona = [
+          this.obtenerTextoValido(negocio, ['name']),
+          this.obtenerTextoValido(negocio, ['paternalSurname']),
+          this.obtenerTextoValido(negocio, ['maternalSurname'])
+        ].filter(Boolean).join(' ');
+
+        this.nombreComercio = nombrePersona || this.obtenerTextoValido(negocio, [
+          'nameCommerce', 'commercialName', 'commerceName', 'businessName',
+          'bussinesName', 'nombre', 'razonSocial'
+        ]) || this.nombreComercio;
+        this.telefonoComercio = this.obtenerTexto(negocio, [
+          'phoneNumber', 'telephoneNumber', 'phone', 'telefono', 'telephone'
+        ]) || this.telefonoComercio;
+
+        this.formulario.patchValue({
+          emailComer: this.obtenerTexto(negocio, [
+            'email', 'commerceEmail', 'businessEmail', 'emailCommerce', 'correo'
+          ]),
+          orderingAccount: this.obtenerTexto(negocio, [
+            'orderingAccount', 'account', 'accountNumber', 'cuenta', 'clabe'
+          ]),
+          sirio: this.obtenerTexto(negocio, ['sirioId', 'sirioID']) || sirioId
+        });
+        this.negocioCargado = true;
+      },
+      error: error => {
+        this.cargandoNegocio = false;
+        this.mostrarErrorNegocio(
+          error?.error?.message
+          || error?.error?.mensaje
+          || 'No fue posible consultar la información del negocio.'
+        );
+      }
+    });
+  }
+
+  private obtenerDatosNegocio(respuesta: unknown): Record<string, unknown> | null {
+    if (!respuesta || typeof respuesta !== 'object') return null;
+
+    const raiz = respuesta as Record<string, unknown>;
+    const candidatos = [
+      raiz['row'], raiz['rows'], raiz['data'], raiz['business'], raiz['commerce'], raiz
+    ];
+
+    for (const candidato of candidatos) {
+      const valor = Array.isArray(candidato) ? candidato[0] : candidato;
+      if (valor && typeof valor === 'object') return valor as Record<string, unknown>;
+    }
+
+    return null;
+  }
+
+  private obtenerTexto(datos: Record<string, unknown>, llaves: string[]): string {
+    for (const llave of llaves) {
+      const valor = datos[llave];
+      if (valor !== undefined && valor !== null && String(valor).trim()) {
+        return String(valor).trim();
+      }
+    }
+
+    return '';
+  }
+
+  private obtenerTextoValido(datos: Record<string, unknown>, llaves: string[]): string {
+    const valor = this.obtenerTexto(datos, llaves);
+    return valor.toUpperCase() === 'NA' ? '' : valor;
+  }
+
+  private mostrarErrorNegocio(mensaje?: string): void {
+    this.negocioCargado = false;
+    this.mensajeEstado = mensaje || 'No fue posible consultar la información del negocio.';
+    this.mensajeEsError = true;
   }
 }

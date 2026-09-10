@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../environments/environments';
@@ -20,12 +20,30 @@ export interface AddLinkNegocioResponse<T = any> {
   rows: T;
 }
 
+export interface BusinessLinkResponse {
+  success?: boolean;
+  row?: unknown;
+  message?: string;
+  mensaje?: string;
+  [key: string]: unknown;
+}
+
 @Injectable({ providedIn: 'root' })
 export class LinkNegocioService {
   private readonly http = inject(HttpClient);
   private readonly orderUrl = `${environment.api.linkpago}order`;
+  private readonly businessLinkUrl = `${environment.api.kashpay}api/v1/businessLink`;
   private readonly bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
 
+  obtenerNegocio(sirioId: string): Observable<BusinessLinkResponse> {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.bearerToken}`,
+      'versionApp': '3'
+    });
+    const params = new HttpParams().set('sirioId', sirioId);
+
+    return this.http.get<BusinessLinkResponse>(this.businessLinkUrl, { headers, params });
+  }
 
   addLink(formData: LinkNegocioFormData): Observable<AddLinkNegocioResponse> {
     const monto = Number(String(formData.monto ?? '0').replace(/[$,\s]/g, ''));
@@ -76,8 +94,7 @@ export class LinkNegocioService {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.bearerToken}`,
       'Entity-i': 'com.onsigna',
-      'versionApp': '3',
-      'Content-Type': 'application/json'
+      'versionApp': '3'
     });
 
     return this.http.post(this.orderUrl, payload, { headers }).pipe(
@@ -99,18 +116,4 @@ export class LinkNegocioService {
     return Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join('');
   }
 
-  private getStoredToken(): string {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (rawSession) {
-      try {
-        const token = JSON.parse(rawSession)?.token;
-        if (token) return String(token);
-      } catch {
-        // Si la sesión no es válida, se consulta el token individual.
-      }
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-  }
 }
