@@ -149,43 +149,32 @@ export class OrdenPagoService {
             ? data.cuenta
             : data.accountNumber || data.cuenta;
         const body = {
-
             type: Number(data.idIns) === 40903 ? 4 : 1,
-
             amount: Number(data.importe),
-
             currency: {
                 id: 484
             },
-
             numericReference: referenciaNumerica,
-
             alphanumericReference: this.generarCadena('1234567890abcdefghijklmnopqrstuvwxyz', 6),
-
             targetName: data.titular,
-
             targetID: cuentaBeneficiaria,
-
             target_origin_ID: data.cuentaOr,
-
             targetIDCode: data.idIns,
-
             targetEmail: 'support@onsigna.com',
-
             description: data.concepto,
-
             observation: data.mail,
-
             status: 0,
-
             citi: false,
-
             credit: false
-
         };
 
         console.log(
             'REQUEST OPERACION',
+            JSON.stringify(body, null, 2)
+        );
+
+        console.log(
+            'BODY :: ',
             JSON.stringify(body, null, 2)
         );
 

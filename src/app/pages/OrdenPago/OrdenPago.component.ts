@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 //import { AuthService, UserSessionData } from '../../services/auth.service';
 import { OrdenPagoService } from '../../services/OrdenPago.service';
@@ -29,6 +29,7 @@ export class OrdenPagoComponent implements OnInit {
     mostrarErrorImporte = false;
 
     mostrarModalToken = false;
+    mostrarModalOperacionNoPermitida = false;
     token = '';
     tokenError = '';
     tokenMensaje = '';
@@ -58,8 +59,8 @@ export class OrdenPagoComponent implements OnInit {
         this.sesion = this.obtenerSesion();
 
         this.formulario = this.fb.group({
-            cuentaOr: [''],
-            cuentaD: [''],
+            cuentaOr: ['', Validators.required],
+            cuentaD: ['', Validators.required],
             importe: [''],
             concepto: [''],
             referencia: ['']
@@ -286,8 +287,21 @@ export class OrdenPagoComponent implements OnInit {
     }
 
 
+    private validarCuentas(): boolean {
+        const cuentaOr = this.formulario.get('cuentaOr')!;
+        const cuentaD = this.formulario.get('cuentaD')!;
+        cuentaOr.markAsTouched();
+        cuentaD.markAsTouched();
+        return cuentaOr.valid && cuentaD.valid;
+    }
+
     siguiente(): void {
         this.limpiarMensajeEnvio();
+
+        if (!this.validarCuentas()) {
+            this.pasoActual = 1;
+            return;
+        }
 
         if (this.pasoActual === 2) {
 
@@ -317,6 +331,22 @@ export class OrdenPagoComponent implements OnInit {
             return;
         }
 
+        if (!this.validarCuentas()) {
+            this.pasoActual = 1;
+            return;
+        }
+
+        const idRol = Number(this.sesion?.idRol ?? localStorage.getItem('idRol'));
+        const importe = Number(
+            String(this.formulario.value.importe ?? '0').replace(/[$,\s]/g, '')
+        );
+
+        if (idRol === 7 && importe >= 1000) {
+            this.payloadPendiente = null;
+            this.mostrarModalOperacionNoPermitida = true;
+            return;
+        }
+
         const beneficiario = this.beneficiarios.find(
             x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
         );
@@ -324,6 +354,9 @@ export class OrdenPagoComponent implements OnInit {
         const payload = {
 
             ...this.formulario.value,
+            concepto: this.formulario.value.concepto?.trim()
+                ? this.formulario.value.concepto
+                : 'ORDEN DE PAGO',
 
             masivaT: 0,
 
@@ -472,6 +505,10 @@ export class OrdenPagoComponent implements OnInit {
         this.token = '';
         this.tokenError = '';
         this.tokenMensaje = '';
+    }
+
+    cerrarModalOperacionNoPermitida(): void {
+        this.mostrarModalOperacionNoPermitida = false;
     }
 
     limpiarErrorToken(): void {

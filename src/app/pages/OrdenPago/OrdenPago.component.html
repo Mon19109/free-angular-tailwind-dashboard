@@ -71,18 +71,21 @@
 
           <div class="form-grid">
             <div class="form-field">
-              <label>Cuenta Ordenante</label>
-              <select formControlName="cuentaOr" (change)="obtenerSaldo()">
+              <label for="cuentaOr">Cuenta Ordenante *</label>
+              <select id="cuentaOr" formControlName="cuentaOr" required (change)="obtenerSaldo()">
                 <option value="">Seleccione una cuenta</option>
                 <option *ngFor="let cuenta of cuentas" [value]="obtenerValorCuenta(cuenta)">
                   {{ obtenerTextoCuenta(cuenta) }}
                 </option>
               </select>
+              <div *ngIf="formulario.get('cuentaOr')?.touched && formulario.get('cuentaOr')?.hasError('required')" class="campo-requerido" role="alert">
+                Selecciona una cuenta ordenante.
+              </div>
             </div>
 
             <div class="form-field">
-              <label>Cuenta Beneficiario</label>
-              <select formControlName="cuentaD">
+              <label for="cuentaD">Cuenta Beneficiario *</label>
+              <select id="cuentaD" formControlName="cuentaD" required>
                 <option value="">Seleccione un beneficiario</option>
                 <option *ngIf="beneficiariosCargados && beneficiarios.length === 0" value="" disabled>
                   Sin beneficiarios disponibles
@@ -91,6 +94,9 @@
                   {{ obtenerTextoBeneficiario(beneficiario) }}
                 </option>
               </select>
+              <div *ngIf="formulario.get('cuentaD')?.touched && formulario.get('cuentaD')?.hasError('required')" class="campo-requerido" role="alert">
+                Selecciona una cuenta beneficiaria.
+              </div>
             </div>
           </div>
 
@@ -204,6 +210,31 @@
       </div>
     </form>
   </article>
+
+  <div *ngIf="mostrarModalOperacionNoPermitida" class="modal-backdrop">
+    <section
+      class="modal-card"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="operacion-no-permitida-title">
+      <button
+        type="button"
+        class="modal-close"
+        aria-label="Cerrar"
+        (click)="cerrarModalOperacionNoPermitida()">
+        &times;
+      </button>
+
+      <div class="modal-icon" aria-hidden="true"><i class="fas fa-ban"></i></div>
+      <h3 id="operacion-no-permitida-title">Operación no permitida</h3>
+
+      <div class="modal-actions">
+        <button type="button" class="button primary" (click)="cerrarModalOperacionNoPermitida()">
+          Aceptar
+        </button>
+      </div>
+    </section>
+  </div>
 
   <div *ngIf="mostrarModalToken" class="modal-backdrop">
     <section class="modal-card token-modal" role="dialog" aria-modal="true" aria-labelledby="token-modal-title">
