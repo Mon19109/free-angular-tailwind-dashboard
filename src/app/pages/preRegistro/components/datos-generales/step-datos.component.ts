@@ -78,6 +78,16 @@ export class StepDatosComponent implements OnInit {
   actividadSeleccionada: ActividadBusqueda | null = null;
   cargandoActividades = false;
   errorActividades = '';
+  readonly tipoVialidadOptions: Option[] = [
+    { label: 'Ampliación', value: 'Ampliación' },
+    { label: 'Andador', value: 'Andador' },
+    { label: 'Avenida', value: 'Avenida' },
+    { label: 'Boulevard', value: 'Boulevard' },
+    { label: 'Calle', value: 'Calle' },
+    { label: 'Callejón', value: 'Callejón' },
+    { label: 'Calzada', value: 'Calzada' },
+    { label: 'Carretera', value: 'Carretera' },
+  ];
 
   ngOnInit(): void {
     this.terminoBusqueda.valueChanges.pipe(

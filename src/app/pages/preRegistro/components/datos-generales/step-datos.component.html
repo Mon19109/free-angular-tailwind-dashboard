@@ -184,7 +184,12 @@
       }
       @if (tiene('tipoVialidad')) {
       <div class="field"><label for="tipoVialidad">Tipo de Vialidad <b>*</b></label>
-        <input id="tipoVialidad" formControlName="tipoVialidad" [class.invalid]="esInvalido('tipoVialidad')" />
+        <app-select
+          placeholder="Selecciona un tipo de vialidad"
+          [options]="tipoVialidadOptions"
+          formControlName="tipoVialidad"
+          [className]="esInvalido('tipoVialidad') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+        />
         @if (esInvalido('tipoVialidad')) { <small>{{ mensajeCampo('tipoVialidad') }}</small> }
       </div>
       }
@@ -394,8 +399,12 @@
 
       <div class="field">
         <label for="tipoVialidadComercial">Tipo de Vialidad <b>*</b></label>
-        <input id="tipoVialidadComercial" formControlName="tipoVialidadComercial"
-          [class.invalid]="esInvalido('tipoVialidadComercial')">
+        <app-select
+          placeholder="Selecciona un tipo de vialidad"
+          [options]="tipoVialidadOptions"
+          formControlName="tipoVialidadComercial"
+          [className]="esInvalido('tipoVialidadComercial') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+        />
         @if (esInvalido('tipoVialidadComercial')) { <small>{{ mensajeCampo('tipoVialidadComercial') }}</small> }
       </div>
 
