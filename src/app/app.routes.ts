@@ -96,6 +96,11 @@ export const routes: Routes = [
     title: 'Registro de prospecto | KASHPAY'
   },
   {
+    path: 'mi-angular/:link',
+    component: RegistroProspectoClienteComponent,
+    title: 'Registro de prospecto | KASHPAY'
+  },
+  {
     matcher: prospectoTokenMatcher,
     component: RegistroProspectoClienteComponent,
     title: 'Registro de prospecto | KASHPAY'
