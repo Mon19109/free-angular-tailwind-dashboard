@@ -148,6 +148,8 @@ export class OrdenPagoService {
         const cuentaBeneficiaria = String(data.accountNumber || '') === '0'
             ? data.cuenta
             : data.accountNumber || data.cuenta;
+
+        
         const body = {
             type: Number(data.idIns) === 40903 ? 4 : 1,
             amount: Number(data.importe),
@@ -177,6 +179,8 @@ export class OrdenPagoService {
             'BODY :: ',
             JSON.stringify(body, null, 2)
         );
+
+        
 
         return this.http.post(
             `/Entities/entities/${encodeURIComponent(data.cuentaOr)}/operations`,

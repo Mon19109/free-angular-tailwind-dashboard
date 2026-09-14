@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { finalize, Subscription } from 'rxjs';
 import { ReporteArchivo, ReportesService } from '../../services/reportes.service';
 
 type TipoCuentaReporte = 'EMISION' | 'ADQUIRENTE';
@@ -30,7 +29,10 @@ interface CuentaReporteDisponible {
   templateUrl: './reportes.component.html',
   styleUrls: ['./reportes.component.css']
 })
-export class ReportesComponent implements OnInit {
+export class ReportesComponent implements OnInit, OnDestroy {
+  private consultaSubscription?: Subscription;
+  private saldoSubscription?: Subscription;
+  private reporteSubscription?: Subscription;
   private readonly assetBaseUrl = '/mi-angular/';
 
   private readonly reportesFijos: ReporteDisponible[] = [
@@ -125,7 +127,7 @@ export class ReportesComponent implements OnInit {
   cargando = false;
   abriendoReporte = '';
 
-  reportes: ReporteDisponible[] = [...this.reportesFijos];
+  reportes: ReporteDisponible[] = [];
 
   constructor(private reportesService: ReportesService) {}
 
@@ -136,6 +138,24 @@ export class ReportesComponent implements OnInit {
   ngOnInit(): void {
     this.periodos = this.generarPeriodos();
     this.cargarCuentas();
+  }
+
+  ngOnDestroy(): void {
+    this.consultaSubscription?.unsubscribe();
+    this.saldoSubscription?.unsubscribe();
+    this.reporteSubscription?.unsubscribe();
+  }
+
+  onPeriodoChange(): void {
+    this.limpiarResultados();
+  }
+
+  private limpiarResultados(): void {
+    this.consultaSubscription?.unsubscribe();
+    this.reporteSubscription?.unsubscribe();
+    this.mensaje = '';
+    this.mostrarReportes = false;
+    this.reportes = [];
   }
 
   cargarCuentas(): void {
@@ -164,17 +184,20 @@ export class ReportesComponent implements OnInit {
   }
 
   onCuentaChange(): void {
+    this.saldoSubscription?.unsubscribe();
+    this.limpiarResultados();
     this.clabe = '';
-    this.mostrarReportes = false;
-    this.reportes = [...this.reportesFijos];
 
     if (!this.cuentaSeleccionada) return;
 
-    this.reportesService.obtenerSaldo(this.cuentaSeleccionada).subscribe({
+    this.saldoSubscription = this.reportesService.obtenerSaldo(this.cuentaSeleccionada).subscribe({
       next: respuesta => {
         const rows = respuesta?.rows || respuesta?.data || respuesta;
         const cuenta = rows?.onsignaEntity || respuesta?.onsignaEntity || rows;
         this.clabe = cuenta?.clabeAccount || cuenta?.virtualAccount || '';
+        if (!this.clabe) {
+          this.mensaje = rows?.error?.message || respuesta?.message || 'No fue posible obtener la CLABE de la cuenta.';
+        }
       },
       error: () => {
         this.mensaje = 'No fue posible obtener la CLABE de la cuenta.';
@@ -183,8 +206,7 @@ export class ReportesComponent implements OnInit {
   }
 
   consultar(): void {
-    this.mensaje = '';
-    this.mostrarReportes = false;
+    this.limpiarResultados();
 
     if (!this.cuentaSeleccionada || !this.periodoSeleccionado) {
       this.mensaje = 'Selecciona una cuenta y un periodo.';
@@ -192,18 +214,19 @@ export class ReportesComponent implements OnInit {
     }
 
     this.cargando = true;
-    this.reportes = [...this.reportesFijos];
 
-    this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada())
+    this.consultaSubscription = this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada())
       .pipe(
-        catchError(() => of([] as ReporteArchivo[])),
         finalize(() => {
           this.cargando = false;
-          this.mostrarReportes = true;
         })
       )
-      .subscribe(respuesta => {
+      .subscribe({ next: respuesta => {
         const carpetas = this.extraerRows(respuesta);
+        if (!carpetas.length) {
+          this.mensaje = 'No hay reportes disponibles para la cuenta y el periodo seleccionados.';
+          return;
+        }
         const dinamicos = carpetas
           .map(item => item.name || '')
           .filter(nombre => !!nombre && !!this.reportesDinamicos[nombre])
@@ -215,10 +238,15 @@ export class ReportesComponent implements OnInit {
           }));
 
         this.reportes = [...this.reportesFijos, ...dinamicos];
+        this.mostrarReportes = true;
+      }, error: () => {
+        this.mensaje = 'No fue posible consultar los reportes. Intenta nuevamente.';
+      }
       });
   }
 
   verReporte(reporte: ReporteDisponible): void {
+    if (this.abriendoReporte) return;
     this.mensaje = '';
 
     if (!this.mostrarReportes || !this.cuentaSeleccionada || !this.periodoSeleccionado) {
@@ -237,7 +265,7 @@ export class ReportesComponent implements OnInit {
   }
 
   private verReporteDinamico(reporte: ReporteDisponible): void {
-    this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), reporte.folder || reporte.id)
+    this.reporteSubscription = this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), reporte.folder || reporte.id)
       .pipe(finalize(() => this.abriendoReporte = ''))
       .subscribe({
         next: respuesta => {
@@ -269,7 +297,7 @@ export class ReportesComponent implements OnInit {
             ? this.reportesService.obtenerDiarioTransacciones(this.periodoSeleccionado)
             : this.reportesService.obtenerTransaccionesSplit(this.periodoSeleccionado, cuenta);
 
-    request$
+    this.reporteSubscription = request$
       .pipe(finalize(() => this.abriendoReporte = ''))
       .subscribe({
         next: respuesta => this.descargarRespuestaReporte(respuesta, reporte),

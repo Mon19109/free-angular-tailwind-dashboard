@@ -14,7 +14,7 @@
 
     <label class="reportes-field">
       <span>Periodo</span>
-      <select class="reportes-control" [(ngModel)]="periodoSeleccionado" name="periodo">
+      <select class="reportes-control" [(ngModel)]="periodoSeleccionado" name="periodo" (change)="onPeriodoChange()">
         <option value=""></option>
         <option *ngFor="let periodo of periodos" [value]="periodo">
           {{ periodo }}
@@ -59,7 +59,7 @@
 
       <p>{{ reporte.descripcion }}</p>
 
-      <button type="button" class="reporte-button" [disabled]="abriendoReporte === reporte.id" (click)="verReporte(reporte)">
+      <button type="button" class="reporte-button" [disabled]="!!abriendoReporte" (click)="verReporte(reporte)">
         <i class="fas" [ngClass]="abriendoReporte === reporte.id ? 'fa-spinner fa-spin' : 'fa-file-alt'"></i>
         {{ abriendoReporte === reporte.id ? 'ABRIENDO...' : 'VER REPORTE' }}
         <i class="fas fa-chevron-right"></i>
