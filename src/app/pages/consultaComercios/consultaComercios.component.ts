@@ -467,13 +467,15 @@ export class ConsultaComerciosComponent {
     ].filter(Boolean).join('|');
   }
 
-  ejecutarAccion(accion: 'editar' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
+  ejecutarAccion(accion: 'editar' | 'editarInformacion' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
     this.accionesAbiertas = null;
 
-    if (accion === 'editar') {
-      if (!this.puedeEditar(comercio)) return;
+    if (accion === 'editar' || accion === 'editarInformacion') {
+      if (accion === 'editar' && !this.puedeEditar(comercio)) return;
+      if (accion === 'editarInformacion' && !this.puedeEditarInformacion) return;
 
-      this.router.navigate(['/registro_cliente'], {
+      const ruta = accion === 'editarInformacion' ? '/editar_informacion' : '/registro_cliente';
+      this.router.navigate([ruta], {
         queryParams: {
           id: comercio.idComercio,
           entitySonID: comercio.entitySonID || comercio.idComercio,
@@ -611,6 +613,16 @@ export class ConsultaComerciosComponent {
 
   puedeConsultarPassword(comercio: Comercio): boolean {
     return comercio.nivel === 'Caja';
+  }
+
+  get puedeEditarInformacion(): boolean {
+    try {
+      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
+      return Number(sesion?.idRol) === 2
+        || String(sesion?.mail || '').trim().toLowerCase() === 's_monytest@gmail.com';
+    } catch {
+      return false;
+    }
   }
 
   puedeEditar(comercio: Comercio): boolean {
