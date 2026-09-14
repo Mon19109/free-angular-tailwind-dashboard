@@ -1,0 +1,67 @@
+<main class="prospect-page">
+  <header class="prospect-header">
+    <img src="https://portal-antares.kashplataforma.com/public/assets/img/kashpay_dorado.png" alt="Kashpay" />
+    <div>
+      <p>Registro de cliente</p>
+      <h1>{{ prospecto?.nameCommerce || prospecto?.businessName || 'Completa tu registro' }}</h1>
+    </div>
+  </header>
+
+  @if (cargando) {
+  <section class="state-panel">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+    <strong>Validando link...</strong>
+  </section>
+  } @else if (error && !prospecto) {
+  <section class="state-panel error">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <strong>{{ error }}</strong>
+  </section>
+  } @else {
+  <section class="prospect-card">
+    <div class="steps-tabs" aria-label="Secciones del registro">
+      <button type="button" [class.active]="pasoActivo === 'liquidacion'" (click)="volverLiquidacion()">
+        <i class="fa-solid fa-building-columns"></i>
+        Cuenta de liquidación
+      </button>
+      <button type="button" [class.active]="pasoActivo === 'accesos'" (click)="continuarLiquidacion()">
+        <i class="fa-solid fa-lock"></i>
+        Acceso a plataforma
+      </button>
+    </div>
+
+    @if (mensaje) {
+    <p class="feedback success"><i class="fa-solid fa-circle-check"></i>{{ mensaje }}</p>
+    }
+    @if (error) {
+    <p class="feedback error"><i class="fa-solid fa-circle-exclamation"></i>{{ error }}</p>
+    }
+
+    @if (pasoActivo === 'liquidacion') {
+    <app-step-liquidacion
+      [form]="liquidacionForm"
+      [tiposCuenta]="tiposCuenta"
+      [mostrarBeneficiarioIgualComercio]="false"
+      [mostrarDocumentosLiquidacion]="false"
+      [habilitarBusquedasCatalogo]="true"
+      [varianteRegistro]="true"
+      textoContinuar="Continuar a acceso"
+      (continuar)="continuarLiquidacion()" />
+    } @else {
+    <app-step-accesos
+      [form]="accesosForm"
+      [usuarios]="usuariosAcceso"
+      textoContinuar="Enviar información"
+      (volver)="volverLiquidacion()"
+      (continuar)="finalizar()" />
+    }
+
+    @if (guardando) {
+    <div class="saving-overlay">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Enviando información...</span>
+    </div>
+    }
+  </section>
+  }
+</main>

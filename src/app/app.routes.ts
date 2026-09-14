@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 import { EcommerceComponent } from './pages/dashboard2/ecommerce/ecommerce.component';
 import { ProfileComponent } from './pages/profile/profile.component';
 import { FormElementsComponent } from './pages/forms/form-elements/form-elements.component';
@@ -51,9 +51,22 @@ import { RevisionMesaDigitalComponent } from './pages/revisionMesaDigital/revisi
 import { EnviarInvitacionComercioComponent } from './pages/enviarInvitacionComercio/enviarInvitacionComercio.component';
 import { ConsultaComerciosComponent } from './pages/consultaComercios/consultaComercios.component';
 import { RegistroClienteComponent } from './pages/registroCliente/registroCliente.component';
+import { RegistroProspectoClienteComponent } from './pages/registroProspectoCliente/registroProspectoCliente.component';
 import { ReportesComponent } from './pages/reportes/reportes.component';
 import { VoucherComponent } from './pages/voucher/voucher.component';
 import { RecuperarCuentaComponent } from './pages/recuperarCuenta/recuperarCuenta.component';
+
+export function prospectoTokenMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments.length !== 1) return null;
+  const token = segments[0].path;
+  if (token.length < 80 || !/^[A-Za-z0-9_-]+$/.test(token)) return null;
+  return {
+    consumed: segments,
+    posParams: {
+      link: segments[0]
+    }
+  };
+}
 
 export const routes: Routes = [
   { 
@@ -71,6 +84,21 @@ export const routes: Routes = [
     path: 'recuperarCuenta',
     component: RecuperarCuentaComponent,
     title: 'Recuperar cuenta | KASHPAY'
+  },
+  {
+    path: 'registro-prospecto',
+    component: RegistroProspectoClienteComponent,
+    title: 'Registro de prospecto | KASHPAY'
+  },
+  {
+    path: 'registro-prospecto/:link',
+    component: RegistroProspectoClienteComponent,
+    title: 'Registro de prospecto | KASHPAY'
+  },
+  {
+    matcher: prospectoTokenMatcher,
+    component: RegistroProspectoClienteComponent,
+    title: 'Registro de prospecto | KASHPAY'
   },
   { 
     path: 'pagar_linkpago', 

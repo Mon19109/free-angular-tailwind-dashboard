@@ -1488,9 +1488,9 @@ export class RegistroClienteComponent {
             this.mensajeObservacionesCliente = 'Cliente registrado correctamente.';
             this.seleccionarSiguienteNodoArbol();
           },
-          error: () => {
+          error: error => {
             this.registrandoCliente = false;
-            this.mensajeObservacionesCliente = 'No fue posible registrar el cliente.';
+            this.mensajeRegistroCliente = this.obtenerMensajeErrorActivacion(error);
           }
         });
       },
@@ -1499,6 +1499,17 @@ export class RegistroClienteComponent {
         this.mensajeRegistroCliente = 'No fue posible validar los documentos antes del registro.';
       }
     });
+  }
+
+  private obtenerMensajeErrorActivacion(error: unknown): string {
+    const respuesta = (error as { error?: unknown })?.error;
+    const detalle = (respuesta as { error?: { message?: unknown } })?.error;
+    const mensaje = detalle?.message;
+
+    if (typeof mensaje === 'string' && mensaje.trim()) return mensaje.trim();
+    if (typeof respuesta === 'string' && respuesta.trim()) return respuesta.trim();
+
+    return 'No fue posible registrar el cliente.';
   }
 
   private validarDocumentosRutaRegistro(): Observable<string> {
