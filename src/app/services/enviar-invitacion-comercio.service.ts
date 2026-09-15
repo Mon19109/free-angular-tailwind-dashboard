@@ -14,7 +14,7 @@ export interface EnviarInvitacionComercioRequest {
 })
 export class EnviarInvitacionComercioService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${environment.api.kashpay}api/commerce/sendingPre_registrationLink`;
+  private readonly url = `${environment.api.kashpay}api/v1/commerce/sendingPre_registrationLink`;
 
   enviarInvitacion(payload: EnviarInvitacionComercioRequest): Observable<any> {
     return this.http.post<any>(this.url, payload);
