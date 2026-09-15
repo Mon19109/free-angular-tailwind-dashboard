@@ -66,7 +66,7 @@ export class ProspectoClienteService {
   validarTokenSms(payload: ValidarTokenSmsPayload): Observable<unknown> {
     return this.http.post(
       //`${this.apiUrl}prospect/validateTokenSms`,
-       `${this.apiUrl2}api/commerce/validateOperationWithSMSToken`,
+       `${this.apiUrl2}api/v1/commerce/validateOperationWithSMSToken`,
       payload,
       { headers: this.headers() }
     );
