@@ -55,6 +55,7 @@ import { RegistroProspectoClienteComponent } from './pages/registroProspectoClie
 import { ReportesComponent } from './pages/reportes/reportes.component';
 import { VoucherComponent } from './pages/voucher/voucher.component';
 import { RecuperarCuentaComponent } from './pages/recuperarCuenta/recuperarCuenta.component';
+import { EdiarInformacionComponent } from './pages/ediarInformacion/ediarInformacion.component';
 
 export function prospectoTokenMatcher(segments: UrlSegment[]): UrlMatchResult | null {
   if (segments.length !== 1) return null;
@@ -404,8 +405,12 @@ export const routes: Routes = [
         //canActivate: [AuthGuard],
         title:'KASHPAY'
       },
-
-
+      {
+        path: 'ediarInformacion',
+        component: EdiarInformacionComponent,
+        canActivate: [AuthGuard],
+        title:'KASHPAY'
+      },
       // error pages
       {
         path:'**',
