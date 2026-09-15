@@ -33,11 +33,11 @@ export class BeneficiariosService {
 
   constructor(private http: HttpClient) {}
 
-  private getCommonHeaders(): HttpHeaders {
+  private getCommonHeaders(bearerToken?: string): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': `Bearer ${this.getStoredToken()}`,
+      'Authorization': `Bearer ${bearerToken || this.getStoredToken()}`,
       'versionApp': '3'
     });
   }
@@ -80,10 +80,11 @@ export class BeneficiariosService {
     });
   }
 
-  buscarInstitucion(cuenta: string): Observable<any> {
+  buscarInstitucion(cuenta: string, bearerToken?: string): Observable<any> {
     const params = new HttpParams().set('value', cuenta);
 
     return this.http.get(`${this.aldebaranUrl}getInstitutions`, {
+      headers: this.getCommonHeaders(bearerToken),
       params
     });
   }

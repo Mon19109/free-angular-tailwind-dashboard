@@ -1,67 +1,373 @@
-<main class="prospect-page">
-  <header class="prospect-header">
-    <img src="https://portal-antares.kashplataforma.com/public/assets/img/kashpay_dorado.png" alt="Kashpay" />
-    <div>
-      <p>Registro de cliente</p>
-      <h1>{{ prospecto?.nameCommerce || prospecto?.businessName || 'Completa tu registro' }}</h1>
-    </div>
-  </header>
-
-  @if (cargando) {
-  <section class="state-panel">
-    <i class="fa-solid fa-spinner fa-spin"></i>
-    <strong>Validando link...</strong>
-  </section>
-  } @else if (error && !prospecto) {
-  <section class="state-panel error">
-    <i class="fa-solid fa-circle-exclamation"></i>
-    <strong>{{ error }}</strong>
-  </section>
-  } @else {
-  <section class="prospect-card">
-    <div class="steps-tabs" aria-label="Secciones del registro">
-      <button type="button" [class.active]="pasoActivo === 'liquidacion'" (click)="volverLiquidacion()">
-        <i class="fa-solid fa-building-columns"></i>
-        Cuenta de liquidación
+<div class="registro-shell">
+  @if (showTokenModal) {
+  <div class="token-modal-backdrop">
+    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
+      <button
+        type="button"
+        class="token-modal-close"
+        aria-label="Cerrar"
+        [disabled]="validandoToken"
+        (click)="closeTokenModal()">
+        &times;
       </button>
-      <button type="button" [class.active]="pasoActivo === 'accesos'" (click)="continuarLiquidacion()">
-        <i class="fa-solid fa-lock"></i>
-        Acceso a plataforma
-      </button>
+
+      <form (ngSubmit)="validarTokenSms()">
+        <div class="token-modal-body">
+          <label id="prospect-token-title" for="prospect-token">
+            Ingresa el token enviado por SMS para consultar tu registro.
+          </label>
+          <textarea
+            id="prospect-token"
+            name="prospect-token"
+            [(ngModel)]="tokenValue"
+            [ngModelOptions]="{ standalone: true }"
+            [class.is-invalid]="tokenErrorMessage"
+            autocomplete="one-time-code"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            rows="1"
+            [disabled]="validandoToken"
+            (ngModelChange)="clearTokenError()"
+            (keydown.enter)="$event.preventDefault(); validarTokenSms()"
+            autofocus></textarea>
+          @if (tokenErrorMessage) {
+          <div class="token-error">{{ tokenErrorMessage }}</div>
+          }
+        </div>
+
+        <div class="token-modal-actions">
+          <button type="submit" class="token-btn token-btn-primary" [disabled]="validandoToken">
+            {{ validandoToken ? 'VALIDANDO...' : 'VALIDAR' }}
+          </button>
+          <button type="button" class="token-btn token-btn-secondary" [disabled]="validandoToken" (click)="closeTokenModal()">
+            CANCELAR
+          </button>
+        </div>
+      </form>
     </div>
-
-    @if (mensaje) {
-    <p class="feedback success"><i class="fa-solid fa-circle-check"></i>{{ mensaje }}</p>
-    }
-    @if (error) {
-    <p class="feedback error"><i class="fa-solid fa-circle-exclamation"></i>{{ error }}</p>
-    }
-
-    @if (pasoActivo === 'liquidacion') {
-    <app-step-liquidacion
-      [form]="liquidacionForm"
-      [tiposCuenta]="tiposCuenta"
-      [mostrarBeneficiarioIgualComercio]="false"
-      [mostrarDocumentosLiquidacion]="false"
-      [habilitarBusquedasCatalogo]="true"
-      [varianteRegistro]="true"
-      textoContinuar="Continuar a acceso"
-      (continuar)="continuarLiquidacion()" />
-    } @else {
-    <app-step-accesos
-      [form]="accesosForm"
-      [usuarios]="usuariosAcceso"
-      textoContinuar="Enviar información"
-      (volver)="volverLiquidacion()"
-      (continuar)="finalizar()" />
-    }
-
-    @if (guardando) {
-    <div class="saving-overlay">
-      <i class="fa-solid fa-spinner fa-spin"></i>
-      <span>Enviando información...</span>
-    </div>
-    }
-  </section>
+  </div>
   }
-</main>
+
+  @if (guardando) {
+  <div class="processing-overlay" role="status" aria-live="polite">
+    <div class="processing-card">
+      <span class="processing-spinner" aria-hidden="true"></span>
+      <strong>Enviando información...</strong>
+      <small>Estamos guardando la información capturada.</small>
+    </div>
+  </div>
+  }
+
+  <article class="registro-card">
+    <header class="registro-card-header">
+      <div class="prospect-header-toolbar">
+        <img class="prospect-header-logo" src="/kashpay_dorado.png" alt="Kashpay" />
+        <div class="prospect-theme-control">
+          <app-theme-toggle-button />
+        </div>
+      </div>
+      <div>
+        <span class="eyebrow">Gestión de negocio</span>
+        <h2>Registro de Cliente / Comercio</h2>
+      </div>
+    </header>
+
+    <nav class="flow-stepper" aria-label="Progreso del registro">
+      @if (!mostrarSoloPasosFinales) {
+      <div class="flow-step done">
+        <span>✓</span>
+        <strong>Datos del Comercio</strong>
+      </div>
+      <div class="flow-step done">
+        <span>✓</span>
+        <strong>Datos Generales</strong>
+      </div>
+      <div class="flow-step done">
+        <span>✓</span>
+        <strong>Documentos</strong>
+      </div>
+      }
+      @if (nodoRequiereAccesos) {
+      <div class="flow-step" [class.active]="pasoActivo === 'liquidacion'" [class.done]="liquidacionForm.valid">
+        <span>{{ liquidacionForm.valid ? '✓' : '4' }}</span>
+        <strong>Cuenta de Liquidación</strong>
+      </div>
+      <div class="flow-step" [class.active]="pasoActivo === 'accesos'" [class.done]="accesosForm.valid">
+        <span>{{ accesosForm.valid ? '✓' : '5' }}</span>
+        <strong>Acceso a Plataforma</strong>
+      </div>
+      }
+    </nav>
+
+    @if (cargando) {
+    <section class="state-panel">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <strong>Validando link...</strong>
+    </section>
+    } @else if (showTokenModal && !prospecto) {
+    <section class="state-panel">
+      <i class="fa-solid fa-mobile-screen-button"></i>
+      <strong>Valida el token enviado por SMS para continuar.</strong>
+    </section>
+    } @else if (error && !prospecto) {
+    <section class="state-panel error">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <strong>{{ error }}</strong>
+    </section>
+    } @else {
+    <div class="registro-layout">
+      <aside class="tree-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Niveles de Ubicación</h2>
+            <h3>Árbol de negocio</h3>
+            <p>Selecciona el nodo que vas a consultar.</p>
+          </div>
+        </div>
+
+        <div class="tree-list">
+          @if (cargandoArbol) { <p class="tree-state">Cargando árbol...</p> }
+          @if (errorArbol) { <p class="tree-state error">{{ errorArbol }}</p> }
+          <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: arbol, nivel: 0 }"></ng-container>
+        </div>
+
+        <section class="selected-box">
+          <span>Ubicación seleccionada</span>
+          <strong><i class="fa-solid fa-location-dot"></i>{{ rutaSeleccionada }}</strong>
+          <small>Municipio: {{ municipioSeleccionado }}</small>
+        </section>
+      </aside>
+
+      <section class="content-panel">
+        <div class="context-strip">
+          <div>
+            <span>{{ contextoSirio }}</span>
+            <strong>{{ contextoNombre }}</strong>
+          </div>
+          <small>{{ contextoNivel }} · {{ cargandoCuenta ? 'Cargando cuenta...' : 'Cuenta validada' }}</small>
+        </div>
+
+        @if (!mostrarSoloPasosFinales) {
+        <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'comercio'" [class.done]="!!prospecto">
+          <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('comercio')">
+            <span class="section-icon"><i class="fa-solid fa-store"></i></span>
+            <span class="section-copy">
+              <strong>1. Datos del Comercio</strong>
+              <small>Información básica y de contacto del comercio</small>
+            </span>
+            <span class="step-status">Completado</span>
+            <i class="fa-solid" [ngClass]="seccionInformativaAbierta === 'comercio' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+          @if (seccionInformativaAbierta === 'comercio') {
+          <div class="section-body readonly-info-section">
+            <app-step-comercio
+              [form]="comercioForm"
+              [datosForm]="datosForm"
+              [niveles]="niveles"
+              [tiposComercio]="tiposComercio"
+              [bloquearNivel]="true"
+              [bloquearTipoComercio]="true" />
+          </div>
+          }
+        </article>
+
+        <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'datos'" [class.done]="!!prospecto">
+          <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('datos')">
+            <span class="section-icon"><i class="fa-solid fa-user"></i></span>
+            <span class="section-copy">
+              <strong>2. Datos Generales</strong>
+              <small>Información del representante o contacto principal</small>
+            </span>
+            <span class="step-status">Completado</span>
+            <i class="fa-solid" [ngClass]="seccionInformativaAbierta === 'datos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+          @if (seccionInformativaAbierta === 'datos') {
+          <div class="section-body readonly-info-section">
+            <app-step-datos
+              [form]="datosForm"
+              [campos]="camposDatosGenerales"
+              [tipoComercio]="comercioForm.controls.tipoComercio.value"
+              [regimenesFiscales]="regimenesFiscales"
+              [girosComerciales]="girosComerciales"
+              [tiposPersona]="tiposPersona"
+              [departamentos]="departamentos"
+              [ciudades]="ciudades"
+              [mostrarMismoDomicilio]="false"
+              [bloquearActividad]="true"
+              [mostrarBusquedaAvanzadaGiro]="false" />
+          </div>
+          }
+        </article>
+
+        <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'documentos'" [class.done]="false">
+          <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('documentos')">
+            <span class="section-icon"><i class="fa-solid fa-file-lines"></i></span>
+            <span class="section-copy">
+              <strong>3. Documentos</strong>
+              <small>Documentos requeridos del comercio</small>
+            </span>
+            <span class="step-status">Pendiente</span>
+            <i class="fa-solid" [ngClass]="seccionInformativaAbierta === 'documentos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+          @if (seccionInformativaAbierta === 'documentos') {
+          <div class="section-body">
+            @if (cargandoDocumentos) { <p class="tree-state">Cargando documentos...</p> }
+            <app-step-documentos
+              [documentos]="documentosVisibles"
+              [documentosCargados]="documentosCargados"
+              [documentosPendientes]="documentosPendientes"
+              [archivosInvalidos]="archivosInvalidos"
+              [deshabilitarFinalizar]="true"
+              [textoFinalizar]="'Documentos consultados'"
+              (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
+              (verArchivo)="verDocumentoProspecto($event)"
+              (validarArchivo)="validarArchivo($event.documento, $event.estado)" />
+          </div>
+          }
+        </article>
+        }
+
+        @if (mensaje) {
+        <p class="registration-message success"><i class="fa-solid fa-circle-check"></i>{{ mensaje }}</p>
+        }
+        @if (error) {
+        <p class="registration-message error"><i class="fa-solid fa-circle-exclamation"></i>{{ error }}</p>
+        }
+
+        @if (nodoRequiereAccesos) {
+        <article class="section-card" [class.open]="pasoActivo === 'liquidacion'" [class.done]="liquidacionForm.valid">
+          <button type="button" class="section-trigger" (click)="volverLiquidacion()">
+            <span class="section-icon"><i class="fa-solid fa-building-columns"></i></span>
+            <span class="section-copy">
+              <strong>4. Cuenta de Liquidación</strong>
+              <small>Datos de la cuenta donde se recibirán las liquidaciones</small>
+            </span>
+            <span class="step-status">{{ liquidacionForm.valid ? 'Completado' : 'Pendiente' }}</span>
+            <i class="fa-solid" [ngClass]="pasoActivo === 'liquidacion' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+
+          @if (pasoActivo === 'liquidacion') {
+          <div class="section-body prospect-liquidacion-body">
+            <app-step-liquidacion
+              [form]="liquidacionForm"
+              [tiposCuenta]="tiposCuenta"
+              [beneficiarioIgualComercio]="true"
+              [mostrarBeneficiarioIgualComercio]="true"
+              [mostrarDocumentosLiquidacion]="false"
+              [habilitarBusquedasCatalogo]="true"
+              [varianteRegistro]="true"
+              [bearerToken]="prospectoBearerToken"
+              textoContinuar="Guardar y continuar"
+              (continuar)="continuarLiquidacion()" />
+            @if (liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos' || liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos-en-red') {
+            <section class="liquidation-documents-panel" aria-label="Documentos de liquidación">
+              <div class="liquidation-documents-heading">
+                <span class="liquidation-documents-icon"><i class="fa-solid fa-file-shield"></i></span>
+                <div>
+                  <h3>Documentos de liquidación</h3>
+                  <p>Adjunta la Carta de Liquidación y la Carátula EDC en PDF, JPG o PNG.</p>
+                </div>
+              </div>
+
+              <div class="document-upload-grid">
+                <label
+                  class="document-upload-card"
+                  for="carta-liquidacion-file"
+                  [class.has-file]="cartaLiquidacionArchivoNombre"
+                  (dragover)="bloquearArrastreArchivo($event)"
+                  (dragenter)="bloquearArrastreArchivo($event)"
+                  (drop)="soltarArchivoLiquidacion($event, 'carta')">
+                  <input
+                    id="carta-liquidacion-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    (change)="seleccionarArchivoLiquidacion($event, 'carta')" />
+                  <span class="upload-icon"><i class="fa-solid fa-file-arrow-up"></i></span>
+                  <span class="upload-copy">
+                    <strong>Carta de Liquidación</strong>
+                    <small>{{ cartaLiquidacionArchivoNombre || 'Selecciona el archivo' }}</small>
+                  </span>
+                  <span class="upload-action">
+                    <i class="fa-solid" [ngClass]="cartaLiquidacionArchivoNombre ? 'fa-circle-check' : 'fa-plus'"></i>
+                  </span>
+                </label>
+
+                <label
+                  class="document-upload-card"
+                  for="caratula-edc-file"
+                  [class.has-file]="caratulaEdcArchivoNombre"
+                  (dragover)="bloquearArrastreArchivo($event)"
+                  (dragenter)="bloquearArrastreArchivo($event)"
+                  (drop)="soltarArchivoLiquidacion($event, 'edc')">
+                  <input
+                    id="caratula-edc-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    (change)="seleccionarArchivoLiquidacion($event, 'edc')" />
+                  <span class="upload-icon"><i class="fa-solid fa-file-invoice"></i></span>
+                  <span class="upload-copy">
+                    <strong>Carátula EDC</strong>
+                    <small>{{ caratulaEdcArchivoNombre || 'Selecciona el archivo' }}</small>
+                  </span>
+                  <span class="upload-action">
+                    <i class="fa-solid" [ngClass]="caratulaEdcArchivoNombre ? 'fa-circle-check' : 'fa-plus'"></i>
+                  </span>
+                </label>
+              </div>
+            </section>
+            }
+            <div class="prospect-step-actions">
+              <button type="button" class="button ghost" (click)="volverLiquidacion()">Anterior</button>
+              <button type="button" class="button primary" (click)="continuarLiquidacion()">Guardar y continuar</button>
+            </div>
+          </div>
+          }
+        </article>
+
+        <article class="section-card" [class.open]="pasoActivo === 'accesos'" [class.done]="accesosForm.valid">
+          <button type="button" class="section-trigger" (click)="continuarLiquidacion()">
+            <span class="section-icon"><i class="fa-solid fa-lock"></i></span>
+            <span class="section-copy">
+              <strong>5. Accesos a Plataforma</strong>
+              <small>Credenciales requeridas según la cuenta de liquidación y tipo de comercio</small>
+            </span>
+            <span class="step-status">{{ accesosForm.valid ? 'Completado' : 'Pendiente' }}</span>
+            <i class="fa-solid" [ngClass]="pasoActivo === 'accesos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+          </button>
+
+          @if (pasoActivo === 'accesos') {
+          <div class="section-body">
+            <app-step-accesos
+              [form]="accesosForm"
+              [usuarios]="usuariosAcceso"
+              [mostrarResumenUsuarios]="true"
+              [usuarioActivo]="usuarioActivo"
+              (usuarioActivoChange)="usuarioActivo = $event"
+              textoContinuar="Enviar información"
+              (volver)="volverLiquidacion()"
+              (continuar)="finalizar()" />
+          </div>
+          }
+        </article>
+        }
+      </section>
+    </div>
+    }
+  </article>
+</div>
+
+<ng-template #treeTemplate let-nodos="nodos" let-nivel="nivel">
+  @for (nodo of nodos; track nodo.id) {
+  <div class="tree-row" [style.--level]="nivel">
+    <button type="button" class="tree-node" [class.selected]="nodoSeleccionado === nodo.id" [class.leaf]="!(nodo.hijos?.length)" (click)="seleccionarNodo(nodo.id)">
+      <i class="fa-solid" [ngClass]="nodo.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'"></i>
+      <span>{{ nodo.nivel }} - {{ nodo.nombre }}</span>
+      @if (nodo.nivel !== 'caja') { <i class="fa-solid fa-circle-check documentos-validados-mark"></i> }
+    </button>
+  </div>
+  @if (nodo.hijos?.length) {
+  <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: nodo.hijos, nivel: nivel + 1 }"></ng-container>
+  }
+  }
+</ng-template>

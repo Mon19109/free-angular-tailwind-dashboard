@@ -53,8 +53,74 @@ export class StepAccesosComponent {
     return this.usuarios.filter(usuario => usuario.prefijo === this.usuarioActivo);
   }
 
+  get indicadorAccesosTitulo(): string {
+    if (this.usuarios.some(usuario => usuario.prefijo === 'fac') && this.usuarios.some(usuario => usuario.prefijo === 'tkt')) {
+      return 'Captura de cuentas FAC y TKT';
+    }
+
+    if (this.usuarios.length > 1) return 'Captura de accesos requeridos';
+
+    return 'Captura de cuenta administrador';
+  }
+
+  get indicadorAccesosDescripcion(): string {
+    if (this.usuarios.some(usuario => usuario.prefijo === 'fac') && this.usuarios.some(usuario => usuario.prefijo === 'tkt')) {
+      return 'Completa primero una cuenta y usa el botón Siguiente cuenta para capturar la otra. Al enviar, se guardará la información de ambas cuentas.';
+    }
+
+    if (this.usuarios.length > 1) {
+      return 'Llena la información de cada usuario solicitado. Al enviar, se guardará la información de todos los accesos requeridos.';
+    }
+
+    return 'Llena la información del usuario administrador. Al enviar, se guardará solo esta cuenta.';
+  }
+
+  get usuarioActual(): UsuarioAccesoConfig | undefined {
+    return this.usuarios.find(usuario => usuario.prefijo === this.usuarioActivo) ?? this.usuarios[0];
+  }
+
+  get indiceUsuarioActivo(): number {
+    const indice = this.usuarios.findIndex(usuario => usuario.prefijo === this.usuarioActivo);
+    return indice >= 0 ? indice : 0;
+  }
+
+  get mostrarNavegacionUsuarios(): boolean {
+    return this.mostrarResumenUsuarios && this.usuarios.length > 1;
+  }
+
+  get puedeIrUsuarioAnterior(): boolean {
+    return this.indiceUsuarioActivo > 0;
+  }
+
+  get puedeIrUsuarioSiguiente(): boolean {
+    return this.indiceUsuarioActivo < this.usuarios.length - 1;
+  }
+
+  get textoUsuarioSiguiente(): string {
+    const siguiente = this.usuarios[this.indiceUsuarioActivo + 1];
+    return siguiente ? `Siguiente cuenta: ${siguiente.titulo.replace('Usuario ', '')}` : 'Siguiente cuenta';
+  }
+
+  usuarioEstaCompleto(prefijo: string): boolean {
+    const campos = ['Nombre', 'Paterno', 'Materno', 'Correo', 'ConfirmarCorreo', 'Telefono'];
+    return campos.every(campo => {
+      const control = this.form.get(this.campo(prefijo, campo));
+      return !!control?.valid && !!`${control.value ?? ''}`.trim();
+    });
+  }
+
   seleccionarUsuario(prefijo: string): void {
     this.usuarioActivoChange.emit(prefijo);
+  }
+
+  irUsuarioAnterior(): void {
+    const anterior = this.usuarios[this.indiceUsuarioActivo - 1];
+    if (anterior) this.seleccionarUsuario(anterior.prefijo);
+  }
+
+  irUsuarioSiguiente(): void {
+    const siguiente = this.usuarios[this.indiceUsuarioActivo + 1];
+    if (siguiente) this.seleccionarUsuario(siguiente.prefijo);
   }
 
   correosDistintos(prefijo: string): boolean {

@@ -5,6 +5,7 @@ import { environment } from '../environments/environments';
 
 export interface ArbolNodoApi {
   id?: string | number;
+  nodeId?: string | number;
   nodeID?: string | number;
   idNode?: string | number;
   idSirio?: string;
@@ -38,20 +39,20 @@ export class ArbolNodosService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.api.kashpay;
 
-  obtenerArbol(nodeID: string | number): Observable<ArbolNodoApi> {
+  obtenerArbol(nodeID: string | number, bearerToken?: string): Observable<ArbolNodoApi> {
     return this.http.get<ArbolNodoApi>(
       `${this.baseUrl}api/nodes/${encodeURIComponent(String(nodeID))}/tree`,
       {
-        headers: this.headers(),
-        params: new HttpParams().set('levels', '').set('type', '')
+        headers: this.headers(bearerToken),
+        params: new HttpParams().set('levels', '')
       }
     );
   }
 
-  private headers(): HttpHeaders {
+  private headers(bearerToken?: string): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${this.obtenerToken()}`
+      Authorization: `Bearer ${bearerToken || this.obtenerToken()}`
     });
   }
 

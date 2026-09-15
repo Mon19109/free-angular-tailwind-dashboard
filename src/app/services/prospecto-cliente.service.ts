@@ -27,21 +27,27 @@ export interface ProspectoCliente {
 }
 
 export interface ProspectoClienteCapturaPayload {
-  prospectId: string;
+  prospectId?: string;
   link: string;
   liquidacion: Record<string, unknown>;
   accesos: Record<string, unknown>;
+}
+
+export interface ValidarTokenSmsPayload {
+  commerceGuid: string;
+  id: string;
+  observations: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ProspectoClienteService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.api.KashpayCoreAPI;
+   private readonly apiUrl2 = environment.api.kashpay;
 
   obtenerProspecto(prospectId: string, link: string): Observable<ProspectoClienteResponse> {
-    const params = new HttpParams()
-      .set('prospectId', prospectId)
-      .set('link', link);
+    let params = new HttpParams().set('link', link);
+    if (prospectId) params = params.set('prospectId', prospectId);
 
     return this.http.get<ProspectoClienteResponse>(
       `${this.apiUrl}prospect`,
@@ -57,13 +63,23 @@ export class ProspectoClienteService {
     );
   }
 
+  validarTokenSms(payload: ValidarTokenSmsPayload): Observable<unknown> {
+    return this.http.post(
+      //`${this.apiUrl}prospect/validateTokenSms`,
+       `${this.apiUrl2}api/commerce/validateOperationWithSMSToken`,
+      payload,
+      { headers: this.headers() }
+    );
+  }
+
   private headers(): HttpHeaders {
     return new HttpHeaders({
       Accept: 'application/json',
       'Content-Type': 'application/json',
       versionApp: '3',
-      Authorization: `Bearer ${this.obtenerToken()}`
-    });
+      //Authorization: `Bearer ${this.obtenerToken()}`
+      Authorization: `Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc`
+        });
   }
 
   private obtenerToken(): string {

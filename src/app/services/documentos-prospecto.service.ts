@@ -65,10 +65,10 @@ export class DocumentosProspectoService {
   private readonly observacionesUrl = `${environment.api.kashpay}api/commerce/sendObservations`;
   private readonly mostrarArchivoUrl = `${environment.api.documents}showFile`;
 
-  consultarDocumentos(commerceID: string): Observable<DocumentosProspectoResponse> {
+  consultarDocumentos(commerceID: string, bearerToken?: string): Observable<DocumentosProspectoResponse> {
     return this.http.get<DocumentosProspectoResponse>(
       `${this.baseUrl}${encodeURIComponent(commerceID)}`,
-      { headers: this.headers() }
+      { headers: this.headers(bearerToken) }
     );
   }
 
@@ -92,8 +92,8 @@ export class DocumentosProspectoService {
     return `${this.mostrarArchivoUrl}?fileKey=${encodeURIComponent(s3Key)}`;
   }
 
-  consultarUrlArchivo(s3Key: string): Observable<string> {
-    return this.http.get(this.urlMostrarArchivo(s3Key), { responseType: 'text' }).pipe(
+  consultarUrlArchivo(s3Key: string, bearerToken?: string): Observable<string> {
+    return this.http.get(this.urlMostrarArchivo(s3Key), { responseType: 'text', headers: this.headers(bearerToken) }).pipe(
       map(response => this.extraerUrlArchivo(response))
     );
   }
@@ -122,11 +122,11 @@ export class DocumentosProspectoService {
     return url.trim().replace(/^<|>$/g, '');
   }
 
-  private headers(): HttpHeaders {
+  private headers(bearerToken?: string): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       versionApp: '3',
-      Authorization: `Bearer ${this.obtenerToken()}`,
+      Authorization: `Bearer ${bearerToken || this.obtenerToken()}`,
     });
   }
 

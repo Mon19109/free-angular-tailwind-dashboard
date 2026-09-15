@@ -5,6 +5,42 @@
   padding: 32px;
 }
 
+.registro-card-header {
+  min-height: 132px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.prospect-header-toolbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.prospect-theme-control {
+  display: grid;
+  place-items: center;
+}
+
+.prospect-theme-control ::ng-deep button {
+  width: 44px;
+  height: 44px;
+  border-color: rgba(246, 197, 85, 0.26);
+  background: rgba(246, 197, 85, 0.1);
+  color: #f6c555;
+}
+
+.prospect-header-logo {
+  width: min(220px, 42vw);
+  max-height: 58px;
+  object-fit: contain;
+  object-position: left center;
+}
+
 .prospect-header {
   width: min(1180px, 100%);
   margin: 0 auto 24px;
@@ -34,15 +70,21 @@
   font-weight: 900;
 }
 
+:host-context(html:not(.dark)) .prospect-theme-control ::ng-deep button {
+  background: #ffffff;
+  border-color: rgba(209, 219, 233, 0.96);
+  color: #243247;
+}
+
 .prospect-card,
 .state-panel {
-  width: min(1180px, 100%);
+  width: min(1280px, 100%);
   margin: 0 auto;
   position: relative;
   border: 1px solid rgba(246, 197, 85, 0.24);
   background: #0c111b;
   border-radius: 8px;
-  padding: 24px;
+  padding: 28px;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
 }
 
@@ -61,31 +103,6 @@
 
 .state-panel.error i {
   color: #f87171;
-}
-
-.steps-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.steps-tabs button {
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: #111827;
-  color: #cbd5e1;
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.steps-tabs button.active {
-  border-color: #f6c555;
-  color: #111827;
-  background: #f6c555;
 }
 
 .feedback {
@@ -110,6 +127,641 @@
   border: 1px solid rgba(239, 68, 68, 0.28);
 }
 
+.liquidation-documents-panel {
+  margin-top: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.48);
+  padding: 20px;
+}
+
+.liquidation-documents-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.liquidation-documents-icon,
+.upload-icon,
+.upload-action {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.liquidation-documents-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #f6c555;
+  background: rgba(246, 197, 85, 0.12);
+  border: 1px solid rgba(246, 197, 85, 0.28);
+  font-size: 18px;
+}
+
+.liquidation-documents-heading h3 {
+  margin: 0 0 4px;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.liquidation-documents-heading p {
+  margin: 0;
+  color: #aeb6c3;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+:host-context(html:not(.dark)) .liquidation-documents-panel {
+  border-color: rgba(209, 219, 233, 0.95);
+  background: #f7f9fc;
+}
+
+:host-context(html:not(.dark)) .liquidation-documents-heading h3 {
+  color: #182235;
+}
+
+:host-context(html:not(.dark)) .liquidation-documents-heading p {
+  color: #64748b;
+}
+
+:host-context(html:not(.dark)) .liquidation-documents-icon {
+  color: #b7791f;
+  background: rgba(246, 197, 85, 0.18);
+  border-color: rgba(183, 121, 31, 0.28);
+}
+
+.document-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.document-upload-card {
+  min-height: 112px;
+  border: 1px dashed rgba(246, 197, 85, 0.38);
+  border-radius: 8px;
+  background: #111827;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.document-upload-card:hover {
+  border-color: rgba(246, 197, 85, 0.72);
+  background: rgba(246, 197, 85, 0.08);
+  transform: translateY(-1px);
+}
+
+.document-upload-card.has-file {
+  border-style: solid;
+  border-color: rgba(34, 197, 94, 0.48);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+:host-context(html:not(.dark)) .document-upload-card {
+  border-color: rgba(183, 121, 31, 0.34);
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(35, 50, 77, 0.06);
+}
+
+:host-context(html:not(.dark)) .document-upload-card:hover {
+  border-color: rgba(183, 121, 31, 0.58);
+  background: #fffaf0;
+}
+
+:host-context(html:not(.dark)) .document-upload-card.has-file {
+  border-color: rgba(22, 163, 74, 0.42);
+  background: #f0fdf4;
+}
+
+.document-upload-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  color: #f6c555;
+  background: rgba(246, 197, 85, 0.12);
+  border: 1px solid rgba(246, 197, 85, 0.24);
+  font-size: 18px;
+}
+
+:host-context(html:not(.dark)) .upload-icon,
+:host-context(html:not(.dark)) .upload-action {
+  color: #b7791f;
+  background: rgba(246, 197, 85, 0.16);
+  border-color: rgba(183, 121, 31, 0.24);
+}
+
+.document-upload-card.has-file .upload-icon,
+.document-upload-card.has-file .upload-action {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.upload-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.upload-copy strong {
+  color: #f8fafc;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+:host-context(html:not(.dark)) .upload-copy strong {
+  color: #182235;
+}
+
+.upload-copy small {
+  color: #aeb6c3;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host-context(html:not(.dark)) .upload-copy small {
+  color: #64748b;
+}
+
+.upload-action {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #f6c555;
+  border: 1px solid rgba(246, 197, 85, 0.24);
+  background: rgba(246, 197, 85, 0.1);
+}
+
+.prospect-step-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.tree-row {
+  margin-left: calc(var(--level, 0) * 22px);
+}
+
+.access-node-warning {
+  margin: 0;
+  border: 1px solid rgba(246, 197, 85, 0.28);
+  border-radius: 8px;
+  background: rgba(246, 197, 85, 0.1);
+  color: #fde68a;
+  padding: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+.section-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.54);
+  overflow: hidden;
+}
+
+.section-card + .section-card {
+  margin-top: 16px;
+}
+
+.section-card.open {
+  border-color: rgba(246, 197, 85, 0.34);
+  background: rgba(12, 17, 27, 0.94);
+}
+
+.section-trigger {
+  width: 100%;
+  min-height: 88px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px 26px;
+  text-align: left;
+}
+
+.section-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.38);
+  font-size: 22px;
+}
+
+.section-card.open .section-icon {
+  color: #f6c555;
+  background: rgba(246, 197, 85, 0.12);
+  border-color: rgba(246, 197, 85, 0.42);
+}
+
+.section-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.section-copy strong {
+  color: #f8fafc;
+  font-size: 20px;
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.section-copy small {
+  color: #aeb6c3;
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.step-status {
+  min-width: 124px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: #f6c555;
+  background: rgba(246, 197, 85, 0.12);
+  border: 1px solid rgba(246, 197, 85, 0.28);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.section-card.done .step-status {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.34);
+}
+
+.section-body {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 26px;
+}
+
+.readonly-info-section ::ng-deep .step-actions {
+  display: none;
+}
+
+.info-section + .info-section {
+  margin-top: 16px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.info-grid div {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 15px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.info-grid span {
+  color: #aeb6c3;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.info-grid strong {
+  overflow-wrap: anywhere;
+  color: #f8fafc;
+  font-size: 15px;
+}
+
+.documents-empty-state {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  color: #cbd5e1;
+}
+
+.documents-empty-state > i {
+  color: #f6c555;
+  font-size: 24px;
+}
+
+.documents-empty-state strong {
+  color: #f8fafc;
+}
+
+.documents-empty-state small {
+  color: #aeb6c3;
+  font-weight: 700;
+}
+
+:host ::ng-deep app-step-liquidacion .step-form,
+:host ::ng-deep app-step-accesos .step-form {
+  display: grid;
+  gap: 20px;
+}
+
+:host ::ng-deep app-step-liquidacion .step-section,
+:host ::ng-deep app-step-accesos .step-section {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+:host ::ng-deep app-step-liquidacion .form-grid,
+:host ::ng-deep app-step-accesos .form-grid {
+  gap: 18px;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .form-grid.cols-3 {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px 22px;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .form-grid.cols-3 > .field {
+  grid-column: span 4;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#cuentaClabe),
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#direccionBeneficiario),
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#direccionBanco),
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#actividadBeneficiario),
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#giroBeneficiario) {
+  grid-column: span 8;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#emailBanco) {
+  grid-column: span 4;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .lookup-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 190px);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .lookup-control input,
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .lookup-control select,
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field input,
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .lookup-button {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .field-hint {
+  max-width: 620px;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-summary {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+  padding: 18px;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-summary h3 {
+  margin: 0 0 14px;
+  color: #f6c555;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+:host ::ng-deep app-step-accesos .access-save-indicator {
+  border: 1px solid rgba(246, 197, 85, 0.28);
+  border-radius: 8px;
+  background: rgba(246, 197, 85, 0.09);
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+:host ::ng-deep app-step-accesos .access-save-indicator-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #f6c555;
+  background: rgba(246, 197, 85, 0.12);
+  border: 1px solid rgba(246, 197, 85, 0.28);
+  overflow: hidden;
+}
+
+:host ::ng-deep app-step-accesos .access-save-indicator-icon i {
+  font-size: 17px;
+  line-height: 1;
+}
+
+:host ::ng-deep app-step-accesos .access-save-copy {
+  min-width: 0;
+}
+
+:host ::ng-deep app-step-accesos .access-save-indicator strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+:host ::ng-deep app-step-accesos .access-save-progress {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+:host ::ng-deep app-step-accesos .access-progress-dot {
+  min-width: 106px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: #111827;
+  color: #cbd5e1;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+  text-align: left;
+}
+
+:host ::ng-deep app-step-accesos .access-progress-dot span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #f6c555;
+  background: rgba(246, 197, 85, 0.12);
+  font-weight: 900;
+}
+
+:host ::ng-deep app-step-accesos .access-progress-dot strong {
+  margin: 0;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+:host ::ng-deep app-step-accesos .access-progress-dot.active {
+  color: #f8fafc;
+  border-color: rgba(246, 197, 85, 0.52);
+  background: rgba(246, 197, 85, 0.14);
+}
+
+:host ::ng-deep app-step-accesos .access-progress-dot.complete span {
+  color: #07120d;
+  background: #86efac;
+}
+
+:host ::ng-deep app-step-accesos .access-account-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+:host ::ng-deep app-step-accesos .access-account-actions .button {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+:host ::ng-deep app-step-accesos .access-account-actions .button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+:host ::ng-deep app-step-accesos .access-last-account {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.1);
+  font-weight: 900;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: #111827;
+  color: #f8fafc;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user.active {
+  border-color: rgba(246, 197, 85, 0.5);
+  background: rgba(246, 197, 85, 0.12);
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user.complete {
+  border-color: rgba(34, 197, 94, 0.36);
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user span {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #f6c555;
+  background: rgba(246, 197, 85, 0.12);
+  overflow: hidden;
+  line-height: 1;
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user span i {
+  font-size: 22px;
+  line-height: 1;
+  transform: translateY(1px);
+}
+
+:host ::ng-deep app-step-accesos .access-registro-user.active span {
+  color: #111827;
+  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+}
+
+:host ::ng-deep app-step-accesos .access-user-check {
+  color: #86efac;
+  font-size: 16px;
+}
+
+:host ::ng-deep app-step-liquidacion .step-actions,
+:host ::ng-deep app-step-accesos .step-actions {
+  justify-content: flex-end;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding-top: 20px;
+}
+
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion .step-actions {
+  display: none;
+}
+
 .saving-overlay {
   position: absolute;
   inset: 0;
@@ -121,9 +773,57 @@
   font-weight: 900;
 }
 
+@media (max-width: 1180px) {
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .form-grid.cols-3 > .field,
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#emailBanco) {
+    grid-column: span 6;
+  }
+
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#cuentaClabe),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#direccionBeneficiario),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#direccionBanco),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#actividadBeneficiario),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#giroBeneficiario) {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 980px) {
+  :host ::ng-deep app-step-accesos .access-save-indicator {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  :host ::ng-deep app-step-accesos .access-save-progress {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+
+  :host ::ng-deep app-step-accesos .access-progress-dot {
+    flex: 1 1 160px;
+  }
+}
+
 @media (max-width: 720px) {
   .prospect-page {
     padding: 18px;
+  }
+
+  .registro-card-header {
+    min-height: 0;
+    gap: 16px;
+  }
+
+  .prospect-header-toolbar {
+    align-items: flex-start;
+  }
+
+  .prospect-theme-control {
+    place-items: end;
+  }
+
+  .prospect-header-logo {
+    width: min(170px, 55vw);
+    max-height: 44px;
   }
 
   .prospect-header {
@@ -137,5 +837,79 @@
   .prospect-card,
   .state-panel {
     padding: 16px;
+  }
+
+  .section-trigger {
+    grid-template-columns: auto 1fr auto;
+    padding: 18px;
+  }
+
+  .section-trigger > .fa-solid:last-child,
+  .step-status {
+    display: none;
+  }
+
+  .section-body {
+    padding: 16px;
+  }
+
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .form-grid.cols-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .form-grid.cols-3 > .field,
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#cuentaClabe),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#direccionBeneficiario),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#direccionBanco),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#actividadBeneficiario),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#giroBeneficiario),
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .field:has(#emailBanco) {
+    grid-column: 1 / -1;
+  }
+
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .lookup-control {
+    grid-template-columns: 1fr;
+  }
+
+  .prospect-liquidacion-body ::ng-deep app-step-liquidacion .lookup-button {
+    min-width: 0;
+  }
+
+  :host ::ng-deep app-step-accesos .access-save-indicator {
+    grid-template-columns: 1fr;
+  }
+
+  :host ::ng-deep app-step-accesos .access-save-indicator-icon {
+    display: none;
+  }
+
+  :host ::ng-deep app-step-accesos .access-account-actions {
+    flex-direction: column;
+  }
+
+  :host ::ng-deep app-step-accesos .access-account-actions .button,
+  :host ::ng-deep app-step-accesos .access-last-account {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .document-upload-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prospect-step-actions {
+    flex-direction: column-reverse;
+  }
+
+  .prospect-step-actions .button {
+    width: 100%;
+  }
+
+  :host ::ng-deep app-step-accesos .access-registro-layout {
+    grid-template-columns: 1fr;
   }
 }

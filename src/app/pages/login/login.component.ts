@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewContainerRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { GeolocationService } from '../../services/geolocation.service';
 import { NgxTailwindModalService } from '@dotted-labs/ngx-tailwind-modal';
@@ -46,6 +46,7 @@ export class LoginComponent implements OnInit {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private geolocationService: GeolocationService
   ) {
     this.loginForm = this.fb.group({
@@ -58,6 +59,20 @@ export class LoginComponent implements OnInit {
   }
 
   async ngOnInit() {
+    const prospectId = this.route.snapshot.queryParamMap.get('prospectId')
+      || this.route.snapshot.queryParamMap.get('prospect')
+      || this.route.snapshot.queryParamMap.get('id')
+      || '';
+    const link = this.route.snapshot.queryParamMap.get('link') || '';
+
+    if (prospectId && link) {
+      this.router.navigate(['/registro-prospecto', link], {
+        queryParams: { prospectId },
+        replaceUrl: true
+      });
+      return;
+    }
+
     if (this.authService.hasValidSession()) {
       this.router.navigate(['/dashboard']);
     }

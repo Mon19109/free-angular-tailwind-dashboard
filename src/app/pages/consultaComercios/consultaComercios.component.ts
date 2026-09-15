@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/consulta-comercios.service';
+import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
 
 type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos';
 type EstatusComercio = 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
@@ -44,7 +45,8 @@ interface Comercio {
 export class ConsultaComerciosComponent {
   constructor(
     private router: Router,
-    private consultaComerciosService: ConsultaComerciosService
+    private consultaComerciosService: ConsultaComerciosService,
+    private recuperarCuentaService: RecuperarCuentaService
   ) {
     this.buscar();
   }
@@ -95,7 +97,9 @@ export class ConsultaComerciosComponent {
   nuevaPassword = '';
   confirmarPassword = '';
   cargandoPassword = false;
+  guardandoPassword = false;
   errorPassword = '';
+  mensajePassword = '';
   mostrarPassword = false;
   mostrarNuevaPassword = false;
   mostrarConfirmarPassword = false;
@@ -518,6 +522,8 @@ export class ConsultaComerciosComponent {
     this.modalPassword = null;
     this.nuevaPassword = '';
     this.confirmarPassword = '';
+    this.errorPassword = '';
+    this.mensajePassword = '';
     this.mostrarNuevaPassword = false;
     this.mostrarConfirmarPassword = false;
   }
@@ -583,9 +589,36 @@ export class ConsultaComerciosComponent {
 
   guardarPassword(): void {
     if (!this.modalCambiarPassword || !this.passwordValida || this.nuevaPassword !== this.confirmarPassword) return;
+    if (!this.modalCambiarPassword.guid) {
+      this.errorPassword = 'La caja no tiene guid para cambiar la contraseña.';
+      return;
+    }
 
-    this.modalCambiarPassword.password = this.nuevaPassword;
-    this.modalCambiarPassword = null;
+    this.guardandoPassword = true;
+    this.errorPassword = '';
+    this.mensajePassword = '';
+
+    this.recuperarCuentaService.recuperarCuenta({
+      guid: this.modalCambiarPassword.guid,
+      nueva: this.nuevaPassword
+    }).subscribe({
+      next: respuesta => {
+        if (respuesta?.success === false) {
+          this.errorPassword = respuesta.error?.message || 'No fue posible cambiar la contraseña.';
+          this.guardandoPassword = false;
+          return;
+        }
+
+        this.modalCambiarPassword!.password = this.nuevaPassword;
+        this.mensajePassword = 'Contraseña actualizada correctamente.';
+        this.guardandoPassword = false;
+        this.modalCambiarPassword = null;
+      },
+      error: () => {
+        this.errorPassword = 'No fue posible cambiar la contraseña.';
+        this.guardandoPassword = false;
+      }
+    });
   }
 
   private nodoRegistroPorComercio(comercio: Comercio): string {

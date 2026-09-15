@@ -40,6 +40,7 @@ export class StepLiquidacionComponent implements OnInit {
   @Input() textoContinuar = 'Guardar y continuar';
   @Input() permitirVacio = false;
   @Input() varianteRegistro = false;
+  @Input() bearerToken = '';
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 
@@ -92,6 +93,22 @@ export class StepLiquidacionComponent implements OnInit {
 
   get longitudCuenta(): number {
     return this.tipoCuenta === 'Tarjeta' ? 16 : 18;
+  }
+
+  get longitudCuentaFormateada(): number {
+    return this.tipoCuenta === 'Tarjeta' ? 19 : 21;
+  }
+
+  formatearCuenta(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digitos = input.value.replace(/\D/g, '').slice(0, this.longitudCuenta);
+    input.value = this.agruparCuenta(digitos);
+    this.form.get('cuentaClabe')?.setValue(digitos, { emitEvent: false });
+  }
+
+  private agruparCuenta(valor: string): string {
+    const grupos = this.tipoCuenta === 'Tarjeta' ? 4 : 3;
+    return valor.match(new RegExp(`.{1,${grupos}}`, 'g'))?.join(' ') || '';
   }
 
   get girosFiltrados(): GiroBusqueda[] {
@@ -195,7 +212,8 @@ export class StepLiquidacionComponent implements OnInit {
     }
 
     this.buscandoInstitucion = true;
-    this.beneficiariosService.buscarInstitucion(cuenta).pipe(
+    const cuentaSinEspacios = cuenta.replace(/\s+/g, '');
+    this.beneficiariosService.buscarInstitucion(cuentaSinEspacios, this.bearerToken || undefined).pipe(
       finalize(() => this.buscandoInstitucion = false)
     ).subscribe({
       next: resp => {

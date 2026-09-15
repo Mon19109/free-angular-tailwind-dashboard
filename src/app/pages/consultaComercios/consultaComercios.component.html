@@ -224,12 +224,14 @@
 <div class="modal-backdrop" *ngIf="modalCambiarPassword">
   <section class="modal-card password">
     <header><h2>Cambiar Contraseña</h2><button type="button" (click)="modalCambiarPassword = null"><i class="fa-solid fa-xmark"></i></button></header>
+    <p class="no-filters" *ngIf="guardandoPassword">Actualizando contraseña...</p>
+    <p class="no-filters" *ngIf="errorPassword">{{ errorPassword }}</p>
     <label>
-      <input [type]="mostrarNuevaPassword ? 'text' : 'password'" [(ngModel)]="nuevaPassword" placeholder="Nueva contraseña">
+      <input [type]="mostrarNuevaPassword ? 'text' : 'password'" [(ngModel)]="nuevaPassword" [disabled]="guardandoPassword" placeholder="Nueva contraseña">
       <button type="button" (click)="mostrarNuevaPassword = !mostrarNuevaPassword"><i class="fa-regular fa-eye"></i></button>
     </label>
     <label>
-      <input [type]="mostrarConfirmarPassword ? 'text' : 'password'" [(ngModel)]="confirmarPassword" placeholder="Confirmar contraseña">
+      <input [type]="mostrarConfirmarPassword ? 'text' : 'password'" [(ngModel)]="confirmarPassword" [disabled]="guardandoPassword" placeholder="Confirmar contraseña">
       <button type="button" (click)="mostrarConfirmarPassword = !mostrarConfirmarPassword"><i class="fa-regular fa-eye"></i></button>
     </label>
     <ul class="password-rules">
@@ -240,8 +242,10 @@
       <li>Caracteres especiales aceptados $&#64;!%*?&amp;</li>
     </ul>
     <footer>
-      <button class="btn btn-primary" type="button" [disabled]="!passwordValida || nuevaPassword !== confirmarPassword" (click)="guardarPassword()">Guardar</button>
-      <button class="btn btn-dark" type="button" (click)="modalCambiarPassword = null">Cancelar</button>
+      <button class="btn btn-primary" type="button" [disabled]="guardandoPassword || !passwordValida || nuevaPassword !== confirmarPassword" (click)="guardarPassword()">
+        {{ guardandoPassword ? 'Guardando...' : 'Guardar' }}
+      </button>
+      <button class="btn btn-dark" type="button" [disabled]="guardandoPassword" (click)="modalCambiarPassword = null">Cancelar</button>
     </footer>
   </section>
 </div>

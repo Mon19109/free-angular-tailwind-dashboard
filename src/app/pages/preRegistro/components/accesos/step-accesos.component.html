@@ -1,4 +1,31 @@
 <form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
+  @if (mostrarResumenUsuarios) {
+  <section class="access-save-indicator" aria-live="polite">
+    <span class="access-save-indicator-icon">
+      <i [class]="usuarioActual?.icono || 'fa-regular fa-user'"></i>
+    </span>
+    <div class="access-save-copy">
+      <strong>{{ usuarioActual?.titulo }}</strong>
+    </div>
+
+    @if (mostrarNavegacionUsuarios) {
+    <div class="access-save-progress" aria-label="Progreso de cuentas">
+      @for (usuario of usuarios; track usuario.prefijo; let index = $index) {
+      <button
+        type="button"
+        class="access-progress-dot"
+        [class.active]="usuario.prefijo === usuarioActivo"
+        [class.complete]="usuarioEstaCompleto(usuario.prefijo)"
+        (click)="seleccionarUsuario(usuario.prefijo)">
+        <span>{{ index + 1 }}</span>
+        <strong>{{ usuario.titulo.replace('Usuario Administrador ', '') }}</strong>
+      </button>
+      }
+    </div>
+    }
+  </section>
+  }
+
   <div [class.access-registro-layout]="mostrarResumenUsuarios">
     <div class="access-registro-fields">
       @for (usuario of usuariosVisibles(); track usuario.prefijo) {
@@ -73,16 +100,37 @@
         type="button"
         class="access-registro-user"
         [class.active]="usuario.prefijo === usuarioActivo"
+        [class.complete]="usuarioEstaCompleto(usuario.prefijo)"
         (click)="seleccionarUsuario(usuario.prefijo)">
         <span aria-hidden="true">
           <i [class]="usuario.icono || 'fa-regular fa-user'"></i>
         </span>
         <strong>{{ usuario.titulo }}</strong>
+        @if (usuarioEstaCompleto(usuario.prefijo)) {
+        <i class="fa-solid fa-circle-check access-user-check" aria-label="Completo"></i>
+        }
       </button>
       }
     </aside>
     }
   </div>
+
+  @if (mostrarNavegacionUsuarios) {
+  <div class="access-account-actions">
+    <button type="button" class="button ghost" [disabled]="!puedeIrUsuarioAnterior" (click)="irUsuarioAnterior()">
+      <i class="fa-solid fa-arrow-left"></i>
+      Cuenta anterior
+    </button>
+    @if (puedeIrUsuarioSiguiente) {
+    <button type="button" class="button primary" (click)="irUsuarioSiguiente()">
+      {{ textoUsuarioSiguiente }}
+      <i class="fa-solid fa-arrow-right"></i>
+    </button>
+    } @else {
+    <span class="access-last-account"><i class="fa-solid fa-circle-check"></i> Última cuenta por capturar</span>
+    }
+  </div>
+  }
 
   <div class="step-actions">
     <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>

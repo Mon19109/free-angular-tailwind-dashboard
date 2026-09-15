@@ -24,20 +24,20 @@ export class CuentaComercioService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.api.kashpay}api/v1/account/`;
 
-  consultarCuenta(sirioId: string): Observable<CuentaComercioResponse> {
+  consultarCuenta(sirioId: string, bearerToken?: string): Observable<CuentaComercioResponse> {
     const params = new HttpParams().set('sirioId', sirioId);
 
     return this.http.get<CuentaComercioResponse>(`${this.baseUrl}get`, {
-      headers: this.headers(),
+      headers: this.headers(bearerToken),
       params,
     });
   }
 
-  private headers(): HttpHeaders {
+  private headers(bearerToken?: string): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       versionApp: '3',
-      Authorization: `Bearer ${this.obtenerToken()}`,
+      Authorization: `Bearer ${bearerToken || this.obtenerToken()}`,
     });
   }
 

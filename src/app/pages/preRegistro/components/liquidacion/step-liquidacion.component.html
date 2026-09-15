@@ -189,8 +189,9 @@
       <div class="field lookup-field">
         <label for="cuentaClabe">{{ etiquetaCuenta }} <b>*</b></label>
         <div class="lookup-control">
-          <input id="cuentaClabe" [attr.maxlength]="longitudCuenta" inputmode="numeric" formControlName="cuentaClabe"
-            placeholder="Ingrese cuenta CLABE (18 dígitos)" [class.invalid]="esInvalido('cuentaClabe')" />
+          <input id="cuentaClabe" [attr.maxlength]="longitudCuentaFormateada" inputmode="numeric" formControlName="cuentaClabe"
+            placeholder="Ingrese cuenta CLABE (18 dígitos)" [class.invalid]="esInvalido('cuentaClabe')"
+            (input)="formatearCuenta($event)" />
           <button
             type="button"
             class="button primary small lookup-button"
