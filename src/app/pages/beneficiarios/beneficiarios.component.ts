@@ -5,6 +5,7 @@ import { finalize, Subscription } from 'rxjs';
 import { BeneficiarioForm, BeneficiariosService } from '../../services/beneficiarios.service';
 
 type VistaBeneficiarios = 'lista' | 'agregar' | 'eliminar' | 'estatus';
+type TipoResultadoEliminacion = 'exito' | 'error';
 
 @Component({
   selector: 'app-beneficiarios',
@@ -31,6 +32,9 @@ export class BeneficiariosComponent implements OnInit {
   altaMasiva = false;
   cuentaMostrada = '';
   mostrarModalBeneficiarioAgregado = false;
+  mostrarModalResultadoEliminacion = false;
+  tipoResultadoEliminacion: TipoResultadoEliminacion = 'exito';
+  mensajeResultadoEliminacion = '';
 
   private ultimaCuentaBuscada = '';
   private busquedaInstitucion?: Subscription;
@@ -233,25 +237,55 @@ export class BeneficiariosComponent implements OnInit {
     const ids = Array.from(this.idsEliminar);
 
     if (!ids.length) {
-      this.error = 'Selecciona al menos un beneficiario para eliminar.';
+      this.abrirModalResultadoEliminacion(
+        'error',
+        'Selecciona al menos un beneficiario para eliminar.'
+      );
       return;
     }
 
     this.cargando = true;
     this.beneficiariosService.eliminarContactos(ids).subscribe({
-      next: () => {
-        this.mensaje = 'Beneficiarios eliminados correctamente.';
-        this.idsEliminar.clear();
+      next: response => {
         this.cargando = false;
+
+        if (response?.success === false) {
+          this.abrirModalResultadoEliminacion(
+            'error',
+            response?.message
+              || response?.mensaje
+              || response?.error?.message
+              || 'No fue posible eliminar los beneficiarios.'
+          );
+          return;
+        }
+
+        this.idsEliminar.clear();
         this.cargarContactos();
         this.vista = 'lista';
+        this.abrirModalResultadoEliminacion(
+          'exito',
+          ids.length === 1
+            ? 'Beneficiario eliminado correctamente.'
+            : 'Beneficiarios eliminados correctamente.'
+        );
       },
       error: error => {
         console.error('Error al eliminar beneficiarios:', error);
-        this.error = 'No fue posible eliminar los beneficiarios.';
         this.cargando = false;
+        this.abrirModalResultadoEliminacion(
+          'error',
+          error?.error?.message
+            || error?.error?.mensaje
+            || error?.message
+            || 'No fue posible eliminar los beneficiarios.'
+        );
       }
     });
+  }
+
+  cerrarModalResultadoEliminacion(): void {
+    this.mostrarModalResultadoEliminacion = false;
   }
 
   consultarEstatus(): void {
@@ -371,6 +405,15 @@ export class BeneficiariosComponent implements OnInit {
       || localStorage.getItem('idUser')
       || localStorage.getItem('userId')
       || '';
+  }
+
+  private abrirModalResultadoEliminacion(
+    tipo: TipoResultadoEliminacion,
+    mensaje: string
+  ): void {
+    this.tipoResultadoEliminacion = tipo;
+    this.mensajeResultadoEliminacion = mensaje;
+    this.mostrarModalResultadoEliminacion = true;
   }
 
   private obtenerIdUser(): number {

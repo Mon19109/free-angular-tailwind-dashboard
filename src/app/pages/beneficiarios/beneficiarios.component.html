@@ -291,6 +291,41 @@
   </article>
 </div>
 
+<div
+  class="beneficiary-modal-backdrop"
+  *ngIf="mostrarModalResultadoEliminacion"
+  (click)="cerrarModalResultadoEliminacion()">
+  <section
+    class="beneficiary-modal"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="delete-result-title"
+    aria-describedby="delete-result-message"
+    (click)="$event.stopPropagation()">
+    <div class="beneficiary-modal-body">
+      <i
+        class="far beneficiary-modal-icon"
+        [class.fa-check-circle]="tipoResultadoEliminacion === 'exito'"
+        [class.fa-times-circle]="tipoResultadoEliminacion === 'error'"
+        [class.error]="tipoResultadoEliminacion === 'error'"
+        aria-hidden="true"></i>
+      <h2 id="delete-result-title">
+        {{ tipoResultadoEliminacion === 'exito' ? 'Operación exitosa' : 'No se pudo eliminar' }}
+      </h2>
+      <p id="delete-result-message">{{ mensajeResultadoEliminacion }}</p>
+    </div>
+    <footer class="beneficiary-modal-footer">
+      <button
+        type="button"
+        class="button primary beneficiary-modal-ok"
+        (click)="cerrarModalResultadoEliminacion()"
+        autofocus>
+        OK
+      </button>
+    </footer>
+  </section>
+</div>
+
 <div class="beneficiary-modal-backdrop" *ngIf="mostrarModalBeneficiarioAgregado">
   <section
     class="beneficiary-modal"

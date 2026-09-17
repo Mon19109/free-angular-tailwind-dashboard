@@ -418,6 +418,10 @@ textarea.form-control {
   font-size: 58px;
 }
 
+.beneficiary-modal-icon.error {
+  color: #ef4444;
+}
+
 .beneficiary-modal-body h2 {
   margin-bottom: 10px;
   font-size: 22px;
