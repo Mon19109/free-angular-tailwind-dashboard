@@ -33,14 +33,6 @@
             autocomplete="name" />
         </label>
 
-        @if (mensaje) {
-          <div class="status-message success">{{ mensaje }}</div>
-        }
-
-        @if (error) {
-          <div class="status-message error">{{ error }}</div>
-        }
-
         <div class="actions">
           <button type="submit" class="button primary" [disabled]="cargando">
             {{ cargando ? 'Enviando...' : 'Continuar' }}
@@ -51,3 +43,29 @@
     </section>
   </article>
 </main>
+
+<div class="invitation-modal-backdrop" *ngIf="mostrarModalResultado" (click)="cerrarModalResultado()">
+  <section
+    class="invitation-modal"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="invitation-result-title"
+    aria-describedby="invitation-result-message"
+    (click)="$event.stopPropagation()">
+    <div class="invitation-modal-body">
+      <i
+        class="far invitation-modal-icon"
+        [class.fa-check-circle]="tipoResultado === 'exito'"
+        [class.fa-times-circle]="tipoResultado === 'error'"
+        [class.error]="tipoResultado === 'error'"
+        aria-hidden="true"></i>
+      <h2 id="invitation-result-title">{{ tituloResultado }}</h2>
+      <p id="invitation-result-message">{{ mensajeResultado }}</p>
+    </div>
+    <footer class="invitation-modal-footer">
+      <button type="button" class="button primary invitation-modal-ok" (click)="cerrarModalResultado()" autofocus>
+        OK
+      </button>
+    </footer>
+  </section>
+</div>

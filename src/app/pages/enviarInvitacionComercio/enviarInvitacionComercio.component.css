@@ -152,36 +152,6 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(241, 178, 61, 0.12);
 }
 
-.status-message {
-  max-width: 720px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.status-message.success {
-  color: #86efac;
-  border: 1px solid rgba(34, 197, 94, 0.28);
-  background: rgba(34, 197, 94, 0.12);
-}
-
-.status-message.error {
-  color: #fecaca;
-  border: 1px solid rgba(239, 68, 68, 0.28);
-  background: rgba(239, 68, 68, 0.12);
-}
-
-:host-context(html:not(.dark)) .status-message.success {
-  color: #166534;
-  background: rgba(34, 197, 94, 0.1);
-}
-
-:host-context(html:not(.dark)) .status-message.error {
-  color: #991b1b;
-  background: rgba(239, 68, 68, 0.1);
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -231,6 +201,81 @@ input:focus {
 
 :host-context(html:not(.dark)) .button.secondary {
   background: linear-gradient(135deg, #243247 0%, #344c68 100%);
+}
+
+.invitation-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.invitation-modal {
+  width: min(100%, 430px);
+  overflow: hidden;
+  border: 1px solid var(--invite-border);
+  border-radius: 18px;
+  color: var(--invite-text);
+  background: linear-gradient(180deg, var(--invite-card), var(--invite-card-2));
+  box-shadow: var(--invite-shadow);
+  animation: invitationModalIn 160ms ease-out;
+}
+
+.invitation-modal-body {
+  padding: 32px 28px 26px;
+  text-align: center;
+}
+
+.invitation-modal-icon {
+  display: block;
+  margin-bottom: 16px;
+  color: #22a06b;
+  font-size: 58px;
+}
+
+.invitation-modal-icon.error {
+  color: #ef4444;
+}
+
+.invitation-modal-body h2 {
+  margin: 0 0 10px;
+  color: inherit;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.invitation-modal-body p {
+  margin: 0;
+  color: var(--invite-muted);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.invitation-modal-footer {
+  display: flex;
+  justify-content: center;
+  padding: 14px 20px;
+  border-top: 1px solid var(--invite-line);
+  background: var(--invite-panel);
+}
+
+.invitation-modal-ok {
+  min-width: 120px;
+}
+
+@keyframes invitationModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (max-width: 720px) {
