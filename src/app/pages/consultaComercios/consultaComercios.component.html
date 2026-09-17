@@ -177,7 +177,9 @@
             type="button"
             *ngIf="pagina.tipo === 'pagina'"
             [class.active]="pagina.valor === paginaActual"
-            (click)="cambiarPagina(pagina.valor)"
+            [attr.aria-current]="pagina.valor === paginaActual ? 'page' : null"
+            [attr.aria-label]="'Ir a página ' + pagina.valor"
+            (pointerdown)="seleccionarPagina(pagina.valor, $event)"
           >{{ pagina.valor }}</button>
           <span class="pagination-ellipsis" *ngIf="pagina.tipo === 'ellipsis'">{{ pagina.valor }}</span>
         </ng-container>
