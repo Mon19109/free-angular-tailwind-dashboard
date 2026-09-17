@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { EnviarInvitacionComercioService } from '../../services/enviar-invitacion-comercio.service';
@@ -11,9 +11,10 @@ import { EnviarInvitacionComercioService } from '../../services/enviar-invitacio
   templateUrl: './enviarInvitacionComercio.component.html',
   styleUrls: ['./enviarInvitacionComercio.component.css'],
 })
-export class EnviarInvitacionComercioComponent {
+export class EnviarInvitacionComercioComponent implements OnDestroy {
   private readonly invitacionService = inject(EnviarInvitacionComercioService);
   private readonly authService = inject(AuthService);
+  private limpiarMensajeTimeout?: ReturnType<typeof setTimeout>;
 
   correoElectronico = '';
   nombre = '';
@@ -22,6 +23,7 @@ export class EnviarInvitacionComercioComponent {
   error = '';
 
   continuar(): void {
+    this.cancelarLimpiezaMensaje();
     this.mensaje = '';
     this.error = '';
 
@@ -50,6 +52,10 @@ export class EnviarInvitacionComercioComponent {
         this.cargando = false;
         this.mensaje = 'Invitación enviada correctamente.';
         this.cancelar(false);
+        this.limpiarMensajeTimeout = setTimeout(() => {
+          this.mensaje = '';
+          this.limpiarMensajeTimeout = undefined;
+        }, 3000);
       },
       error: error => {
         this.cargando = false;
@@ -63,12 +69,24 @@ export class EnviarInvitacionComercioComponent {
     this.correoElectronico = '';
     this.nombre = '';
     if (limpiarMensajes) {
+      this.cancelarLimpiezaMensaje();
       this.mensaje = '';
       this.error = '';
     }
   }
 
+  ngOnDestroy(): void {
+    this.cancelarLimpiezaMensaje();
+  }
+
   private esCorreoValido(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  private cancelarLimpiezaMensaje(): void {
+    if (this.limpiarMensajeTimeout) {
+      clearTimeout(this.limpiarMensajeTimeout);
+      this.limpiarMensajeTimeout = undefined;
+    }
   }
 }
