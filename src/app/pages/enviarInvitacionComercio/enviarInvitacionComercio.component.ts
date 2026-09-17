@@ -18,29 +18,28 @@ export class EnviarInvitacionComercioComponent {
   correoElectronico = '';
   nombre = '';
   cargando = false;
-  mensaje = '';
-  error = '';
+  mostrarModalResultado = false;
+  tipoResultado: 'exito' | 'error' = 'exito';
+  tituloResultado = '';
+  mensajeResultado = '';
 
   continuar(): void {
-    this.mensaje = '';
-    this.error = '';
-
     const email = this.correoElectronico.trim();
     const name = this.nombre.trim();
     const affiliationNumber = String(this.authService.getUserData()?.affiliationNumber ?? '').trim();
 
     if (!email || !name) {
-      this.error = 'Captura el correo electrónico y el nombre del comercio.';
+      this.mostrarResultado('error', 'No se pudo enviar', 'Captura el correo electrónico y el nombre del comercio.');
       return;
     }
 
     if (!affiliationNumber) {
-      this.error = 'No se encontró el número de afiliación de la cuenta.';
+      this.mostrarResultado('error', 'No se pudo enviar', 'No se encontró el número de afiliación de la cuenta.');
       return;
     }
 
     if (!this.esCorreoValido(email)) {
-      this.error = 'Captura un correo electrónico válido.';
+      this.mostrarResultado('error', 'No se pudo enviar', 'Captura un correo electrónico válido.');
       return;
     }
 
@@ -48,13 +47,13 @@ export class EnviarInvitacionComercioComponent {
     this.invitacionService.enviarInvitacion({ email, name, affiliationNumber }).subscribe({
       next: () => {
         this.cargando = false;
-        this.mensaje = 'Invitación enviada correctamente.';
         this.cancelar(false);
+        this.mostrarResultado('exito', 'Operación exitosa', 'Invitación enviada correctamente.');
       },
       error: error => {
         this.cargando = false;
         console.error('Error al enviar invitación:', error);
-        this.error = 'No fue posible enviar la invitación. Intenta nuevamente.';
+        this.mostrarResultado('error', 'No se pudo enviar', 'No fue posible enviar la invitación. Intenta nuevamente.');
       },
     });
   }
@@ -63,12 +62,24 @@ export class EnviarInvitacionComercioComponent {
     this.correoElectronico = '';
     this.nombre = '';
     if (limpiarMensajes) {
-      this.mensaje = '';
-      this.error = '';
+      this.cerrarModalResultado();
     }
+  }
+
+  cerrarModalResultado(): void {
+    this.mostrarModalResultado = false;
+    this.tituloResultado = '';
+    this.mensajeResultado = '';
   }
 
   private esCorreoValido(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  private mostrarResultado(tipo: 'exito' | 'error', titulo: string, mensaje: string): void {
+    this.tipoResultado = tipo;
+    this.tituloResultado = titulo;
+    this.mensajeResultado = mensaje;
+    this.mostrarModalResultado = true;
   }
 }

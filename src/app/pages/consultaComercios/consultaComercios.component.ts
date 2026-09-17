@@ -224,11 +224,20 @@ export class ConsultaComerciosComponent {
       prospectos: ['nombre', 'rfc', 'correo']
     };
 
-    return visiblesPorNivel[this.filtros.nivel].includes(filtro);
+    if (!visiblesPorNivel[this.filtros.nivel].includes(filtro)) {
+      return false;
+    }
+
+    if (filtro === 'entidad') return this.tieneComerciosPorNivel('entidad');
+    if (filtro === 'sucursal') return this.tieneComerciosPorNivel('sucursal');
+    if (filtro === 'caja') return this.tieneComerciosPorNivel('caja');
+
+    return true;
   }
 
   private aplicarFiltroNivel(): void {
     const nivel = this.filtros.nivel;
+    this.limpiarFiltrosNoAplicables();
     this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
       const coincideNivel = nivel === 'todos'
         || (nivel === 'prospectos' ? this.esProspectoAdmin(comercio) : this.normalizarNivel(comercio.nivel) === nivel);
@@ -453,8 +462,28 @@ export class ConsultaComerciosComponent {
     return match ? Number(match[1]) : 0;
   }
 
-  cambiarPagina(pagina: number): void {
-    this.paginaActual = Math.min(Math.max(pagina, 1), this.totalPaginas);
+  cambiarPagina(pagina: number | string): void {
+    const paginaSolicitada = Number(pagina);
+
+    if (!Number.isFinite(paginaSolicitada)) {
+      return;
+    }
+
+    const nuevaPagina = Math.min(Math.max(paginaSolicitada, 1), this.totalPaginas);
+
+    if (nuevaPagina === this.paginaActual) {
+      return;
+    }
+
+    this.paginaActual = nuevaPagina;
+    this.accionesAbiertas = null;
+  }
+
+  seleccionarPagina(pagina: number, event: PointerEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.cambiarPagina(pagina);
+    (event.currentTarget as HTMLButtonElement | null)?.blur();
   }
 
   toggleAcciones(idComercio: string): void {

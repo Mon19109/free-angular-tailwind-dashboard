@@ -219,7 +219,7 @@
             <tbody>
               @for (t of transaccionesPaginadas; track $index) {
                 <tr>
-                  <td>TXN-{{ t.idOperation }}</td>
+                  <td>{{ t.idOperation || 'ND' }}</td>
                   <td>{{ t.authorizationDate || 'ND' }}</td>
                   <td>{{ t.terminalName || 'ND' }}</td>
                   <td>{{ t.terminalUserName || 'ND' }}</td>

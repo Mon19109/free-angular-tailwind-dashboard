@@ -626,6 +626,19 @@ td {
   border: 1px solid var(--consulta-border);
   color: var(--consulta-text);
   background: var(--consulta-surface-alt);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.pagination button:not(:disabled):hover {
+  border-color: var(--consulta-gold);
+  transform: translateY(-1px);
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
 }
 
 .pagination button.active {
