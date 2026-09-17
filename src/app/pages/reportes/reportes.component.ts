@@ -33,7 +33,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   private consultaSubscription?: Subscription;
   private saldoSubscription?: Subscription;
   private reporteSubscription?: Subscription;
-  private readonly assetBaseUrl = '/mi-angular/';
+  private readonly assetBaseUrl = `${window.location.origin}/`;
 
   private readonly reportesFijos: ReporteDisponible[] = [
     {
@@ -213,6 +213,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Estos reportes no dependen de los archivos encontrados en el directorio.
+    this.reportes = [...this.reportesFijos];
+    this.mostrarReportes = true;
     this.cargando = true;
 
     this.consultaSubscription = this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada())
@@ -223,10 +226,6 @@ export class ReportesComponent implements OnInit, OnDestroy {
       )
       .subscribe({ next: respuesta => {
         const carpetas = this.extraerRows(respuesta);
-        if (!carpetas.length) {
-          this.mensaje = 'No hay reportes disponibles para la cuenta y el periodo seleccionados.';
-          return;
-        }
         const dinamicos = carpetas
           .map(item => item.name || '')
           .filter(nombre => !!nombre && !!this.reportesDinamicos[nombre])
@@ -238,9 +237,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
           }));
 
         this.reportes = [...this.reportesFijos, ...dinamicos];
-        this.mostrarReportes = true;
       }, error: () => {
-        this.mensaje = 'No fue posible consultar los reportes. Intenta nuevamente.';
+        this.mensaje = 'No fue posible consultar los reportes adicionales. Los reportes generales siguen disponibles.';
       }
       });
   }
