@@ -133,19 +133,17 @@ export class ConsultaComerciosService {
       return normalizedValue && normalizedValue !== '0' ? normalizedValue : null;
     };
 
-    try {
-      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      const sessionNodeId = obtenerValorValido(session?.nodeID);
-      if (sessionNodeId) return sessionNodeId;
-
-      const sessionContextId = obtenerValorValido(session?.idContext);
-      if (sessionContextId) return sessionContextId;
-    } catch {
-      // Usa llave legacy abajo.
+    for (const sessionKey of ['auth_session', 'user_data']) {
+      try {
+        const session = JSON.parse(localStorage.getItem(sessionKey) || '{}');
+        const sessionNodeId = obtenerValorValido(session?.nodeID);
+        if (sessionNodeId) return sessionNodeId;
+      } catch {
+        // Usa llaves legacy abajo.
+      }
     }
 
-    return obtenerValorValido(localStorage.getItem('nodeID'))
-      ?? obtenerValorValido(localStorage.getItem('idContext'));
+    return obtenerValorValido(localStorage.getItem('nodeID'));
   }
 
 }

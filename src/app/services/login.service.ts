@@ -40,6 +40,7 @@ export interface TerminalInfo {
   issueId: string;
   acquiringId: string;
   reserveId?: string;
+  nodeID?: string | number;
   idBusinessModel: number;
   idTypeAffiliation: number;
   statusID: number;
@@ -96,6 +97,7 @@ export interface UserSessionData {
   token: string;
   latitud: string;
   longitud: string;
+  nodeID?: string | number;
 }
 
 @Injectable({
@@ -247,7 +249,8 @@ export class AuthService {
                 idStatus: terminalInfo.statusID,
                 token: authToken,
                 latitud: credentials.latitud,
-                longitud: credentials.longitud
+                longitud: credentials.longitud,
+                nodeID: terminalInfo.nodeID || ''
               };
 
               // Guardar en localStorage
@@ -392,6 +395,9 @@ export class AuthService {
       localStorage.setItem('token', sessionData.token);
       localStorage.setItem('latitud', sessionData.latitud);
       localStorage.setItem('longitud', sessionData.longitud);
+      if (sessionData.nodeID) {
+        localStorage.setItem('nodeID', String(sessionData.nodeID));
+      }
     }
     localStorage.setItem(this.userKey, JSON.stringify(sessionData));
   }
