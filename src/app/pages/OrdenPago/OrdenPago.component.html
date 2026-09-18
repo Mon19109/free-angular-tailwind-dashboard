@@ -105,8 +105,8 @@
           </p>
 
           <div class="buttons">
-            <button type="button" class="button primary" (click)="siguiente()">
-              Siguiente
+            <button type="button" class="button primary" (click)="siguiente()" [disabled]="obteniendoSaldo">
+              {{ obteniendoSaldo ? 'Consultando saldo...' : 'Siguiente' }}
             </button>
           </div>
         </section>
@@ -161,7 +161,7 @@
             </div>
             <div class="confirm-item">
               <span class="confirm-label">Cuenta Ordenante</span>
-              <strong class="confirm-value">{{ formulario.value.cuentaOr }}</strong>
+              <strong class="confirm-value">{{ obtenerTextoCuentaOrdenante() }}</strong>
             </div>
             <div class="confirm-item">
               <span class="confirm-label">Beneficiario</span>
@@ -230,6 +230,30 @@
 
       <div class="modal-actions">
         <button type="button" class="button primary" (click)="cerrarModalOperacionNoPermitida()">
+          Aceptar
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div *ngIf="mostrarModalAviso" class="modal-backdrop" (click)="cerrarModalAviso()">
+    <section
+      class="modal-card"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="aviso-orden-title"
+      aria-describedby="aviso-orden-message"
+      (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close" aria-label="Cerrar" (click)="cerrarModalAviso()">
+        &times;
+      </button>
+
+      <div class="modal-icon" aria-hidden="true"><i class="fas fa-exclamation-triangle"></i></div>
+      <h3 id="aviso-orden-title">{{ tituloModalAviso }}</h3>
+      <p id="aviso-orden-message">{{ mensajeModalAviso }}</p>
+
+      <div class="modal-actions">
+        <button type="button" class="button primary" (click)="cerrarModalAviso()" autofocus>
           Aceptar
         </button>
       </div>

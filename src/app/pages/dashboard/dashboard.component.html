@@ -120,3 +120,30 @@
     </div>
   </div>
 </div>
+
+<div
+  *ngIf="mostrarModalKashpay"
+  class="kashpay-modal-backdrop"
+  (click)="cerrarModalKashpay()">
+  <section
+    class="kashpay-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="kashpay-modal-title"
+    (click)="$event.stopPropagation()">
+    <button
+      type="button"
+      class="kashpay-modal-close"
+      aria-label="Cerrar"
+      (click)="cerrarModalKashpay()">
+      &times;
+    </button>
+
+    <h2 id="kashpay-modal-title" class="sr-only">Kashpay</h2>
+    <img class="kashpay-modal-logo" src="kashpay_dorado.png" alt="Kashpay" />
+
+    <button type="button" class="kashpay-modal-button" (click)="cerrarModalKashpay()" autofocus>
+      CONTINUAR
+    </button>
+  </section>
+</div>

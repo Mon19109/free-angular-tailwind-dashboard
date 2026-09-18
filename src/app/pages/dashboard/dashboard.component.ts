@@ -1,4 +1,4 @@
-import { Component,signal,inject } from '@angular/core';
+import { Component, HostListener, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
@@ -17,6 +17,7 @@ export class DashboardComponent {
   balanceAhorro = signal<any[]>([]);
   reportes = signal<any[]>([]);
   session: any = {};
+  mostrarModalKashpay = true;
   hoveredAdquirenciaBalance: 'available' | 'pending' = 'available';
 
   //user: UserSessionData | null = null;
@@ -96,6 +97,17 @@ export class DashboardComponent {
 
   setHoveredAdquirenciaBalance(type: 'available' | 'pending'): void {
     this.hoveredAdquirenciaBalance = type;
+  }
+
+  cerrarModalKashpay(): void {
+    this.mostrarModalKashpay = false;
+  }
+
+  @HostListener('document:keydown.escape')
+  cerrarModalKashpayConEscape(): void {
+    if (this.mostrarModalKashpay) {
+      this.cerrarModalKashpay();
+    }
   }
 
   get adquirenciaAvailable(): number {

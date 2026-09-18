@@ -25,11 +25,18 @@ export class OrdenPagoComponent implements OnInit {
 
     pasoActual = 1;
     saldo = 0;
+    cuentaOrigenOperacion = '';
+    cuentaOrigenClabe = '';
+    saldoConsultado = false;
+    obteniendoSaldo = false;
     tipoEnvio = 'INDIVIDUAL';
     mostrarErrorImporte = false;
 
     mostrarModalToken = false;
     mostrarModalOperacionNoPermitida = false;
+    mostrarModalAviso = false;
+    tituloModalAviso = 'Aviso';
+    mensajeModalAviso = '';
     token = '';
     tokenError = '';
     tokenMensaje = '';
@@ -253,34 +260,56 @@ export class OrdenPagoComponent implements OnInit {
         const cuentaSeleccionada =
             this.formulario.get('cuentaOr')?.value;
 
+        this.saldo = 0;
+        this.cuentaOrigenOperacion = '';
+        this.cuentaOrigenClabe = '';
+        this.saldoConsultado = false;
+
         if (!cuentaSeleccionada) {
             return;
         }
 
-        /*console.log(
-            'Cuenta seleccionada:',
-            cuentaSeleccionada
-        );*/
+        this.obteniendoSaldo = true;
 
         this.ordenPagoService
             .obtenerSaldo(cuentaSeleccionada)
+            .pipe(finalize(() => this.obteniendoSaldo = false))
             .subscribe({
                 next: (resp) => {
+                    if (this.respuestaEsFallo(resp)) {
+                        this.abrirModalAviso(
+                            'Consulte al Administrador.',
+                            'No fue posible consultar la cuenta origen.'
+                        );
+                        return;
+                    }
 
-                    // console.log('SALDO RESP', resp);
+                    const entidad = this.obtenerEntidadSaldo(resp);
+                    const saldo = Number(entidad?.balance ?? resp?.balance ?? 0);
 
-                    this.saldo =
-                        resp?.balance ??
-                        0;
+                    this.saldo = Number.isFinite(saldo) ? saldo : 0;
+                    this.cuentaOrigenOperacion = String(entidad?.id || cuentaSeleccionada);
+                    this.cuentaOrigenClabe = entidad?.clabeAccount && entidad.clabeAccount !== 'ND'
+                        ? String(entidad.clabeAccount)
+                        : this.cuentaOrigenOperacion;
+                    this.saldoConsultado = true;
+
+                    if (this.saldo <= 0) {
+                        this.abrirModalAviso(
+                            'El saldo de la cuenta origen no permite realizar un envío.'
+                        );
+                    }
 
                 },
                 error: (err) => {
-
                     console.error(
                         'ERROR SALDO',
                         err
                     );
-
+                    this.abrirModalAviso(
+                        this.obtenerMensajeRespuesta(err?.error, 'Consulte al Administrador.'),
+                        'No fue posible consultar la cuenta origen.'
+                    );
                 }
             });
 
@@ -292,7 +321,32 @@ export class OrdenPagoComponent implements OnInit {
         const cuentaD = this.formulario.get('cuentaD')!;
         cuentaOr.markAsTouched();
         cuentaD.markAsTouched();
-        return cuentaOr.valid && cuentaD.valid;
+
+        if (!cuentaOr.valid || !cuentaD.valid) {
+            return false;
+        }
+
+        if (!this.obtenerBeneficiarioSeleccionado()) {
+            this.abrirModalAviso('Ingresa una nueva cuenta o selecciona un contacto.');
+            return false;
+        }
+
+        if (this.obteniendoSaldo) {
+            this.abrirModalAviso('Espera mientras se consulta el saldo de la cuenta origen.');
+            return false;
+        }
+
+        if (!this.saldoConsultado) {
+            this.abrirModalAviso('No fue posible validar el saldo de la cuenta origen.');
+            return false;
+        }
+
+        if (this.saldo <= 0) {
+            this.abrirModalAviso('El saldo de la cuenta origen no permite realizar un envío.');
+            return false;
+        }
+
+        return true;
     }
 
     siguiente(): void {
@@ -347,13 +401,12 @@ export class OrdenPagoComponent implements OnInit {
             return;
         }
 
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
-        );
+        const beneficiario = this.obtenerBeneficiarioSeleccionado();
 
         const payload = {
 
             ...this.formulario.value,
+            cuentaOr: this.cuentaOrigenOperacion || this.formulario.value.cuentaOr,
             concepto: this.formulario.value.concepto?.trim()
                 ? this.formulario.value.concepto
                 : 'ORDEN DE PAGO',
@@ -362,15 +415,15 @@ export class OrdenPagoComponent implements OnInit {
 
             fecha: new Date(),
 
-            titular: beneficiario?.fullName,
+            titular: beneficiario?.fullName || beneficiario?.name,
 
-            nameIns: beneficiario?.nameInstitution,
+            nameIns: beneficiario?.nameInstitution || beneficiario?.institutionName || beneficiario?.bankName,
 
             saldoS: this.saldo,
 
             idIns: beneficiario?.idInstitution,
 
-            accountNumber: beneficiario?.accountNumber,
+            accountNumber: beneficiario?.accountNumber || beneficiario?.cardNumber,
 
             cuenta: beneficiario?.cardNumber || beneficiario?.accountNumber,
 
@@ -466,32 +519,36 @@ export class OrdenPagoComponent implements OnInit {
     }
 
     obtenerNombreBeneficiario(): string {
+        const beneficiario = this.obtenerBeneficiarioSeleccionado();
 
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
-        );
-
-        return beneficiario?.fullName || '';
+        return beneficiario?.fullName || beneficiario?.name || '';
 
     }
 
     obtenerBancoBeneficiario(): string {
+        const beneficiario = this.obtenerBeneficiarioSeleccionado();
 
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
-        );
-
-        return beneficiario?.nameInstitution || '';
+        return beneficiario?.nameInstitution || beneficiario?.institutionName || beneficiario?.bankName || '';
 
     }
 
     obtenerCuentaBeneficiario(): string {
+        const beneficiario = this.obtenerBeneficiarioSeleccionado();
+        const cuenta = beneficiario?.cardNumberMask
+            || beneficiario?.accountNumberMask
+            || beneficiario?.cardNumber
+            || beneficiario?.accountNumber
+            || '';
 
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
+        return cuenta ? this.enmascararCuenta(cuenta) : '';
+    }
+
+    obtenerTextoCuentaOrdenante(): string {
+        const cuenta = this.cuentas.find(
+            item => String(this.obtenerValorCuenta(item)) === String(this.formulario.value.cuentaOr || '')
         );
 
-        return beneficiario?.cardNumberMask || '';
+        return cuenta ? this.obtenerTextoCuenta(cuenta) : '';
 
     }
 
@@ -509,6 +566,11 @@ export class OrdenPagoComponent implements OnInit {
 
     cerrarModalOperacionNoPermitida(): void {
         this.mostrarModalOperacionNoPermitida = false;
+    }
+
+    cerrarModalAviso(): void {
+        this.mostrarModalAviso = false;
+        this.mensajeModalAviso = '';
     }
 
     limpiarErrorToken(): void {
@@ -646,6 +708,28 @@ export class OrdenPagoComponent implements OnInit {
         return String(this.sesion?.validate || localStorage.getItem('validate') || '');
     }
 
+    private obtenerEntidadSaldo(resp: any): any {
+        return resp?.rows?.onsignaEntity
+            || resp?.onsignaEntity
+            || resp?.data?.onsignaEntity
+            || resp?.rows
+            || resp?.data
+            || resp
+            || {};
+    }
+
+    private obtenerBeneficiarioSeleccionado(): any {
+        return this.beneficiarios.find(
+            beneficiario => String(this.obtenerValorBeneficiario(beneficiario)) === String(this.formulario.value.cuentaD || '')
+        );
+    }
+
+    private abrirModalAviso(mensaje: string, titulo = 'Aviso'): void {
+        this.tituloModalAviso = titulo;
+        this.mensajeModalAviso = mensaje;
+        this.mostrarModalAviso = true;
+    }
+
     private esRespuestaExitosa(resp: any): boolean {
         const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
         if (success !== undefined && success !== null) {
@@ -686,6 +770,9 @@ export class OrdenPagoComponent implements OnInit {
     private reiniciarFlujo(): void {
         this.pasoActual = 1;
         this.saldo = 0;
+        this.cuentaOrigenOperacion = '';
+        this.cuentaOrigenClabe = '';
+        this.saldoConsultado = false;
         this.mostrarErrorImporte = false;
         this.payloadPendiente = null;
         this.token = '';
