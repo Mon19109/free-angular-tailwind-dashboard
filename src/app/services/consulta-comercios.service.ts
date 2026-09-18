@@ -83,7 +83,7 @@ export class ConsultaComerciosService {
   private readonly baseUrl = `${environment.api.kashpay}api/v1/entity/`;
 
   buscarComercios(filtros: ConsultaComerciosFiltros): Observable<ConsultaComerciosResponse> {
-    const nodeID = filtros.nodeID ?? this.obtenerNodeId();
+    const nodeID = this.obtenerNodeId();
     const params = new HttpParams()
       .set('nodeID', nodeID === null ? '' : String(nodeID))
       .set('nameCommerce', filtros.nameCommerce ?? '')

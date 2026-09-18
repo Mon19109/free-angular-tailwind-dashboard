@@ -277,6 +277,9 @@
               <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
               <strong>{{ ubicacionArbolSeleccionada || 'Sucursal 01' }}</strong>
             </div>
+            @if (detalleUbicacionArbolSeleccionada) {
+            <p>{{ detalleUbicacionArbolSeleccionada }}</p>
+            }
           </div>
         </aside>
         }

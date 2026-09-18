@@ -1186,6 +1186,14 @@ small {
   line-height: 1.5;
 }
 
+.section-title p {
+  margin: 0;
+  color: var(--pre-muted);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
 .checkbox-inline {
   display: inline-flex;
   align-items: center;

@@ -1446,7 +1446,16 @@ export class PreRegistroComponent {
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
     const datos = this.obtenerDatosPorSucursal()[nodoId];
     if (!datos) return '';
-    return `${datos['direccionComercial'] || datos['nombreVialidadComercial'] || datos['nombreVialidad'] || ''}`.trim();
+    return `${datos['direccionComercial'] || [
+      datos['tipoVialidadComercial'],
+      datos['nombreVialidadComercial'],
+      datos['numeroExteriorComercial'],
+      datos['numeroInteriorComercial'],
+      datos['coloniaComercial'],
+      datos['localidadComercial'],
+      datos['municipioComercial'],
+      datos['entidadFederativaComercial'],
+    ].filter(Boolean).join(', ') || ''}`.trim();
   }
 
   get arbolNegocioWizard(): NodoArbolNegocio[] {
@@ -3644,10 +3653,12 @@ export class PreRegistroComponent {
     const nombreComercial = `${datosSucursal['nombreComercial'] || datosSucursal['razonSocial'] || ''}`.trim();
     let nombre = '';
 
-    if (nodo.nivel === 'sub-afiliado') {
+    if (nombreComercial) {
+      nombre = nombreComercial;
+    } else if (nodo.nivel === 'sub-afiliado') {
       nombre = ['Sub Afiliado', municipio].filter(Boolean).join(' ');
     } else if (nodo.nivel === 'entidad') {
-      nombre = ['Entidad', nombreComercial, localidad].filter(Boolean).join(' ');
+      nombre = ['Entidad', localidad].filter(Boolean).join(' ');
     } else if (nodo.nivel === 'sucursal') {
       const sufijo = this.municipioRepetidoEnSucursales(nodo.id, municipio) ? colonia : municipio;
       nombre = ['Sucursal', sufijo || municipio || colonia].filter(Boolean).join(' ');
@@ -3674,10 +3685,8 @@ export class PreRegistroComponent {
 
   private formatearRutaNodoDesdeDatos(nodoId: string): string {
     const datosSucursal = this.obtenerDatosPorSucursal()[nodoId];
-    const nodoSeleccionado = this.buscarNodoArbol(this.arbolNegocioForm.controls.nodoSeleccionado.value);
     const nombreComercial = `${datosSucursal?.['nombreComercial'] || datosSucursal?.['razonSocial'] || ''}`.trim();
-    const ruta = nodoSeleccionado?.ruta || this.buscarNodoArbol(nodoId)?.ruta || '';
-    return [ruta, nombreComercial].filter(Boolean).join(' > ');
+    return nombreComercial;
   }
 
   private crearDatosGeneralesVacios(): Record<string, string | boolean> {
