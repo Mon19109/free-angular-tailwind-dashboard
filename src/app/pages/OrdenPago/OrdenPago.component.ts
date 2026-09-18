@@ -30,6 +30,10 @@ export class OrdenPagoComponent implements OnInit {
 
     mostrarModalToken = false;
     mostrarModalOperacionNoPermitida = false;
+    mostrarModalErrorOperacion = false;
+    mostrarModalValidacionOrden = false;
+    mensajeErrorOperacion = '';
+    mensajeValidacionOrden = '';
     token = '';
     tokenError = '';
     tokenMensaje = '';
@@ -292,6 +296,22 @@ export class OrdenPagoComponent implements OnInit {
         const cuentaD = this.formulario.get('cuentaD')!;
         cuentaOr.markAsTouched();
         cuentaD.markAsTouched();
+
+        const cuentaSeleccionada = this.cuentas.find(
+            cuenta => String(this.obtenerValorCuenta(cuenta)) === String(cuentaOr.value || '')
+        );
+        const beneficiarioSeleccionado = this.obtenerBeneficiarioSeleccionado();
+
+        if (!cuentaOr.value || !cuentaSeleccionada) {
+            this.abrirModalValidacionOrden('Selecciona una cuenta ordenante válida.');
+            return false;
+        }
+
+        if (!cuentaD.value || !beneficiarioSeleccionado) {
+            this.abrirModalValidacionOrden('Ingresa una nueva cuenta o selecciona un contacto.');
+            return false;
+        }
+
         return cuentaOr.valid && cuentaD.valid;
     }
 
@@ -466,32 +486,36 @@ export class OrdenPagoComponent implements OnInit {
     }
 
     obtenerNombreBeneficiario(): string {
-
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
-        );
+        const beneficiario = this.obtenerBeneficiarioSeleccionado();
 
         return beneficiario?.fullName || '';
 
     }
 
     obtenerBancoBeneficiario(): string {
-
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
-        );
+        const beneficiario = this.obtenerBeneficiarioSeleccionado();
 
         return beneficiario?.nameInstitution || '';
 
     }
 
     obtenerCuentaBeneficiario(): string {
+        const beneficiario = this.obtenerBeneficiarioSeleccionado();
+        const cuenta = beneficiario?.cardNumberMask
+            || beneficiario?.accountNumberMask
+            || beneficiario?.cardNumber
+            || beneficiario?.accountNumber
+            || '';
 
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
+        return cuenta ? this.enmascararCuenta(cuenta) : '';
+    }
+
+    obtenerTextoCuentaOrdenante(): string {
+        const cuenta = this.cuentas.find(
+            item => String(this.obtenerValorCuenta(item)) === String(this.formulario.value.cuentaOr || '')
         );
 
-        return beneficiario?.cardNumberMask || '';
+        return cuenta ? this.obtenerTextoCuenta(cuenta) : '';
 
     }
 
@@ -509,6 +533,16 @@ export class OrdenPagoComponent implements OnInit {
 
     cerrarModalOperacionNoPermitida(): void {
         this.mostrarModalOperacionNoPermitida = false;
+    }
+
+    cerrarModalErrorOperacion(): void {
+        this.mostrarModalErrorOperacion = false;
+        this.mensajeErrorOperacion = '';
+    }
+
+    cerrarModalValidacionOrden(): void {
+        this.mostrarModalValidacionOrden = false;
+        this.mensajeValidacionOrden = '';
     }
 
     limpiarErrorToken(): void {
@@ -595,6 +629,15 @@ export class OrdenPagoComponent implements OnInit {
             finalize(() => this.finalizandoEnvio = false)
         ).subscribe({
             next: resp => {
+                if (this.respuestaEsFallo(resp)) {
+                    this.mensajeErrorOperacion = this.obtenerMensajeRespuesta(
+                        resp,
+                        'No fue posible realizar el envío. Intenta nuevamente.'
+                    );
+                    this.mostrarModalErrorOperacion = true;
+                    return;
+                }
+
                 if (!this.esSpeiExitoso(resp)) {
                     this.tipoMensajeEnvio = 'error';
                     this.mensajeEnvio = this.obtenerMensajeRespuesta(
@@ -611,11 +654,11 @@ export class OrdenPagoComponent implements OnInit {
             },
             error: err => {
                 console.error('Error al liberar el SPEI:', err);
-                this.tipoMensajeEnvio = 'error';
-                this.mensajeEnvio = this.obtenerMensajeRespuesta(
+                this.mensajeErrorOperacion = this.obtenerMensajeRespuesta(
                     err?.error,
                     'No fue posible realizar el envío. Intenta nuevamente.'
                 );
+                this.mostrarModalErrorOperacion = true;
             }
         });
     }
@@ -644,6 +687,17 @@ export class OrdenPagoComponent implements OnInit {
 
     private obtenerGuid(): string {
         return String(this.sesion?.validate || localStorage.getItem('validate') || '');
+    }
+
+    private obtenerBeneficiarioSeleccionado(): any {
+        return this.beneficiarios.find(
+            beneficiario => String(this.obtenerValorBeneficiario(beneficiario)) === String(this.formulario.value.cuentaD || '')
+        );
+    }
+
+    private abrirModalValidacionOrden(mensaje: string): void {
+        this.mensajeValidacionOrden = mensaje;
+        this.mostrarModalValidacionOrden = true;
     }
 
     private esRespuestaExitosa(resp: any): boolean {

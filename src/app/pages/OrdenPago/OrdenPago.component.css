@@ -508,6 +508,18 @@ html.dark select option {
   font-size: 22px;
 }
 
+.modal-icon.error {
+  color: #ffffff;
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+}
+
+.operation-error-message {
+  margin: -7px 42px 0 0;
+  color: var(--ops-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 .token-modal > p {
   margin: -7px 42px 22px 0;
   color: var(--ops-muted);
