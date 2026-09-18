@@ -121,6 +121,9 @@ export class PreRegistroComponent {
   archivosInvalidos = false;
   borradorGuardado = false;
   errorEnvioPreRegistro = '';
+  mostrarModalResultadoPreRegistro = false;
+  tituloResultadoPreRegistro = '';
+  mensajeResultadoPreRegistro = '';
   validandoAfiliacion = false;
   errorAfiliacion = '';
   tipoPersonaBeneficiario: TipoPersonaBeneficiario = 'fisica';
@@ -2035,16 +2038,14 @@ export class PreRegistroComponent {
             console.error('[Preregistro] Error al subir documentos.');
             this.enviandoPreRegistro = false;
             this.registroTerminado = false;
-            this.errorEnvioPreRegistro = 'El registro se completó, pero no se pudieron subir los documentos. Intenta nuevamente.';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            this.mostrarErrorPreRegistro('El registro se completó, pero no se pudieron subir los documentos. Intenta nuevamente.');
           },
         });
       },
       error: (error) => {
         this.enviandoPreRegistro = false;
         this.registroTerminado = false;
-        this.errorEnvioPreRegistro = this.obtenerMensajeErrorPreRegistro(error);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error));
       }
     });
   }
@@ -2056,6 +2057,19 @@ export class PreRegistroComponent {
     this.errorEnvioPreRegistro = '';
     this.guardarBorradorSilencioso();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cerrarModalResultadoPreRegistro(): void {
+    this.mostrarModalResultadoPreRegistro = false;
+    this.tituloResultadoPreRegistro = '';
+    this.mensajeResultadoPreRegistro = '';
+  }
+
+  private mostrarErrorPreRegistro(mensaje: string): void {
+    this.errorEnvioPreRegistro = mensaje;
+    this.tituloResultadoPreRegistro = 'No se pudo completar el registro';
+    this.mensajeResultadoPreRegistro = mensaje;
+    this.mostrarModalResultadoPreRegistro = true;
   }
 
   private obtenerMensajeErrorPreRegistro(error?: unknown): string {
