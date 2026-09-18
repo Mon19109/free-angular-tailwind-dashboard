@@ -1300,7 +1300,11 @@ export class PreRegistroComponent {
       && regla.numero === 3
         ? 'Identificación Oficial'
         : documento.nombre;
-    return { ...documento, nombre, obligatorio: regla.obligatorio };
+    const obligatorio = tipoPersonaNormalizada === 'PM' && regla.numero === 10
+      ? true
+      : regla.obligatorio;
+
+    return { ...documento, nombre, obligatorio };
   }
 
 
@@ -1486,6 +1490,7 @@ export class PreRegistroComponent {
 
   // ── Navegación ───────────────────────────────────────────────────────────────
   irAlPaso(paso: number): void {
+    this.guardarCapturaNodoActual();
     if (paso === 3 && !this.mostrarPasoAccesos) {
       paso = this.mostrarCuentaLiquidacion ? 4 : this.mostrarPasoDocumentos ? 5 : 2;
     }
@@ -3177,8 +3182,8 @@ export class PreRegistroComponent {
 
   private guardarCapturaNodoActual(): void {
     if (!this.mostrarArbolWizard) return;
-    if (this.pasoActual === 1) this.guardarComercioNodoActual();
-    if (this.pasoActual === 2) this.guardarDatosSucursalActual();
+    this.guardarComercioNodoActual();
+    this.guardarDatosSucursalActual();
     if (this.pasoActual === 3) this.guardarAccesosNodoActual();
     if (this.pasoActual === 5) this.guardarDocumentosNodoActual();
   }

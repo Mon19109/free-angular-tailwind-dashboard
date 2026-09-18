@@ -1194,6 +1194,32 @@ small {
   line-height: 1.5;
 }
 
+.commercial-contact-note {
+  margin: 0 0 22px;
+  padding: 18px 20px;
+  border: 1px solid rgba(241, 178, 61, 0.42);
+  border-radius: 14px;
+  color: #ffd96a;
+  background: rgba(241, 178, 61, 0.09);
+  font-size: clamp(16px, 1.4vw, 22px);
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.commercial-contact-note b {
+  color: #ffad57;
+}
+
+:host-context(html:not(.dark)) .commercial-contact-note {
+  border-color: #efb28e;
+  color: #97400e;
+  background: #fff7ed;
+}
+
+:host-context(html:not(.dark)) .commercial-contact-note b {
+  color: #c2410c;
+}
+
 .checkbox-inline {
   display: inline-flex;
   align-items: center;
