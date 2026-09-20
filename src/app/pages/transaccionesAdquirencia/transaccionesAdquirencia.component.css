@@ -127,6 +127,10 @@
   color: #ef4444;
 }
 
+.transactions-report-table {
+  min-width: 3900px;
+}
+
 .empty-cell {
   padding: 34px 12px;
   text-align: center;

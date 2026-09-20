@@ -14,10 +14,6 @@ export interface FiltrosTransaccion {
   montoHasta?: string;
   email?: string;
   edoTransaccion?: string;
-  referencia?: string;
-  autorizacion?: string;
-  numTarjeta?: string;
-  bin?: string;
   fechaInicio?: string;
   fechaFin?: string;
 }
@@ -264,10 +260,6 @@ getOperaciones(): Observable<any> {
       .set('amountTo', (filtros.montoHasta || '').replace(/[$,]/g, ''))
       .set('email', filtros.email || '')
       .set('responseCode', filtros.edoTransaccion || '')
-      .set('referenceNumber', filtros.referencia || '')
-      .set('authorizationNumber', filtros.autorizacion || '')
-      .set('bin', filtros.bin || '')
-      .set('card', filtros.numTarjeta || '')
       .set('startDate', filtros.fechaInicio || '')
       .set('endDate', filtros.fechaFin || '')
       .set('liquidationID', '')

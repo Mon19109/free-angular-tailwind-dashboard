@@ -61,10 +61,6 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     montoDesde: '',
     montoHasta: '',
     edoTransaccion: '',
-    referencia: '',
-    autorizacion: '',
-    numTarjeta: '',
-    bin: '',
     fechaInicio: '',
     fechaFin: ''
   };
@@ -172,17 +168,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (!termino) return this.transacciones();
 
     return this.transacciones().filter(transaccion =>
-      [
-        transaccion.idOperation,
-        transaccion.authorizationDate,
-        transaccion.entityName,
-        transaccion.terminalName,
-        transaccion.terminalUserName,
-        transaccion.transactiontype,
-        transaccion.status,
-        transaccion.payEmail || transaccion.terminalUserName,
-        transaccion.amount
-      ].some(valor => String(valor ?? '').toLowerCase().includes(termino))
+      this.obtenerFilaReporte(transaccion)
+        .some(valor => String(valor ?? '').toLowerCase().includes(termino))
     );
   }
 
@@ -498,10 +485,6 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       && this.coincideOperacion(transaccion)
       && this.coincideEstatus(transaccion)
       && this.coincideMonto(transaccion.amount)
-      && this.coincideTexto(this.filtros.referencia, transaccion.authorizationRrcext, transaccion.referenceOne, transaccion.referenceTwo, transaccion.referenceThree, transaccion.paymentLink)
-      && this.coincideTexto(this.filtros.autorizacion, transaccion.authorizationNumber)
-      && this.coincideTexto(this.filtros.numTarjeta, transaccion.card)
-      && this.coincideTexto(this.filtros.bin, transaccion.bin)
       && this.coincideTexto(this.filtros.email, transaccion.payEmail, transaccion.terminalUserName)
     );
   }
@@ -707,10 +690,6 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       montoDesde: '',
       montoHasta: '',
       edoTransaccion: '',
-      referencia: '',
-      autorizacion: '',
-      numTarjeta: '',
-      bin: '',
       fechaInicio: '',
       fechaFin: ''
     };
@@ -785,8 +764,11 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
   exportarExcel(): void {
     const fecha = this.obtenerFechaArchivo();
-    const rows = this.transaccionesFiltradasTabla.map(transaccion => this.exportRow(transaccion));
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const rows = this.transaccionesFiltradasTabla.map(transaccion => this.obtenerFilaReporte(transaccion));
+    const worksheet = XLSX.utils.aoa_to_sheet([this.encabezadosReporte, ...rows]);
+    worksheet['!cols'] = this.encabezadosReporte.map(encabezado => ({
+      wch: Math.max(14, Math.min(30, encabezado.length + 4))
+    }));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones Adquirencia');
     XLSX.writeFile(workbook, `Transacciones-Adquirencia-${fecha}.xlsx`);
@@ -798,18 +780,18 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
-      format: 'a4'
+      format: 'a2'
     });
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Transacciones-Adquirencia-${fecha}`, 148, 23, { align: 'center' });
+    doc.text(`Transacciones-Adquirencia-${fecha}`, 297, 18, { align: 'center' });
 
     autoTable(doc, {
-      startY: 30,
+      startY: 24,
       styles: {
-        fontSize: 7,
-        cellPadding: 3,
+        fontSize: 5.5,
+        cellPadding: 1.5,
         overflow: 'linebreak',
         valign: 'middle'
       },
@@ -825,43 +807,89 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       bodyStyles: {
         textColor: [40, 40, 40]
       },
-      columnStyles: {
-        0: { cellWidth: 22 },
-        1: { cellWidth: 34 },
-        2: { cellWidth: 38 },
-        3: { cellWidth: 38 },
-        4: { cellWidth: 42 },
-        5: { cellWidth: 24 },
-        6: { cellWidth: 28 },
-        7: { cellWidth: 48 }
-      },
-      head: [['ID', 'FECHA / HORA', 'SUCURSAL', 'CAJA', 'TIPO', 'MONTO', 'ESTATUS', 'USUARIO']],
-      body: this.transaccionesFiltradasTabla.map(transaccion => [
-        transaccion.idOperation,
-        transaccion.authorizationDate,
-        transaccion.terminalName,
-        transaccion.terminalUserName,
-        transaccion.transactiontype,
-        this.formatCurrency(transaccion.amount),
-        this.obtenerEstatusTransaccion(transaccion),
-        transaccion.payEmail || transaccion.terminalUserName
-      ])
+      margin: { left: 8, right: 8 },
+      head: [this.encabezadosReporte],
+      body: this.transaccionesFiltradasTabla.map(transaccion => this.obtenerFilaReporte(transaccion))
     });
     doc.save(`Transacciones-Adquirencia-${fecha}.pdf`);
     this.exportMenuAbierto = false;
   }
 
-  private exportRow(transaccion: Transaccion) {
-    return {
-      ID: transaccion.idOperation,
-      'FECHA / HORA': transaccion.authorizationDate,
-      SUCURSAL: transaccion.terminalName,
-      CAJA: transaccion.terminalUserName,
-      'TIPO TRANSACCION': transaccion.transactiontype,
-      MONTO: this.formatCurrency(transaccion.amount),
-      ESTATUS: this.obtenerEstatusTransaccion(transaccion),
-      USUARIO: transaccion.payEmail || transaccion.terminalUserName
-    };
+  readonly encabezadosReporte = [
+    'Monto',
+    'Fecha de Autorización',
+    'Tipo de Transacción',
+    'Estatus',
+    'N. de Autorización',
+    'Tarjeta',
+    'Folio del Ticket',
+    'Concepto',
+    'Esquema Fiscal',
+    'Institución',
+    'Marca',
+    'Naturaleza',
+    'Entidad',
+    'Sucursal',
+    'Caja',
+    'Usuario Venta',
+    'Tipo',
+    'Email de Cliente',
+    'Teléfono de Cliente',
+    'Referencia 1',
+    'Referencia 2',
+    'Referencia 3',
+    'Propina',
+    'Id Liquidación',
+    'Estatus Sirio',
+    'Ticket',
+    'Aclaraciones'
+  ];
+
+  obtenerFilaReporte(transaccion: Transaccion): Array<string | number> {
+    return [
+      this.formatCurrency(transaccion.amount),
+      this.valorReporte(transaccion, ['authorizationDate']),
+      this.valorReporte(transaccion, ['transactiontype', 'transactionType']),
+      this.obtenerEstatusTransaccion(transaccion),
+      this.valorReporte(transaccion, ['authorizationNumber', 'authNumber']),
+      this.valorReporte(transaccion, ['card', 'cardNumberMask', 'cardNumber']),
+      this.valorReporte(transaccion, ['rrcext', 'authorizationRrcext']),
+      this.valorReporte(transaccion, ['concept', 'description']),
+      this.valorReporte(transaccion, ['fiscalScheme', 'taxScheme', 'taxRegime', 'qtPay']),
+      this.valorReporte(transaccion, ['institution', 'institutionName']),
+      this.valorReporte(transaccion, ['brand', 'brandName']),
+      this.valorReporte(transaccion, ['nature']),
+      this.valorReporte(transaccion, ['entityName', 'contextDescription']),
+      this.valorReporte(transaccion, ['terminalName', 'branchName']),
+      this.valorReporte(transaccion, ['terminalId', 'idTerminal', 'cashRegister']),
+      this.valorReporte(transaccion, ['terminalUserName', 'salesUser', 'userName']),
+      this.valorReporte(transaccion, ['entryMode', 'type']),
+      this.valorReporte(transaccion, ['payEmail', 'email']),
+      this.valorReporte(transaccion, ['payPhone', 'phone', 'telephoneNumber']),
+      this.valorReporte(transaccion, ['referenceOne']),
+      this.valorReporte(transaccion, ['referenceTwo']),
+      this.valorReporte(transaccion, ['referenceThree']),
+      this.valorReporte(transaccion, ['tipAmount', 'tip', 'gratuity', 'propina'], 0),
+      this.valorReporte(transaccion, ['liquidation_id', 'liquidationId']),
+      this.valorReporte(transaccion, ['statusSirio']),
+      this.valorReporte(transaccion, ['paymentLink', 'ticketUrl', 'voucherUrl']),
+      this.valorReporte(transaccion, ['clarifications', 'clarification', 'aclaraciones', 'clarificationStatus'])
+    ];
+  }
+
+  private valorReporte(
+    transaccion: Transaccion,
+    propiedades: string[],
+    respaldo: string | number = 'ND'
+  ): string | number {
+    for (const propiedad of propiedades) {
+      const valor = (transaccion as any)?.[propiedad];
+      if (valor !== undefined && valor !== null && valor !== '') {
+        return valor;
+      }
+    }
+
+    return respaldo;
   }
 
   private obtenerFechaArchivo(): string {

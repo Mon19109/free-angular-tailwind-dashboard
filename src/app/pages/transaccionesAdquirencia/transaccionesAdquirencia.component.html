@@ -103,30 +103,6 @@
               <input type="text" name="monto" [(ngModel)]="filtros.monto" (input)="formatearMontoFiltro($event)" placeholder="0.00">
             </label>
 
-            <label>
-              <span>Nm. Referencia</span>
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" name="referencia" [(ngModel)]="filtros.referencia" placeholder="Referencia">
-            </label>
-
-            <label>
-              <span>Nm. Autorización</span>
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" name="autorizacion" [(ngModel)]="filtros.autorizacion" placeholder="Autorización">
-            </label>
-
-            <label>
-              <span>Nm. Tarjeta</span>
-              <i class="fa-regular fa-credit-card"></i>
-              <input type="text" maxlength="16" name="numTarjeta" [(ngModel)]="filtros.numTarjeta" placeholder="Tarjeta">
-            </label>
-
-            <label>
-              <span>Bin</span>
-              <i class="fa-solid fa-barcode"></i>
-              <input type="text" name="bin" [(ngModel)]="filtros.bin" placeholder="Bin">
-            </label>
-
             <div class="date-field">
               <app-date-picker
                 id="fechaInicioConsultaTransacciones"
@@ -201,52 +177,40 @@
         </div>
 
         <div class="table-scroll">
-          <table>
+          <table class="transactions-report-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Fecha / Hora</th>
-                <th>Sucursal</th>
-                <th>Caja</th>
-                <th>Tipo Transacción</th>
-                <th>Monto</th>
-                <th>Método Pago</th>
-                <th>Usuario</th>
-                <th>Estatus</th>
-                <th>Acciones</th>
+                @for (encabezado of encabezadosReporte; track $index) {
+                  <th>{{ encabezado }}</th>
+                }
               </tr>
             </thead>
             <tbody>
               @for (t of transaccionesPaginadas; track $index) {
                 <tr>
-                  <td>{{ t.idOperation || 'ND' }}</td>
-                  <td>{{ t.authorizationDate || 'ND' }}</td>
-                  <td>{{ t.terminalName || 'ND' }}</td>
-                  <td>{{ t.terminalUserName || 'ND' }}</td>
-                  <td>
-                    <span class="transaction-badge" [ngClass]="tipoTransaccionClase(t.transactiontype)">
-                      <i class="fa-solid" [ngClass]="tipoTransaccionIcono(t.transactiontype)"></i>
-                      {{ t.transactiontype || 'ND' }}
-                    </span>
-                  </td>
-                  <td class="amount" [class.negative]="esDevolucion(t.transactiontype)">
-                    {{ esDevolucion(t.transactiontype) ? '-' : '' }}{{ formatCurrency(t.amount) }}
-                  </td>
-                  <td>{{ t.entryMode || t.brand || 'ND' }}</td>
-                  <td>{{ t.payEmail || t.terminalUserName || 'ND' }}</td>
-                  <td>
-                    <span class="status" [class.inactive]="!esEstatusAprobado(t)"></span>
-                    {{ obtenerEstatusTransaccion(t) }}
-                  </td>
-                  <td class="actions-cell">
-                    <button class="icon-btn" type="button" (click)="verTicket(t)" title="Ver ticket">
-                      <i class="fa-regular fa-eye"></i>
-                    </button>
-                  </td>
+                  @for (valor of obtenerFilaReporte(t); track $index) {
+                    <td [class.amount]="$index === 0" [class.negative]="$index === 0 && esDevolucion(t.transactiontype)">
+                      @if ($index === 2) {
+                        <span class="transaction-badge" [ngClass]="tipoTransaccionClase(valor.toString())">
+                          <i class="fa-solid" [ngClass]="tipoTransaccionIcono(valor.toString())"></i>
+                          {{ valor }}
+                        </span>
+                      } @else if ($index === 3) {
+                        <span class="status" [class.inactive]="!esEstatusAprobado(t)"></span>
+                        {{ valor }}
+                      } @else if ($index === 25) {
+                        <button class="icon-btn" type="button" (click)="verTicket(t)" title="Ver ticket">
+                          <i class="fa-regular fa-eye"></i>
+                        </button>
+                      } @else {
+                        {{ $index === 0 && esDevolucion(t.transactiontype) ? '-' : '' }}{{ valor }}
+                      }
+                    </td>
+                  }
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="10" class="empty-cell">No se encontraron resultados</td>
+                  <td [attr.colspan]="encabezadosReporte.length" class="empty-cell">No se encontraron resultados</td>
                 </tr>
               }
             </tbody>
