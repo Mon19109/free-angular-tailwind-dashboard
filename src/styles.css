@@ -42,6 +42,12 @@ html.dark {
   color-scheme: dark;
 }
 
+/* Mantiene en mayúsculas el texto visible de todos los select sin modificar sus valores. */
+select,
+select option {
+  text-transform: uppercase !important;
+}
+
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;
