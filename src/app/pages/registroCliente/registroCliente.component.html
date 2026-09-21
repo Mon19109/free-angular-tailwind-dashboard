@@ -163,7 +163,7 @@
               [emailNotificacion]="emailNotificacionMesaDigital"
               [enviandoNotificacion]="enviandoNotificacionMesaDigital"
               [guardandoBorrador]="guardandoRevisionDocumentos"
-              [deshabilitarFinalizar]="registrandoCliente || (mostrarRegistrarClienteDocumentos && !mostrarMesaDigitalProspecto)"
+              [deshabilitarFinalizar]="registrandoCliente"
               [mensajeNotificacion]="mensajeObservacionesCliente"
               [textoFinalizar]="textoFinalizarDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
@@ -184,7 +184,7 @@
             <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
             {{ mensajeRegistroCliente }}
           </p>
-          <button *ngIf="mostrarRegistrarClienteDocumentos" class="button primary" type="button" [disabled]="registrandoCliente || !mostrarMesaDigitalProspecto" (click)="registrarClienteProspecto()">
+          <button *ngIf="mostrarRegistrarClienteDocumentos" class="button primary" type="button" [disabled]="registrandoCliente" (click)="registrarClienteProspecto()">
             {{ registrandoCliente ? 'Registrando...' : 'Registrar Cliente' }} <i class="fa-solid" [ngClass]="registrandoCliente ? 'fa-spinner fa-spin' : 'fa-check'"></i>
           </button>
           <button *ngIf="!esNodoExistente" class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>

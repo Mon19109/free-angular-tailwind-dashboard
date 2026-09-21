@@ -1459,7 +1459,12 @@ export class RegistroClienteComponent {
   }
 
   get mostrarRegistrarClienteDocumentos(): boolean {
-    return !!this.nodeIDEdicion;
+    return this.mostrarMesaDigitalProspecto && this.esUltimoNodoSeleccionado;
+  }
+
+  get esUltimoNodoSeleccionado(): boolean {
+    const nodos = this.nodosPlanos(this.arbol);
+    return nodos.length > 0 && nodos[nodos.length - 1]?.id === this.nodoSeleccionado;
   }
 
   get textoFinalizarDocumentos(): string {
@@ -1476,6 +1481,10 @@ export class RegistroClienteComponent {
     if (this.registrandoCliente) return;
     if (!this.mostrarMesaDigitalProspecto) {
       this.mostrarModalRegistro('error', 'Acción no disponible', 'Solo los prospectos pueden registrarse como cliente desde Mesa Digital.');
+      return;
+    }
+    if (!this.esUltimoNodoSeleccionado) {
+      this.mostrarModalRegistro('error', 'Acción no disponible', 'El cliente solo puede registrarse al llegar al último nodo del árbol.');
       return;
     }
     const commerceGuid = this.commerceGuidPadreNodoSeleccionado();
