@@ -14,6 +14,7 @@
         <app-select
           placeholder="Selecciona cuenta"
           [options]="cuentasOptions"
+          [value]="cuentaSeleccionada"
           className="form-control"
           (valueChange)="seleccionarCuenta($event)"
         />

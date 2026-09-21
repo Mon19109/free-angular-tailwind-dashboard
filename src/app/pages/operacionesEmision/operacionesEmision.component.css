@@ -302,20 +302,27 @@ html.dark .form-select option {
   transform: translateY(-1px);
 }
 
-.button.primary,
-.btn-buscar {
-  min-width: 170px;
-  color: #140e02;
-  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
-  box-shadow: 0 16px 30px rgba(241, 178, 61, 0.2);
+.btn-buscar,
+.btn-limpiar {
+  min-width: 0;
+  gap: 8px;
+  border-radius: 8px;
+  box-shadow: none;
 }
 
-.button.danger,
+.btn-buscar {
+  color: #140e02;
+  background: linear-gradient(180deg, #f6c65c 0%, var(--ops-gold) 100%);
+}
+
 .btn-limpiar {
-  min-width: 170px;
-  color: #ffffff;
-  background: linear-gradient(135deg, #ef4444 0%, #c02727 100%);
-  box-shadow: 0 16px 30px rgba(239, 68, 68, 0.18);
+  border-color: var(--ops-border);
+  color: var(--ops-text);
+  background: var(--ops-card-2);
+}
+
+.btn-limpiar:hover {
+  background: var(--ops-panel);
 }
 
 .button.ghost,

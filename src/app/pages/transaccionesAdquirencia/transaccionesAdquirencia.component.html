@@ -21,7 +21,6 @@
       <section class="panel filters-panel">
         <div class="panel-title">
           <div><i class="fa-solid fa-filter"></i><span>Filtros de búsqueda</span></div>
-          <button class="link-action" type="button" (click)="limpiarFiltros()"><i class="fa-solid fa-rotate-right"></i> Limpiar filtros</button>
         </div>
 
         <form (ngSubmit)="buscarTransacciones()">
@@ -40,8 +39,8 @@
               <span>Entidad</span>
               <select name="entidad" [(ngModel)]="filtros.entidad" (change)="onEntidadChange()" [disabled]="entidadSesionBloqueada">
                 <option value="">Todas las entidades</option>
-                @for (item of entidades(); track item.idNode) {
-                  <option [value]="item.idNode">{{ item.name }}</option>
+                @for (item of entidades(); track item.idNode || item.nodeID) {
+                  <option [value]="item.idNode || item.nodeID">{{ item.name }}</option>
                 }
               </select>
             </label>
@@ -50,8 +49,8 @@
               <span>Sucursal</span>
               <select name="sucursal" [(ngModel)]="filtros.sucursal" (change)="onSucursalChange()" [disabled]="sucursalSesionBloqueada">
                 <option value="">Todas las sucursales</option>
-                @for (item of sucursales(); track item.idNode) {
-                  <option [value]="item.idNode">{{ item.name }}</option>
+                @for (item of sucursales(); track item.idNode || item.nodeID) {
+                  <option [value]="item.idNode || item.nodeID">{{ item.name }}</option>
                 }
               </select>
             </label>
@@ -94,6 +93,7 @@
 
             <div class="date-field">
               <app-date-picker
+                #fechaInicioPicker
                 id="fechaInicioConsultaTransacciones"
                 label="Fecha Inicio"
                 placeholder="YYYY-MM-DD HH:mm"
@@ -104,6 +104,7 @@
 
             <div class="date-field">
               <app-date-picker
+                #fechaFinPicker
                 id="fechaFinConsultaTransacciones"
                 label="Fecha Fin"
                 placeholder="YYYY-MM-DD HH:mm"
@@ -123,7 +124,7 @@
               Buscar
             </button>
             <div class="export-wrapper" *ngIf="showTable() && transacciones().length > 0">
-              <button class="btn btn-primary" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
+              <button class="btn btn-primary export-button" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
                 <i class="fa-solid fa-download"></i>
                 Exportar
                 <i class="fa-solid fa-chevron-down"></i>

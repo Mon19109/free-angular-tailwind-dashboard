@@ -45,6 +45,7 @@ export class AppSidebarComponent {
 
   private readonly idBusinessModel = this.getSessionNumber('idBusinessModel');
   private readonly idPerfil = this.getSessionNumber('idPerfil');
+  private readonly idRol = this.getSessionNumber('idRol');
 
  panelPrincipalItems: NavItem[] = [
     {
@@ -334,6 +335,10 @@ export class AppSidebarComponent {
   private hasMenuAccess(access?: MenuAccess): boolean {
     if (!access) return true;
 
+    if (access === 'gestionPagos' && this.idRol === 6) {
+      return false;
+    }
+
     const accesoTotalModeloCero = this.idBusinessModel === 0 && this.idPerfil === 9;
     if (accesoTotalModeloCero) return true;
 
@@ -353,7 +358,7 @@ export class AppSidebarComponent {
     }
   }
 
-  private getSessionNumber(key: 'idBusinessModel' | 'idPerfil'): number {
+  private getSessionNumber(key: 'idBusinessModel' | 'idPerfil' | 'idRol'): number {
     const storedValue = localStorage.getItem(key);
     if (storedValue !== null) return Number(storedValue) || 0;
 

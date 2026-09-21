@@ -74,6 +74,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   @ViewChild('map') mapElement!: ElementRef;
   @ViewChild('alertaMensaje') alertaMensaje?: ElementRef<HTMLElement>;
   @ViewChild('zonaMensajes') zonaMensajes?: ElementRef<HTMLElement>;
+  @ViewChild('fechaInicioPicker') fechaInicioPicker?: DatePickerComponent;
+  @ViewChild('fechaFinPicker') fechaFinPicker?: DatePickerComponent;
   
   ngOnInit() {
     this.cargarDatosSesion();
@@ -87,9 +89,21 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   private cargarDatosSesion() {
-    this.rolId = localStorage.getItem('idRol') || this.rolId;
-    this.contId = localStorage.getItem('idContext') || this.contId;
-    this.entiId = localStorage.getItem('idEntity') || this.entiId;
+    let sesion: any = {};
+    const sesionGuardada = localStorage.getItem('auth_session');
+
+    if (sesionGuardada) {
+      try {
+        sesion = JSON.parse(sesionGuardada);
+      } catch {
+        sesion = {};
+      }
+    }
+
+    this.rolId = String(sesion?.idRol ?? localStorage.getItem('idRol') ?? this.rolId);
+    this.contId = String(sesion?.idContext ?? localStorage.getItem('idContext') ?? this.contId);
+    this.entiId = String(sesion?.idEntity ?? localStorage.getItem('idEntity') ?? this.entiId);
+    this.aplicarBloqueosPorRol();
   }
 
   onFechaInicioChange(event: any) {
@@ -141,9 +155,9 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 }
 
   get nivelUsuario(): 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' {
-    if (this.rolId === '3') return 'entidad';
-    if (this.rolId === '4') return 'sucursal';
-    if (this.rolId === '5' || this.rolId === '6') return 'caja';
+    if (this.rolId === '4') return 'entidad';
+    if (this.rolId === '5') return 'sucursal';
+    if (this.rolId === '6') return 'caja';
     return 'sub-afiliado';
   }
 
@@ -612,80 +626,84 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
-    this.subafiliadoSesionBloqueado = false;
-
-    if (this.rolId !== '3') return;
+    if (!['3', '4', '5', '6'].includes(this.rolId)) return;
 
     this.filtros.subafiliado = '';
     const nodeIDSesion = localStorage.getItem('nodeID') || '';
-    const existeSubafiliadoSesion = subafiliados.some(
-      subafiliado => String(subafiliado.idNode ?? subafiliado.nodeID ?? '') === nodeIDSesion
-    );
+    const subafiliadoSesion = subafiliados.find(
+      subafiliado => this.obtenerNodeId(subafiliado) === nodeIDSesion
+    ) || (subafiliados.length === 1 ? subafiliados[0] : null);
 
-    if (existeSubafiliadoSesion) {
-      this.filtros.subafiliado = nodeIDSesion;
-      this.subafiliadoSesionBloqueado = true;
+    if (subafiliadoSesion) {
+      this.filtros.subafiliado = this.obtenerNodeId(subafiliadoSesion);
     }
   }
 
   private seleccionarEntidadSesion(entidades: any[]): void {
-    this.entidadSesionBloqueada = false;
-
-    if (this.rolId !== '4') return;
+    if (!['4', '5', '6'].includes(this.rolId)) return;
 
     this.filtros.entidad = '';
     const nodeIDSesion = localStorage.getItem('nodeID') || '';
-    const existeEntidadSesion = entidades.some(
-      entidad => String(entidad.idNode ?? entidad.nodeID ?? '') === nodeIDSesion
-    );
+    const entidadSesion = entidades.find(
+      entidad => this.obtenerNodeId(entidad) === nodeIDSesion
+    ) || (entidades.length === 1 ? entidades[0] : null);
 
-    if (existeEntidadSesion) {
-      this.filtros.entidad = nodeIDSesion;
-      this.entidadSesionBloqueada = true;
+    if (entidadSesion) {
+      this.filtros.entidad = this.obtenerNodeId(entidadSesion);
     }
   }
 
   private seleccionarSucursalSesion(sucursales: any[]): void {
-    this.sucursalSesionBloqueada = false;
-
-    if (this.rolId !== '5') return;
+    if (!['5', '6'].includes(this.rolId)) return;
 
     this.filtros.sucursal = '';
     const nodeIDSesion = localStorage.getItem('nodeID') || '';
-    const existeSucursalSesion = sucursales.some(
-      sucursal => String(sucursal.idNode ?? sucursal.nodeID ?? '') === nodeIDSesion
-    );
+    const sucursalSesion = sucursales.find(
+      sucursal => this.obtenerNodeId(sucursal) === nodeIDSesion
+    ) || (sucursales.length === 1 ? sucursales[0] : null);
 
-    if (existeSucursalSesion) {
-      this.filtros.sucursal = nodeIDSesion;
-      this.sucursalSesionBloqueada = true;
+    if (sucursalSesion) {
+      this.filtros.sucursal = this.obtenerNodeId(sucursalSesion);
     }
   }
 
   private seleccionarCajaSesion(cajas: any[]): void {
-    this.cajaSesionBloqueada = false;
-
     if (this.rolId !== '6') return;
 
     this.filtros.caja = '';
     const nodeIDSesion = localStorage.getItem('nodeID') || '';
-    const existeCajaSesion = cajas.some(
-      caja => String(caja.idNode ?? caja.nodeID ?? '') === nodeIDSesion
-    );
+    const cajaSesion = cajas.find(
+      caja => this.obtenerNodeId(caja) === nodeIDSesion
+    ) || (cajas.length === 1 ? cajas[0] : null);
 
-    if (existeCajaSesion) {
-      this.filtros.caja = nodeIDSesion;
-      this.cajaSesionBloqueada = true;
+    if (cajaSesion) {
+      this.filtros.caja = this.obtenerNodeId(cajaSesion);
     }
+  }
+
+  private aplicarBloqueosPorRol(): void {
+    this.subafiliadoSesionBloqueado = ['4', '5', '6'].includes(this.rolId);
+    this.entidadSesionBloqueada = ['5', '6'].includes(this.rolId);
+    this.sucursalSesionBloqueada = this.rolId === '6';
+    this.cajaSesionBloqueada = false;
+  }
+
+  private obtenerNodeId(item: any): string {
+    return String(item?.idNode ?? item?.nodeID ?? item?.id ?? '');
   }
   
   limpiarFiltros() {
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const filtrosJerarquia = {
+      subafiliado: this.filtros.subafiliado,
+      entidad: this.filtros.entidad,
+      sucursal: this.filtros.sucursal,
+      caja: this.filtros.caja
+    };
     this.filtros = {
-      subafiliado: this.subafiliadoSesionBloqueado ? nodeIDSesion : '',
-      entidad: this.entidadSesionBloqueada ? nodeIDSesion : '',
-      sucursal: this.sucursalSesionBloqueada ? nodeIDSesion : '',
-      caja: this.cajaSesionBloqueada ? nodeIDSesion : '',
+      subafiliado: this.subafiliadoSesionBloqueado ? filtrosJerarquia.subafiliado : '',
+      entidad: this.entidadSesionBloqueada ? filtrosJerarquia.entidad : '',
+      sucursal: this.sucursalSesionBloqueada ? filtrosJerarquia.sucursal : '',
+      caja: this.cajaSesionBloqueada ? filtrosJerarquia.caja : '',
       operacion: '',
       monto: '',
       montoDesde: '',
@@ -694,8 +712,10 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       fechaInicio: '',
       fechaFin: ''
     };
-    this.inicializarFechas();
+    this.fechaInicioPicker?.clear();
+    this.fechaFinPicker?.clear();
     this.busquedaTabla = '';
+    this.exportMenuAbierto = false;
     this.paginaActual = 1;
   }
 

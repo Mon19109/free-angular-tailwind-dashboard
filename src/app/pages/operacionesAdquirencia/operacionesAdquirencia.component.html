@@ -207,20 +207,18 @@ Seleccione una caja
       <div class="admin-actions operation-actions botones-container">
 
         <button
-          type="submit"
-          class="button primary btn-buscar">
-
-          BUSCAR
-
+          type="button"
+          class="button btn-limpiar"
+          (click)="limpiarFormulario()">
+          <i class="fa-solid fa-rotate"></i>
+          LIMPIAR
         </button>
 
         <button
-          type="button"
-          class="button danger btn-limpiar"
-          (click)="limpiarFormulario()">
-
-          LIMPIAR FILTROS
-
+          type="submit"
+          class="button btn-buscar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          BUSCAR
         </button>
 
       </div>

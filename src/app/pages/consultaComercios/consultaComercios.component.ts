@@ -43,6 +43,8 @@ interface Comercio {
   styleUrls: ['./consultaComercios.component.css']
 })
 export class ConsultaComerciosComponent {
+  readonly mostrarAcciones = this.obtenerIdRolSesion() !== 6;
+
   constructor(
     private router: Router,
     private consultaComerciosService: ConsultaComerciosService,
@@ -689,6 +691,15 @@ export class ConsultaComerciosComponent {
 
   puedeEditar(comercio: Comercio): boolean {
     return comercio.estatus === 'Prospecto';
+  }
+
+  private obtenerIdRolSesion(): number {
+    try {
+      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
+      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0);
+    } catch {
+      return Number(localStorage.getItem('idRol') || 0);
+    }
   }
 
   exportarExcel(): void {

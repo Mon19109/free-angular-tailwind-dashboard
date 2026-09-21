@@ -59,4 +59,12 @@ export class DatePickerComponent {
       this.flatpickrInstance.destroy();
     }
   }
+
+  clear(): void {
+    this.flatpickrInstance?.clear(false);
+
+    if (this.dateInput?.nativeElement) {
+      this.dateInput.nativeElement.value = '';
+    }
+  }
 }

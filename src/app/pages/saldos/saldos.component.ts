@@ -22,6 +22,7 @@ export class SaldosComponent implements OnInit {
 
   entidades: any[] = [];
   saldos: any[] = [];
+  cuentaSeleccionada = '';
   entidadSeleccionada = '';
   cuentas: any[] = [];
   fatherIDActual = '';
@@ -59,6 +60,15 @@ export class SaldosComponent implements OnInit {
 
         this.cuentas = resp;
 
+        const cuentaAdquirente = this.cuentas.find(
+          cuenta => Number(cuenta.idbusinessModel) === 2
+        );
+
+        if (cuentaAdquirente?.idSirio) {
+          this.cuentaSeleccionada = String(cuentaAdquirente.idSirio);
+          this.seleccionarCuenta(this.cuentaSeleccionada);
+        }
+
       }
     });
 
@@ -69,7 +79,13 @@ export class SaldosComponent implements OnInit {
 
        // console.log('ENTIDADES INICIALES', resp);
 
-        this.entidades = resp;
+        const cuentaActual = this.cuentas.find(
+          cuenta => String(cuenta.idSirio) === this.cuentaSeleccionada
+        );
+
+        if (Number(cuentaActual?.idbusinessModel) !== 2) {
+          this.entidades = resp;
+        }
 
       }
     });
@@ -81,10 +97,12 @@ export class SaldosComponent implements OnInit {
   const cuenta =
     (event.target as HTMLSelectElement).value;
 
+  this.cuentaSeleccionada = cuenta;
+  this.entidadSeleccionada = '';
   this.saldos = [];
 
   const cuentaSeleccionada =
-    this.cuentas.find(c => c.idSirio === cuenta);
+    this.cuentas.find(c => String(c.idSirio) === cuenta);
 
   //console.log('OBJETO CUENTA', cuentaSeleccionada);
 

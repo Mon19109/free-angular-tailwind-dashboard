@@ -138,7 +138,7 @@
             <th>Correo Electrónico</th>
             <th>Teléfono</th>
             <th>Estatus</th>
-            <th>Acciones</th>
+            <th *ngIf="mostrarAcciones">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -151,7 +151,7 @@
             <td>{{ comercio.correo }}</td>
             <td>{{ comercio.telefono }}</td>
             <td><span class="status" [class.inactive]="comercio.estatus !== 'Activo'"></span>{{ comercio.estatus }}</td>
-            <td class="actions-cell">
+            <td class="actions-cell" *ngIf="mostrarAcciones">
               <button class="icon-btn" type="button" (click)="toggleAcciones(idAcciones(comercio, indice))" title="Acciones">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>

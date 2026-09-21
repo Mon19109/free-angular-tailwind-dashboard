@@ -131,6 +131,15 @@
   min-width: 3900px;
 }
 
+.export-button {
+  color: #ffffff;
+  background: #28313e;
+}
+
+.export-button:hover {
+  background: #344052;
+}
+
 .empty-cell {
   padding: 34px 12px;
   text-align: center;

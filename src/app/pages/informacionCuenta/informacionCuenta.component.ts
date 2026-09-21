@@ -63,18 +63,34 @@ export class InformacionCuentaComponent implements OnInit {
           'concentratorAccounts',
           'accountList'
         ]);
+
+        const cuentaAdquirencia = this.cuentas.find(
+          cuenta => Number(cuenta?.idbusinessModel) === 2
+        );
+        const valorCuentaAdquirencia = this.obtenerValorCuenta(cuentaAdquirencia);
+
+        if (valorCuentaAdquirencia) {
+          this.cuentaSeleccionada = valorCuentaAdquirencia;
+          this.seleccionarCuenta(valorCuentaAdquirencia);
+        }
       },
       error: (error) => console.error('Error al cargar cuentas:', error)
     });
 
     this.operacionesEmisionService.obtenerCuentas().subscribe({
       next: (resp) => {
-        this.entidades = this.normalizarLista(resp, [
-          'data',
-          'entities',
-          'entityLevels',
-          'items'
-        ]);
+        const cuentaActual = this.cuentas.find(
+          cuenta => this.obtenerValorCuenta(cuenta) === this.cuentaSeleccionada
+        );
+
+        if (Number(cuentaActual?.idbusinessModel) !== 2) {
+          this.entidades = this.normalizarLista(resp, [
+            'data',
+            'entities',
+            'entityLevels',
+            'items'
+          ]);
+        }
       },
       error: (error) => console.error('Error al cargar entidades:', error)
     });
@@ -156,7 +172,8 @@ export class InformacionCuentaComponent implements OnInit {
   }
 
   obtenerValorCuenta(cuenta: any): string {
-    return cuenta?.idSirio || cuenta?.sirioId || cuenta?.id || cuenta?.bundle || '';
+    const valor = cuenta?.idSirio || cuenta?.sirioId || cuenta?.id || cuenta?.bundle;
+    return valor === null || valor === undefined ? '' : String(valor);
   }
 
   obtenerTextoCuenta(cuenta: any): string {
@@ -164,7 +181,8 @@ export class InformacionCuentaComponent implements OnInit {
   }
 
   obtenerValorEntidad(entidad: any): string {
-    return entidad?.bundle || entidad?.idSirio || entidad?.sirioId || entidad?.id || '';
+    const valor = entidad?.bundle || entidad?.idSirio || entidad?.sirioId || entidad?.id;
+    return valor === null || valor === undefined ? '' : String(valor);
   }
 
   obtenerTextoEntidad(entidad: any): string {
