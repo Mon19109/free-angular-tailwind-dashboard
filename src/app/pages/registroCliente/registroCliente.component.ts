@@ -329,9 +329,11 @@ export class RegistroClienteComponent {
   arbolServicio: NodoRegistro[] = [];
   nodeIDEdicion = '';
   documentosProspectoPorNodo: Record<string, DocumentoProspectoApi[]> = {};
+  mostrarMesaDigitalProspecto = false;
 
   constructor() {
     const params = this.route.snapshot.queryParamMap;
+    this.mostrarMesaDigitalProspecto = params.get('esProspecto') === 'true';
     const emailComercioServicio = this.correoParametro(params.get('email')) || this.correoParametro(params.get('correo'));
     this.comercioSeleccionado = {
       idComercio: params.get('entitySonID') || params.get('id') || '',
@@ -416,7 +418,7 @@ export class RegistroClienteComponent {
       this.seleccionarNodoPorId(this.nodoSeleccionado);
     }
     this.consultarArbolEdicion();
-    if (!this.nodeIDEdicion) {
+    if (!this.nodeIDEdicion || this.mostrarMesaDigitalProspecto) {
       this.consultarResultadoSiprelad();
       this.consultarDocumentosProspecto();
       this.consultarCuentaComercio();

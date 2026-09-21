@@ -502,19 +502,18 @@ export class ConsultaComerciosComponent {
     ].filter(Boolean).join('|');
   }
 
-  ejecutarAccion(accion: 'editar' | 'editarInformacion' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
+  ejecutarAccion(accion: 'editarInformacion' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
     this.accionesAbiertas = null;
 
-    if (accion === 'editar' || accion === 'editarInformacion') {
-      if (accion === 'editar' && !this.puedeEditar(comercio)) return;
-      if (accion === 'editarInformacion' && !this.puedeEditarInformacion) return;
+    if (accion === 'editarInformacion') {
+      if (!this.puedeEditarInformacion) return;
 
-      const ruta = accion === 'editarInformacion' ? '/editar_informacion' : '/registro_cliente';
-      this.router.navigate([ruta], {
+      this.router.navigate(['/registro_cliente'], {
         queryParams: {
           id: comercio.idComercio,
           entitySonID: comercio.entitySonID || comercio.idComercio,
           nivel: comercio.nivel,
+          esProspecto: this.esProspectoAdmin(comercio) ? 'true' : 'false',
           nombre: comercio.nombreComercial,
           rfc: comercio.rfc,
           correo: comercio.correo,
@@ -522,7 +521,8 @@ export class ConsultaComerciosComponent {
           telefono: comercio.telefono,
           commerceID: comercio.guid,
           pldID: comercio.pldID,
-          nodeID: comercio.nodeID
+          nodeID: comercio.nodeID,
+          selectedNode: this.nodoRegistroPorComercio(comercio)
         }
       });
       return;
