@@ -254,7 +254,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     }
 
     this.abriendoReporte = reporte.id;
-    const ventanaReporte = reporte.id === 'ESTADO_EXCEL' ? null : window.open('', '_blank');
+    const ventanaReporte = ['ESTADO_PDF', 'ESTADO_EXCEL'].includes(reporte.id) ? null : window.open('', '_blank');
 
     if (reporte.origen === 'dinamico') {
       this.verReporteDinamico(reporte, ventanaReporte);
@@ -332,7 +332,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
 
     if (extension === 'pdf') {
-      this.abrirUrlReporte(url, ventanaReporte);
+      this.descargarArchivo(url, `estado-cuenta-${this.periodoSeleccionado}.${extension}`);
     } else {
       const link = document.createElement('a');
       link.href = url;
@@ -350,6 +350,13 @@ export class ReportesComponent implements OnInit, OnDestroy {
     }
 
     window.open(url, '_blank');
+  }
+
+  private descargarArchivo(url: string, nombreArchivo: string): void {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    link.click();
   }
 
   private extraerBase64Reporte(respuesta: any): string {
