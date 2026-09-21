@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { saveAs } from 'file-saver';
 import { finalize, Subscription, timeout } from 'rxjs';
 import { ReporteArchivo, ReportesService } from '../../services/reportes.service';
 
@@ -332,7 +333,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
 
     if (extension === 'pdf') {
-      this.descargarArchivo(url, `estado-cuenta-${this.periodoSeleccionado}.${extension}`);
+      saveAs(blob, `estado-cuenta-${this.periodoSeleccionado}.${extension}`);
     } else {
       const link = document.createElement('a');
       link.href = url;
