@@ -144,7 +144,7 @@ export class BeneficiariosService {
   eliminarContactos(ids: Array<string | number>): Observable<any> {
     const params = new HttpParams().set('contactIds', ids.join(','));
 
-    return this.http.delete(`${this.apiV1Url}contact/deleteContacts`, {
+    return this.http.delete(`${this.apiV1Url}svc-8ch7f3c/v3/h7q2-del`, {
       headers: this.getCommonHeaders(),
       params
     });
