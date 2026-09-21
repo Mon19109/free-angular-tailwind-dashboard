@@ -439,7 +439,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (!this.validarFechas()) {
       return;
     }
-    
+
+    this.exportMenuAbierto = false;
     this.loading.set(true);
     this.showTable.set(false);
     

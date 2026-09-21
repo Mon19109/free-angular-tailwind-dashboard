@@ -7,17 +7,6 @@
         <p>Consulta movimientos por comercio, periodo, monto, tipo y estatus.</p>
       </div>
 
-      <div class="export-wrapper">
-        <button class="btn btn-primary" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
-          <i class="fa-solid fa-download"></i>
-          Exportar
-          <i class="fa-solid fa-chevron-down"></i>
-        </button>
-        <div class="export-menu" *ngIf="exportMenuAbierto">
-          <button type="button" (click)="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
-          <button type="button" (click)="exportarPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
-        </div>
-      </div>
     </header>
 
     <div class="consulta-card-body" #zonaMensajes>
@@ -133,6 +122,17 @@
               <i class="fa-solid fa-magnifying-glass"></i>
               Buscar
             </button>
+            <div class="export-wrapper" *ngIf="showTable() && transacciones().length > 0">
+              <button class="btn btn-primary" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
+                <i class="fa-solid fa-download"></i>
+                Exportar
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+              <div class="export-menu" *ngIf="exportMenuAbierto">
+                <button type="button" (click)="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                <button type="button" (click)="exportarPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+              </div>
+            </div>
           </div>
         </form>
       </section>
