@@ -155,7 +155,7 @@
               [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes"
               [archivosInvalidos]="archivosInvalidos"
-              [mostrarMesaDigital]="mostrarMesaDigitalProspecto"
+              [mostrarMesaDigital]="true"
               [resultadoSiprelad]="resultadoSiprelad"
               [resultadosSiprelad]="resultadosSiprelad"
               [observacionesCliente]="observacionesClienteMesaDigital"
@@ -163,7 +163,7 @@
               [emailNotificacion]="emailNotificacionMesaDigital"
               [enviandoNotificacion]="enviandoNotificacionMesaDigital"
               [guardandoBorrador]="guardandoRevisionDocumentos"
-              [deshabilitarFinalizar]="registrandoCliente"
+              [deshabilitarFinalizar]="registrandoCliente || (mostrarRegistrarClienteDocumentos && !mostrarMesaDigitalProspecto)"
               [mensajeNotificacion]="mensajeObservacionesCliente"
               [textoFinalizar]="textoFinalizarDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
@@ -184,8 +184,7 @@
             <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
             {{ mensajeRegistroCliente }}
           </p>
-          <button class="button ghost" type="button" (click)="volver()"><i class="fa-solid fa-xmark"></i> Cerrar</button>
-          <button *ngIf="esEdicionCaja" class="button primary" type="button" [disabled]="registrandoCliente" (click)="registrarClienteProspecto()">
+          <button *ngIf="mostrarRegistrarClienteDocumentos" class="button primary" type="button" [disabled]="registrandoCliente || !mostrarMesaDigitalProspecto" (click)="registrarClienteProspecto()">
             {{ registrandoCliente ? 'Registrando...' : 'Registrar Cliente' }} <i class="fa-solid" [ngClass]="registrandoCliente ? 'fa-spinner fa-spin' : 'fa-check'"></i>
           </button>
           <button *ngIf="!esNodoExistente" class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
@@ -193,6 +192,19 @@
       </section>
     </div>
   </article>
+</div>
+
+<div class="registro-modal-backdrop" *ngIf="modalRegistro.visible">
+  <section class="registro-modal" role="dialog" aria-modal="true">
+    <div class="registro-modal-body">
+      <i class="far registro-modal-icon" [ngClass]="modalRegistro.tipo === 'error' ? 'fa-times-circle error' : 'fa-check-circle'" aria-hidden="true"></i>
+      <h2>{{ modalRegistro.titulo }}</h2>
+      <p>{{ modalRegistro.mensaje }}</p>
+    </div>
+    <footer class="registro-modal-footer">
+      <button type="button" class="button primary registro-modal-ok" (click)="cerrarModalRegistro()" autofocus>OK</button>
+    </footer>
+  </section>
 </div>
 
 <ng-template #treeTemplate let-nodos="nodos" let-nivel="nivel">

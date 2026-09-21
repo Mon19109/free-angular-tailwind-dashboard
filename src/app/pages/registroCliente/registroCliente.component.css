@@ -895,6 +895,80 @@
   color: #fca5a5;
 }
 
+.registro-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.registro-modal {
+  width: min(100%, 430px);
+  overflow: hidden;
+  border: 1px solid rgba(241, 178, 61, 0.28);
+  border-radius: 18px;
+  color: #f8fafc;
+  background: linear-gradient(180deg, #101824, #0a111b);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  animation: registroModalIn 160ms ease-out;
+}
+
+.registro-modal-body {
+  padding: 32px 28px 26px;
+  text-align: center;
+}
+
+.registro-modal-icon {
+  display: block;
+  margin-bottom: 16px;
+  color: #22a06b;
+  font-size: 58px;
+}
+
+.registro-modal-icon.error {
+  color: #ef4444;
+}
+
+.registro-modal-body h2 {
+  margin-bottom: 10px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.registro-modal-body p {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.72);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.registro-modal-footer {
+  display: flex;
+  justify-content: center;
+  padding: 14px 20px;
+  border-top: 1px solid rgba(241, 178, 61, 0.18);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.registro-modal-ok {
+  min-width: 120px;
+}
+
+@keyframes registroModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .button {
   min-height: 46px;
   display: inline-flex;

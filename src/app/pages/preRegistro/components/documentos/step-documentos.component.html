@@ -191,9 +191,7 @@
   </div>
 }
 
-<div class="step-actions">
+<div class="step-actions" *ngIf="!mostrarMesaDigital">
   <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
-  @if (!mostrarMesaDigital) {
-    <button type="button" class="button primary" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
-  }
+  <button type="button" class="button primary" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
 </div>

@@ -120,6 +120,12 @@ export class RegistroClienteComponent {
   errorDocumentosProspecto = '';
   mensajeObservacionesCliente = '';
   mensajeRegistroCliente = '';
+  modalRegistro = {
+    visible: false,
+    tipo: 'success' as 'success' | 'error',
+    titulo: '',
+    mensaje: ''
+  };
   observacionesClienteMesaDigital = '';
   observacionesInternasMesaDigital = '';
   emailNotificacionMesaDigital = '';
@@ -1453,7 +1459,7 @@ export class RegistroClienteComponent {
   }
 
   get mostrarRegistrarClienteDocumentos(): boolean {
-    return this.esEdicionCaja;
+    return !!this.nodeIDEdicion;
   }
 
   get textoFinalizarDocumentos(): string {
@@ -1468,9 +1474,13 @@ export class RegistroClienteComponent {
   registrarClienteProspecto(): void {
     this.mensajeRegistroCliente = '';
     if (this.registrandoCliente) return;
+    if (!this.mostrarMesaDigitalProspecto) {
+      this.mostrarModalRegistro('error', 'Acción no disponible', 'Solo los prospectos pueden registrarse como cliente desde Mesa Digital.');
+      return;
+    }
     const commerceGuid = this.commerceGuidPadreNodoSeleccionado();
     if (!commerceGuid) {
-      this.mensajeRegistroCliente = 'No se encontró el commerceGuid del nodo padre.';
+      this.mostrarModalRegistro('error', 'No fue posible registrar', 'No se encontró el commerceGuid del nodo padre.');
       return;
     }
 
@@ -1480,27 +1490,35 @@ export class RegistroClienteComponent {
       next: nivelPendiente => {
         if (nivelPendiente) {
           this.registrandoCliente = false;
-          this.mensajeRegistroCliente = `Falta validar documentos en ${nivelPendiente}. Todos deben estar aprobados.`;
+          this.mostrarModalRegistro('error', 'Documentos pendientes', `Falta validar documentos en ${nivelPendiente}. Todos deben estar aprobados.`);
           return;
         }
 
         this.activarProspectoService.activarProspecto(commerceGuid).subscribe({
           next: () => {
             this.registrandoCliente = false;
-            this.mensajeObservacionesCliente = 'Cliente registrado correctamente.';
+            this.mostrarModalRegistro('success', 'Operación exitosa', 'Cliente registrado correctamente.');
             this.seleccionarSiguienteNodoArbol();
           },
           error: error => {
             this.registrandoCliente = false;
-            this.mensajeRegistroCliente = this.obtenerMensajeErrorActivacion(error);
+            this.mostrarModalRegistro('error', 'No fue posible registrar', this.obtenerMensajeErrorActivacion(error));
           }
         });
       },
       error: () => {
         this.registrandoCliente = false;
-        this.mensajeRegistroCliente = 'No fue posible validar los documentos antes del registro.';
+        this.mostrarModalRegistro('error', 'No fue posible registrar', 'No fue posible validar los documentos antes del registro.');
       }
     });
+  }
+
+  cerrarModalRegistro(): void {
+    this.modalRegistro.visible = false;
+  }
+
+  private mostrarModalRegistro(tipo: 'success' | 'error', titulo: string, mensaje: string): void {
+    this.modalRegistro = { visible: true, tipo, titulo, mensaje };
   }
 
   private obtenerMensajeErrorActivacion(error: unknown): string {
@@ -1669,17 +1687,17 @@ export class RegistroClienteComponent {
     this.mensajeObservacionesCliente = '';
 
     if (!email) {
-      this.mensajeObservacionesCliente = 'Captura el email del cliente.';
+      this.mostrarModalRegistro('error', 'Datos incompletos', 'Captura el email del cliente.');
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      this.mensajeObservacionesCliente = 'Captura un email válido.';
+      this.mostrarModalRegistro('error', 'Email inválido', 'Captura un email válido.');
       return;
     }
 
     if (!observations) {
-      this.mensajeObservacionesCliente = 'Captura las observaciones para el cliente.';
+      this.mostrarModalRegistro('error', 'Datos incompletos', 'Captura las observaciones para el cliente.');
       return;
     }
 
@@ -1689,11 +1707,11 @@ export class RegistroClienteComponent {
         this.enviandoNotificacionMesaDigital = false;
         this.observacionesClienteMesaDigital = '';
         this.emailNotificacionMesaDigital = '';
-        this.mensajeObservacionesCliente = 'Notificación enviada correctamente.';
+        this.mostrarModalRegistro('success', 'Operación exitosa', 'Notificación enviada correctamente.');
       },
       error: () => {
         this.enviandoNotificacionMesaDigital = false;
-        this.mensajeObservacionesCliente = 'No fue posible enviar la notificación.';
+        this.mostrarModalRegistro('error', 'No fue posible enviar', 'No fue posible enviar la notificación.');
       }
     });
   }
@@ -1720,7 +1738,7 @@ export class RegistroClienteComponent {
       next: () => {
         this.guardandoRevisionDocumentos = false;
         if (!finalizarDespues) {
-          this.mensajeObservacionesCliente = 'Borrador guardado correctamente.';
+          this.mostrarModalRegistro('success', 'Operación exitosa', 'Borrador guardado correctamente.');
           return;
         }
 
@@ -1734,7 +1752,7 @@ export class RegistroClienteComponent {
       error: () => {
         this.guardandoRevisionDocumentos = false;
         this.errorDocumentosProspecto = 'No fue posible guardar la revisión de documentos.';
-        this.mensajeObservacionesCliente = 'No fue posible guardar el borrador.';
+        this.mostrarModalRegistro('error', 'No fue posible guardar', 'No fue posible guardar el borrador.');
       }
     });
   }
