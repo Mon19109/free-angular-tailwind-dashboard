@@ -62,7 +62,7 @@ export class DocumentosProspectoService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.api.kashpay}api/merchantReviewPanel/documents/`;
   private readonly revisionUrl = `${environment.api.kashpay}api/merchantReviewPanel/merchant-documents`;
-  private readonly observacionesUrl = `${environment.api.kashpay}api/commerce/sendObservations`;
+  private readonly observacionesUrl = `${environment.api.kashpay}api/v1/commerce/sendObservations`;
   private readonly mostrarArchivoUrl = `${environment.api.documents}showFile`;
 
   consultarDocumentos(commerceID: string, bearerToken?: string): Observable<DocumentosProspectoResponse> {

@@ -29,6 +29,7 @@ interface Comercio {
   estatus: EstatusComercio;
   statusOriginal?: string;
   cajaPinRapido?: boolean;
+  typeOfBusiness?: number;
   password?: string;
   tieneInferiores?: boolean;
   cuentaLiquidacion?: boolean;
@@ -300,6 +301,7 @@ export class ConsultaComerciosComponent {
         estatus,
         statusOriginal: String(comercio.status || comercio['Status'] || comercio['STATUS'] || ''),
         cajaPinRapido: nivel === 'Caja' && comercio.idBusinessModel === 3,
+        typeOfBusiness: this.numeroComercio(comercio.typeOfBusiness ?? comercio['typeOfBusiness']),
         tieneInferiores: nivel !== 'Caja',
         pldID: this.pldIdDesdeComercioApi(comercio),
       };
@@ -529,11 +531,15 @@ export class ConsultaComerciosComponent {
     }
 
     if (accion === 'password') {
+      if (!this.puedeConsultarPassword(comercio)) return;
       this.modalPassword = comercio;
       this.mostrarPassword = false;
       this.consultarPasswordCaja(comercio);
       return;
     }
+
+    if (accion === 'inactivar' && !this.puedeInactivar(comercio)) return;
+    if (accion === 'baja' && !this.puedeDarBaja()) return;
 
     this.modalConfirmacion = { tipo: accion, comercio };
   }
@@ -675,8 +681,26 @@ export class ConsultaComerciosComponent {
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@!%*?&]).{12,}$/.test(this.nuevaPassword);
   }
 
+  tieneAccionesDisponibles(comercio: Comercio): boolean {
+    return this.puedeEditarInformacion
+      || this.puedeInactivar(comercio)
+      || this.puedeDarBaja()
+      || this.puedeConsultarPassword(comercio);
+  }
+
+  puedeInactivar(comercio: Comercio): boolean {
+    const idRolSesion = this.obtenerIdRolSesion();
+    const idRolComercio = this.idRolPorNivel(comercio.nivel);
+
+    return !!idRolComercio && idRolComercio > idRolSesion;
+  }
+
+  puedeDarBaja(): boolean {
+    return this.obtenerIdRolSesion() === 2;
+  }
+
   puedeConsultarPassword(comercio: Comercio): boolean {
-    return comercio.nivel === 'Caja';
+    return comercio.nivel === 'Caja' && comercio.typeOfBusiness === 13;
   }
 
   get puedeEditarInformacion(): boolean {
@@ -700,6 +724,23 @@ export class ConsultaComerciosComponent {
     } catch {
       return Number(localStorage.getItem('idRol') || 0);
     }
+  }
+
+  private idRolPorNivel(nivel: Comercio['nivel']): number {
+    const niveles: Record<Comercio['nivel'], number> = {
+      'Sub Afiliado': 3,
+      'Entidad': 4,
+      'Sucursal': 5,
+      'Caja': 6,
+      'Prospecto': 0
+    };
+
+    return niveles[nivel] ?? 0;
+  }
+
+  private numeroComercio(valor: unknown): number | undefined {
+    const numero = Number(valor);
+    return Number.isFinite(numero) ? numero : undefined;
   }
 
   exportarExcel(): void {
