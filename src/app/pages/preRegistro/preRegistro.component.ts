@@ -110,6 +110,7 @@ export class PreRegistroComponent {
   private readonly validarAfiliacionService = inject(ValidarAfiliacionService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
   private readonly payloadKey = 'kashpay.preregistro.payload.v1';
+  private readonly entidadFederativaNoIdentificada = 'No es Identificada';
 
   // ── Estado UI ────────────────────────────────────────────────────────────────
   pasoActual: PasoWizard = 0;
@@ -1161,19 +1162,23 @@ export class PreRegistroComponent {
         if (addressType === 'DF') this.cargandoLocalidadesFiscal = false;
         if (addressType === 'DC') this.cargandoLocalidadesComercial = false;
         if (addressType === 'REP') this.cargandoLocalidadesRepresentante = false;
+        this.marcarEntidadFederativaNoIdentificada(addressType);
       }
     });
   }
 
   private precargarLocalidadPorCodigoPostal(localidad: CodigoPostalLocalizacion | undefined, addressType: 'DF' | 'DC' | 'REP'): void {
-    if (!localidad) return;
+    if (!localidad) {
+      this.marcarEntidadFederativaNoIdentificada(addressType);
+      return;
+    }
 
     if (addressType === 'DF') {
       this.datosForm.patchValue({
         colonia: '',
         localidad: localidad.municipio || '',
         municipio: localidad.municipio || '',
-        entidadFederativa: localidad.estado || '',
+        entidadFederativa: this.entidadFederativaDesdeLocalidad(localidad),
         locationID: '',
       }, { emitEvent: false });
       return;
@@ -1183,7 +1188,7 @@ export class PreRegistroComponent {
       this.datosForm.patchValue({
         coloniaRepresentante: '',
         municipioRepresentante: localidad.municipio || '',
-        estadoRepresentante: localidad.estado || '',
+        estadoRepresentante: this.entidadFederativaDesdeLocalidad(localidad),
         locationIDRepresentante: '',
       }, { emitEvent: false });
       return;
@@ -1193,9 +1198,25 @@ export class PreRegistroComponent {
       coloniaComercial: '',
       localidadComercial: localidad.municipio || '',
       municipioComercial: localidad.municipio || '',
-      entidadFederativaComercial: localidad.estado || '',
+      entidadFederativaComercial: this.entidadFederativaDesdeLocalidad(localidad),
       locationIDComercial: '',
     }, { emitEvent: false });
+  }
+
+  private marcarEntidadFederativaNoIdentificada(addressType: 'DF' | 'DC' | 'REP'): void {
+    if (addressType === 'DF') {
+      this.datosForm.patchValue({ entidadFederativa: this.entidadFederativaNoIdentificada }, { emitEvent: false });
+      return;
+    }
+
+    if (addressType === 'DC') {
+      this.datosForm.patchValue({ entidadFederativaComercial: this.entidadFederativaNoIdentificada }, { emitEvent: false });
+    }
+  }
+
+  private entidadFederativaDesdeLocalidad(localidad: CodigoPostalLocalizacion): string {
+    const estado = `${localidad.estado ?? localidad.federativeEntity ?? ''}`.trim();
+    return estado && !/no es encontrad[ao]/i.test(estado) ? estado : this.entidadFederativaNoIdentificada;
   }
 
   seleccionarLocalidad(idLocalidad: string, addressType: 'DF' | 'DC' | 'REP'): void {
@@ -1212,7 +1233,7 @@ export class PreRegistroComponent {
         colonia: localidad.colonia || '',
         localidad: localidad.colonia || '',
         municipio: localidad.municipio || '',
-        entidadFederativa: localidad.estado || '',
+        entidadFederativa: this.entidadFederativaDesdeLocalidad(localidad),
         locationID: localidad.idLocalidad || '',
       });
       return;
@@ -1222,7 +1243,7 @@ export class PreRegistroComponent {
       this.datosForm.patchValue({
         coloniaRepresentante: localidad.colonia || '',
         municipioRepresentante: localidad.municipio || '',
-        estadoRepresentante: localidad.estado || '',
+        estadoRepresentante: this.entidadFederativaDesdeLocalidad(localidad),
         locationIDRepresentante: localidad.idLocalidad || '',
       });
       return;
@@ -1232,7 +1253,7 @@ export class PreRegistroComponent {
       coloniaComercial: localidad.colonia || '',
       localidadComercial: localidad.colonia || '',
       municipioComercial: localidad.municipio || '',
-      entidadFederativaComercial: localidad.estado || '',
+      entidadFederativaComercial: this.entidadFederativaDesdeLocalidad(localidad),
       locationIDComercial: localidad.idLocalidad || '',
     });
   }

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize, Subscription } from 'rxjs';
+import { finalize, Subscription, timeout } from 'rxjs';
 import { ReporteArchivo, ReportesService } from '../../services/reportes.service';
 
 type TipoCuentaReporte = 'EMISION' | 'ADQUIRENTE';
@@ -34,6 +34,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   private saldoSubscription?: Subscription;
   private reporteSubscription?: Subscription;
   private readonly assetBaseUrl = `${window.location.origin}/`;
+  private readonly reporteTimeoutMs = 90000;
 
   private readonly reportesFijos: ReporteDisponible[] = [
     {
@@ -253,16 +254,17 @@ export class ReportesComponent implements OnInit, OnDestroy {
     }
 
     this.abriendoReporte = reporte.id;
+    const ventanaReporte = reporte.id === 'ESTADO_EXCEL' ? null : window.open('', '_blank');
 
     if (reporte.origen === 'dinamico') {
-      this.verReporteDinamico(reporte);
+      this.verReporteDinamico(reporte, ventanaReporte);
       return;
     }
 
-    this.verReporteFijo(reporte);
+    this.verReporteFijo(reporte, ventanaReporte);
   }
 
-  private verReporteDinamico(reporte: ReporteDisponible): void {
+  private verReporteDinamico(reporte: ReporteDisponible, ventanaReporte: Window | null): void {
     this.reporteSubscription = this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), reporte.folder || reporte.id)
       .pipe(finalize(() => this.abriendoReporte = ''))
       .subscribe({
@@ -270,19 +272,21 @@ export class ReportesComponent implements OnInit, OnDestroy {
           const archivo = this.extraerRows(respuesta).find(item => !!item.url);
 
           if (archivo?.url) {
-            window.open(archivo.url, '_blank');
+            this.abrirUrlReporte(archivo.url, ventanaReporte);
             return;
           }
 
+          ventanaReporte?.close();
           this.mensaje = `No se encontró archivo para "${reporte.titulo}".`;
         },
         error: () => {
+          ventanaReporte?.close();
           this.mensaje = `No fue posible abrir "${reporte.titulo}".`;
         }
       });
   }
 
-  private verReporteFijo(reporte: ReporteDisponible): void {
+  private verReporteFijo(reporte: ReporteDisponible, ventanaReporte: Window | null): void {
     const cuenta = this.cuentaSeleccionada;
     const clabe = this.clabe;
     const request$ = reporte.id === 'ESTADO_PDF'
@@ -296,19 +300,26 @@ export class ReportesComponent implements OnInit, OnDestroy {
             : this.reportesService.obtenerTransaccionesSplit(this.periodoSeleccionado, cuenta);
 
     this.reporteSubscription = request$
-      .pipe(finalize(() => this.abriendoReporte = ''))
+      .pipe(
+        timeout(this.reporteTimeoutMs),
+        finalize(() => this.abriendoReporte = '')
+      )
       .subscribe({
-        next: respuesta => this.descargarRespuestaReporte(respuesta, reporte),
-        error: () => {
-          this.mensaje = `No fue posible generar "${reporte.titulo}".`;
+        next: respuesta => this.descargarRespuestaReporte(respuesta, reporte, ventanaReporte),
+        error: error => {
+          ventanaReporte?.close();
+          this.mensaje = error?.name === 'TimeoutError'
+            ? `El servicio tardó demasiado en generar "${reporte.titulo}". Intenta de nuevo o selecciona otro periodo.`
+            : `No fue posible generar "${reporte.titulo}".`;
         }
       });
   }
 
-  private descargarRespuestaReporte(respuesta: any, reporte: ReporteDisponible): void {
-    const base64 = respuesta?.reportFile?.base64 || respuesta?.rows?.reportFile?.base64;
+  private descargarRespuestaReporte(respuesta: any, reporte: ReporteDisponible, ventanaReporte: Window | null): void {
+    const base64 = this.extraerBase64Reporte(respuesta);
 
     if (!base64) {
+      ventanaReporte?.close();
       this.mensaje = `El servicio no regresó archivo para "${reporte.titulo}".`;
       return;
     }
@@ -321,7 +332,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
 
     if (extension === 'pdf') {
-      window.open(url, '_blank');
+      this.abrirUrlReporte(url, ventanaReporte);
     } else {
       const link = document.createElement('a');
       link.href = url;
@@ -330,6 +341,35 @@ export class ReportesComponent implements OnInit, OnDestroy {
     }
 
     setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
+  private abrirUrlReporte(url: string, ventanaReporte: Window | null): void {
+    if (ventanaReporte && !ventanaReporte.closed) {
+      ventanaReporte.location.href = url;
+      return;
+    }
+
+    window.open(url, '_blank');
+  }
+
+  private extraerBase64Reporte(respuesta: any): string {
+    const posiblesValores = [
+      respuesta?.reportFile?.base64,
+      respuesta?.rows?.reportFile?.base64,
+      respuesta?.data?.reportFile?.base64,
+      respuesta?.base64,
+      respuesta?.rows?.base64,
+      respuesta?.data?.base64,
+      respuesta?.file,
+      respuesta?.rows?.file,
+      respuesta?.data?.file,
+      respuesta?.reportFile,
+      respuesta?.rows?.reportFile,
+      respuesta?.data?.reportFile,
+    ];
+
+    const valor = posiblesValores.find(item => typeof item === 'string' && item.trim());
+    return typeof valor === 'string' ? valor.trim() : '';
   }
 
   private extraerRows(respuesta: any): ReporteArchivo[] {
