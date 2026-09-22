@@ -187,6 +187,9 @@
           <button *ngIf="mostrarRegistrarClienteDocumentos" class="button primary" type="button" [disabled]="registrandoCliente" (click)="registrarClienteProspecto()">
             {{ registrandoCliente ? 'Registrando...' : 'Registrar Cliente' }} <i class="fa-solid" [ngClass]="registrandoCliente ? 'fa-spinner fa-spin' : 'fa-check'"></i>
           </button>
+          <button *ngIf="nodeIDEdicion && !esUltimoNodoSeleccionado" class="button primary" type="button" (click)="seleccionarSiguienteNodoArbol()">
+            Siguiente <i class="fa-solid fa-arrow-right"></i>
+          </button>
           <button *ngIf="!esNodoExistente" class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
         </footer>
       </section>

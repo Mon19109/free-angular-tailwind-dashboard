@@ -496,7 +496,7 @@ html.dark app-header > .app-page-title-bar span:last-child {
 }
 
 @utility menu-item-inactive {
-  @apply text-gray-700 hover:bg-gray-100 group-hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300;
+  @apply text-white hover:bg-white/10 group-hover:text-white;
 }
 
 @utility menu-item-icon {
@@ -514,7 +514,7 @@ html.dark app-header > .app-page-title-bar span:last-child {
 }
 
 @utility menu-item-icon-inactive {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
+  @apply text-white group-hover:text-white;
 }
 
 @utility menu-item-arrow {
@@ -526,7 +526,7 @@ html.dark app-header > .app-page-title-bar span:last-child {
 }
 
 @utility menu-item-arrow-inactive {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
+  @apply text-white group-hover:text-white;
 }
 
 @utility menu-dropdown-item {
@@ -537,7 +537,7 @@ html.dark app-header > .app-page-title-bar span:last-child {
 }
 
 @utility menu-dropdown-item-inactive {
-  @apply text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5;
+  @apply text-white hover:bg-white/10;
 }
 
 @utility menu-dropdown-badge {
@@ -1676,7 +1676,26 @@ pre[class*="language-"].line-numbers {
 
 @layer utilities {
   .menu-item-inactive {
-    color: var(--app-text-muted);
+    color: #ffffff;
+  }
+
+  .menu-item-inactive:hover,
+  .menu-item-inactive:hover .menu-item-text,
+  .menu-dropdown-item-inactive:hover {
+    color: #ffffff;
+  }
+
+  .menu-item-icon-inactive,
+  .menu-item-arrow-inactive {
+    color: #ffffff;
+  }
+
+  .menu-dropdown-item-inactive {
+    color: #ffffff;
+  }
+
+  .sidebar-section-title {
+    color: #ffffff;
   }
 }
 .sidebar-left-conten  {

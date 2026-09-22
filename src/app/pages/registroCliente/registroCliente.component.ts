@@ -1622,7 +1622,7 @@ export class RegistroClienteComponent {
     return [];
   }
 
-  private seleccionarSiguienteNodoArbol(): void {
+  seleccionarSiguienteNodoArbol(): void {
     const nodos = this.nodosPlanos(this.arbol);
     const indiceActual = nodos.findIndex(nodo => nodo.id === this.nodoSeleccionado);
     const siguiente = indiceActual >= 0 ? nodos[indiceActual + 1] : nodos[0];

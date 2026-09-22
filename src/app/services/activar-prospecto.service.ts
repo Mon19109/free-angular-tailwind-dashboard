@@ -10,7 +10,7 @@ export interface ActivarProspectoPayload {
 @Injectable({ providedIn: 'root' })
 export class ActivarProspectoService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${environment.api.kashpay}api/commerce/activateProspect`;
+  private readonly url = `${environment.api.kashpay}api/v1/commerce/activateProspect`;
 
   activarProspecto(commerceGuid: string): Observable<unknown> {
     return this.http.post(
