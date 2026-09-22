@@ -317,12 +317,36 @@
     position: absolute;
     right: 10px;
     top: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.75);
+    color: #6b7280;
+    border-radius: 5px;
+
+    svg {
+      width: 21px;
+      height: 21px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+    }
+
+    &:hover {
+      color: #374151;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #d09a49;
+      outline-offset: 2px;
+    }
   }
 }
 
