@@ -508,14 +508,13 @@ export class ConsultaComerciosComponent {
     this.accionesAbiertas = null;
 
     if (accion === 'editarInformacion') {
-      if (!this.puedeEditarInformacion) return;
-
       this.router.navigate(['/registro_cliente'], {
         queryParams: {
           id: comercio.idComercio,
           entitySonID: comercio.entitySonID || comercio.idComercio,
           nivel: comercio.nivel,
           esProspecto: this.esProspectoAdmin(comercio) ? 'true' : 'false',
+          habilitarMesaDigital: this.esAdministradorSesion() ? 'true' : 'false',
           nombre: comercio.nombreComercial,
           rfc: comercio.rfc,
           correo: comercio.correo,
@@ -682,7 +681,7 @@ export class ConsultaComerciosComponent {
   }
 
   tieneAccionesDisponibles(comercio: Comercio): boolean {
-    return this.puedeEditarInformacion
+    return true
       || this.puedeInactivar(comercio)
       || this.puedeDarBaja()
       || this.puedeConsultarPassword(comercio);
@@ -704,12 +703,15 @@ export class ConsultaComerciosComponent {
   }
 
   get puedeEditarInformacion(): boolean {
+    return true;
+  }
+
+  private esAdministradorSesion(): boolean {
     try {
       const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
-      return Number(sesion?.idRol) === 2
-        || String(sesion?.mail || '').trim().toLowerCase() === 's_monytest@gmail.com';
+      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 2;
     } catch {
-      return false;
+      return Number(localStorage.getItem('idRol') || 0) === 2;
     }
   }
 

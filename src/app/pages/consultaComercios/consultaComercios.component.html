@@ -156,7 +156,7 @@
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
               <div class="actions-menu" *ngIf="accionesAbiertas === idAcciones(comercio, indice)">
-                <button *ngIf="puedeEditarInformacion" type="button" (click)="ejecutarAccion('editarInformacion', comercio)">Editar Información</button>
+                <button type="button" (click)="ejecutarAccion('editarInformacion', comercio)">Editar Información</button>
                 <button *ngIf="puedeInactivar(comercio)" type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
                 <button *ngIf="puedeDarBaja()" type="button" (click)="ejecutarAccion('baja', comercio)">Baja</button>
                 <button *ngIf="puedeConsultarPassword(comercio)" type="button" (click)="ejecutarAccion('password', comercio)">Consulta Contraseña</button>

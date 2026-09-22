@@ -336,10 +336,12 @@ export class RegistroClienteComponent {
   nodeIDEdicion = '';
   documentosProspectoPorNodo: Record<string, DocumentoProspectoApi[]> = {};
   mostrarMesaDigitalProspecto = false;
+  habilitarMesaDigitalEdicion = false;
 
   constructor() {
     const params = this.route.snapshot.queryParamMap;
     this.mostrarMesaDigitalProspecto = params.get('esProspecto') === 'true';
+    this.habilitarMesaDigitalEdicion = params.get('habilitarMesaDigital') === 'true';
     const emailComercioServicio = this.correoParametro(params.get('email')) || this.correoParametro(params.get('correo'));
     this.comercioSeleccionado = {
       idComercio: params.get('entitySonID') || params.get('id') || '',
@@ -424,7 +426,7 @@ export class RegistroClienteComponent {
       this.seleccionarNodoPorId(this.nodoSeleccionado);
     }
     this.consultarArbolEdicion();
-    if (!this.nodeIDEdicion || this.mostrarMesaDigitalProspecto) {
+    if (!this.nodeIDEdicion || this.habilitarMesaDigitalEdicion) {
       this.consultarResultadoSiprelad();
       this.consultarDocumentosProspecto();
       this.consultarCuentaComercio();
@@ -462,6 +464,7 @@ export class RegistroClienteComponent {
       if (this.nivelSeleccionado === 'caja') return seccion.id === 'comercio';
       if (['liquidacion', 'accesos'].includes(seccion.id)) return false;
       if (seccion.id === 'datos') return this.camposDatosGenerales.length > 0;
+      if (seccion.id === 'documentos' && this.nodeIDEdicion && !this.habilitarMesaDigitalEdicion) return false;
       if (seccion.id === 'documentos') return this.mostrarSoloPasosTresCincoRegistroTemporal || this.documentosVisibles.length > 0;
       return true;
     });
@@ -1459,7 +1462,7 @@ export class RegistroClienteComponent {
   }
 
   get mostrarRegistrarClienteDocumentos(): boolean {
-    return this.mostrarMesaDigitalProspecto && this.esUltimoNodoSeleccionado;
+    return this.habilitarMesaDigitalEdicion && this.mostrarMesaDigitalProspecto && this.esUltimoNodoSeleccionado;
   }
 
   get esUltimoNodoSeleccionado(): boolean {
