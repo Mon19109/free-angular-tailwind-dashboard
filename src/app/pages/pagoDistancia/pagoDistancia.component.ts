@@ -1,6 +1,4 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
-//borra e lde arriba
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
@@ -13,8 +11,7 @@ import { LabelComponent } from '../../shared/components/form/label/label.compone
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
-  //quita routerlink
-  imports: [CommonModule, ReactiveFormsModule, LabelComponent,RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, LabelComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 }) 
