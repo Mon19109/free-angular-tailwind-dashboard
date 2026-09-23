@@ -28,6 +28,9 @@ export class PagarLinkPagoComponent implements OnInit {
     ccv: ['', [Validators.required, Validators.pattern(/^\d{3}$/)]],
     pais: ['Mexico', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
     cp: ['', [Validators.required, Validators.pattern(/^\d{1,5}$/)]],
+    address: [''],
+    ciudad: [''],
+    estado: [''],
     meses: [0],
     propinaPorcentaje: [0],
     propina: [{ value: 0, disabled: true }],
@@ -47,6 +50,12 @@ export class PagarLinkPagoComponent implements OnInit {
   enviandoPago = false;
   mensajePago = '';
   errorPago = '';
+  tarjetasGuardadas: Array<{ token: string; etiqueta: string }> = [];
+  tarjetaSeleccionada = 'nueva';
+  cargandoTarjetas = false;
+  mensajeTarjetas = '';
+  private merchantId = '';
+  private detalleTarjeta: any = null;
   private ultimoBinValidado = '';
   private temporizadorMonto?: ReturnType<typeof setTimeout>;
 
@@ -65,6 +74,7 @@ export class PagarLinkPagoComponent implements OnInit {
         this.mostrarResumen = false;
         this.formulario.controls.terminos.setValue(false);
         this.formulario.patchValue({ amountPending: this.orden?.amountPending ?? this.orden?.amount ?? '' });
+        if (this.permiteTarjetasGuardadas) this.cargarTarjetas();
         if (!this.orden) this.mensajeError = 'No se encontro informacion para el link solicitado.';
       },
       error: error => {
@@ -110,6 +120,73 @@ export class PagarLinkPagoComponent implements OnInit {
 
   get esPagoMixto(): boolean { return Number(this.orden?.paymentMethod?.paymentMethodID) === 6; }
 
+  get permiteTarjetasGuardadas(): boolean {
+    const cliente = this.orden?.customerInfo;
+    return cliente != null && Object.prototype.hasOwnProperty.call(cliente, 'clientIdentifier')
+      && Object.prototype.hasOwnProperty.call(cliente, 'registerClient');
+  }
+
+  get usaTarjetaGuardada(): boolean {
+    return this.permiteTarjetasGuardadas && this.tarjetaSeleccionada !== 'nueva';
+  }
+
+  seleccionarTarjeta(event: Event): void {
+    this.tarjetaSeleccionada = (event.target as HTMLSelectElement).value;
+    this.detalleTarjeta = null;
+    this.mensajeTarjetas = '';
+    this.mostrarOpcionesPago = false;
+    this.mostrarResumen = false;
+    const campos = ['nameCard', 'numCard', 'vencimiento', 'pais', 'cp', 'address', 'ciudad', 'estado'] as const;
+    for (const campo of campos) {
+      const control = this.formulario.controls[campo];
+      if (this.usaTarjetaGuardada) control.disable({ emitEvent: false });
+      else control.enable({ emitEvent: false });
+    }
+    this.formulario.controls.ccv.reset('');
+    this.msiDisponibles = [];
+    this.ultimoBinValidado = '';
+    if (this.usaTarjetaGuardada) {
+      this.pagarLinkPagoService.obtenerDetalleTarjeta(this.merchantId, this.tarjetaSeleccionada).subscribe({
+        next: response => {
+          const detalle = response?.rows ?? response?.data ?? response;
+          this.detalleTarjeta = detalle;
+          this.actualizarValidacionCvv();
+          const numero = detalle?.paymentInformation?.card?.number ?? detalle?.card?.number ?? detalle?.maskedPan;
+          const tarjeta = this.tarjetasGuardadas.find(item => item.token === this.tarjetaSeleccionada);
+          if (tarjeta && numero) tarjeta.etiqueta = `Tarjeta **** ${String(numero).slice(-4)}`;
+        },
+        error: () => { this.mensajeTarjetas = 'No fue posible consultar el detalle de la tarjeta.'; }
+      });
+    }
+  }
+
+  private cargarTarjetas(): void {
+    const identificador = String(this.orden.customerInfo.clientIdentifier ?? '');
+    if (!identificador) return;
+    this.cargandoTarjetas = true;
+    this.pagarLinkPagoService.obtenerCliente(identificador).subscribe({
+      next: response => {
+        const cliente = response?.rows ?? response?.data ?? response;
+        this.merchantId = String(cliente?.merchanID ?? cliente?.merchantID ?? cliente?.merchantId ?? identificador);
+        this.pagarLinkPagoService.obtenerTarjetas(this.merchantId).subscribe({
+          next: resultado => {
+            const datos = resultado?.rows ?? resultado?.data ?? resultado;
+            const lista = Array.isArray(datos) ? datos : datos?.tokens ?? datos?.cards ?? [];
+            this.tarjetasGuardadas = lista.map((item: any) => ({
+              token: String(item?.cardToken ?? item?.token ?? ''),
+              etiqueta: item?.maskedPan || item?.maskedNumber || item?.lastFour || item?.last4
+                ? `Tarjeta **** ${String(item?.maskedPan ?? item?.maskedNumber ?? item?.lastFour ?? item?.last4).slice(-4)}`
+                : 'Tarjeta guardada'
+            })).filter((item: { token: string }) => item.token);
+            this.cargandoTarjetas = false;
+          },
+          error: () => { this.cargandoTarjetas = false; this.mensajeTarjetas = 'No fue posible cargar las tarjetas guardadas.'; }
+        });
+      },
+      error: () => { this.cargandoTarjetas = false; this.mensajeTarjetas = 'No fue posible consultar el cliente.'; }
+    });
+  }
+
   get permitePropina(): boolean {
     const valor = this.orden?.tip;
     return valor === true || valor === 1 || valor === '1' || valor === 'true';
@@ -138,11 +215,16 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   get tarjetaOculta(): string {
+    if (this.usaTarjetaGuardada) return this.tarjetasGuardadas.find(item => item.token === this.tarjetaSeleccionada)?.etiqueta ?? 'Tarjeta guardada';
     const numero = (this.formulario.controls.numCard.value || '').replace(/\s/g, '');
     return numero ? `**** **** **** ${numero.slice(-4)}` : 'ND';
   }
 
   get longitudCvv(): number {
+    if (this.usaTarjetaGuardada) {
+      const marca = String(this.detalleTarjeta?.card?.brand ?? this.detalleTarjeta?.brand ?? '').toLowerCase();
+      return marca.includes('amex') || marca.includes('american express') ? 4 : 3;
+    }
     const numeroTarjeta = String(this.formulario.controls.numCard.value || '').replace(/\D/g, '');
     return numeroTarjeta.startsWith('3') ? 4 : 3;
   }
@@ -162,7 +244,7 @@ export class PagarLinkPagoComponent implements OnInit {
 
   continuar(): void {
     if (!this.mostrarOpcionesPago) {
-      const camposTarjeta = [
+      const camposTarjeta = this.usaTarjetaGuardada ? [this.formulario.controls.ccv] : [
         this.formulario.controls.nameCard,
         this.formulario.controls.numCard,
         this.formulario.controls.vencimiento,
@@ -170,6 +252,14 @@ export class PagarLinkPagoComponent implements OnInit {
         this.formulario.controls.pais,
         this.formulario.controls.cp
       ];
+      if (this.permiteTarjetasGuardadas && !this.usaTarjetaGuardada) {
+        for (const campo of ['address', 'ciudad', 'estado'] as const) {
+          const control = this.formulario.controls[campo];
+          control.setValidators(Validators.required);
+          control.updateValueAndValidity({ emitEvent: false });
+          camposTarjeta.push(control);
+        }
+      }
       camposTarjeta.forEach(control => control.markAsTouched());
       if (camposTarjeta.some(control => control.invalid)) return;
       if (this.permiteMsi && !Number(this.formulario.controls.meses.value)) {
@@ -188,8 +278,11 @@ export class PagarLinkPagoComponent implements OnInit {
     if (this.formulario.invalid || this.enviandoPago) return;
 
     const vencimiento = String(this.formulario.controls.vencimiento.value || '').split('/');
-    const expirationMonth = (vencimiento[0] || '').trim();
-    const expirationYear = (vencimiento[1] || '').trim();
+    const tarjetaDetalle = this.detalleTarjeta?.paymentInformation?.card ?? this.detalleTarjeta?.card ?? {};
+    const expirationMonth = this.usaTarjetaGuardada
+      ? String(tarjetaDetalle.expirationMonth ?? '') : (vencimiento[0] || '').trim();
+    const expirationYear = this.usaTarjetaGuardada
+      ? String(tarjetaDetalle.expirationYear ?? '') : (vencimiento[1] || '').trim();
     const cliente = this.orden?.customerInfo || {};
     const payInfo = this.orden?.payInfo || {};
     const numeroTarjeta = String(this.formulario.controls.numCard.value || '').replace(/\D/g, '');
@@ -219,17 +312,18 @@ export class PagarLinkPagoComponent implements OnInit {
         middleName: cliente.middleName || '',
         email: cliente.email || '',
         phone1: cliente.phone1 || '',
-        city: cliente.city || 'Ciudad Juarez',
-        address1: cliente.address1 || 'Calle 20 123',
+        city: this.formulario.controls.ciudad.value || cliente.city || 'Ciudad Juarez',
+        address1: this.formulario.controls.address.value || cliente.address1 || 'Calle 20 123',
         postalCode: this.formulario.controls.cp.value || '',
-        state: cliente.state || 'Estado de Mexico',
+        state: this.formulario.controls.estado.value || cliente.state || 'Estado de Mexico',
         country: this.formulario.controls.pais.value || '',
         ip: cliente.ip || 'UNKNOWN'
       },
       cardData: {
-        cardNumber: numeroTarjeta,
+        cardNumber: this.usaTarjetaGuardada ? '' : numeroTarjeta,
+        ...(this.usaTarjetaGuardada ? { cardToken: this.tarjetaSeleccionada } : {}),
         cvv: this.formulario.controls.ccv.value || '',
-        cardholderName: this.formulario.controls.nameCard.value || '',
+        cardholderName: this.usaTarjetaGuardada ? String(tarjetaDetalle.name ?? tarjetaDetalle.cardholderName ?? '') : this.formulario.controls.nameCard.value || '',
         expirationYear,
         expirationMonth
       },
@@ -256,6 +350,21 @@ export class PagarLinkPagoComponent implements OnInit {
           return;
         }
         this.mensajePago = response?.message || response?.mensaje || 'Pago procesado correctamente.';
+        const registrar = this.orden?.customerInfo?.registerClient;
+        if (this.permiteTarjetasGuardadas && !this.usaTarjetaGuardada
+          && (registrar === true || registrar === 1 || registrar === '1' || registrar === 'true')) {
+          this.pagarLinkPagoService.agregarTarjeta({
+            firstName: cliente.firstName || '', lastName: cliente.lastName || '', email: cliente.email || '',
+            postalCode: this.formulario.controls.cp.value || '',
+            address: this.formulario.controls.address.value || cliente.address1 || '',
+            locality: this.formulario.controls.estado.value || cliente.state || '',
+            country: this.formulario.controls.pais.value || '', number: numeroTarjeta,
+            expirationMonth, expirationYear,
+            merchantCustomerID: this.merchantId || String(cliente.clientIdentifier)
+          }).subscribe({
+            error: () => { this.mensajeTarjetas = 'El pago se procesó, pero no se pudo guardar la tarjeta.'; }
+          });
+        }
       },
       error: error => {
         this.enviandoPago = false;

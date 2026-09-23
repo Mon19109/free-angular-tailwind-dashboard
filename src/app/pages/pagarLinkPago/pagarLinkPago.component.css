@@ -21,6 +21,9 @@ dl .total { margin-top: 5px; border-bottom: 0; font-size: 17px; color: #111827; 
 .campo.medio { max-width: 50%; }
 .campo label { display: block; margin-bottom: 6px; color: #344054; font-size: 13px; font-weight: 600; }
 .campo input { width: 100%; height: 44px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 0 13px; outline: none; background: #fff; }
+.campo select { width: 100%; height: 44px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 0 13px 0 43px; background: #fff url('/iconos/Pagos en portal/ic_card.png') no-repeat 10px center; background-size: 24px auto; }
+.selector-tarjeta label { color: #a77d24; }
+.instruccion-tarjeta { text-align: center; margin: 8px 0 18px; }
 .campo input:focus { border-color: #c29b46; box-shadow: 0 0 0 3px rgb(194 155 70 / 15%); }
 .campo input:disabled { cursor: not-allowed; color: #98a2b3; background: #f2f4f7; }
 .campo small { color: #c62828; display: block; margin-top: 5px; }

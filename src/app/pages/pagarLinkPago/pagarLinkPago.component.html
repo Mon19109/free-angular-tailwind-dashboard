@@ -42,19 +42,29 @@
       <img class="marcas" src="pagosDistancia/Marcas.png" alt="Tarjetas participantes">
 
       <div class="paso-formulario" *ngIf="!mostrarOpcionesPago">
+      <div class="campo selector-tarjeta" *ngIf="permiteTarjetasGuardadas">
+        <label for="tarjetaGuardada">Tarjeta Retiro</label>
+        <select id="tarjetaGuardada" [value]="tarjetaSeleccionada" (change)="seleccionarTarjeta($event)" [disabled]="cargandoTarjetas">
+          <option value="nueva">Nueva tarjeta</option>
+          <option *ngFor="let tarjeta of tarjetasGuardadas" [value]="tarjeta.token">{{ tarjeta.etiqueta }}</option>
+        </select>
+        <small *ngIf="cargandoTarjetas">Consultando tarjetas...</small>
+        <small *ngIf="mensajeTarjetas">{{ mensajeTarjetas }}</small>
+      </div>
+      <p class="instruccion-tarjeta" *ngIf="permiteTarjetasGuardadas && !usaTarjetaGuardada">Ingresa y verifica los datos de tu tarjeta</p>
       <div class="campo medio" *ngIf="esPagoMixto">
         <label for="amountPending">Ingrese el monto a pagar</label>
         <input id="amountPending" type="number" min="0.01" step="0.01" formControlName="amountPending">
       </div>
 
-      <div class="campo">
+      <div class="campo" *ngIf="!usaTarjetaGuardada">
         <label for="nameCard">Nombre del titular</label>
         <input id="nameCard" type="text" formControlName="nameCard" (input)="formatearTextoSinEspeciales($event, 'nameCard')"
           placeholder="Nombre del titular" autocomplete="cc-name">
         <small *ngIf="formulario.controls.nameCard.touched && formulario.controls.nameCard.invalid">Capture el nombre del titular.</small>
       </div>
 
-      <div class="campo">
+      <div class="campo" *ngIf="!usaTarjetaGuardada">
         <label for="numCard">Numero de tarjeta</label>
         <input id="numCard" type="text" inputmode="numeric" maxlength="19" formControlName="numCard"
           (input)="formatearNumeroTarjeta($event)" placeholder="0000 0000 0000 0000" autocomplete="cc-number">
@@ -64,7 +74,7 @@
       </div>
 
       <div class="fila-campos">
-        <div class="campo">
+        <div class="campo" *ngIf="!usaTarjetaGuardada">
           <label for="vencimiento">Vencimiento</label>
           <input id="vencimiento" type="text" inputmode="numeric" maxlength="5" formControlName="vencimiento"
             (input)="formatearVencimiento($event)" placeholder="MM/AA" autocomplete="cc-exp">
@@ -82,7 +92,7 @@
         </div>
       </div>
 
-      <div class="fila-campos">
+      <div class="fila-campos" *ngIf="!usaTarjetaGuardada">
         <div class="campo">
           <label for="pais">Pais</label>
           <input id="pais" type="text" formControlName="pais" (input)="formatearTextoSinEspeciales($event, 'pais')"
@@ -96,6 +106,26 @@
           <small *ngIf="formulario.controls.cp.touched && formulario.controls.cp.invalid">Capture el codigo postal.</small>
         </div>
       </div>
+
+      <ng-container *ngIf="permiteTarjetasGuardadas && !usaTarjetaGuardada">
+        <div class="campo">
+          <label for="address">Direccion</label>
+          <input id="address" type="text" formControlName="address" autocomplete="street-address">
+          <small *ngIf="formulario.controls.address.touched && formulario.controls.address.invalid">Capture la direccion.</small>
+        </div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="ciudad">Ciudad</label>
+            <input id="ciudad" type="text" formControlName="ciudad" autocomplete="address-level2">
+            <small *ngIf="formulario.controls.ciudad.touched && formulario.controls.ciudad.invalid">Capture la ciudad.</small>
+          </div>
+          <div class="campo">
+            <label for="estado">Estado</label>
+            <input id="estado" type="text" formControlName="estado" autocomplete="address-level1">
+            <small *ngIf="formulario.controls.estado.touched && formulario.controls.estado.invalid">Capture el estado.</small>
+          </div>
+        </div>
+      </ng-container>
 
       <button class="btn-principal" type="submit">Continuar</button>
       </div>
@@ -195,6 +225,7 @@
       </div>
       <p class="resultado-pago exito" *ngIf="mensajePago">{{ mensajePago }}</p>
       <p class="resultado-pago fallo" *ngIf="errorPago">{{ errorPago }}</p>
+      <p class="resultado-pago fallo" *ngIf="mensajePago && mensajeTarjetas">{{ mensajeTarjetas }}</p>
     </section>
   </main>
 </form>
