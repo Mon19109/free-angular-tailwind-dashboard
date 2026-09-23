@@ -1,0 +1,59 @@
+:host {
+  --reg-border-strong: rgba(241, 178, 61, 0.36);
+  --reg-text: #f6f7fb;
+  --reg-card: rgba(10, 14, 21, 0.96);
+  --reg-muted: rgba(246, 247, 251, 0.7);
+  --reg-gold-strong: #ffd56b;
+  font-family: Outfit, sans-serif;
+}
+
+:host-context(html:not(.dark)) {
+  --reg-text: var(--app-text);
+  --reg-card: rgba(255, 255, 255, 0.96);
+  --reg-muted: var(--app-text-muted);
+}
+
+* { box-sizing: border-box; }
+
+.processing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 6, 11, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.processing-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(360px, 100%);
+  padding: 28px 24px;
+  border: 1px solid var(--reg-border-strong);
+  border-radius: 18px;
+  color: var(--reg-text);
+  background: var(--reg-card);
+  text-align: center;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+}
+
+.processing-card small {
+  color: var(--reg-muted);
+}
+
+.processing-spinner {
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(241, 178, 61, 0.25);
+  border-top-color: var(--reg-gold-strong);
+  border-radius: 50%;
+  animation: registro-spin 0.8s linear infinite;
+}
+
+@keyframes registro-spin {
+  to { transform: rotate(360deg); }
+}
+

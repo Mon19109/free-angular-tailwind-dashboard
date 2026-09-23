@@ -1,3 +1,4 @@
+import { getSessionRole } from '../../services/session-role';
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, QueryList, ViewChildren, ChangeDetectorRef } from '@angular/core';
 import { SidebarService } from '../../services/sidebar.service';
@@ -22,6 +23,7 @@ type MenuAccess =
   | 'centroReportes'
   | 'usuarios'
   | 'gestionNegocio'
+  | 'agregarNivelComercio'
   | 'pagosDigitales'
   | 'gestionPagos';
 
@@ -45,7 +47,7 @@ export class AppSidebarComponent {
 
   private readonly idBusinessModel = this.getSessionNumber('idBusinessModel');
   private readonly idPerfil = this.getSessionNumber('idPerfil');
-  private readonly idRol = this.getSessionNumber('idRol');
+  private readonly idRol = getSessionRole();
 
  panelPrincipalItems: NavItem[] = [
     {
@@ -163,7 +165,8 @@ export class AppSidebarComponent {
         {
           name: 'AGREGAR NIVEL A COMERCIO EXISTENTE',
           icon: '<i class="fas fa-plus-square fa-lg"></i>',
-          path: '/agregar_nivel_comercio'
+          path: '/agregar_nivel_comercio',
+          access: 'agregarNivelComercio'
         }
       ]
     },
@@ -339,6 +342,7 @@ export class AppSidebarComponent {
 
   private hasMenuAccess(access?: MenuAccess): boolean {
     if (!access) return true;
+    if (access === 'agregarNivelComercio') return this.idRol !== 6;
 
     if (access === 'gestionPagos' && this.idRol === 6) {
       return false;

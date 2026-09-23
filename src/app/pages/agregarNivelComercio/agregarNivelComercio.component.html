@@ -1,4 +1,4 @@
-<section class="add-level-shell">
+<section #inicioRegistro class="add-level-shell" [attr.inert]="enviando ? '' : null" [attr.aria-busy]="enviando">
   <article class="registro-card">
     <header class="add-level-header">
       <span>Gestión de negocio</span>
@@ -193,7 +193,8 @@
               [documentos]="documentosVisibles"
       [documentosCargados]="documentosCargados"
       [documentosPendientes]="documentosPendientes"
-      [textoFinalizar]="'Enviar solicitud'"
+      [textoFinalizar]="enviando ? 'Enviando…' : 'Enviar solicitud'"
+      [deshabilitarFinalizar]="enviando || enviado"
       (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
       (finalizar)="finalizar()"
       (volver)="paso = 3" />
@@ -245,3 +246,8 @@
     </footer>
   </section>
 </div>
+
+<app-processing-overlay
+  *ngIf="enviando"
+  texto="Enviando solicitud..."
+  descripcion="Estamos guardando la información y los archivos. Espera un momento." />

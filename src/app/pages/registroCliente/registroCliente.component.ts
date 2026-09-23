@@ -1,3 +1,4 @@
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import {
@@ -58,6 +59,7 @@ interface SeccionRegistro {
   selector: 'app-registro-cliente',
   standalone: true,
   imports: [
+    ProcessingOverlayComponent,
     CommonModule,
     ReactiveFormsModule,
     RouterModule,

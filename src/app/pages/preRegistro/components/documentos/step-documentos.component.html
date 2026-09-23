@@ -193,5 +193,5 @@
 
 <div class="step-actions" *ngIf="!mostrarMesaDigital">
   <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
-  <button type="button" class="button primary" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
+  <button type="button" class="button primary" [disabled]="deshabilitarFinalizar" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
 </div>

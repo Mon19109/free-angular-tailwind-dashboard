@@ -1,11 +1,5 @@
 <div class="registro-shell">
-  <div class="processing-overlay" *ngIf="registrandoCliente" role="status" aria-live="polite">
-    <div class="processing-card">
-      <span class="processing-spinner" aria-hidden="true"></span>
-      <strong>Registrando cliente...</strong>
-      <small>Estamos validando la información. Espera un momento.</small>
-    </div>
-  </div>
+  <app-processing-overlay *ngIf="registrandoCliente" />
   <article class="registro-card">
     <header class="registro-card-header">
       <div>

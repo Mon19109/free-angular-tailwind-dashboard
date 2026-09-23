@@ -1,3 +1,4 @@
+import { agregarNivelComercioGuard } from './guards/agregar-nivel-comercio.guard';
 import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 import { EcommerceComponent } from './pages/dashboard2/ecommerce/ecommerce.component';
 import { ProfileComponent } from './pages/profile/profile.component';
@@ -386,7 +387,7 @@ export const routes: Routes = [
       {
         path: 'agregar_nivel_comercio',
         component: AgregarNivelComercioComponent,
-        //canActivate: [AuthGuard],
+        canActivate: [agregarNivelComercioGuard],
         title:'KASHPAY'
       },
 

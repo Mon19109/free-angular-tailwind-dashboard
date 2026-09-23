@@ -1,5 +1,7 @@
+import { getSessionRole } from '../../shared/services/session-role';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, timeout } from 'rxjs';
@@ -32,11 +34,13 @@ interface NodoComercio {
 @Component({
   selector: 'app-agregar-nivel-comercio',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, StepComercioComponent, StepDatosComponent, StepDocumentosComponent],
+  imports: [ProcessingOverlayComponent, CommonModule, FormsModule, ReactiveFormsModule, StepComercioComponent, StepDatosComponent, StepDocumentosComponent],
   templateUrl: './agregarNivelComercio.component.html',
   styleUrls: ['./agregarNivelComercio.component.css']
 })
 export class AgregarNivelComercioComponent implements OnInit {
+  @ViewChild('inicioRegistro', { static: true }) private inicioRegistro!: ElementRef<HTMLElement>;
+
   private readonly fb = inject(FormBuilder);
   private readonly consultaComerciosService = inject(ConsultaComerciosService);
   private readonly preRegistroService = inject(PreRegistroService);
@@ -47,7 +51,9 @@ export class AgregarNivelComercioComponent implements OnInit {
   private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly route = inject(ActivatedRoute);
 
+  readonly idRol = getSessionRole();
   cargando = false;
+  enviando = false;
   mensaje = '';
   modalRegistro = { visible: false, tipo: 'success' as 'success' | 'error', titulo: '', mensaje: '' };
   arbol: NodoComercio[] = [];
@@ -264,7 +270,8 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   get puedeContinuarSeleccion(): boolean {
-    return !!this.nodoSeleccionado && !!this.nivelNuevo;
+    return !!this.nodoSeleccionado && !!this.nivelNuevo
+      && this.nivelesDisponibles.includes(this.nivelNuevo);
   }
 
   get esCajaSeleccionada(): boolean {
@@ -571,6 +578,7 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   guardarCaja(): void {
+    if (this.enviando || this.enviado || !this.puedeContinuarSeleccion) return;
     const nombreControl = this.comercioForm.controls.nombreCaja;
     const tipoControl = this.comercioForm.controls.tipoComercio;
     nombreControl.markAsTouched();
@@ -587,17 +595,17 @@ export class AgregarNivelComercioComponent implements OnInit {
 
     const payload = this.construirPayloadCaja();
 
-    this.cargando = true;
+    this.enviando = true;
     this.mensaje = '';
     this.agregarNivelComercioService.crearCaja(payload).subscribe({
       next: () => {
-        this.cargando = false;
+        this.enviando = false;
         this.enviado = true;
         this.mensaje = `Caja "${nombreControl.value.trim()}" agregada correctamente a ${this.nodoSeleccionado?.nombre}.`;
         this.mostrarModalRegistro('success', this.mensaje);
       },
       error: () => {
-        this.cargando = false;
+        this.enviando = false;
         this.mensaje = 'No fue posible agregar la caja.';
         this.mostrarModalRegistro('error', this.mensaje);
       }
@@ -605,6 +613,7 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   continuarADocumentos(): void {
+    if (this.enviando || this.enviado || !this.puedeContinuarSeleccion) return;
     if (this.datosForm.invalid) {
       this.datosForm.markAllAsTouched();
       return;
@@ -618,17 +627,17 @@ export class AgregarNivelComercioComponent implements OnInit {
 
   private enviarCajaNormal(): void {
     if (!this.nodoSeleccionado) return;
-    this.cargando = true;
+    this.enviando = true;
     this.mensaje = '';
     this.agregarNivelComercioService.crearCaja(this.construirPayloadAlta()).subscribe({
       next: () => {
-        this.cargando = false;
+        this.enviando = false;
         this.enviado = true;
         this.mensaje = `Caja "${this.comercioForm.controls.nombreCaja.value.trim()}" agregada correctamente a ${this.nodoSeleccionado?.nombre}.`;
         this.mostrarModalRegistro('success', this.mensaje);
       },
       error: () => {
-        this.cargando = false;
+        this.enviando = false;
         this.mensaje = 'No fue posible agregar la caja.';
         this.mostrarModalRegistro('error', this.mensaje);
       }
@@ -774,6 +783,7 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   finalizar(): void {
+    if (this.enviando || this.enviado || !this.puedeContinuarSeleccion) return;
     if (this.documentosPendientes > 0) {
       this.mensaje = 'Carga todos los documentos obligatorios antes de finalizar.';
       return;
@@ -784,27 +794,27 @@ export class AgregarNivelComercioComponent implements OnInit {
       return;
     }
 
-    this.cargando = true;
+    this.enviando = true;
     this.mensaje = '';
     this.agregarNivelComercioService.crearPorNivel(this.nivelNuevo, this.construirPayloadAlta()).subscribe({
       next: response => {
         const documentos = this.prepararDocumentosParaSubida(response);
         this.preregistroDocumentosService.subirDocumentos(documentos).subscribe({
           next: () => {
-            this.cargando = false;
+            this.enviando = false;
             this.enviado = true;
             this.mensaje = `${this.nivelNuevo} agregado correctamente a ${this.nodoSeleccionado?.nombre}.`;
             this.mostrarModalRegistro('success', this.mensaje);
           },
           error: () => {
-            this.cargando = false;
+            this.enviando = false;
             this.mensaje = `${this.nivelNuevo} se creó, pero no fue posible subir la documentación.`;
             this.mostrarModalRegistro('error', this.mensaje);
           }
         });
       },
       error: () => {
-        this.cargando = false;
+        this.enviando = false;
         this.mensaje = `No fue posible agregar ${this.nivelNuevo}.`;
         this.mostrarModalRegistro('error', this.mensaje);
       }
@@ -812,7 +822,27 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   cerrarModalRegistro(): void {
+    const registroExitoso = this.modalRegistro.tipo === 'success' && this.enviado;
     this.modalRegistro.visible = false;
+    if (!registroExitoso) return;
+
+    this.paso = 1;
+    this.nivelNuevo = '';
+    this.nodoSeleccionado = undefined;
+    this.nodoSeleccionadoId = '';
+    this.busquedaComercio = '';
+    this.arbolMinimizado = false;
+    this.comercioForm.reset();
+    this.datosForm.reset();
+    for (const llave of Object.keys(this.documentosCapturados)) {
+      delete this.documentosCapturados[llave];
+    }
+    this.localidadesFiscal = [];
+    this.localidadesComercial = [];
+    this.localidadesRepresentante = [];
+    this.mensaje = '';
+    this.enviado = false;
+    this.inicioRegistro.nativeElement.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
   private mostrarModalRegistro(tipo: 'success' | 'error', mensaje: string): void {
@@ -985,7 +1015,12 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   nivelesDisponiblesPara(nodo: NodoComercio): NivelNuevo[] {
-    if (nodo.nivel === 'Sub Afiliado') return ['Entidad', 'Sucursal', 'Caja', 'Referenciador'];
+    if (this.idRol === 6) return [];
+    if (nodo.nivel === 'Sub Afiliado') {
+      return this.idRol === 2
+        ? ['Entidad', 'Sucursal', 'Caja', 'Referenciador']
+        : ['Entidad', 'Sucursal', 'Caja'];
+    }
     if (nodo.nivel === 'Entidad') return ['Sucursal', 'Caja'];
     if (nodo.nivel === 'Sucursal') return ['Caja'];
     return [];
