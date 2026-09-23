@@ -53,6 +53,8 @@ export class StepDatosComponent implements OnInit {
   @Input() bloquearTipoPersona = false;
   @Input() bloquearActividad = false;
   @Input() mostrarBusquedaAvanzadaGiro = true;
+  @Input() forzarDatosCaja = false;
+  @Input() textoContinuar = 'Guardar y continuar';
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
@@ -383,19 +385,20 @@ export class StepDatosComponent implements OnInit {
     const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Empresa Agrupadora', 'Entidad Agrupadora', 'Sucursales de Grupo', 'Sucursales Únicas'];
     const esPersonaFisica = this.form.get('tipoPersona')?.value === 'PF';
     const esTipoPersonaFisicaSinRepresentante = tiposConRepresentante.includes(tipo) && esPersonaFisica;
+    const ocultarDatosPorCaja = esCaja && !this.forzarDatosCaja;
     const mostrarDireccionRepresentante = !esCaja
       && tiposConRepresentante.includes(tipo)
       && !esTipoPersonaFisicaSinRepresentante;
     const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esTipoPersonaFisicaSinRepresentante;
 
     return {
-      datosGenerales:     !esCaja,
-      domicilioFiscal:    !esCaja,
+      datosGenerales:     !ocultarDatosPorCaja,
+      domicilioFiscal:    !ocultarDatosPorCaja,
       representante:      mostrarRepresentante,
       dirRepresentante:   mostrarDireccionRepresentante,
       contactoRep:        false,
       domicilioComercial: true,
-      contactoComercial:  true,
+      contactoComercial:  !this.forzarDatosCaja,
     };
   }
 

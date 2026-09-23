@@ -18,6 +18,7 @@ export class StepComercioComponent {
   @Input() tiposComercio: string[] = [];
   @Input() bloquearNivel = false;
   @Input() bloquearTipoComercio = false;
+  @Input() mostrarTipoComercio = false;
   @Input() bloquearTipoPersona = false;
   @Input() mostrarTipoPersona = false;
   @Input() ocultarContactoPersonaMoral = false;
@@ -34,7 +35,7 @@ export class StepComercioComponent {
 
 
 get esSinTipo(): boolean {
-  return ['Referenciador', 'Comisionista'].includes(this.form.getRawValue().nivel);
+  return !this.mostrarTipoComercio && ['Referenciador', 'Comisionista'].includes(this.form.getRawValue().nivel);
 }
 
 get esPersonaFisica(): boolean {

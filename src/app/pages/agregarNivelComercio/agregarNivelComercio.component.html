@@ -1,0 +1,247 @@
+<section class="add-level-shell">
+  <article class="registro-card">
+    <header class="add-level-header">
+      <span>Gestión de negocio</span>
+      <h1>Agregar Nivel a Comercio Existente</h1>
+      <p>Selecciona el nodo donde deseas crear una entidad, sucursal o caja nueva.</p>
+    </header>
+
+    <div class="stepper" aria-label="Progreso de alta de nivel">
+      <div class="step-node" [class.active]="paso === 1" [class.done]="paso > 1">
+        <span class="step-badge">{{ paso > 1 ? '✓' : '1' }}</span>
+        <strong>Nivel</strong>
+      </div>
+      <span class="step-line" [class.done]="paso > 1"></span>
+      <div class="step-node" [class.active]="paso === 2" [class.done]="paso > 2">
+        <span class="step-badge">{{ paso > 2 ? '✓' : '2' }}</span>
+        <strong>Descripción</strong>
+      </div>
+      <span class="step-line" [class.done]="paso > 2"></span>
+      <div class="step-node" [class.active]="paso === 3" [class.done]="paso > 3">
+        <span class="step-badge">{{ paso > 3 ? '✓' : '3' }}</span>
+        <strong>Datos Generales</strong>
+      </div>
+      <span *ngIf="!esCajaSeleccionada" class="step-line" [class.done]="paso > 3"></span>
+      <div *ngIf="!esCajaSeleccionada" class="step-node" [class.active]="paso === 4">
+        <span class="step-badge">4</span>
+        <strong>Documentos</strong>
+      </div>
+    </div>
+
+    <p class="message" *ngIf="mensaje">{{ mensaje }}</p>
+    <p class="message" *ngIf="cargando">Consultando comercio inicial...</p>
+
+    <div class="registro-layout" [class.tree-collapsed]="arbolMinimizado">
+      <aside class="tree-panel" [class.collapsed]="arbolMinimizado">
+        <div class="panel-heading">
+          <div>
+            <h2>Niveles de Ubicación</h2>
+            <h3>Árbol de negocio</h3>
+            <p>Selecciona el nodo donde vas a crear el nuevo nivel.</p>
+          </div>
+          <button type="button" class="tree-collapse-btn" (click)="arbolMinimizado = !arbolMinimizado" [title]="arbolMinimizado ? 'Mostrar árbol' : 'Minimizar árbol'">
+            <i class="fa-solid" [ngClass]="arbolMinimizado ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+          </button>
+        </div>
+
+        <button type="button" class="tree-collapsed-card" *ngIf="arbolMinimizado" (click)="arbolMinimizado = false" title="Mostrar árbol">
+          <i class="fa-solid fa-location-dot"></i>
+          <span>{{ rutaSeleccionada() }}</span>
+        </button>
+
+        <div class="business-tree" *ngIf="!arbolMinimizado">
+          <p class="tree-state" *ngIf="cargandoArbol">Cargando árbol...</p>
+          <p class="tree-state error" *ngIf="errorArbol">{{ errorArbol }}</p>
+          <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: arbol, nivel: 0 }"></ng-container>
+        </div>
+
+        <section class="selected-box" *ngIf="!arbolMinimizado">
+          <span>Ubicación seleccionada</span>
+          <strong><i class="fa-solid fa-location-dot"></i>{{ rutaSeleccionada() }}</strong>
+        </section>
+      </aside>
+
+      <section class="content-panel">
+        <div class="context-strip" *ngIf="nodoSeleccionado">
+          <div>
+            <span>{{ nodoSeleccionado.entitySonID || nodoSeleccionado.nodeID || nodoSeleccionado.id }}</span>
+            <strong>{{ nodoSeleccionado.nombre }}</strong>
+          </div>
+          <small>{{ nodoSeleccionado.nivel }}</small>
+        </div>
+
+        <section class="panel" *ngIf="paso === 1">
+          <div class="panel-title">
+            <span>Nivel donde deseas crear un nuevo comercio</span>
+            <h2>Nuevo nivel</h2>
+          </div>
+
+          <div class="selection-card">
+            <h3>Ubicación seleccionada</h3>
+            <p *ngIf="!nodoSeleccionado">Selecciona un nivel del árbol.</p>
+            <ng-container *ngIf="nodoSeleccionado">
+              <strong>{{ nodoSeleccionado.nivel }} - {{ nodoSeleccionado.nombre }}</strong>
+              <label>
+                <span>Nuevo nivel a crear</span>
+                <select [(ngModel)]="nivelNuevo" [ngModelOptions]="{ standalone: true }" (ngModelChange)="cargarTiposComercioCatalogo($event)">
+                  <option value="">Selecciona una opción</option>
+                  <option *ngFor="let nivel of nivelesDisponibles" [value]="nivel">{{ nivel }}</option>
+                </select>
+              </label>
+            </ng-container>
+          </div>
+        </section>
+
+        <section class="panel" *ngIf="paso === 2">
+          <div class="panel-title">
+            <span>{{ nivelNuevo }}</span>
+            <h2>{{ esCajaSeleccionada ? 'Nombre de la caja' : 'Descripción del comercio' }}</h2>
+          </div>
+
+          <ng-container *ngIf="esCajaSeleccionada; else descripcionComercio">
+            <form class="caja-name-form" (ngSubmit)="guardarCaja()">
+              <div class="caja-fields-grid">
+                <label for="tipoCaja">
+                  <span>Tipo de caja <b>*</b></span>
+                  <select
+                    id="tipoCaja"
+                    [formControl]="$any(comercioForm.controls.tipoComercio)"
+                    (change)="cargarTiposComercioCatalogo('Caja')"
+                  >
+                    <option value="">Selecciona un tipo de caja</option>
+                    <option *ngFor="let tipo of tiposComercio" [value]="tipo">{{ tipo }}</option>
+                  </select>
+                  <small *ngIf="comercioForm.controls.tipoComercio.invalid && comercioForm.controls.tipoComercio.touched">
+                    Selecciona un tipo de caja.
+                  </small>
+                </label>
+
+                <label for="nombreCaja">
+                  <span>Nombre de la caja <b>*</b></span>
+                  <input
+                    id="nombreCaja"
+                    type="text"
+                    [formControl]="$any(comercioForm.controls.nombreCaja)"
+                    placeholder="Ej. Caja recepción"
+                    autocomplete="off"
+                  />
+                  <small *ngIf="comercioForm.controls.nombreCaja.invalid && comercioForm.controls.nombreCaja.touched">
+                    Escribe un nombre para la caja.
+                  </small>
+                </label>
+              </div>
+              <div class="step-actions">
+                <button type="button" class="button ghost" (click)="paso = 1">Atrás</button>
+                <button type="submit" class="button primary">Guardar caja</button>
+              </div>
+            </form>
+          </ng-container>
+
+          <ng-template #descripcionComercio>
+            <app-step-comercio
+              [form]="comercioForm"
+              [datosForm]="datosForm"
+              [niveles]="nivelNuevo ? [nivelNuevo] : []"
+              [tiposComercio]="tiposComercio"
+              [bloquearNivel]="true"
+              [mostrarTipoComercio]="nivelNuevo === 'Referenciador'"
+              [mostrarTipoPersona]="camposDatosGenerales.includes('tipoPersona')"
+              (continuar)="continuarDescripcion()"
+              (volver)="paso = 1" />
+          </ng-template>
+        </section>
+
+        <section class="panel" *ngIf="paso === 3">
+    <div class="panel-title">
+      <span>{{ nivelNuevo }}</span>
+      <h2>Datos generales</h2>
+    </div>
+
+    <app-step-datos
+      [form]="datosForm"
+      [campos]="camposDatosGenerales"
+      [tipoComercio]="tipoComercioSeleccionado"
+      [regimenesFiscales]="datosCatalogo.regimenesFiscales"
+      [girosComerciales]="datosCatalogo.girosComerciales"
+      [tiposPersona]="datosCatalogo.tiposPersona"
+      [departamentos]="datosCatalogo.departamentos"
+      [ciudades]="datosCatalogo.ciudades"
+      [localidadesFiscal]="localidadesFiscal"
+      [localidadesComercial]="localidadesComercial"
+      [localidadesRepresentante]="localidadesRepresentante"
+      [cargandoLocalidadesFiscal]="cargandoLocalidadesFiscal"
+      [cargandoLocalidadesComercial]="cargandoLocalidadesComercial"
+      [cargandoLocalidadesRepresentante]="cargandoLocalidadesRepresentante"
+      [mostrarMismoDomicilio]="true"
+      [forzarDatosCaja]="esCajaSeleccionada && !esCajaPinRapido"
+      [bloquearTipoPersona]="bloquearTipoPersona"
+      [textoContinuar]="esCajaSeleccionada ? 'Enviar' : 'Guardar y continuar'"
+      (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
+      (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"
+      (seleccionarLocalidadRepresentante)="seleccionarLocalidad($event, 'REP')"
+      (continuar)="continuarADocumentos()"
+      (volver)="paso = 2" />
+        </section>
+
+        <section class="panel" *ngIf="paso === 4 && !esCajaSeleccionada">
+    <div class="panel-title">
+      <span>{{ documentosCargados }} cargados · {{ documentosPendientes }} pendientes</span>
+      <h2>Documentación requerida</h2>
+    </div>
+
+    <app-step-documentos
+              [documentos]="documentosVisibles"
+      [documentosCargados]="documentosCargados"
+      [documentosPendientes]="documentosPendientes"
+      [textoFinalizar]="'Enviar solicitud'"
+      (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
+      (finalizar)="finalizar()"
+      (volver)="paso = 3" />
+        </section>
+
+        <footer class="actions page-actions">
+          <button *ngIf="paso === 1" type="button" class="button primary" [disabled]="!puedeContinuarSeleccion" (click)="continuarADatos()">Siguiente</button>
+        </footer>
+      </section>
+    </div>
+  </article>
+</section>
+
+<ng-template #treeTemplate let-nodos="nodos" let-nivel="nivel">
+  <ul class="tree-level" [style.--level]="nivel">
+    <li *ngFor="let nodo of nodos">
+      <div class="tree-row" [class.leaf-row]="!nodo.hijos?.length">
+        <button type="button" class="tree-toggle" *ngIf="nodo.hijos?.length" (click)="alternarNodo(nodo.id); $event.stopPropagation()">
+          <i class="fa-solid" [ngClass]="nodoExpandido(nodo.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+        </button>
+        <button
+          type="button"
+          class="tree-node"
+          [class.selected]="esNodoSeleccionado(nodo)"
+          [class.leaf]="!nodo.hijos?.length"
+          [disabled]="!nivelesDisponiblesPara(nodo).length"
+          (click)="seleccionarNodo(nodo); $event.stopPropagation()">
+          <i [ngClass]="iconoNodo(nodo.nivel)"></i>
+          <span>{{ etiquetaNodo(nodo) }}</span>
+        </button>
+      </div>
+
+      <ng-container *ngIf="nodo.hijos?.length && nodoExpandido(nodo.id)">
+        <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: nodo.hijos, nivel: nivel + 1 }"></ng-container>
+      </ng-container>
+    </li>
+  </ul>
+</ng-template>
+
+<div class="registro-modal-backdrop" *ngIf="modalRegistro.visible">
+  <section class="registro-modal" role="dialog" aria-modal="true" aria-labelledby="resultado-registro-titulo">
+    <div class="registro-modal-body">
+      <i class="far registro-modal-icon" [ngClass]="modalRegistro.tipo === 'error' ? 'fa-times-circle error' : 'fa-check-circle'" aria-hidden="true"></i>
+      <h2 id="resultado-registro-titulo">{{ modalRegistro.titulo }}</h2>
+      <p>{{ modalRegistro.mensaje }}</p>
+    </div>
+    <footer class="registro-modal-footer">
+      <button type="button" class="button primary registro-modal-ok" (click)="cerrarModalRegistro()" autofocus>OK</button>
+    </footer>
+  </section>
+</div>

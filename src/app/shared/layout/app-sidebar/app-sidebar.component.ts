@@ -159,6 +159,11 @@ export class AppSidebarComponent {
           name: 'CONSULTA DE COMERCIOS',
           icon: '<i class="fas fa-store fa-lg"></i>',
           path: '/consulta_comercios'
+        },
+        {
+          name: 'AGREGAR NIVEL A COMERCIO EXISTENTE',
+          icon: '<i class="fas fa-plus-square fa-lg"></i>',
+          path: '/agregar_nivel_comercio'
         }
       ]
     },

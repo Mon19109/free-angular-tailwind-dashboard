@@ -53,6 +53,7 @@ private readonly titulosPaginas: Record<string, string> = {
   cajas: 'Lista Cajas',
   estado_cuenta: 'Estado de Cuenta',
   consulta_comercios: 'Consulta de Comercios',
+  agregar_nivel_comercio: 'Agregar Nivel a Comercio Existente',
   registro_cliente: 'Registro de Cliente / Comercio',
   // futuros módulos
   reportes: 'Consulta de Reportes',
