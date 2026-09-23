@@ -1,7 +1,7 @@
-import { Component , inject, signal} from '@angular/core';
+import { Component , inject, signal, ViewChild} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { AddLinkPagoService, FormularioData, NotificacionPagoData } from '../../services/addlinkpago.service';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
 //import { TextAreaComponent } from '../../shared/components/form/input/text-area.component';
@@ -16,7 +16,7 @@ import { SelectComponent } from '../../shared/components/form/select/select.comp
 @Component({
   selector: 'app-addlinkpago',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule,LabelComponent,InputFieldComponent,
+  imports: [ProcessingOverlayComponent, CommonModule, ReactiveFormsModule,LabelComponent,InputFieldComponent,
     DefaultInputsComponent,DatePickerComponent,SelectComponent],
   templateUrl: './addLinkPago.component.html',
   styleUrls: ['./addLinkPago.component.css']
@@ -67,7 +67,8 @@ export class AddLinkPagoComponent {
   }
 
   private  addlinkpagoService = inject(AddLinkPagoService);
-  private router = inject(Router);
+  @ViewChild(DatePickerComponent) private fechaPicker?: DatePickerComponent;
+  modalResultado = { visible: false, error: false, titulo: '', mensaje: '' };
   
   constructor(
     private fb: FormBuilder
@@ -271,12 +272,21 @@ export class AddLinkPagoComponent {
 
  
   limpiarFormulario(): void {
-    this.formulario.reset();
+    this.formulario.reset({
+      nombre: '', aPaterno: '', aMaterno: '', tel: '', email: '',
+      tipoNoti: '', tipoPago: '', productos: [], ref1: '', ref2: '',
+      monto: '', refCom: '', concepto: '', fechaVen: '', propina: false, msi: false,
+    });
+    this.selectedOptionPago = '';
+    this.selectedOptionNoti = '';
+    this.productoEntrada = '';
+    this.dateValue = undefined;
+    this.timeValue = '';
+    this.fechaPicker?.clear();
   }
 
   verBotones() {
-    console.log('verBotones');
-    this.loading.set(false);
+    if (this.loading() || this.modalResultado.visible) return;
     this.confirmarProductoPendiente();
 
     if (this.formulario.invalid) {
@@ -300,7 +310,7 @@ export class AddLinkPagoComponent {
   }
 
   ocultarBotones() {
-    this.loading.set(false);
+    if (this.loading()) return;
     this.mostrarDiv = false; 
     this.mostrarDiv2 = false;
     this.mostrarForm = true;
@@ -309,6 +319,7 @@ export class AddLinkPagoComponent {
 
   enviarForm(event?: Event): void {
     event?.preventDefault();
+    if (this.loading() || this.modalResultado.visible) return;
     this.confirmarProductoPendiente();
 
     if (this.formulario.invalid) {
@@ -345,11 +356,9 @@ export class AddLinkPagoComponent {
         if (tipoNotificacion === '2') {
           this.enviarSMS(formUrl, formValues);
         } else if (tipoNotificacion === '3') {
-          this.loading.set(false);
           this.enviarEmail(formUrl, formValues);
         } else {
-          this.loading.set(false);
-          this.mostrarDetalleLink(formUrl);
+          this.completarCreacion(formUrl, 'El link de pago se creó correctamente.', true);
         }
       },
       error: (error) => {
@@ -365,26 +374,41 @@ export class AddLinkPagoComponent {
 
     this.addlinkpagoService.enviarSMS(datosSMS).subscribe({
       next: (response) => {
-        this.loading.set(false);
-        console.log('SMS enviado exitosamente:', response);
-        this.mensajeEsError = false;
-        this.mensajeEstado = 'Link creado con éxito, revisa tus mensajes para ver el link a pagar.';
-
-        window.setTimeout(() => {
-          void this.router.navigate(['/pago_distancia']);
-        }, 5000);
+        this.completarCreacion(formUrl, 'El link de pago se creó correctamente y se envió por SMS.');
       },
       error: (error) => {
         this.loading.set(false);
         console.error('Error al enviar SMS:', error);
-        this.mostrarMensajeError('El link fue creado, pero no fue posible enviar el SMS.');
+        this.completarCreacion(formUrl, 'El link fue creado, pero no fue posible enviar el SMS. Puedes copiarlo y compartirlo.', true, true);
       }
     });
   }
 
+  private completarCreacion(formUrl: string, mensaje: string, mostrarDetalle = false, error = false): void {
+    this.loading.set(false);
+    this.limpiarFormulario();
+    this.mensajeEstado = '';
+    this.mensajeEsError = false;
+    this.volverFormulario();
+    if (mostrarDetalle) this.mostrarDetalleLink(formUrl);
+    this.modalResultado = {
+      visible: true, error, mensaje,
+      titulo: error ? 'Link creado con observaciones' : 'Link creado correctamente',
+    };
+  }
+
+  cerrarModalResultado(): void {
+    this.modalResultado.visible = false;
+  }
+
   private mostrarMensajeError(mensaje: string): void {
-    this.mensajeEsError = true;
-    this.mensajeEstado = mensaje;
+    this.mensajeEstado = '';
+    this.modalResultado = {
+      visible: true,
+      error: true,
+      titulo: 'Algo salió mal',
+      mensaje,
+    };
   }
 
   private mostrarDetalleLink(formUrl: string): void {
@@ -457,10 +481,11 @@ export class AddLinkPagoComponent {
 
     this.addlinkpagoService.enviarEmail(datosEmail).subscribe({
       next: (response) => {
-        console.log('Email enviado exitosamente:', response);
+        this.completarCreacion(formUrl, 'El link de pago se creó correctamente y se envió por correo.');
       },
       error: (error) => {
         console.error('Error al enviar email:', error);
+        this.completarCreacion(formUrl, 'El link fue creado, pero no fue posible enviar el correo. Puedes copiarlo y compartirlo.', true, true);
       }
     });
   }

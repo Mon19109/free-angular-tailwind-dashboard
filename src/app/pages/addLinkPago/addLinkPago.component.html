@@ -1,4 +1,4 @@
-<form id="formulario" [formGroup]="formulario" (ngSubmit)="enviarForm($event)">
+<form [attr.inert]="loading() || modalResultado.visible ? '' : null" [attr.aria-busy]="loading()" id="formulario" [formGroup]="formulario" (ngSubmit)="enviarForm($event)">
   @if (formulario.invalid && formulario.touched) {
     <div class="form-validation-alert" role="alert">
       Completa todos los campos requeridos. Productos es el único campo opcional.
@@ -383,3 +383,21 @@
     </div>
   </div>
 </form>
+
+<app-processing-overlay
+  *ngIf="loading()"
+  texto="Creando link de pago..."
+  descripcion="Estamos procesando tu solicitud. Espera un momento." />
+
+<div class="registro-modal-backdrop" *ngIf="modalResultado.visible">
+  <section class="registro-modal" role="dialog" aria-modal="true" aria-labelledby="resultado-link-titulo">
+    <div class="registro-modal-body">
+      <i class="far registro-modal-icon" [ngClass]="modalResultado.error ? 'fa-times-circle error' : 'fa-check-circle'" aria-hidden="true"></i>
+      <h2 id="resultado-link-titulo">{{ modalResultado.titulo }}</h2>
+      <p>{{ modalResultado.mensaje }}</p>
+    </div>
+    <footer class="registro-modal-footer">
+      <button type="button" class="button primary registro-modal-ok" (click)="cerrarModalResultado()" autofocus>OK</button>
+    </footer>
+  </section>
+</div>
