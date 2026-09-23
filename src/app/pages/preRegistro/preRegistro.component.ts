@@ -323,7 +323,7 @@ export class PreRegistroComponent {
     'Sub Afiliado': ['Empresa Holding'],
     'Entidad': ['Empresa Grupo', 'Persona Física'],
     'Sucursal': ['Sucursales de Grupo', 'Sucursal Persona Física', 'Sucursales Únicas'],
-    'Caja': ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'],
+    'Caja': ['Cuenta Terminal Pin Rapido'],
     'Referenciador': [], 'Promotor': [], 'Comisionista': [],
   };
 
@@ -1025,7 +1025,12 @@ export class PreRegistroComponent {
       return;
     }
 
-    if (tipoActual && !tiposFiltrados.includes(tipoActual)) {
+    if (nivel === 'Caja') {
+      this.comercioForm.patchValue({
+        tipoComercio: 'Cuenta Terminal Pin Rapido',
+        tipoComercioId: this.typeOfBusinessPayload('', 'Cuenta Terminal Pin Rapido'),
+      }, { emitEvent: false });
+    } else if (tipoActual && !tiposFiltrados.includes(tipoActual)) {
       this.comercioForm.controls.tipoComercio.setValue('', { emitEvent: false });
       this.comercioForm.controls.tipoComercioId.setValue(0, { emitEvent: false });
     } else if (tipoActual) {
@@ -1045,8 +1050,9 @@ export class PreRegistroComponent {
   }
 
   private filtrarTiposComercioPorPaquete(nivel: string, tipos: string[]): string[] {
+    if (nivel === 'Caja') return ['Cuenta Terminal Pin Rapido'];
     if (this.tipoNegocioSeleccionado?.id === 'comercio-unico') {
-      const tipoUnico = nivel === 'Caja' ? 'Cuenta Terminal Pin Rapido' : 'Sucursales Únicas';
+      const tipoUnico = 'Sucursales Únicas';
       return tipos.includes(tipoUnico) ? [tipoUnico] : [];
     }
 
@@ -2551,6 +2557,10 @@ export class PreRegistroComponent {
   }
 
   private typeOfBusinessPayload(nodoId: string, tipoComercio: string, tipoComercioId?: number): number {
+    if (tipoComercio === 'Cuenta Terminal Pin Rapido') {
+      return this.typeOfBusinessPorTipoComercio[tipoComercio]
+        || this.typeOfBusinessFallbackPorTipoComercio[tipoComercio];
+    }
     const id = tipoComercioId
       || this.typeOfBusinessPorTipoComercio[tipoComercio]
       || this.typeOfBusinessFallbackPorTipoComercio[tipoComercio]
@@ -2867,7 +2877,15 @@ export class PreRegistroComponent {
       const draft = JSON.parse(raw) as Partial<BorradorPreRegistro>;
       if (!draft) return;
       if (draft.afiliacion) this.afiliacionForm.patchValue(draft.afiliacion);
-      if (draft.comercio) this.comercioForm.patchValue(draft.comercio);
+      if (draft.comercio) {
+        this.comercioForm.patchValue(draft.comercio);
+        if (draft.comercio.nivel === 'Caja') {
+          this.comercioForm.patchValue({
+            tipoComercio: 'Cuenta Terminal Pin Rapido',
+            tipoComercioId: this.typeOfBusinessPayload('', 'Cuenta Terminal Pin Rapido'),
+          }, { emitEvent: false });
+        }
+      }
       if (draft.arbolNegocio) this.arbolNegocioForm.patchValue(draft.arbolNegocio);
       if (draft.comisionista) this.comisionistaForm.patchValue(draft.comisionista);
       if (draft.datos) this.datosForm.patchValue(draft.datos as any);
@@ -3306,7 +3324,13 @@ export class PreRegistroComponent {
   private obtenerComercioPorNodo(): Record<string, { nivel: string; tipoComercio: string; tipoComercioId?: number; afiliacionComisionista: string }> {
     try {
       const parsed = JSON.parse(this.arbolNegocioForm.controls.comercioPorNodo.value || '{}');
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      for (const comercio of Object.values(parsed) as Array<{ nivel: string; tipoComercio: string; tipoComercioId: number }>) {
+        if (comercio.nivel !== 'Caja') continue;
+        comercio.tipoComercio = 'Cuenta Terminal Pin Rapido';
+        comercio.tipoComercioId = this.typeOfBusinessPayload('', comercio.tipoComercio);
+      }
+      return parsed;
     } catch {
       return {};
     }
@@ -3320,13 +3344,12 @@ export class PreRegistroComponent {
   }
 
   private tipoComercioAutomaticoPorNodo(nodo: NodoArbolNegocio): string {
+    if (nodo.nivel === 'caja') return 'Cuenta Terminal Pin Rapido';
     const tipoForzado = this.tipoComercioForzadoPorEntidad(nodo);
     if (tipoForzado) return tipoForzado;
     if (nodo.nivel === 'sub-afiliado') return 'Empresa Holding';
     if (!this.esComercioUnico) return '';
-    return nodo.nivel === 'caja'
-      ? 'Cuenta Terminal Pin Rapido'
-      : this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas';
+    return this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas';
   }
 
   private esDescripcionComercioAutomatica(nodo: NodoArbolNegocio): boolean {
