@@ -36,6 +36,8 @@ export interface TerminalInfo {
   commerceType: string;
   country: string;
   guid: string;
+  guidCommerce?: string;
+  commerceDetailID?: string | number;
   entitySonID: string;
   issueId: string;
   acquiringId: string;
@@ -83,6 +85,8 @@ export interface UserSessionData {
   commerceType: string;
   country: string;
   validate: string;
+  guidCommerce: string;
+  commerceDetailID: string | number;
   entitySonID: string;
   issueId: string;
   acquiringId: string;
@@ -236,6 +240,8 @@ export class AuthService {
                 commerceType: terminalInfo.commerceType || '',
                 country: terminalInfo.country || '',
                 validate: terminalInfo.guid || '',
+                guidCommerce: terminalInfo.guidCommerce || '',
+                commerceDetailID: terminalInfo.commerceDetailID ?? '',
                 entitySonID: terminalInfo.entitySonID || '',
                 issueId: terminalInfo.issueId || '',
                 acquiringId: terminalInfo.acquiringId || '',
@@ -280,6 +286,8 @@ export class AuthService {
         commerceType: '',
         country: '',
         validate: '',
+        guidCommerce: '',
+        commerceDetailID: '',
         entitySonID: '',
         issueId: '',
         acquiringId: '',
@@ -381,6 +389,8 @@ export class AuthService {
       localStorage.setItem('commerceType', sessionData.commerceType);
       localStorage.setItem('country', sessionData.country);
       localStorage.setItem('validate', sessionData.validate);
+      localStorage.setItem('guidCommerce', sessionData.guidCommerce);
+      localStorage.setItem('commerceDetailID', String(sessionData.commerceDetailID));
       localStorage.setItem('entitySonID', sessionData.entitySonID);
       localStorage.setItem('issueId', sessionData.issueId);
       localStorage.setItem('acquiringId', sessionData.acquiringId);
