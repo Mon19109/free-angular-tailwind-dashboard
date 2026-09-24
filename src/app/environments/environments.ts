@@ -4,9 +4,9 @@ export const environment = {
   api: {
    
   //Prod
-    //kashpay: '/api/v3/antares.kwt-v2.2.10/',
+    kashpay: '/api/v3/antares.kwt-v2.2.10/',
   //SDBX
-    kashpay: '/api/v2/antares.kwt-v2.2.10/',
+    //kashpay: '/api/v2/antares.kwt-v2.2.10/',
     linkpago: '/OrderReceiver/api/v1/',
     saldos: '/Entities/entities/',
     auth: '/OAuthServices/',
