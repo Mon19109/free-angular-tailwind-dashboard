@@ -205,9 +205,10 @@
                         </button>
                       } @else if ($index === 26) {
                         @if (puedeAclarar(t)) {
-                          <a class="icon-btn aclaracion-action" [routerLink]="['/aclaraciones']"
+                          <a class="aclaracion-action" [routerLink]="['/aclaraciones']"
                             [queryParams]="{ validate: t.idOperation }" title="Aclaraciones" aria-label="Aclaraciones">
                             <i class="fas fa-comment-dollar" aria-hidden="true"></i>
+                            Aclaraciones
                           </a>
                         }
                         @if (valor !== 'ND') { <span>{{ valor }}</span> }

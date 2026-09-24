@@ -131,7 +131,21 @@
   min-width: 3900px;
 }
 
-.aclaracion-action { display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; text-decoration: none; }
+.aclaracion-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: #fff;
+  background: #0a4f91;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.aclaracion-action:hover { background: #083d70; }
 
 .export-button {
   color: #ffffff;

@@ -103,7 +103,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
     this.rolId = String(sesion?.idRol ?? localStorage.getItem('idRol') ?? this.rolId);
     this.contId = String(sesion?.idContext ?? localStorage.getItem('idContext') ?? this.contId);
-    this.entiId = String(sesion?.idEntity ?? localStorage.getItem('idEntity') ?? this.entiId);
+    this.entiId = String(sesion?.entitySonID ?? localStorage.getItem('entitySonID')
+      ?? sesion?.idEntity ?? localStorage.getItem('idEntity') ?? this.entiId);
     this.aplicarBloqueosPorRol();
   }
 
