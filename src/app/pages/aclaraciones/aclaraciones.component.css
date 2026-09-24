@@ -1,0 +1,46 @@
+.aclaraciones {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #253047;
+}
+.encabezado p { color: #667085; margin: 0 0 4px; }
+h1 { font-size: 26px; margin: 0 0 22px; }
+h2 { font-size: 21px; margin: 0 0 18px; }
+h3 { font-size: 17px; margin: 0 0 14px; }
+.panel { padding: 28px; border: 1px solid #e4e7ec; border-radius: 12px; background: #fff; box-shadow: 0 4px 18px #1018280d; }
+.aviso, .estado { padding: 14px 16px; border-radius: 7px; background: #edf5ff; margin: 0 0 22px; }
+.estado.error { color: #9f2424; background: #fff0f0; }
+.estado.exito { color: #176639; background: #ecf9f0; }
+fieldset { border: 0; padding: 0; margin: 0 0 23px; }
+legend, .campo > label { display: block; font-weight: 600; margin-bottom: 9px; }
+fieldset label, .aceptaciones label { display: block; margin: 10px 0; }
+fieldset input, .aceptaciones input { margin-right: 8px; }
+.campo { max-width: 720px; margin-bottom: 20px; }
+.campo input:not([type=file]), .campo select, .campo textarea, .modal input { width: 100%; padding: 10px 12px; border: 1px solid #ccd2dd; border-radius: 6px; background: #fff; }
+.campo input:disabled { background: #f3f5f8; }
+.campo span, legend span, small { color: #ad2424; }
+small { display: block; margin-top: 5px; }
+.archivos { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 10px 0 22px; }
+.archivos input { max-width: 300px; }
+.aceptaciones { margin: 28px 0; }
+button { border: 0; background: #0a4f91; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+button.secundario { background: #edf1f6; color: #344054; }
+.detalles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 20px; }
+.detalles p { margin: 0 0 16px; }
+.evidencias-actuales, .evidencias-nuevas, .linea-tiempo { border-top: 1px solid #e4e7ec; padding-top: 22px; margin-top: 20px; }
+.evidencias-actuales a { display: inline-block; margin-right: 18px; color: #0a4f91; }
+.linea-tiempo ol { display: flex; list-style: none; padding: 0; gap: 8px; }
+.linea-tiempo li { flex: 1; background: #f1f3f7; padding: 12px; border-radius: 6px; font-size: 12px; text-align: center; }
+.linea-tiempo li.completa { background: #dcf4e5; color: #146b36; }
+.modal-fondo { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: #10182899; }
+.modal { width: min(100%, 480px); padding: 24px; border-radius: 10px; background: #fff; }
+.modal label { display: block; margin-bottom: 10px; }
+.acciones { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+@media (max-width: 700px) {
+  .aclaraciones { padding: 15px; }
+  .panel { padding: 18px; }
+  .detalles { grid-template-columns: 1fr; }
+  .linea-tiempo ol { flex-direction: column; }
+}

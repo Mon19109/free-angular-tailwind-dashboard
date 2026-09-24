@@ -58,6 +58,7 @@ import { ReportesComponent } from './pages/reportes/reportes.component';
 import { VoucherComponent } from './pages/voucher/voucher.component';
 import { RecuperarCuentaComponent } from './pages/recuperarCuenta/recuperarCuenta.component';
 import { EdiarInformacionComponent } from './pages/ediarInformacion/ediarInformacion.component';
+import { AclaracionesComponent } from './pages/aclaraciones/aclaraciones.component';
 
 export function prospectoTokenMatcher(segments: UrlSegment[]): UrlMatchResult | null {
   if (segments.length !== 1) return null;
@@ -282,6 +283,12 @@ export const routes: Routes = [
         component: OperacionesAdquirenciaComponent, 
         canActivate: [AuthGuard] ,
         title:'KASHPAY'
+      },
+      {
+        path: 'aclaraciones',
+        component: AclaracionesComponent,
+        canActivate: [AuthGuard],
+        title: 'KASHPAY'
       },
       { 
         path: 'transacciones_emision', 

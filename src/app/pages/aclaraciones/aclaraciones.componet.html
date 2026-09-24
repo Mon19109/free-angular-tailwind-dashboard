@@ -1,0 +1,115 @@
+<section class="aclaraciones">
+  <header class="encabezado">
+    <p>Home / Aclaración</p>
+    <h1>Aclaración</h1>
+  </header>
+
+  <div class="estado" *ngIf="cargando">Consultando transacción...</div>
+  <div class="estado error" *ngIf="error" role="alert">{{ error }}</div>
+  <div class="estado exito" *ngIf="mensaje" role="status">{{ mensaje }}</div>
+
+  <div class="panel" *ngIf="transaccion && !cargando">
+    <form *ngIf="!cargo && !guardada" [formGroup]="form" (ngSubmit)="prepararEnvio()">
+      <h2>Generar aclaración</h2>
+      <p class="aviso">La devolución se va a generar en la tarjeta con la siguiente terminación <strong>{{ transaccion.card }}</strong></p>
+
+      <fieldset>
+        <legend>Selecciona una de las siguientes opciones <span>*</span></legend>
+        <label><input type="radio" formControlName="tipo" value="D" (change)="cambiarTipo()"> Devolución total <strong>{{ montoOriginal | currency:'MXN' }}</strong></label>
+        <label><input type="radio" formControlName="tipo" value="DP" (change)="cambiarTipo()"> Devolución parcial</label>
+        <label *ngIf="esAdmin"><input type="radio" formControlName="tipo" value="CC" (change)="cambiarTipo()"> Contracargo</label>
+        <small *ngIf="enviado && form.controls.tipo.invalid">Selecciona un tipo de aclaración.</small>
+      </fieldset>
+
+      <div class="campo" *ngIf="tipo">
+        <label for="monto">Monto <span>*</span></label>
+        <input id="monto" type="text" inputmode="decimal" formControlName="monto" (input)="formatearMonto()" placeholder="Monto">
+        <small *ngIf="enviado && form.controls.monto.invalid">Captura el monto.</small>
+      </div>
+
+      <div class="campo">
+        <label for="motivo">Motivo <span>*</span></label>
+        <select id="motivo" formControlName="motivo">
+          <option value="">Selecciona un motivo</option>
+          <option *ngFor="let item of motivos" [value]="item.idCatClarification">{{ item.description }}</option>
+        </select>
+        <small *ngIf="enviado && form.controls.motivo.invalid">Selecciona un motivo.</small>
+      </div>
+
+      <div *ngIf="tipo === 'CC' && esAdmin" class="contracargo-campos">
+        <div class="campo">
+          <label for="fechaReporte">Fecha del reporte</label>
+          <input id="fechaReporte" type="date" formControlName="fechaReporte">
+        </div>
+        <div class="campo">
+          <label for="observaciones">Observaciones <span>*</span></label>
+          <textarea id="observaciones" rows="4" formControlName="observaciones"></textarea>
+          <small *ngIf="enviado && form.controls.observaciones.invalid">Captura las observaciones.</small>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Evidencias</label>
+        <div class="archivos">
+          <input *ngFor="let indice of camposEvidencia" type="file" (change)="seleccionarArchivo($event, indice)" aria-label="Evidencia">
+          <button type="button" class="secundario" (click)="agregarCampoEvidencia()">Agregar otra evidencia</button>
+        </div>
+      </div>
+
+      <div class="aceptaciones">
+        <label><input type="checkbox" formControlName="tyc1"> Entiendo que, según las políticas y plazos del banco emisor, la devolución puede tardar en reflejarse en la cuenta.</label>
+        <small *ngIf="enviado && form.controls.tyc1.invalid">Campo obligatorio.</small>
+        <label><input type="checkbox" formControlName="tyc2"> Entiendo que, en caso de aclaración, el tarjetahabiente debe acudir a su banco emisor.</label>
+        <small *ngIf="enviado && form.controls.tyc2.invalid">Campo obligatorio.</small>
+      </div>
+
+      <button type="submit" [disabled]="guardando">Guardar</button>
+    </form>
+
+    <div *ngIf="cargo">
+      <h2>Información del contracargo</h2>
+      <div class="detalles">
+        <p><strong>Número de autorización:</strong> {{ transaccion.authorizationNumber }}</p>
+        <p><strong>Tarjeta:</strong> {{ transaccion.card }}</p>
+        <p><strong>Monto:</strong> {{ montoOriginal | currency:'MXN' }}</p>
+        <p><strong>Fecha:</strong> {{ transaccion.authorizationDate }}</p>
+        <p><strong>Motivo:</strong> {{ cargo.clarificationDescription }}</p>
+        <p><strong>Estatus:</strong> {{ cargo.statusDescription }}</p>
+        <p><strong>Observaciones:</strong> {{ cargo.observations || 'Sin observaciones' }}</p>
+      </div>
+
+      <div *ngIf="cargo.files?.length" class="evidencias-actuales">
+        <h3>Mis evidencias</h3>
+        <a *ngFor="let archivo of cargo.files; let i = index" [href]="archivo" target="_blank" rel="noopener noreferrer">Evidencia {{ i + 1 }}</a>
+      </div>
+
+      <div *ngIf="puedeAgregarEvidencia" class="evidencias-nuevas">
+        <h3>Agrega la evidencia necesaria para evaluar tu contracargo</h3>
+        <div class="archivos">
+          <input *ngFor="let indice of camposEvidencia" type="file" (change)="seleccionarArchivo($event, indice)" aria-label="Evidencia adicional">
+          <button type="button" class="secundario" (click)="agregarCampoEvidencia()">Agregar otra evidencia</button>
+        </div>
+        <button type="button" [disabled]="guardando" (click)="guardarEvidencias()">{{ guardando ? 'Guardando...' : 'Guardar evidencias' }}</button>
+      </div>
+
+      <div class="linea-tiempo">
+        <h3>Estatus del contracargo</h3>
+        <ol>
+          <li *ngFor="let etapa of etapas; let i = index" [class.completa]="i <= indiceEtapa">{{ etapa.replaceAll('_', ' ') }}</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-fondo" *ngIf="mostrarContrasena" role="dialog" aria-modal="true" aria-labelledby="titulo-contrasena">
+    <div class="modal">
+      <h2 id="titulo-contrasena">Confirma la aclaración</h2>
+      <label for="contrasena">Debes validar tu contraseña para enviar la aclaración</label>
+      <input id="contrasena" type="password" [(ngModel)]="contrasena" [ngModelOptions]="{standalone: true}" autocomplete="current-password">
+      <div class="acciones">
+        <button type="button" class="secundario" (click)="mostrarContrasena = false">Cancelar</button>
+        <button type="button" [disabled]="guardando || !contrasena" (click)="guardar()">{{ guardando ? 'Enviando...' : 'Validar y guardar' }}</button>
+      </div>
+    </div>
+  </div>
+</section>
