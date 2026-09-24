@@ -450,23 +450,30 @@ mostrarResultados = false;
     next: (response: any) => {
 
       this.tiposOperacion =
-      response.catOperationTypes || [];
+      Array.isArray(response) ? response : (response?.catOperationTypes ?? []);
+
+    if (!this.tiposOperacion.some(tipo => String(tipo.idOperationType) === '10008')) {
+      this.tiposOperacion = [...this.tiposOperacion, {
+        idOperationType: 10008,
+        name: 'Liquidación Compras',
+        showPortal: 1,
+        descriptionApp: 'Liquidación total Day Settlement'
+      }];
+    }
 
       this.tipoOperacionOptions =
       this.tiposOperacion.map((tipo: any) => ({
 
         value: String(tipo.idOperationType),
 
-        text:
-          tipo.descriptionApp ||
-          tipo.name
+        text: tipo.name
 
       }));
 
-      this.defaultTipoOperacion =
-      this.tipoOperacionOptions
-        .slice(0, 3)
-        .map(x => x.value);
+      this.defaultTipoOperacion = [...new Set([
+        ...this.tipoOperacionOptions.slice(0, 3).map(tipo => tipo.value),
+        '10008'
+      ])];
 
       this.formulario.patchValue({
         tipoOperacion: this.defaultTipoOperacion

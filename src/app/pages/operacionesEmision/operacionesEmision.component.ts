@@ -125,8 +125,7 @@ onFechaFinChange(event: any) {
     // Cargar cuentas
    this.operaEmiService.obtenerCuentas().subscribe({
   next: (data) => {
-    this.entidades = data;
-    console.log('Entidades:', data);
+    this.entidades = data.filter((entidad: any) => entidad.active === true);
   }
 });
 
@@ -134,15 +133,26 @@ onFechaFinChange(event: any) {
 this.operaEmiService.obtenerTiposOperacion().subscribe({
   next: (data: any) => {
 
-    this.tiposOperacion = data;
+    this.tiposOperacion = Array.isArray(data) ? data : (data?.catOperationTypes ?? []);
 
-    this.tipoOperacionOptions = data.map((tipo: any) => ({
+    if (!this.tiposOperacion.some(tipo => String(tipo.idOperationType) === '10008')) {
+      this.tiposOperacion = [...this.tiposOperacion, {
+        idOperationType: 10008,
+        name: 'Liquidación Compras',
+        showPortal: 1,
+        descriptionApp: 'Liquidación total Day Settlement'
+      }];
+    }
+
+    this.tipoOperacionOptions = this.tiposOperacion.map((tipo: any) => ({
       value: String(tipo.idOperationType),
       text: tipo.name
     }));
-    this.defaultTipoOperacion = this.tipoOperacionOptions
-  .slice(0, 3)
-  .map(x => x.value);
+    this.defaultTipoOperacion = [...new Set([
+      ...this.tipoOperacionOptions.slice(0, 3).map(tipo => tipo.value),
+      '10008'
+    ])];
+    this.formulario.patchValue({ tipoOperacion: this.defaultTipoOperacion });
   
 
   },

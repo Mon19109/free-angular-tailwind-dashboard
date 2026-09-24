@@ -25,6 +25,8 @@
 
            <app-multi-select
   label="Tipo de operación"
+  translate="no"
+  class="notranslate"
   [options]="tipoOperacionOptions"
   [defaultSelected]="defaultTipoOperacion"
   (selectionChange)="onTipoOperacionChange($event)">
@@ -215,7 +217,7 @@
 
             <td>{{ operacion.id }}</td>
             <td>{{ operacion.descriptionType }}</td>
-            <td>{{ operacion.amount }}</td>
+            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
             <td>{{ operacion.description }}</td>
             <td>{{ operacion.createdAt }}</td>
             <td>{{ operacion.responseCode }}</td>
@@ -230,8 +232,8 @@
             <td>{{ operacion.transactionBundler }}</td>
             <td>{{ operacion.observation }}</td>
             <td>{{ operacion.targetName }}</td>
-            <td>{{ operacion.amount }}</td>
-            <td>{{ operacion.amount }}</td>
+            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
+            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
 
           </tr>
 

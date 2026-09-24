@@ -145,6 +145,8 @@ Seleccione una caja
 
            <app-multi-select
   label="Tipo de operación*"
+  translate="no"
+  class="notranslate"
   [options]="tipoOperacionOptions"
   [defaultSelected]="defaultTipoOperacion"
   (selectionChange)="onTipoOperacionChange($event)">
@@ -306,7 +308,7 @@ Seleccione una caja
 
             <td>{{ operacion.id }}</td>
             <td>{{ operacion.descriptionType }}</td>
-            <td>{{ operacion.amount }}</td>
+            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
             <td>{{ operacion.description }}</td>
             <td>{{ operacion.observation }}</td>
             <td>{{ operacion.createdAt }}</td>
