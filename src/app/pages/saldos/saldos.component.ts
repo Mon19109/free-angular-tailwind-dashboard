@@ -1,8 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SaldosService } from '../../services/saldos.service';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
 import { SelectComponent } from '../../shared/components/form/select/select.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { defer, finalize, Observable, Subscription } from 'rxjs';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,7 +13,7 @@ import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-saldos',
   standalone: true,
-  imports: [CommonModule, SelectComponent],
+  imports: [CommonModule, SelectComponent, ProcessingOverlayComponent],
   templateUrl: './saldos.component.html',
   styleUrls: ['./saldos.component.scss']
 })
@@ -30,14 +33,14 @@ export class SaldosComponent implements OnInit {
   get cuentasOptions() {
     return this.cuentas.map(cuenta => ({
       label: cuenta.name,
-      value: cuenta.idSirio
+      value: String(cuenta.idSirio)
     }));
   }
 
   get entidadesOptions() {
     return this.entidades.map(entidad => ({
       label: `${entidad.bundle} - ${entidad.bussinesName}`,
-      value: entidad.bundle
+      value: String(entidad.bundle)
     }));
   }
 
@@ -49,139 +52,95 @@ export class SaldosComponent implements OnInit {
     this.onEntidadChange({ target: { value: entidad } } as unknown as Event);
   }
 
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  readonly cargando = signal(false);
+  errorCarga = '';
+  private consultasPendientes = 0;
+  private entidadesRequest?: Subscription;
+  private saldoRequest?: Subscription;
+
+  private conCarga<T>(request: Observable<T>): Observable<T> {
+    return defer(() => {
+      this.consultasPendientes += 1;
+      this.cargando.set(true);
+      return request.pipe(finalize(() => {
+        this.consultasPendientes -= 1;
+        this.cargando.set(this.consultasPendientes > 0);
+        this.changeDetector.markForCheck();
+      }));
+    }).pipe(takeUntilDestroyed(this.destroyRef));
+  }
+
   ngOnInit(): void {
-
-  this.operacionesEmisionService
-    .obtenerConcentratorAccounts()
-    .subscribe({
-      next: (resp) => {
-
-        //console.log('CUENTAS', resp);
-
+    this.conCarga(this.operacionesEmisionService.obtenerConcentratorAccounts()).subscribe({
+      next: resp => {
         this.cuentas = resp;
-
-        const cuentaAdquirente = this.cuentas.find(
-          cuenta => Number(cuenta.idbusinessModel) === 2
-        );
-
+        const cuentaAdquirente = this.cuentas.find(cuenta => Number(cuenta.idbusinessModel) === 2);
         if (cuentaAdquirente?.idSirio) {
-          this.cuentaSeleccionada = String(cuentaAdquirente.idSirio);
-          this.seleccionarCuenta(this.cuentaSeleccionada);
+          this.seleccionarCuenta(String(cuentaAdquirente.idSirio));
         }
-
-      }
+      },
+      error: () => { this.errorCarga = 'No se pudieron cargar las cuentas. Intenta de nuevo.'; }
     });
-
-  this.operacionesEmisionService
-    .obtenerCuentas()
-    .subscribe({
-      next: (resp) => {
-
-       // console.log('ENTIDADES INICIALES', resp);
-
-        const cuentaActual = this.cuentas.find(
-          cuenta => String(cuenta.idSirio) === this.cuentaSeleccionada
-        );
-
-        if (Number(cuentaActual?.idbusinessModel) !== 2) {
-          this.entidades = resp;
-        }
-
-      }
-    });
-
-}
+  }
 
   onCuentaChange(event: Event): void {
-
-  const cuenta =
-    (event.target as HTMLSelectElement).value;
-
-  this.cuentaSeleccionada = cuenta;
-  this.entidadSeleccionada = '';
-  this.saldos = [];
-
-  const cuentaSeleccionada =
-    this.cuentas.find(c => String(c.idSirio) === cuenta);
-
-  //console.log('OBJETO CUENTA', cuentaSeleccionada);
-
-  if (!cuentaSeleccionada) {
-    return;
-  }
-
-  // CUENTA ADQUIRENTE
-  if (cuentaSeleccionada.idbusinessModel === 2) {
-
+    const cuenta = (event.target as HTMLSelectElement).value;
+    this.entidadesRequest?.unsubscribe();
+    this.saldoRequest?.unsubscribe();
+    this.cuentaSeleccionada = cuenta;
+    this.entidadSeleccionada = '';
     this.entidades = [];
+    this.saldos = [];
+    this.fatherIDActual = '';
+    this.errorCarga = '';
 
-    this.cargarSaldo(cuenta);
+    const cuentaSeleccionada = this.cuentas.find(c => String(c.idSirio) === cuenta);
+    if (!cuentaSeleccionada) return;
 
-    return;
-  }
-
-  // CUENTA EMISION
-  this.operacionesEmisionService
-    .obtenerEntidades(cuenta)
-    .subscribe({
-      next: (resp) => {
-
-        //console.log('ENTIDADES EMISION', resp);
-
-        this.entidades = resp;
-
-      }
-    });
-
-}
-
-  onEntidadChange(event: Event): void {
-
-    const fatherID =
-      (event.target as HTMLSelectElement).value;
-
-    console.log('Entidad seleccionada:', fatherID);
-
-    this.entidadSeleccionada = fatherID;
-
-    this.cargarSaldo(fatherID);
-
-  }
-
-  cargarSaldo(fatherId?: string): void {
-
-    const fatherIDFinal = fatherId;
-    this.fatherIDActual = fatherId ?? '';
-    if (!fatherIDFinal) {
+    if (Number(cuentaSeleccionada.idbusinessModel) === 2) {
+      this.cargarSaldo(cuenta);
       return;
     }
 
-    this.saldosService
-      .getDetalleSaldo(fatherIDFinal)
-      .subscribe({
-        next: (response: any) => {
-
-          //console.log('DETALLE', response);
-
-          this.saldos = response.entities.map((item: any) => ({
-            id: item.id,
-            nombre: item.name,
-            email: item.email,
-            telefono: item.phoneNumber,
-            saldoPrincipal: this.formatCurrency(item.balance),
-            saldoGarantia: this.formatCurrency(item.warrantyBalance),
-            saldoPendiente: this.formatCurrency(item.customerNetworkBalance),
-            saldoTarjeta: this.formatCurrency(item.cardAvailableBalance)
-          }));
-
-        },
-        error: (error) => {
-          console.error(error);
-        }
-      });
-
+    this.entidadesRequest = this.conCarga(
+      this.operacionesEmisionService.obtenerEntidades(cuenta)
+    ).subscribe({
+      next: resp => { this.entidades = resp; },
+      error: () => { this.errorCarga = 'No se pudieron cargar las entidades. Vuelve a seleccionar la cuenta.'; }
+    });
   }
 
+  onEntidadChange(event: Event): void {
+    const entidad = (event.target as HTMLSelectElement).value;
+    this.entidadSeleccionada = entidad;
+    this.cargarSaldo(entidad);
+  }
+
+  cargarSaldo(fatherId?: string): void {
+    this.saldoRequest?.unsubscribe();
+    this.saldos = [];
+    this.errorCarga = '';
+    this.fatherIDActual = fatherId ?? '';
+    if (!fatherId) return;
+
+    this.saldoRequest = this.conCarga(this.saldosService.getDetalleSaldo(fatherId)).subscribe({
+      next: (response: any) => {
+        this.saldos = (response.entities ?? []).map((item: any) => ({
+          id: item.id,
+          nombre: item.name,
+          email: item.email,
+          telefono: item.phoneNumber,
+          saldoPrincipal: this.formatCurrency(item.balance),
+          saldoGarantia: this.formatCurrency(item.warrantyBalance),
+          saldoPendiente: this.formatCurrency(item.customerNetworkBalance),
+          saldoTarjeta: this.formatCurrency(item.cardAvailableBalance)
+        }));
+      },
+      error: () => { this.errorCarga = 'No se pudieron cargar los saldos. Intenta de nuevo.'; }
+    });
+  }
 
   exportarPDF(): void {
     if (!this.saldos.length) return;

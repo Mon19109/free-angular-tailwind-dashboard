@@ -38,7 +38,7 @@
 .saldos-shell {
   min-height: calc(100vh - 104px);
   width: 100%;
-  padding: clamp(18px, 2.8vw, 36px);
+  padding: clamp(16px, 2.2vw, 26px);
   overflow-x: hidden;
   color: var(--saldos-text);
   background:
@@ -61,7 +61,7 @@
 }
 
 .panel {
-  max-width: 1120px;
+  width: 100%;
   margin: 0 auto 22px;
   overflow: hidden;
   border: 1px solid var(--saldos-border);
@@ -208,7 +208,7 @@ html.dark .form-control option {
 
 .table-container {
   margin: clamp(16px, 2.2vw, 24px);
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: hidden;
   border: 1px solid var(--saldos-line);
   border-radius: 16px;
@@ -216,7 +216,7 @@ html.dark .form-control option {
 
 table {
   width: 100%;
-  min-width: 0;
+  min-width: 1120px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
@@ -302,7 +302,7 @@ tbody tr:hover td {
 
 @media (max-width: 700px) {
   .saldos-shell {
-    padding: 18px;
+    padding: 16px;
   }
 
   .panel {

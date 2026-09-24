@@ -24,14 +24,19 @@
         <label>Entidad</label>
 
         <app-select
-          placeholder="Selecciona entidad"
+          placeholder="Selecciona una entidad"
           [options]="entidadesOptions"
+          [value]="entidadSeleccionada"
           className="form-control saldos-select-arrow"
           (valueChange)="seleccionarEntidad($event)"
         />
       </div>
     </div>
   </article>
+
+  @if (errorCarga) {
+    <p role="alert">{{ errorCarga }}</p>
+  }
 
   <article class="panel results-panel">
     <header class="panel-header actions">
@@ -84,3 +89,10 @@
     </div>
   </article>
 </div>
+
+@if (cargando()) {
+  <app-processing-overlay
+    texto="Cargando información..."
+    descripcion="Estamos consultando los saldos. Espera un momento."
+  />
+}
