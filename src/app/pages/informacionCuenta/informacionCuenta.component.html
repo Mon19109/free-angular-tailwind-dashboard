@@ -26,12 +26,17 @@
         <app-select
           placeholder="Selecciona entidad"
           [options]="entidadesOptions"
+          [value]="entidadSeleccionada"
           className="form-control"
           (valueChange)="seleccionarEntidad($event)"
         />
       </div>
     </div>
   </article>
+
+  @if (errorCarga) {
+    <p role="alert">{{ errorCarga }}</p>
+  }
 
   <article class="panel info-panel">
     <header class="panel-header">
@@ -88,3 +93,10 @@
     </div>
   </article>
 </div>
+
+@if (cargando()) {
+  <app-processing-overlay
+    texto="Cargando información..."
+    descripcion="Estamos consultando los datos de la cuenta. Espera un momento."
+  />
+}

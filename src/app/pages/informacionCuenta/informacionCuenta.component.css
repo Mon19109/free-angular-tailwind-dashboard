@@ -35,7 +35,7 @@
 .cuenta-shell {
   min-height: calc(100vh - 104px);
   width: 100%;
-  padding: clamp(28px, 4vw, 54px);
+  padding: clamp(20px, 3vw, 36px);
   overflow-x: hidden;
   color: var(--cuenta-text);
   background:
@@ -59,18 +59,18 @@
 
 .panel {
   max-width: 1200px;
-  margin: 0 auto 28px;
+  margin: 0 auto 20px;
   overflow: hidden;
   border: 1px solid var(--cuenta-border);
-  border-radius: 22px;
+  border-radius: 16px;
   color: var(--cuenta-text);
   background: linear-gradient(180deg, var(--cuenta-card), var(--cuenta-card-2));
   box-shadow: var(--cuenta-shadow);
 }
 
 .panel-header {
-  min-height: 88px;
-  padding: 22px clamp(22px, 3vw, 34px);
+  min-height: 72px;
+  padding: 16px clamp(18px, 2vw, 24px);
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--cuenta-line);
@@ -85,7 +85,8 @@
 .panel-header h2 {
   margin: 0;
   color: inherit;
-  font-size: clamp(22px, 2.4vw, 28px);
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 600;
   line-height: 1.15;
 }
 
@@ -94,16 +95,16 @@
   margin-bottom: 4px;
   color: var(--cuenta-gold);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .filters-row {
-  padding: clamp(22px, 3vw, 34px);
+  padding: clamp(18px, 2vw, 24px);
   display: grid;
   grid-template-columns: repeat(2, minmax(220px, 1fr));
-  gap: 24px;
+  gap: 18px;
 }
 
 .filter-group {
@@ -115,20 +116,20 @@
   margin-bottom: 9px;
   color: var(--cuenta-text);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .form-control {
   width: 100%;
-  min-height: 48px;
+  min-height: 40px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 0 14px;
   outline: none;
   color: var(--cuenta-text);
   background: var(--app-input-bg);
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 500;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
@@ -154,14 +155,15 @@ html.dark .form-control option {
 }
 
 .info-body {
-  padding: clamp(22px, 3vw, 34px);
+  padding: clamp(18px, 2vw, 24px);
 }
 
 .intro {
-  margin: 0 0 22px;
+  margin: 0 0 16px;
   color: var(--cuenta-muted);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .account-card {
@@ -173,7 +175,7 @@ html.dark .form-control option {
 }
 
 .info-row {
-  padding: 18px 20px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -186,7 +188,7 @@ html.dark .form-control option {
   margin-bottom: 6px;
   color: var(--cuenta-muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -194,7 +196,9 @@ html.dark .form-control option {
 .info-row strong {
   display: block;
   color: var(--cuenta-text);
-  font-size: clamp(18px, 2.4vw, 26px);
+  font-size: clamp(16px, 1.4vw, 20px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   line-height: 1.2;
   word-break: break-word;
 }
@@ -205,7 +209,7 @@ html.dark .form-control option {
 
 .tag {
   margin: 0;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
   color: #ffffff !important;
   background: #333f50;
@@ -220,8 +224,8 @@ html.dark .form-control option {
   padding: 16px 20px;
   color: var(--cuenta-muted);
   font-size: 12px;
-  font-style: italic;
-  font-weight: 650;
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 @media (max-width: 900px) {

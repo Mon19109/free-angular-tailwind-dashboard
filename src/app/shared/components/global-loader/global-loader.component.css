@@ -1,32 +1,72 @@
+:host {
+  position: relative;
+  z-index: 2147483646;
+}
+
 .global-loader {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 2147483646;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: none;
+  background:
+    radial-gradient(circle at top left, rgba(241, 178, 61, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 24%),
+    linear-gradient(180deg, #05070b 0%, #0b111a 52%, #05070b 100%);
+}
+
+.global-loader-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: #333f50;
+  gap: 28px;
+  width: min(100%, 480px);
 }
 
 .global-loader img {
-  width: min(78vw, 720px);
+  display: block;
+  width: 100%;
   height: auto;
-  animation: kashpay-loader-spin 2s linear infinite;
-  transform-origin: center;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(199, 146, 75, 0.18));
 }
 
-@keyframes kashpay-loader-spin {
-  from {
-    transform: rotateY(0deg);
-  }
-
-  to {
-    transform: rotateY(360deg);
-  }
+.global-loader-progress {
+  width: min(60%, 220px);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(199, 146, 75, 0.18);
 }
 
-@media (max-width: 640px) {
-  .global-loader img {
-    width: 86vw;
+.global-loader-progress span {
+  display: block;
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #99602c, #ffda91, #c7924b);
+  animation: loading-progress 1.4s ease-in-out infinite alternate;
+}
+
+.global-loader p {
+  margin: 0;
+  color: #e5cfaa;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+
+@keyframes loading-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(225%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-loader-progress span {
+    animation: none;
+    width: 100%;
   }
 }

@@ -1,19 +1,42 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
 import { SaldosService } from '../../services/saldos.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { defer, finalize, Observable, Subscription } from 'rxjs';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { SelectComponent } from '../../shared/components/form/select/select.component';
 
 @Component({
   selector: 'app-informacion-cuenta',
   standalone: true,
-  imports: [CommonModule, SelectComponent],
+  imports: [CommonModule, SelectComponent, ProcessingOverlayComponent],
   templateUrl: './informacionCuenta.component.html',
   styleUrls: ['./informacionCuenta.component.css']
 })
 export class InformacionCuentaComponent implements OnInit {
   private operacionesEmisionService = inject(OperacionesEmisionService);
   private saldosService = inject(SaldosService);
+
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  readonly cargando = signal(false);
+  private consultasPendientes = 0;
+  private readonly destroyRef = inject(DestroyRef);
+  private entidadesRequest?: Subscription;
+  private infoRequest?: Subscription;
+  errorCarga = '';
+
+  private conCarga<T>(request: Observable<T>): Observable<T> {
+    return defer(() => {
+      this.consultasPendientes += 1;
+      this.cargando.set(true);
+      return request.pipe(finalize(() => {
+        this.consultasPendientes -= 1;
+        this.cargando.set(this.consultasPendientes > 0);
+        this.changeDetector.markForCheck();
+      }));
+    }).pipe(takeUntilDestroyed(this.destroyRef));
+  }
 
   cuentas: any[] = [];
   entidades: any[] = [];
@@ -55,7 +78,7 @@ export class InformacionCuentaComponent implements OnInit {
   }
 
   cargarDatosIniciales(): void {
-    this.operacionesEmisionService.obtenerConcentratorAccounts().subscribe({
+    this.conCarga(this.operacionesEmisionService.obtenerConcentratorAccounts()).subscribe({
       next: (resp) => {
         this.cuentas = this.normalizarLista(resp, [
           'data',
@@ -65,7 +88,7 @@ export class InformacionCuentaComponent implements OnInit {
         ]);
 
         const cuentaAdquirencia = this.cuentas.find(
-          cuenta => Number(cuenta?.idbusinessModel) === 2
+          cuenta => this.esAdquirente(cuenta)
         );
         const valorCuentaAdquirencia = this.obtenerValorCuenta(cuentaAdquirencia);
 
@@ -74,34 +97,20 @@ export class InformacionCuentaComponent implements OnInit {
           this.seleccionarCuenta(valorCuentaAdquirencia);
         }
       },
-      error: (error) => console.error('Error al cargar cuentas:', error)
+      error: () => { this.errorCarga = 'No se pudieron cargar las cuentas. Intenta de nuevo.'; }
     });
 
-    this.operacionesEmisionService.obtenerCuentas().subscribe({
-      next: (resp) => {
-        const cuentaActual = this.cuentas.find(
-          cuenta => this.obtenerValorCuenta(cuenta) === this.cuentaSeleccionada
-        );
-
-        if (Number(cuentaActual?.idbusinessModel) !== 2) {
-          this.entidades = this.normalizarLista(resp, [
-            'data',
-            'entities',
-            'entityLevels',
-            'items'
-          ]);
-        }
-      },
-      error: (error) => console.error('Error al cargar entidades:', error)
-    });
-
-    this.infoCuenta.clabe = this.obtenerClabeSesion();
   }
 
   onCuentaChange(event: Event): void {
     const cuenta = (event.target as HTMLSelectElement).value;
     this.cuentaSeleccionada = cuenta;
     this.entidadSeleccionada = '';
+    this.entidadesRequest?.unsubscribe();
+    this.infoRequest?.unsubscribe();
+    this.entidades = [];
+    this.errorCarga = '';
+    this.limpiarInfoCuenta();
 
     const cuentaSeleccionada = this.cuentas.find(
       item => this.obtenerValorCuenta(item) === cuenta
@@ -114,13 +123,14 @@ export class InformacionCuentaComponent implements OnInit {
 
     this.infoCuenta.titular = this.obtenerTextoCuenta(cuentaSeleccionada);
 
-    if (cuentaSeleccionada.idbusinessModel === 2) {
-      this.entidades = [];
+    // Adquirente tiene información propia, incluso cuando no tiene entidades hijas.
+    if (this.esAdquirente(cuentaSeleccionada)) {
       this.cargarInfoCuenta(cuenta);
-      return;
     }
 
-    this.operacionesEmisionService.obtenerEntidades(cuenta).subscribe({
+    this.entidadesRequest = this.conCarga(
+      this.operacionesEmisionService.obtenerEntidades(cuenta)
+    ).subscribe({
       next: (resp) => {
         this.entidades = this.normalizarLista(resp, [
           'data',
@@ -129,13 +139,16 @@ export class InformacionCuentaComponent implements OnInit {
           'items'
         ]);
       },
-      error: (error) => console.error('Error al cargar entidades:', error)
+      error: () => { this.errorCarga = 'No se pudieron cargar las entidades. Vuelve a seleccionar la cuenta.'; }
     });
   }
 
   onEntidadChange(event: Event): void {
     const entidad = (event.target as HTMLSelectElement).value;
     this.entidadSeleccionada = entidad;
+    this.infoRequest?.unsubscribe();
+    this.errorCarga = '';
+    this.limpiarInfoCuenta();
 
     const entidadEncontrada = this.entidades.find(
       item => this.obtenerValorEntidad(item) === entidad
@@ -143,6 +156,7 @@ export class InformacionCuentaComponent implements OnInit {
 
     this.infoCuenta.titular =
       entidadEncontrada?.bussinesName ||
+      entidadEncontrada?.businessName ||
       entidadEncontrada?.name ||
       this.infoCuenta.titular ||
       'ND';
@@ -155,20 +169,25 @@ export class InformacionCuentaComponent implements OnInit {
       return;
     }
 
-    this.saldosService.getSaldo(fatherId).subscribe({
+    this.infoRequest = this.conCarga(this.saldosService.getSaldo(fatherId)).subscribe({
       next: (resp) => {
         const balanceData = resp?.onsignaEntity || resp?.data || resp;
 
         this.infoCuenta = {
-          clabe: balanceData?.clabeAccount || this.obtenerClabeSesion(),
+          clabe: balanceData?.virtualAccount || 'ND',
           saldo: Number(balanceData?.balance ?? balanceData?.saldo ?? 0),
           banco: 'STP',
           titular: balanceData?.name || this.infoCuenta.titular || 'ND',
           afiliacion: balanceData?.affiliationId || balanceData?.affiliation || 'ND'
         };
       },
-      error: (error) => console.error('Error al cargar información de cuenta:', error)
+      error: () => { this.errorCarga = 'No se pudo cargar la información de la entidad. Intenta de nuevo.'; }
     });
+  }
+
+  private esAdquirente(cuenta: any): boolean {
+    const modelo = cuenta?.idbusinessModel ?? cuenta?.idBusinessModel;
+    return Number(modelo) === 2 || /adquir/i.test(this.obtenerTextoCuenta(cuenta));
   }
 
   obtenerValorCuenta(cuenta: any): string {
@@ -206,24 +225,9 @@ export class InformacionCuentaComponent implements OnInit {
     return [];
   }
 
-  private obtenerClabeSesion(): string {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession);
-        return session?.spei || session?.clabeAccount || localStorage.getItem('spei') || 'ND';
-      } catch {
-        return localStorage.getItem('spei') || 'ND';
-      }
-    }
-
-    return localStorage.getItem('spei') || 'ND';
-  }
-
   private limpiarInfoCuenta(): void {
     this.infoCuenta = {
-      clabe: this.obtenerClabeSesion(),
+      clabe: 'ND',
       saldo: 0,
       banco: 'STP',
       titular: 'ND',

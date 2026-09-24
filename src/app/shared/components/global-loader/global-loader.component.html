@@ -1,5 +1,9 @@
 @if (loaderService.visible()) {
   <div class="global-loader" role="status" aria-live="polite" aria-label="Cargando">
-    <img [src]="logoSrc" alt="KASHPAY" />
+    <div class="global-loader-content">
+      <img [src]="logoSrc" alt="KASHPAY" width="480" height="71" />
+      <div class="global-loader-progress" aria-hidden="true"><span></span></div>
+      <p>Cargando módulo…</p>
+    </div>
   </div>
 }

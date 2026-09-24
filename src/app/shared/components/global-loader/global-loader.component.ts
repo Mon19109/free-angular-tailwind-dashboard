@@ -11,5 +11,5 @@ import { GlobalLoaderService } from '../../../services/global-loader.service';
 })
 export class GlobalLoaderComponent {
   readonly loaderService = inject(GlobalLoaderService);
-  readonly logoSrc = 'https://portal-antares.kashplataforma.com/public/assets/img/logo_kashpay_sobra.png';
+  readonly logoSrc = '/kashpay_dorado.png';
 }
