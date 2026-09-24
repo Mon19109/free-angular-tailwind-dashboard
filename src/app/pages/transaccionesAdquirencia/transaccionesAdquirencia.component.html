@@ -203,6 +203,14 @@
                         <button class="icon-btn" type="button" (click)="verTicket(t)" title="Ver ticket">
                           <i class="fa-regular fa-eye"></i>
                         </button>
+                      } @else if ($index === 26) {
+                        @if (puedeAclarar(t)) {
+                          <a class="icon-btn aclaracion-action" [routerLink]="['/aclaraciones']"
+                            [queryParams]="{ validate: t.idOperation }" title="Aclaraciones" aria-label="Aclaraciones">
+                            <i class="fas fa-comment-dollar" aria-hidden="true"></i>
+                          </a>
+                        }
+                        @if (valor !== 'ND') { <span>{{ valor }}</span> }
                       } @else {
                         {{ $index === 0 && esDevolucion(t.transactiontype) ? '-' : '' }}{{ valor }}
                       }

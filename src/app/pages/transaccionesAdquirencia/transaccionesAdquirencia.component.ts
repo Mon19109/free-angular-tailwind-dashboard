@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { TransaccionesAdquirenciaService, FiltrosTransaccion, Transaccion, TicketResponse } from '../../services/transaccionesadquirencia.service';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import * as XLSX from 'xlsx';
@@ -15,7 +16,7 @@ declare var moment: any;
 @Component({
   selector: 'app-transacciones',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePickerComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DatePickerComponent],
   templateUrl: './transaccionesAdquirencia.component.html',
   styleUrls: ['./transaccionesAdquirencia.component.css']
 })
@@ -23,7 +24,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   private transaccionesAdquirenciaService = inject(TransaccionesAdquirenciaService);
   
   // Variables de sesión (deben venir de AuthService)
-  rolId = '2';
+  rolId = '0';
   contId = '1';
   entiId = '1';
   subAfSelect = '0';
@@ -1235,9 +1236,15 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   puedeAclarar(transaccion: Transaccion): boolean {
-    return transaccion.status === 'APROBADA' && 
-           transaccion.transactiontype === 'VENTA' &&
-           (this.rolId === '2' || this.rolId === '3' || this.contId === '83' || this.contId === '134' || this.entiId === 'SUB981645');
+    return transaccion.status === 'APROBADA'
+      && transaccion.transactiontype === 'VENTA'
+      && transaccion.idOperation !== null
+      && transaccion.idOperation !== undefined
+      && (this.rolId === '2'
+        || this.rolId === '3'
+        || (this.rolId === '6' && this.contId === '83')
+        || this.entiId === 'SUB981645'
+        || (this.rolId !== '6' && this.contId === '134'));
   }
   
   maskCard(card: string): string {

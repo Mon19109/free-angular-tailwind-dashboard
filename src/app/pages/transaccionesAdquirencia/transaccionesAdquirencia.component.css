@@ -131,6 +131,8 @@
   min-width: 3900px;
 }
 
+.aclaracion-action { display: inline-flex; align-items: center; justify-content: center; margin-right: 8px; text-decoration: none; }
+
 .export-button {
   color: #ffffff;
   background: #28313e;
