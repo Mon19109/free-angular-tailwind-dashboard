@@ -62,6 +62,12 @@
     "changeOrigin": true,
     "logLevel": "debug"
   },
+  "/CardServices": {
+    "target": "http://172.31.47.180",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/DocumentsServices": {
     "target": "http://10.15.5.160",
     "secure": false,
