@@ -1,5 +1,7 @@
+import { nombreBancoPorCodigo } from '../../shared/utils/bancos';
+import { COLUMNAS_OPERACIONES, valorColumnaOperacion } from '../../shared/utils/operaciones-tabla';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
@@ -21,6 +23,9 @@ import * as XLSX from 'xlsx';
 export class OperacionesAdquirenciaComponent implements OnInit {
   readonly buscando = signal(false);
   private readonly destroyRef = inject(DestroyRef);
+
+  readonly columnasOperaciones = COLUMNAS_OPERACIONES;
+  readonly valorColumnaOperacion = valorColumnaOperacion;
 
   formulario: FormGroup;
   fechaErrorMensaje = '';
@@ -297,83 +302,62 @@ estatus: [this.defaultEstatus],
     }
   }*/
 
+  private solicitudesNiveles: Partial<Record<4 | 5 | 6, Subscription>> = {};
+
+  private cargarNivel(nivel: 4 | 5 | 6, nodeID: string): void {
+    this.solicitudesNiveles[nivel]?.unsubscribe();
+    if (!nodeID) return;
+    const request = nivel === 4 ? this.opeAdquiService.getEntidades(nodeID)
+      : nivel === 5 ? this.opeAdquiService.getSucursales(nodeID)
+      : this.opeAdquiService.getCajas(nodeID);
+    this.solicitudesNiveles[nivel] = request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: response => {
+        const lista = this.normalizarLista(response, ['rows', 'contextResponse', 'data']);
+        if (nivel === 4) { this.entidades = lista; this.seleccionarEntidadSesion(lista); }
+        if (nivel === 5) { this.sucursales = lista; this.seleccionarSucursalSesion(lista); }
+        if (nivel === 6) { this.cajas = lista; this.seleccionarCajaSesion(lista); }
+      },
+      error: error => console.error('Error al cargar nivel ' + nivel, error)
+    });
+  }
+
+  private limpiarNiveles(desde: 4 | 5 | 6): void {
+    for (const nivel of [4, 5, 6] as const) {
+      if (nivel >= desde) this.solicitudesNiveles[nivel]?.unsubscribe();
+    }
+    if (desde <= 4) this.entidades = [];
+    if (desde <= 5) this.sucursales = [];
+    this.cajas = [];
+  }
+
+  private nodoBaseFiltros(): string {
+    return String(this.formulario.getRawValue().cuenta || localStorage.getItem('nodeID') || '');
+  }
+
   cargarDatosIniciales(): void {
+    this.cargarTiposOperacion();
+    this.formulario.get('cuenta')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
+      this.formulario.patchValue({ entidad: '', sucursal: '', caja: '' }, { emitEvent: false });
+      this.limpiarNiveles(4);
+      const nodeID = String(valor || localStorage.getItem('nodeID') || '');
+      this.cargarNivel(4, nodeID);
+      this.cargarNivel(5, nodeID);
+      this.cargarNivel(6, nodeID);
+    });
+    this.formulario.get('entidad')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
+      this.formulario.patchValue({ sucursal: '', caja: '' }, { emitEvent: false });
+      this.limpiarNiveles(5);
+      const nodeID = String(valor || this.nodoBaseFiltros());
+      this.cargarNivel(5, nodeID);
+      this.cargarNivel(6, nodeID);
+    });
+    this.formulario.get('sucursal')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
+      this.formulario.patchValue({ caja: '' }, { emitEvent: false });
+      this.limpiarNiveles(6);
+      this.cargarNivel(6, String(valor || this.formulario.getRawValue().entidad || this.nodoBaseFiltros()));
+    });
     this.cargarSubafiliados();
-
-    // Cargar tipos de operación
-   this.cargarTiposOperacion();
-
-
-this.formulario.get('cuenta')?.valueChanges.subscribe(valor => {
-
-  console.log('SUBAFILIADO:', valor);
-
-  this.formulario.patchValue({ entidad: '', sucursal: '', caja: '' }, { emitEvent: false });
-  this.entidades = [];
-  this.sucursales = [];
-  this.cajas = [];
-
-  if (!valor) return;
-
-  this.opeAdquiService.getEntidades(String(valor)).subscribe({
-     next: (resp:any) => {
-      this.entidades = this.normalizarLista(resp, ['rows', 'contextResponse', 'data']);
-      this.seleccionarEntidadSesion(this.entidades);
-    },
-
-      error: (err) => {
-
-        console.error('ERROR ENTIDADES:', err);
-
-      }
-
-    });
-
-});
-
-this.formulario.get('entidad')?.valueChanges.subscribe(entidad => {
-  this.formulario.patchValue({ sucursal: '', caja: '' }, { emitEvent: false });
-  this.sucursales = [];
-  this.cajas = [];
-
-  if (!entidad) return;
-
-  this.opeAdquiService
-    .getSucursales(String(entidad))
-    .subscribe({
-
-      next:(resp:any)=>{
-        this.sucursales = this.normalizarLista(resp, ['rows', 'contextResponse', 'data']);
-        this.seleccionarSucursalSesion(this.sucursales);
-
-      }
-
-    });
-
-});
-
-this.formulario.get('sucursal')?.valueChanges.subscribe(nodeID => {
-
-  this.formulario.patchValue({ caja: '' }, { emitEvent: false });
-  this.cajas = [];
-
-  if (!nodeID) return;
-
-  this.opeAdquiService
-    .getCajas(String(nodeID))
-    .subscribe({
-
-      next:(resp:any)=>{
-        this.cajas = this.normalizarLista(resp, ['rows', 'contextResponse', 'data']);
-        this.seleccionarCajaSesion(this.cajas);
-
-      }
-
-    });
-
-});
-
-this.cargarDependenciasSesion();
+    this.cargarDependenciasSesion();
 
     // Cargar estatus
     this.opeAdquiService.obtenerStatus().subscribe({
@@ -552,38 +536,12 @@ mostrarResultados = false;
   }
 
   private cargarDependenciasSesion(): void {
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
-    if (!nodeIDSesion) return;
-
-    if (this.rolId === '4') {
-      this.opeAdquiService.getEntidades(nodeIDSesion).subscribe({
-        next: (resp: any) => {
-          this.entidades = this.normalizarLista(resp, ['rows', 'contextResponse', 'data']);
-          this.seleccionarEntidadSesion(this.entidades);
-        },
-        error: (error) => console.error('Error al cargar entidades de sesión:', error)
-      });
-    }
-
-    if (this.rolId === '5') {
-      this.opeAdquiService.getSucursales(nodeIDSesion).subscribe({
-        next: (resp: any) => {
-          this.sucursales = this.normalizarLista(resp, ['rows', 'contextResponse', 'data']);
-          this.seleccionarSucursalSesion(this.sucursales);
-        },
-        error: (error) => console.error('Error al cargar sucursales de sesión:', error)
-      });
-    }
-
-    if (this.rolId === '6') {
-      this.opeAdquiService.getCajas(nodeIDSesion).subscribe({
-        next: (resp: any) => {
-          this.cajas = this.normalizarLista(resp, ['rows', 'contextResponse', 'data']);
-          this.seleccionarCajaSesion(this.cajas);
-        },
-        error: (error) => console.error('Error al cargar cajas de sesión:', error)
-      });
-    }
+    const nodeID = localStorage.getItem('nodeID') || '';
+    if (!nodeID) return;
+    this.limpiarNiveles(4);
+    this.cargarNivel(4, nodeID);
+    this.cargarNivel(5, nodeID);
+    this.cargarNivel(6, nodeID);
   }
 
   private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
@@ -600,7 +558,7 @@ mostrarResultados = false;
     );
 
     if (existeSubafiliadoSesion) {
-      this.formulario.patchValue({ cuenta: nodeIDSesion });
+      this.formulario.patchValue({ cuenta: nodeIDSesion }, { emitEvent: false });
       this.subafiliadoSesionBloqueado = true;
     }
 
@@ -791,58 +749,10 @@ mostrarResultados = false;
     if (!this.operaciones?.length) return;
 
     const fecha = this.obtenerFechaArchivo();
-    const encabezados = [
-      'ID',
-      'TIPO',
-      'VENTA NETA',
-      'MONTO',
-      'ESTATUS',
-      'DESCRIPCION',
-      'FECHA',
-      'CODIGO DE RESPUESTA',
-      'REFERENCIA NUMERICA',
-      'REFERENCIA ALFANUMERICA',
-      'TARGETEMAIL',
-      'REFERENCIA INTERNA',
-      'REFERENCIA EXTERNA',
-      'TRANSACTIONBUNDLER',
-      'OBSERVACION',
-      'USUARIO',
-      'USUARIO ORIGEN',
-      'EMAIL ORIGEN',
-      'CUENTA DESTINATARIO',
-      'NOMBRE DEL DESTINATARIO',
-      'BANCO DESTINATARIO',
-      'CEP INT.',
-      'CEP EXT.',
-      'DETALLE'
-    ];
-
+    const encabezados = [...this.columnasOperaciones.map(columna => columna.titulo), 'DETALLE'];
     const filas = this.operaciones.map(operacion => [
-      operacion.id ?? '',
-      operacion.descriptionType ?? '',
-      this.formatoExcelMoneda(operacion.amount),
-      this.formatoExcelMoneda(operacion.settleAmount ?? 0),
-      this.obtenerEstatusOperacion(operacion.status),
-      operacion.description ?? '',
-      this.formatoExcelFecha(operacion.createdAt),
-      operacion.responseCode ?? '',
-      operacion.numericReference ?? '',
-      operacion.alphanumericReference ?? '',
-      operacion.targetEmail ?? '',
-      operacion.internalReference ?? '',
-      operacion.externalReference ?? '',
-      operacion.transactionBundler ?? '',
-      operacion.observation ?? '',
-      operacion.originalUsername ?? '',
-      operacion.originalUsername ?? '',
-      operacion.originalEmail ?? '',
-      operacion.targetID ?? '',
-      operacion.targetName ?? '',
-      this.obtenerBancoDestinatario(operacion),
-      operacion.cepInt ?? operacion.cepInternal ?? '',
-      operacion.cepExt ?? operacion.cepExternal ?? '',
-      ''
+      ...this.columnasOperaciones.map(columna => this.valorColumnaOperacion(operacion, columna)),
+      JSON.stringify(operacion)
     ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([
@@ -898,7 +808,7 @@ mostrarResultados = false;
       operacion.targetBank,
       operacion.bankName,
       operacion.institution,
-      operacion.targetIDCode
+      nombreBancoPorCodigo(operacion.targetIDCode)
     );
   }
 

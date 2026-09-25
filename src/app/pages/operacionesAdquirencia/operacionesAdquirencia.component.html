@@ -275,71 +275,21 @@ Seleccione una caja
       <table class="transactions-table">
 
         <thead>
-
           <tr>
-
-            <th>Id</th>
-            <th>Tipo</th>
-            <th>Monto</th>
-            <th>Estatus</th>
-            <th>Descripción</th>
-            <th>Fecha</th>
-            <th>Código Respuesta</th>
-            <th>Referencia Numérica</th>
-            <th>Referencia Alfanumérica</th>
-            <th>Nombre Destinatario</th>
-            <th>Id Destinatario</th>
-            <th>targetIDCode</th>
-            <th>targetEmail</th>
-            <th>Referencia Interna</th>
-            <th>Referencia Externa</th>
-            <th>TransactionBundler</th>
-            <th>Observación</th>
-            <th>Usuario</th>
-            <th>Detalle</th>
-
+            <th *ngFor="let columna of columnasOperaciones">{{ columna.titulo }}</th>
+            <th>DETALLE</th>
           </tr>
-
         </thead>
-
         <tbody>
-
           <tr *ngFor="let operacion of operaciones">
-
-            <td>{{ operacion.id }}</td>
-            <td>{{ operacion.descriptionType }}</td>
-            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
-            <td>{{ operacion.description }}</td>
-            <td>{{ operacion.observation }}</td>
-            <td>{{ operacion.createdAt }}</td>
-            <td>{{ operacion.responseCode }}</td>
-            <td>{{ operacion.numericReference }}</td>
-            <td>{{ operacion.alphanumericReference }}</td>
-            <td>{{ operacion.targetName }}</td>
-            <td>{{ operacion.targetID }}</td>
-            <td>{{ operacion.targetIDCode }}</td>
-            <td>{{ operacion.targetEmail }}</td>
-            <td>{{ operacion.internalReference }}</td>
-            <td>{{ operacion.externalReference }}</td>
-            <td>{{ operacion.transactionBundler }}</td>
-            <td>{{ operacion.observation }}</td>
-            <td>{{ operacion.originalUsername }}</td>
-
-            <td>
-
-              <button
-                class="icon-btn btn-detail"
-                type="button"
-                (click)="verTicket(operacion)"
-                title="Ver ticket">
-
-                <i class="fa-regular fa-eye"></i>
-              </button>
-
-            </td>
-
+            <td *ngFor="let columna of columnasOperaciones">{{ valorColumnaOperacion(operacion, columna) }}</td>
+            <td><button class="icon-btn btn-detail" type="button" (click)="verTicket(operacion)" title="Ver ticket" aria-label="Ver detalle">
+                  <i class="fa-regular fa-eye"></i>
+                </button></td>
           </tr>
-
+          <tr *ngIf="operaciones.length === 0">
+            <td [attr.colspan]="columnasOperaciones.length + 1" class="empty-row">No se encontraron datos.</td>
+          </tr>
         </tbody>
 
       </table>

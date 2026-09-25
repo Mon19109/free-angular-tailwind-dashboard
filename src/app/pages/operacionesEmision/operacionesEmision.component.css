@@ -470,3 +470,6 @@ html.dark .form-select option {
     width: 100%;
   }
 }
+
+.operation-detail summary { cursor: pointer; color: var(--ops-gold); }
+.operation-detail pre { max-width: 480px; max-height: 320px; overflow: auto; padding: 12px; font-size: 12px; text-transform: none; }
