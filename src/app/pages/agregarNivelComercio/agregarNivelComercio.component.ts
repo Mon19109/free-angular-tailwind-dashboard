@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, timeout } from 'rxjs';
+import { debounceTime, distinctUntilChanged, forkJoin, map, of, timeout } from 'rxjs';
 import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/consulta-comercios.service';
 import { StepDocumentosComponent } from '../preRegistro/components/documentos/step-documentos.component';
 import { DocumentoRequerido } from '../preRegistro/models/preregistro.models';
@@ -370,11 +370,11 @@ export class AgregarNivelComercioComponent implements OnInit {
       .pipe(timeout(45000))
       .subscribe({
         next: respuesta => {
-          const comercioRaiz = (respuesta.commerces ?? []).find(comercio => comercio.nodeID || comercio.contextID);
+          const comercioRaiz = (respuesta.commerces ?? []).find(comercio => !this.esPendienteRevision(comercio) && (comercio.nodeID || comercio.contextID));
           const raizNodeID = comercioRaiz?.nodeID || comercioRaiz?.contextID;
           this.cargando = false;
           if (raizNodeID) {
-            this.cargarArbolPorNodeID(raizNodeID);
+            this.cargarArbolPorNodeID(raizNodeID, respuesta.commerces ?? []);
             return;
           }
           this.arbol = this.construirArbol(respuesta.commerces ?? []);
@@ -387,14 +387,21 @@ export class AgregarNivelComercioComponent implements OnInit {
       });
   }
 
-  cargarArbolPorNodeID(nodeID: string | number): void {
+  cargarArbolPorNodeID(nodeID: string | number, comercios?: ConsultaComercioApi[]): void {
     this.cargandoArbol = true;
     this.errorArbol = '';
-    this.arbolNodosService.obtenerArbol(nodeID)
-      .pipe(timeout(45000))
+    forkJoin({
+      arbol: this.arbolNodosService.obtenerArbol(nodeID),
+      comercios: comercios ? of(comercios) : this.consultaComerciosService.buscarComercios({}).pipe(
+        map(respuesta => {
+          if (respuesta.success === false) throw new Error('No se pudo verificar el estatus de los comercios.');
+          return respuesta.commerces ?? [];
+        })
+      )
+    }).pipe(timeout(45000))
       .subscribe({
         next: respuesta => {
-          this.arbol = this.nodosDesdeArbolApi(respuesta);
+          this.arbol = this.excluirPendientesDelArbol(this.nodosDesdeArbolApi(respuesta.arbol), respuesta.comercios);
           this.cargandoArbol = false;
           if (!this.arbol.length) this.errorArbol = 'No se encontraron nodos para este comercio.';
         },
@@ -854,8 +861,25 @@ export class AgregarNivelComercioComponent implements OnInit {
     };
   }
 
+  private esPendienteRevision(comercio: ConsultaComercioApi): boolean {
+    const status = String(comercio.status ?? comercio['Status'] ?? comercio['STATUS'] ?? '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+    return status === '27' || status === 'PENDIENTE_REVISION';
+  }
+
+  private excluirPendientesDelArbol(nodos: NodoComercio[], comercios: ConsultaComercioApi[]): NodoComercio[] {
+    const pendientes = comercios.filter(comercio => this.esPendienteRevision(comercio));
+    const nodeIDs = new Set(pendientes.map(comercio => String(comercio.nodeID ?? '')).filter(Boolean));
+    const sirioIDs = new Set(pendientes.map(comercio => comercio.entitySonID).filter(Boolean));
+    const filtrar = (lista: NodoComercio[]): NodoComercio[] => lista
+      .filter(nodo => !nodeIDs.has(nodo.nodeID || '') && !sirioIDs.has(nodo.entitySonID))
+      .map(nodo => ({ ...nodo, hijos: filtrar(nodo.hijos) }));
+    return filtrar(nodos);
+  }
+
   private construirArbol(comercios: ConsultaComercioApi[]): NodoComercio[] {
     const nodos = comercios
+      .filter(comercio => !this.esPendienteRevision(comercio))
       .map(comercio => this.nodoDesdeComercio(comercio))
       .filter((nodo): nodo is NodoComercio => !!nodo);
 

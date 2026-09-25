@@ -1,4 +1,7 @@
-import { Component, OnInit , inject} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { OperacionesAdquirenciaService } from '../../services/operacionesadquirencia.service';
@@ -11,11 +14,14 @@ import * as XLSX from 'xlsx';
 @Component({
   selector: 'app-operacionesAdqui',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule , MultiSelectComponent, DatePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule , MultiSelectComponent, DatePickerComponent, ProcessingOverlayComponent],
   templateUrl: './operacionesAdquirencia.component.html',
   styleUrls: ['./operacionesAdquirencia.component.css']
 })
 export class OperacionesAdquirenciaComponent implements OnInit {
+  readonly buscando = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
+
   formulario: FormGroup;
   fechaErrorMensaje = '';
   cuentas: any[] = [];
@@ -415,6 +421,7 @@ mostrarResultados = false;
   }
 
   onSubmit(): void {
+    if (this.buscando()) return;
     this.fechaErrorMensaje = this.obtenerMensajeValidacionFechas();
 
     if (this.fechaErrorMensaje) {
@@ -427,7 +434,11 @@ mostrarResultados = false;
       console.log('Formulario enviado:', formValues);
       
       // Aquí puedes llamar a otro servicio para enviar los datos
-      this.opeAdquiService.enviarFormulario(formValues).subscribe({
+      this.buscando.set(true);
+      this.opeAdquiService.enviarFormulario(formValues).pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.buscando.set(false))
+      ).subscribe({
         next: (response) => {
           this.operaciones = response.response?.operations || response.operations || response.content || response.rows?.content || response.rows || [];
           this.mostrarResultados = true;

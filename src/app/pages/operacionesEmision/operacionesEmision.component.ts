@@ -1,4 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
@@ -12,11 +15,14 @@ import * as XLSX from 'xlsx';
 @Component({
   selector: 'app-operacionesEmi',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MultiSelectComponent, DatePickerComponent],
+  imports: [CommonModule, ReactiveFormsModule, MultiSelectComponent, DatePickerComponent, ProcessingOverlayComponent],
   templateUrl: './operacionesEmision.component.html',
   styleUrls: ['./operacionesEmision.component.css']
 })
 export class OperacionesEmisionComponent implements OnInit {
+  readonly buscando = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
+
   formulario: FormGroup;
   fechaErrorMensaje = '';
   //cuentas: any[] = [];
@@ -163,6 +169,7 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
   }
 
   onSubmit(): void {
+    if (this.buscando()) return;
     this.fechaErrorMensaje = this.obtenerMensajeValidacionFechas();
 
     if (this.fechaErrorMensaje) {
@@ -175,7 +182,11 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
       console.log('Formulario enviado:', formValues);
       
       // Aquí puedes llamar a otro servicio para enviar los datos
-      this.operaEmiService.enviarFormulario(formValues).subscribe({
+      this.buscando.set(true);
+      this.operaEmiService.enviarFormulario(formValues).pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.buscando.set(false))
+      ).subscribe({
         next: (response) => {
           console.log('Formulario enviado exitosamente:', response);
           this.operaciones = response.operations || [];

@@ -27,6 +27,17 @@
       <button class="link-action" type="button" (click)="limpiar()"><i class="fa-solid fa-rotate-right"></i> Limpiar filtros</button>
     </div>
 
+    <div class="review-filter" *ngIf="hayPendientesRevision || soloPendientesRevision">
+      <button type="button" class="review-filter-button"
+        [class.active]="soloPendientesRevision"
+        [attr.aria-pressed]="soloPendientesRevision"
+        (click)="alternarPendientesRevision()">
+        <i class="fa-solid fa-user-clock" aria-hidden="true"></i>
+        Pendientes de revisión
+        <i *ngIf="soloPendientesRevision" class="fa-solid fa-check" aria-hidden="true"></i>
+      </button>
+    </div>
+
     <form (ngSubmit)="buscar()">
       <fieldset class="level-grid">
         <legend>Buscar por Nivel</legend>
@@ -123,7 +134,6 @@
       </div>
     </div>
 
-    <p class="no-filters" *ngIf="cargando">Consultando comercios...</p>
     <p class="no-filters" *ngIf="errorConsulta">{{ errorConsulta }}</p>
 
     <div class="table-scroll" [class.actions-open]="accionesAbiertas">
@@ -156,7 +166,7 @@
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
               <div class="actions-menu" *ngIf="accionesAbiertas === idAcciones(comercio, indice)">
-                <button type="button" (click)="ejecutarAccion('editarInformacion', comercio)">Editar Información</button>
+                <button type="button" (click)="ejecutarAccion('editarInformacion', comercio)">{{ comercio.estatus === 'Pendiente de revisión' ? 'Editar' : 'Editar Información' }}</button>
                 <button *ngIf="puedeInactivar(comercio)" type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
                 <button *ngIf="puedeDarBaja()" type="button" (click)="ejecutarAccion('baja', comercio)">Baja</button>
                 <button *ngIf="puedeConsultarPassword(comercio)" type="button" (click)="ejecutarAccion('password', comercio)">Consulta Contraseña</button>
@@ -250,3 +260,10 @@
     </footer>
   </section>
 </div>
+
+@if (cargando) {
+  <app-processing-overlay
+    texto="Cargando información..."
+    descripcion="Estamos consultando los comercios. Espera un momento."
+  />
+}

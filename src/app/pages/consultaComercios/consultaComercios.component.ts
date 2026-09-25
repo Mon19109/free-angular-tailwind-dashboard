@@ -1,3 +1,4 @@
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/co
 import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
 
 type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos';
-type EstatusComercio = 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
+type EstatusComercio = 'Pendiente de revisión' | 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
 type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; valor: '...' };
 type FiltroJerarquia = 'entidad' | 'sucursal' | 'caja';
 
@@ -39,7 +40,7 @@ interface Comercio {
 @Component({
   selector: 'app-consulta-comercios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ProcessingOverlayComponent],
   templateUrl: './consultaComercios.component.html',
   styleUrls: ['./consultaComercios.component.css']
 })
@@ -87,6 +88,22 @@ export class ConsultaComerciosComponent {
 
   comercios: Comercio[] = [];
   resultados = [...this.comercios];
+  soloPendientesRevision = false;
+
+  get hayPendientesRevision(): boolean {
+    return this.comercios.some(comercio => this.esPendienteRevision(comercio.statusOriginal));
+  }
+
+  alternarPendientesRevision(): void {
+    this.soloPendientesRevision = !this.soloPendientesRevision;
+    this.aplicarFiltroNivel();
+  }
+
+  private esPendienteRevision(status: unknown): boolean {
+    const valor = this.normalizarTexto(String(status ?? '')).replace(/[\s_]+/g, '_');
+    return valor === '27' || valor === 'PENDIENTE_REVISION';
+  }
+
   cargando = false;
   errorConsulta = '';
   paginaActual = 1;
@@ -211,6 +228,7 @@ export class ConsultaComerciosComponent {
   }
 
   limpiar(): void {
+    this.soloPendientesRevision = false;
     this.filtros = { nivel: 'todos', entidad: '', sucursal: '', caja: '', nombre: '', rfc: '', correo: '' };
     this.busquedaTabla = '';
     this.buscar();
@@ -245,7 +263,8 @@ export class ConsultaComerciosComponent {
       const coincideNivel = nivel === 'todos'
         || (nivel === 'prospectos' ? this.esProspectoAdmin(comercio) : this.normalizarNivel(comercio.nivel) === nivel);
 
-      return coincideNivel && this.coincideFiltrosJerarquia(comercio);
+      return coincideNivel && this.coincideFiltrosJerarquia(comercio)
+        && (!this.soloPendientesRevision || this.esPendienteRevision(comercio.statusOriginal));
     }));
     this.paginaActual = 1;
     this.accionesAbiertas = null;
@@ -309,8 +328,9 @@ export class ConsultaComerciosComponent {
   }
 
   private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
-    const status = this.normalizarTexto(comercio.status || String(comercio['Status'] || comercio['STATUS'] || ''));
+    const status = this.normalizarTexto(String(comercio.status ?? comercio['Status'] ?? comercio['STATUS'] ?? ''));
 
+    if (this.esPendienteRevision(status)) return 'Pendiente de revisión';
     if (status === 'ACTIVO' || status === 'ACTIVE') return 'Activo';
     if (status === 'INACTIVO' || status === 'INACTIVE') return 'Inactivo';
     if (status === 'BAJA' || status === 'BAJA DEFINITIVA' || status === 'BAJA_DEFINITIVA') return 'Baja definitiva';
@@ -347,7 +367,7 @@ export class ConsultaComerciosComponent {
   }
 
   private esProspectoCliente(comercio: ConsultaComercioApi): boolean {
-    const status = this.normalizarTexto(comercio.status || String(comercio['Status'] || comercio['STATUS'] || ''));
+    const status = this.normalizarTexto(String(comercio.status ?? comercio['Status'] ?? comercio['STATUS'] ?? ''));
 
     return status === 'PROSPECTO_CLIENTE' || status === 'PROSPECTO_A_CLIENTE' || status === 'PROSPECTO_ADMIN';
   }
@@ -514,7 +534,8 @@ export class ConsultaComerciosComponent {
           entitySonID: comercio.entitySonID || comercio.idComercio,
           nivel: comercio.nivel,
           esProspecto: this.esProspectoAdmin(comercio) ? 'true' : 'false',
-          habilitarMesaDigital: this.esAdministradorSesion() ? 'true' : 'false',
+          habilitarMesaDigital: (this.esAdministradorSesion() || this.esPendienteRevision(comercio.statusOriginal)) ? 'true' : 'false',
+          pendienteRevision: this.esPendienteRevision(comercio.statusOriginal) ? 'true' : 'false',
           nombre: comercio.nombreComercial,
           rfc: comercio.rfc,
           correo: comercio.correo,
@@ -716,7 +737,7 @@ export class ConsultaComerciosComponent {
   }
 
   puedeEditar(comercio: Comercio): boolean {
-    return comercio.estatus === 'Prospecto';
+    return comercio.estatus === 'Prospecto' || this.esPendienteRevision(comercio.statusOriginal);
   }
 
   private obtenerIdRolSesion(): number {

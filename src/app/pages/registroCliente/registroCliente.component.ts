@@ -338,11 +338,13 @@ export class RegistroClienteComponent {
   nodeIDEdicion = '';
   documentosProspectoPorNodo: Record<string, DocumentoProspectoApi[]> = {};
   mostrarMesaDigitalProspecto = false;
+  pendienteRevisionEdicion = false;
   habilitarMesaDigitalEdicion = false;
 
   constructor() {
     const params = this.route.snapshot.queryParamMap;
     this.mostrarMesaDigitalProspecto = params.get('esProspecto') === 'true';
+    this.pendienteRevisionEdicion = params.get('pendienteRevision') === 'true';
     this.habilitarMesaDigitalEdicion = params.get('habilitarMesaDigital') === 'true';
     const emailComercioServicio = this.correoParametro(params.get('email')) || this.correoParametro(params.get('correo'));
     this.comercioSeleccionado = {
@@ -463,6 +465,7 @@ export class RegistroClienteComponent {
 
   get seccionesVisibles(): SeccionRegistro[] {
     return this.secciones.filter(seccion => {
+      if (seccion.id === 'documentos' && this.pendienteRevisionEdicion && this.habilitarMesaDigitalEdicion) return true;
       if (this.nivelSeleccionado === 'caja') return seccion.id === 'comercio';
       if (['liquidacion', 'accesos'].includes(seccion.id)) return false;
       if (seccion.id === 'datos') return this.camposDatosGenerales.length > 0;

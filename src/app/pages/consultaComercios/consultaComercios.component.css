@@ -817,3 +817,37 @@ td {
   line-height: 1.45 !important;
   letter-spacing: 0 !important;
 }
+
+.review-filter {
+  margin-bottom: 18px;
+}
+
+.review-filter-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 1px solid var(--consulta-border);
+  border-radius: 10px;
+  color: var(--consulta-text);
+  background: var(--consulta-surface);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-filter-button i {
+  color: var(--consulta-gold);
+}
+
+.review-filter-button.active,
+.review-filter-button:hover {
+  border-color: var(--consulta-gold);
+  background: var(--consulta-gold-soft);
+}
+
+.review-filter-button:focus-visible {
+  outline: 2px solid var(--consulta-gold);
+  outline-offset: 3px;
+}

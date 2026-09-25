@@ -258,3 +258,10 @@
   </article>
 
 </div>
+
+@if (buscando()) {
+  <app-processing-overlay
+    texto="Cargando información..."
+    descripcion="Estamos consultando las operaciones. Espera un momento."
+  />
+}
