@@ -1,7 +1,9 @@
+import { fechaOperacion } from '../../shared/utils/operaciones-tabla';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { OperacionesEmisionService } from '../../services/operacionesemision.service';
@@ -9,6 +11,9 @@ import { MultiSelectComponent, Option }
 from '../../shared/components/form/multi-select/multi-select.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import * as XLSX from 'xlsx';
+import { nombreEstatusOperacion } from '../../shared/utils/estatus-operaciones';
+import { nombreBancoPorCodigo } from '../../shared/utils/bancos';
+
 
 //import { TopSidebarComponent } from '../top-sidebar/top-sidebar.component';
 
@@ -21,6 +26,10 @@ import * as XLSX from 'xlsx';
 })
 export class OperacionesEmisionComponent implements OnInit {
   readonly buscando = signal(false);
+  readonly nombreEstatusOperacion = nombreEstatusOperacion;
+  readonly nombreBancoPorCodigo = nombreBancoPorCodigo;
+  private readonly router = inject(Router);
+
   private readonly destroyRef = inject(DestroyRef);
 
   formulario: FormGroup;
@@ -29,6 +38,10 @@ export class OperacionesEmisionComponent implements OnInit {
   entidades: any[] = [];
   tiposOperacion: any[] = [];
   operaciones: any[] = [];
+
+operacionSeleccionada: any = null;
+tipoDetalleSeleccionado: number | null = null;
+mostrarModalDetalle = false;
 
   tipoOperacionOptions: Option[] = [];
   estatusMultiOptions: Option[] = [];
@@ -228,6 +241,92 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
 
 }
 
+readonly fechaOperacion = fechaOperacion;
+
+etiquetaDetalle(operacion: any): string {
+  const acciones: Record<number, string> = {
+    1: 'Comprobante SPEI',
+    4: 'Comprobante de retiro entre cuentas',
+    10: 'Recarga TAE',
+    11: 'Pago de servicio',
+    10008: 'Detalle de liquidación'
+  };
+  return acciones[Number(operacion.type)] || 'Ver detalle';
+}
+
+conceptoComprobante(operacion: any): string {
+  const descripcion = String(operacion.description ?? '');
+  const partes = descripcion.split('|');
+  return partes.length >= 3 ? partes[2] : descripcion || 'N/A';
+}
+
+verDetalle(operacion: any): void {
+
+  const tipo = Number(operacion.type);
+
+  switch (tipo) {
+
+   case 10008:
+  this.router.navigate(['/detalleOperacion'], {
+    queryParams: {
+      validate: operacion.numericReference,
+      page: 1
+    }
+  });
+  break;
+
+    case 1:
+      this.mostrarComprobanteSpei(operacion);
+      break;
+
+    case 4:
+      this.mostrarComprobanteRetiro(operacion);
+      break;
+
+    case 10:
+      this.mostrarRecargaTae(operacion);
+      break;
+
+    case 11:
+      this.mostrarPagoServicio(operacion);
+      break;
+
+    default:
+      console.log('La operación no tiene detalle:', operacion);
+      break;
+  }
+}
+
+private mostrarComprobanteSpei(operacion: any): void {
+  this.operacionSeleccionada = operacion;
+  this.tipoDetalleSeleccionado = 1;
+  this.mostrarModalDetalle = true;
+}
+
+private mostrarComprobanteRetiro(operacion: any): void {
+  this.operacionSeleccionada = operacion;
+  this.tipoDetalleSeleccionado = 4;
+  this.mostrarModalDetalle = true;
+}
+
+private mostrarRecargaTae(operacion: any): void {
+  this.operacionSeleccionada = operacion;
+  this.tipoDetalleSeleccionado = 10;
+  this.mostrarModalDetalle = true;
+}
+
+private mostrarPagoServicio(operacion: any): void {
+  this.operacionSeleccionada = operacion;
+  this.tipoDetalleSeleccionado = 11;
+  this.mostrarModalDetalle = true;
+}
+
+cerrarDetalle(): void {
+  this.mostrarModalDetalle = false;
+  this.operacionSeleccionada = null;
+  this.tipoDetalleSeleccionado = null;
+}
+
   exportarExcel(): void {
     if (!this.operaciones?.length) return;
 
@@ -258,7 +357,8 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
       operacion.id ?? '',
       operacion.descriptionType ?? '',
       this.formatoExcelMoneda(operacion.amount),
-      this.obtenerEstatusOperacion(operacion.status),
+      //this.obtenerEstatusOperacion(operacion.status),
+      nombreEstatusOperacion(operacion.status),
       operacion.description ?? '',
       this.formatoExcelFecha(operacion.createdAt),
       operacion.responseCode ?? '',
@@ -314,15 +414,6 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 
-  private obtenerEstatusOperacion(status: unknown): string {
-    const statusMap: Record<string, string> = {
-      '15': 'Aprobado',
-      '27': 'Enviado',
-      '31': 'Liquidado'
-    };
-
-    return statusMap[String(status ?? '')] || String(status ?? '');
-  }
 
   private obtenerMensajeValidacionFechas(): string {
     const fechaInicio = this.formulario.get('fechaInicio');

@@ -1,0 +1,12 @@
+:host { display: block; color: var(--app-text); }
+.detalle-shell { padding: clamp(16px, 2.2vw, 26px); border: 1px solid var(--app-border); border-radius: 16px; background: var(--app-surface); }
+header { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+h1 { font-size: 22px; margin: 4px 0; }
+p { font-size: 14px; }
+.eyebrow { color: var(--brand-secondary); font-size: 12px; font-weight: 600; }
+a, button { color: var(--app-text); border: 1px solid var(--app-border); border-radius: 10px; padding: 10px 14px; background: var(--app-surface-alt); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--brand-secondary); }
+.table-scroll { overflow-x: auto; border: 1px solid var(--app-border); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 12px 14px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--app-border); font-size: 13px; }
+th { background: var(--app-surface-alt); }

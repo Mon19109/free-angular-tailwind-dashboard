@@ -749,11 +749,10 @@ mostrarResultados = false;
     if (!this.operaciones?.length) return;
 
     const fecha = this.obtenerFechaArchivo();
-    const encabezados = [...this.columnasOperaciones.map(columna => columna.titulo), 'DETALLE'];
-    const filas = this.operaciones.map(operacion => [
-      ...this.columnasOperaciones.map(columna => this.valorColumnaOperacion(operacion, columna)),
-      JSON.stringify(operacion)
-    ]);
+    const encabezados = this.columnasOperaciones.map(columna => columna.titulo);
+    const filas = this.operaciones.map(operacion =>
+      this.columnasOperaciones.map(columna => this.valorColumnaOperacion(operacion, columna))
+    );
 
     const worksheet = XLSX.utils.aoa_to_sheet([
       [`Operaciones-Adquirencia-${fecha}`],

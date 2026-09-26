@@ -187,66 +187,170 @@
 
             <table class="transactions-table">
 
-        <thead>
-          <tr>
-            <th>Id</th>
-            <th>Tipo</th>
-            <th>Monto</th>
-            <th>Estatus</th>
-            <th>Descripción</th>
-            <th>Fecha</th>
-            <th>Código</th>
-            <th>Referencia Num.</th>
-            <th>Referencia Alfa.</th>
-            <th>Destinatario</th>
-            <th>ID Dest.</th>
-            <th>targetIDCode</th>
-            <th>targetEmail</th>
-            <th>Ref. Interna</th>
-            <th>Ref. Externa</th>
-            <th>Bundler</th>
-            <th>Observación</th>
-            <th>Usuario</th>
-            <th>Detalle</th>
-          </tr>
-        </thead>
+  <thead>
+    <tr>
+      <th>Id</th>
+      <th>Tipo</th>
+      <th>Venta Neta</th>
+      <th>Monto</th>
+      <th>Estatus</th>
+      <th>Descripción</th>
+      <th>Fecha</th>
+      <th>Código de Respuesta</th>
+      <th>Referencia Numérica</th>
+      <th>Referencia Alfanumérica</th>
+      <th>targetEmail</th>
+      <th>Referencia Interna</th>
+      <th>Referencia Externa</th>
+      <th>TransactionBundler</th>
+      <th>Observación</th>
+      <th>Usuario</th>
+      <th>Usuario Origen</th>
+      <th>Email Origen</th>
+      <th>Cuenta Destinatario</th>
+      <th>Nombre del Destinatario</th>
+      <th>Banco Destinatario</th>
+      <th>CEP INT.</th>
+      <th>CEP EXT.</th>
+      <th>Detalle</th>
+    </tr>
+  </thead>
 
-        <tbody>
+  <tbody>
 
-          <tr *ngFor="let operacion of operaciones">
+    <tr *ngFor="let operacion of operaciones">
 
-            <td>{{ operacion.id }}</td>
-            <td>{{ operacion.descriptionType }}</td>
-            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
-            <td>{{ operacion.description }}</td>
-            <td>{{ operacion.createdAt }}</td>
-            <td>{{ operacion.responseCode }}</td>
-            <td>{{ operacion.numericReference }}</td>
-            <td>{{ operacion.alphanumericReference }}</td>
-            <td>{{ operacion.targetName }}</td>
-            <td>{{ operacion.targetID }}</td>
-            <td>{{ operacion.targetIDCode }}</td>
-            <td>{{ operacion.targetEmail }}</td>
-            <td>{{ operacion.internalReference }}</td>
-            <td>{{ operacion.externalReference }}</td>
-            <td>{{ operacion.transactionBundler }}</td>
-            <td>{{ operacion.observation }}</td>
-            <td>{{ operacion.targetName }}</td>
-            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
-            <td>{{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}</td>
+      <!-- ID -->
+      <td>
+        {{ operacion.id }}
+      </td>
 
-          </tr>
+      <!-- TIPO -->
+      <td>
+        {{ operacion.descriptionType }}
+      </td>
 
-          <tr *ngIf="operaciones.length === 0">
-            <td colspan="19" class="empty-row">
-              No se encontraron datos.
-            </td>
-          </tr>
+      <!-- VENTA NETA -->
+      <td>
+        {{ (operacion.amount ?? 0) | currency:'MXN':'$':'1.2-2':'en-US' }}
+      </td>
 
-        </tbody>
+      <!-- MONTO / processingCode en PHP -->
+      <td>
+        {{ operacion.processingCode }}
+      </td>
 
+      <!-- ESTATUS -->
+      <td>
+  {{ nombreEstatusOperacion(operacion.status) }}
+</td>
 
-        </table>
+      <!-- DESCRIPCIÓN -->
+      <td>
+        {{ operacion.description }}
+      </td>
+
+      <!-- FECHA -->
+      <td>
+        {{ operacion.createdAt }}
+      </td>
+
+      <!-- CÓDIGO RESPUESTA -->
+      <td>
+        {{ operacion.responseCode }}
+      </td>
+
+      <!-- REFERENCIA NUMÉRICA -->
+      <td>
+        {{ operacion.numericReference }}
+      </td>
+
+      <!-- REFERENCIA ALFANUMÉRICA -->
+      <td>
+        {{ operacion.alphanumericReference }}
+      </td>
+
+      <!-- TARGET EMAIL -->
+      <td>
+        {{ operacion.targetEmail }}
+      </td>
+
+      <!-- REFERENCIA INTERNA -->
+      <td>
+        {{ operacion.internalReference }}
+      </td>
+
+      <!-- REFERENCIA EXTERNA -->
+      <td>
+        {{ operacion.externalReference }}
+      </td>
+
+      <!-- TRANSACTION BUNDLER -->
+      <td>
+        {{ operacion.transactionBundler }}
+      </td>
+
+      <!-- OBSERVACIÓN -->
+      <td>
+        {{ operacion.observation }}
+      </td>
+
+      <!-- USUARIO -->
+      <td>
+        {{ operacion.targetName }}
+      </td>
+
+      <!-- USUARIO ORIGEN -->
+      <td>
+        {{ operacion.originalUsername }}
+      </td>
+
+      <!-- EMAIL ORIGEN -->
+      <td>
+        {{ operacion.originalEmail }}
+      </td>
+
+      <!-- CUENTA DESTINATARIO -->
+      <td>
+        {{ operacion.targetID }}
+      </td>
+
+      <!-- NOMBRE DESTINATARIO -->
+      <td>
+        {{ operacion.targetName }}
+      </td>
+
+      <!-- BANCO DESTINATARIO -->
+     <td>
+  {{ nombreBancoPorCodigo(operacion.targetIDCode) }}
+</td>
+
+      <!-- CEP INT -->
+      <td></td>
+
+      <!-- CEP EXT -->
+      <td></td>
+
+     <!-- DETALLE -->
+<!-- DETALLE -->
+<td class="detalle-cell">
+  <button
+    *ngIf="[1, 4, 10, 11, 10008].includes(+operacion.type)"
+    type="button"
+    class="btn-detalle-eye"
+    (click)="verDetalle(operacion)"
+    [title]="etiquetaDetalle(operacion)"
+    [attr.aria-label]="etiquetaDetalle(operacion)">
+
+    <i class="fa-regular fa-eye"></i>
+  </button>
+</td>
+
+    </tr>
+
+  </tbody>
+
+</table>
 
       </div>
 
@@ -257,7 +361,209 @@
 
   </article>
 
+  
 </div>
+<!-- MODAL COMPROBANTE -->
+<div
+  class="detalle-overlay"
+  *ngIf="mostrarModalDetalle && operacionSeleccionada">
+
+  <div class="comprobante-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-comprobante">
+
+    <button
+      type="button"
+      class="comprobante-close"
+      aria-label="Cerrar comprobante"
+      (click)="cerrarDetalle()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="comprobante-brand">
+      KASHPAY
+    </div>
+
+    <h3 id="titulo-comprobante" class="comprobante-titulo">{{ etiquetaDetalle(operacionSeleccionada) }}</h3>
+
+    <div class="comprobante-fecha">
+      <p>
+        <strong>Fecha:</strong>
+        {{ fechaOperacion(operacionSeleccionada.createdAt).split(' ')[0] }}
+      </p>
+
+      <p>
+        <strong>Hora:</strong>
+        {{ fechaOperacion(operacionSeleccionada.createdAt).split(' ')[1] }}
+      </p>
+    </div>
+
+    <!-- SPEI / RETIRO -->
+    <ng-container
+      *ngIf="tipoDetalleSeleccionado === 1 || tipoDetalleSeleccionado === 4">
+
+      <div class="comprobante-status">
+        Su transferencia ha sido aplicada con número de autorización
+        #{{ operacionSeleccionada.id }}
+      </div>
+
+      <div class="comprobante-section">
+
+        <div class="comprobante-section-title">
+          Cuentas
+        </div>
+
+        <div class="comprobante-section-content">
+
+          <div>
+            <strong>Cuenta retiro</strong>
+         <span>{{ operacionSeleccionada.originalUsername || 'N/A' }}</span>
+<span>{{ operacionSeleccionada.originalEmail || 'N/A' }}</span>
+          </div>
+
+          <div>
+            <strong>Cuenta depósito beneficiario</strong>
+            <span>
+              {{ nombreBancoPorCodigo(operacionSeleccionada.targetIDCode) }}
+              beneficiario
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="comprobante-section">
+
+        <div class="comprobante-section-title">
+          Datos de la transferencia
+        </div>
+
+        <div class="comprobante-transfer-grid">
+
+          <div class="label">Monto</div>
+          <div class="value">
+            {{ operacionSeleccionada.amount
+              | currency:'MXN':'$':'1.2-2':'en-US' }}
+            {{ operacionSeleccionada.currency?.alphabeticCode || 'MXN' }}
+          </div>
+
+          <div class="label">Clave de rastreo</div>
+          <div class="value">
+            {{ operacionSeleccionada.externalReference || 'N/A' }}
+          </div>
+<div class="label">Cuenta beneficiario</div>
+<div class="value">
+  {{ operacionSeleccionada.targetID || 'N/A' }}
+</div>
+
+         <div class="label">Beneficiario</div>
+<div class="value">
+  {{ operacionSeleccionada.targetName || 'N/A' }}
+</div>
+
+          <div class="label">Referencia numérica</div>
+          <div class="value">
+            {{ operacionSeleccionada.numericReference }}
+          </div>
+
+          <div class="label">Concepto de pago</div>
+          <div class="value">
+            {{ conceptoComprobante(operacionSeleccionada) }}
+          </div>
+
+        </div>
+
+      </div>
+
+    </ng-container>
+
+
+    <!-- RECARGA TAE -->
+    <div
+      class="comprobante-section simple"
+      *ngIf="tipoDetalleSeleccionado === 10">
+
+      <div class="comprobante-section-title">
+        Recarga TAE
+      </div>
+
+      <div class="comprobante-transfer-grid">
+
+        <div class="label">Monto</div>
+        <div class="value">
+          {{ operacionSeleccionada.amount
+            | currency:'MXN':'$':'1.2-2':'en-US' }}
+        </div>
+
+        <div class="label">Nombre</div>
+        <div class="value">
+          {{ operacionSeleccionada.observation || 'N/A' }}
+        </div>
+
+        <div class="label">Estatus</div>
+        <div class="value">
+          {{ nombreEstatusOperacion(operacionSeleccionada.status) }}
+        </div>
+
+        <div class="label">Concepto</div>
+        <div class="value">
+          {{ operacionSeleccionada.description || 'N/A' }}
+        </div>
+
+        <div class="label">Referencia</div>
+        <div class="value">
+          {{ operacionSeleccionada.internalReference || 'N/A' }}
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- PAGO DE SERVICIO -->
+    <div
+      class="comprobante-section simple"
+      *ngIf="tipoDetalleSeleccionado === 11">
+
+      <div class="comprobante-section-title">
+        Pago de Servicio
+      </div>
+
+      <div class="comprobante-transfer-grid">
+
+        <div class="label">Monto</div>
+        <div class="value">
+          {{ operacionSeleccionada.amount
+            | currency:'MXN':'$':'1.2-2':'en-US' }}
+        </div>
+
+        <div class="label">Nombre</div>
+        <div class="value">
+          {{ operacionSeleccionada.observation || 'N/A' }}
+        </div>
+
+        <div class="label">Estatus</div>
+        <div class="value">
+          {{ nombreEstatusOperacion(operacionSeleccionada.status) }}
+        </div>
+
+        <div class="label">Concepto</div>
+        <div class="value">
+          {{ operacionSeleccionada.description || 'N/A' }}
+        </div>
+
+        <div class="label">Referencia</div>
+        <div class="value">
+          {{ operacionSeleccionada.internalReference || 'N/A' }}
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
 
 @if (buscando()) {
   <app-processing-overlay

@@ -473,3 +473,381 @@ html.dark .form-select option {
 
 .operation-detail summary { cursor: pointer; color: var(--ops-gold); }
 .operation-detail pre { max-width: 480px; max-height: 320px; overflow: auto; padding: 12px; font-size: 12px; text-transform: none; }
+
+
+
+/* =========================================================
+   MODAL - DETALLE DE OPERACION
+   ========================================================= */
+
+.detalle-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 16px;
+
+  background: rgba(0, 0, 0, 0.72);
+}
+
+
+/* =========================================================
+   CONTENEDOR DEL COMPROBANTE
+   ========================================================= */
+
+.comprobante-modal {
+  position: relative;
+
+  width: min(560px, 90vw);
+  max-height: 82vh;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding: 22px 24px 24px;
+
+  background: #ffffff;
+  color: #1d2433;
+
+  border-radius: 14px;
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+
+  scrollbar-width: thin;
+}
+
+
+/* =========================================================
+   BOTON CERRAR
+   ========================================================= */
+
+.comprobante-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 50%;
+
+  background: #aeb2ba;
+  color: #ffffff;
+
+  font-size: 15px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+
+  z-index: 10;
+}
+
+.comprobante-close:hover {
+  background: #8f949d;
+  transform: scale(1.05);
+}
+
+
+/* =========================================================
+   KASHPAY
+   ========================================================= */
+
+.comprobante-brand {
+  width: calc(100% - 45px);
+
+  margin-bottom: 18px;
+
+  padding: 11px 16px;
+
+  background: #3b4b63;
+  color: #ffffff;
+
+  font-size: 20px;
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+}
+
+
+/* =========================================================
+   FECHA Y HORA
+   ========================================================= */
+
+.comprobante-fecha {
+  margin: 0 0 18px;
+
+  color: #8d93a3;
+
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.comprobante-fecha p {
+  margin: 2px 0;
+}
+
+.comprobante-fecha strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   MENSAJE AUTORIZACION
+   ========================================================= */
+
+.comprobante-status {
+  margin: 18px 0 22px;
+
+  padding: 0 8px;
+
+  color: #172033;
+
+  text-align: center;
+
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   SECCIONES
+   ========================================================= */
+
+.comprobante-section {
+  display: grid;
+
+  grid-template-columns: 125px minmax(0, 1fr);
+
+  gap: 18px;
+
+  padding: 16px 0;
+
+  border-bottom: 1px solid #e1e4e8;
+}
+
+
+/* =========================================================
+   TITULOS LATERALES
+   ========================================================= */
+
+.comprobante-section-title {
+  color: #8d93a3;
+
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   INFORMACION DE CUENTAS
+   ========================================================= */
+
+.comprobante-section-content {
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+.comprobante-section-content > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.comprobante-section-content strong {
+  color: #8d93a3;
+
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.comprobante-section-content span {
+  color: #8d93a3;
+
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 500;
+
+  word-break: break-word;
+}
+
+
+/* =========================================================
+   DATOS DE LA TRANSFERENCIA
+   ========================================================= */
+
+.comprobante-transfer-grid {
+  display: grid;
+
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr);
+
+  column-gap: 24px;
+  row-gap: 9px;
+
+  align-items: start;
+}
+
+.comprobante-transfer-grid .label {
+  color: #8d93a3;
+
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.comprobante-transfer-grid .value {
+  color: #8d93a3;
+
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 600;
+
+  word-break: break-word;
+}
+
+
+/* =========================================================
+   RECARGA / PAGO SERVICIO
+   ========================================================= */
+
+.comprobante-section.simple {
+  grid-template-columns: 125px minmax(0, 1fr);
+}
+
+
+/* =========================================================
+   BOTON OJO DE LA TABLA
+   ========================================================= */
+
+.detalle-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.btn-detalle-eye {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--ops-line);
+  border-radius: 12px;
+  color: var(--ops-text);
+  background: var(--ops-panel);
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-detalle-eye:hover {
+  transform: translateY(-1px);
+  border-color: rgba(241, 178, 61, 0.42);
+  background: rgba(241, 178, 61, 0.16);
+}
+
+.btn-detalle-eye:focus-visible {
+  outline: 2px solid var(--ops-gold);
+  outline-offset: 3px;
+}
+
+.btn-detalle-eye:active { transform: translateY(0); }
+.comprobante-titulo { margin: 12px 0; color: #1d2433; font-size: 17px; text-align: center; }
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .detalle-overlay {
+    padding: 10px;
+  }
+
+  .comprobante-modal {
+    width: min(520px, 95vw);
+    max-height: 88vh;
+
+    padding: 18px;
+  }
+
+  .comprobante-brand {
+    font-size: 18px;
+  }
+
+  .comprobante-status {
+    font-size: 13px;
+
+    margin: 16px 0 18px;
+  }
+
+  .comprobante-section {
+    grid-template-columns: 110px minmax(0, 1fr);
+
+    gap: 12px;
+  }
+
+  .comprobante-section.simple {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+
+  .comprobante-transfer-grid {
+    column-gap: 14px;
+  }
+}
+
+
+@media (max-width: 520px) {
+
+  .comprobante-modal {
+    width: 96vw;
+
+    padding: 16px;
+  }
+
+  .comprobante-section {
+    grid-template-columns: 1fr;
+
+    gap: 8px;
+  }
+
+  .comprobante-section.simple {
+    grid-template-columns: 1fr;
+  }
+
+  .comprobante-transfer-grid {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 8px 12px;
+  }
+
+  .comprobante-brand {
+    font-size: 17px;
+  }
+
+  .comprobante-status {
+    font-size: 12px;
+  }
+}

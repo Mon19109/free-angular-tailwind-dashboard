@@ -1,3 +1,4 @@
+import { DetalleOperacionComponent } from './pages/detalleOperacion/detalle-operacion.component';
 import { agregarNivelComercioGuard } from './guards/agregar-nivel-comercio.guard';
 import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 import { EcommerceComponent } from './pages/dashboard2/ecommerce/ecommerce.component';
@@ -271,6 +272,12 @@ export const routes: Routes = [
         component: UsuariosComponent, 
         canActivate: [AuthGuard] ,
         title:'KASHPAY'
+      },
+      {
+        path: 'detalleOperacion',
+        component: DetalleOperacionComponent,
+        canActivate: [AuthGuard],
+        title: 'Detalle de liquidación'
       },
       {
         path: 'operaciones_emision',

@@ -131,6 +131,25 @@ obtenerEntidades(cuenta: string): Observable<any> {
     
   }
 
+
+  obtenerDetalleOperacion(validate: string): Observable<any> {
+  const params = new HttpParams()
+    .set('liquidationID', validate)
+    .set('idContext', localStorage.getItem('idContext') || '')
+    .set('idEntity', localStorage.getItem('idEntity') || '')
+    .set('idTerminal', localStorage.getItem('idTerminal') || '')
+    .set('idTerminalUser', localStorage.getItem('idTerminalUser') || '');
+
+  return this.http.get<any>(
+    `${this.apiV1Url}operations/searchOperations`,
+    {
+      headers: this.getCommonHeaders(),
+      params
+    }
+  );
+}
+
+
   /**
    * Envía los datos del formulario al API
    * @param formData Datos del formulario

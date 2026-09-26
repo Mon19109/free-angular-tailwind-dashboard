@@ -1,0 +1,23 @@
+<section class="detalle-shell">
+  <header>
+    <div><span class="eyebrow">Operaciones emisión</span><h1>Detalle de liquidación</h1><p>Referencia: {{ liquidationID || 'ND' }}</p></div>
+    <a routerLink="/operaciones_emision">Volver a operaciones</a>
+  </header>
+  @if (error()) {
+    <div role="alert"><p>{{ error() }}</p><button type="button" (click)="cargar()" [disabled]="cargando()">Reintentar</button></div>
+  }
+  <div class="table-scroll" tabindex="0" aria-label="Operaciones de la liquidación">
+    <table>
+      <thead><tr>@for (columna of columnas; track columna.campo) { <th>{{ columna.titulo }}</th> }<th>Ticket</th></tr></thead>
+      <tbody>
+        @for (operacion of operaciones(); track $index) {
+          <tr>@for (columna of columnas; track columna.campo) { <td>{{ valor(operacion, columna.campo) }}</td> }
+            <td>@if (ticketUrl(operacion); as url) { <a [href]="url" target="_blank" rel="noopener noreferrer" aria-label="Abrir ticket"><i class="fa-solid fa-print" aria-hidden="true"></i></a> } @else { — }</td>
+          </tr>
+        }
+        @if (!cargando() && !error() && !operaciones().length) { <tr><td [attr.colspan]="columnas.length + 1">No hay operaciones para esta liquidación.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+</section>
+@if (cargando()) { <app-processing-overlay texto="Cargando información..." descripcion="Estamos consultando el detalle de la liquidación. Espera un momento." /> }
