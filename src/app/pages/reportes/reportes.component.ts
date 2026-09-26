@@ -216,7 +216,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
     }
 
     // Estos reportes no dependen de los archivos encontrados en el directorio.
-    this.reportes = [...this.reportesFijos];
+    const reportesFijos = this.obtenerReportesFijosDisponibles();
+    this.reportes = [...reportesFijos];
     this.mostrarReportes = true;
     this.cargando = true;
 
@@ -238,7 +239,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
             ...this.reportesDinamicos[nombre]
           }));
 
-        this.reportes = [...this.reportesFijos, ...dinamicos];
+        this.reportes = [...this.obtenerReportesFijosDisponibles(), ...dinamicos];
       }, error: () => {
         this.mensaje = 'No fue posible consultar los reportes adicionales. Los reportes generales siguen disponibles.';
       }
@@ -251,6 +252,11 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
     if (!this.mostrarReportes || !this.cuentaSeleccionada || !this.periodoSeleccionado) {
       this.mensaje = 'Primero consulta con una cuenta y un periodo.';
+      return;
+    }
+
+    if (reporte.id === 'TRANSACCIONES_SPLIT' && !this.puedeMostrarSplit()) {
+      this.mensaje = 'El reporte Split no está disponible para la cuenta seleccionada.';
       return;
     }
 
@@ -410,14 +416,34 @@ export class ReportesComponent implements OnInit, OnDestroy {
     return texto.includes('adquir') ? 'ADQUIRENTE' : 'EMISION';
   }
 
+  private obtenerReportesFijosDisponibles(): ReporteDisponible[] {
+    return this.reportesFijos.filter(reporte => reporte.id !== 'TRANSACCIONES_SPLIT' || this.puedeMostrarSplit());
+  }
+
+  private puedeMostrarSplit(): boolean {
+    const cuenta = this.cuentas.find(item => item.id === this.cuentaSeleccionada);
+    const nombre = (cuenta?.texto || '').trim().toLocaleLowerCase('es-MX');
+    const idPerfil = this.obtenerIdPerfil();
+    return (idPerfil === 5 && nombre === 'cuenta reserva')
+      || (idPerfil === 7 && nombre === 'cuenta adquirente');
+  }
+
+  private obtenerIdPerfil(): number {
+    try {
+      const sesion = JSON.parse(localStorage.getItem('auth_session') || '{}');
+      if (sesion?.idPerfil != null) return Number(sesion.idPerfil);
+    } catch { /* Consultar el valor individual de la sesión. */ }
+    return Number(localStorage.getItem('idPerfil') || 0);
+  }
+
   private debeMostrarCuenta(cuenta: any): boolean {
-    const idPerfil = Number(localStorage.getItem('idPerfil') || 0);
+    const idPerfil = this.obtenerIdPerfil();
 
     if (idPerfil === 5) {
       return true;
     }
 
-    return this.obtenerTextoCuenta(cuenta) !== 'Cuenta Reserva';
+    return this.obtenerTextoCuenta(cuenta).trim().toLocaleLowerCase('es-MX') !== 'cuenta reserva';
   }
 
   private normalizarLista(response: any, keys: string[]): any[] {
