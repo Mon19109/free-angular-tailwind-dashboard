@@ -27,17 +27,6 @@
       <button class="link-action" type="button" (click)="limpiar()"><i class="fa-solid fa-rotate-right"></i> Limpiar filtros</button>
     </div>
 
-    <div class="review-filter" *ngIf="hayPendientesRevision || soloPendientesRevision">
-      <button type="button" class="review-filter-button"
-        [class.active]="soloPendientesRevision"
-        [attr.aria-pressed]="soloPendientesRevision"
-        (click)="alternarPendientesRevision()">
-        <i class="fa-solid fa-user-clock" aria-hidden="true"></i>
-        Pendientes de revisión
-        <i *ngIf="soloPendientesRevision" class="fa-solid fa-check" aria-hidden="true"></i>
-      </button>
-    </div>
-
     <form (ngSubmit)="buscar()">
       <fieldset class="level-grid">
         <legend>Buscar por Nivel</legend>
@@ -46,6 +35,15 @@
           <i class="fa-solid" [ngClass]="nivel.icon"></i>
           <span>{{ nivel.label }}</span>
         </label>
+        <button *ngIf="hayPendientesRevision || soloPendientesRevision"
+          type="button" class="level-option review-level-option"
+          [class.active]="soloPendientesRevision"
+          [attr.aria-pressed]="soloPendientesRevision"
+          (click)="alternarPendientesRevision()">
+          <span class="review-selection-indicator" aria-hidden="true"></span>
+          <i class="fa-solid fa-user-clock" aria-hidden="true"></i>
+          <span class="review-level-label">Pendientes de revisión</span>
+        </button>
       </fieldset>
 
       <div class="info-grid" *ngIf="filtros.nivel !== 'caja'">

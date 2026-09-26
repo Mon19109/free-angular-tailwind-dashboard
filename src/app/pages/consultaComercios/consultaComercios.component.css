@@ -818,36 +818,36 @@ td {
   letter-spacing: 0 !important;
 }
 
-.review-filter {
-  margin-bottom: 18px;
+/* Keep the status filter after the level cards, on the following row. */
+.review-level-option {
+  grid-column: 1;
+  text-align: left;
+  font-family: inherit;
 }
 
-.review-filter-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 42px;
-  padding: 10px 16px;
-  border: 1px solid var(--consulta-border);
-  border-radius: 10px;
-  color: var(--consulta-text);
-  background: var(--consulta-surface);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+.level-option .review-level-label {
+  white-space: normal;
 }
 
-.review-filter-button i {
-  color: var(--consulta-gold);
+.level-option .review-selection-indicator {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--consulta-muted);
+  border-radius: 50%;
 }
 
-.review-filter-button.active,
-.review-filter-button:hover {
-  border-color: var(--consulta-gold);
-  background: var(--consulta-gold-soft);
+.review-level-option.active .review-selection-indicator {
+  border: 5px solid var(--consulta-gold);
+  background: var(--consulta-text);
 }
 
-.review-filter-button:focus-visible {
+:host-context(html:not(.dark)) .review-level-option.active .review-selection-indicator {
+  border-color: #315aa3;
+  background: #fff;
+}
+
+.review-level-option:focus-visible {
   outline: 2px solid var(--consulta-gold);
   outline-offset: 3px;
 }
