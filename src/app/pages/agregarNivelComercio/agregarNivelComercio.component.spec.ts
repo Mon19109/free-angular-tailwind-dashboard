@@ -26,3 +26,31 @@ describe('Árbol de agregar nivel: pendientes de revisión', () => {
     expect(nodos[0].hijos.length).toBe(3);
   });
 });
+
+describe('Alta de Sub Afiliado por administrador', () => {
+  function crearComponente(rol: number): AgregarNivelComercioComponent {
+    const component = Object.create(AgregarNivelComercioComponent.prototype) as AgregarNivelComercioComponent;
+    Object.defineProperty(component, 'idRol', { value: rol });
+    return component;
+  }
+
+  const nodo = { id: '83', llave: '83', nombre: 'Sub afiliado', nivel: 'Sub Afiliado' as const, hijos: [] };
+
+  it('permite crear Sub Afiliado solamente al administrador', () => {
+    expect(crearComponente(2).nivelesDisponiblesPara(nodo)).toContain('Sub Afiliado');
+    for (const rol of [0, 1, 3, 4, 5, 6]) {
+      expect(crearComponente(rol).nivelesDisponiblesPara(nodo)).not.toContain('Sub Afiliado');
+    }
+    expect(crearComponente(2).nivelesDisponiblesPara({ ...nodo, nivel: 'Entidad' })).not.toContain('Sub Afiliado');
+  });
+
+  it('usa el catálogo de nivel 3 sin restringir sus nombres a tipos de Entidad', () => {
+    const component = crearComponente(2);
+    component.nivelNuevo = 'Sub Afiliado';
+    component['tiposComercioCatalogoPorNivel'] = {
+      'Sub Afiliado': [{ id: 91, nombre: 'Tipo recibido del servicio' }]
+    };
+    expect(component['idAffiliationTypePorNivel']('Sub Afiliado')).toBe(3);
+    expect(component.tiposComercio).toEqual(['Tipo recibido del servicio']);
+  });
+});

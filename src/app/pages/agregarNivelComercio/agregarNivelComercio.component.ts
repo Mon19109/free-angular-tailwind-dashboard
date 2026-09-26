@@ -19,7 +19,7 @@ import { AgregarNivelComercioService, AltaNivelComercioPayload } from '../../ser
 import { DocumentoPreregistroUpload, PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
 
 type NivelComercio = 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja';
-type NivelNuevo = 'Entidad' | 'Sucursal' | 'Caja' | 'Referenciador';
+type NivelNuevo = 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja' | 'Referenciador';
 
 interface NodoComercio {
   id: string;
@@ -94,6 +94,7 @@ export class AgregarNivelComercioComponent implements OnInit {
   };
 
   readonly tiposComercioPorNivel: Record<NivelNuevo, string[]> = {
+    'Sub Afiliado': [],
     Entidad: ['Empresa Grupo', 'Persona Física'],
     Sucursal: ['Sucursales de Grupo', 'Sucursal Persona Física', 'Sucursales Únicas'],
     Caja: ['Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI', 'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'],
@@ -290,6 +291,7 @@ export class AgregarNivelComercioComponent implements OnInit {
       const opcionesReferenciador = ['Referenciador con Operación', 'Referenciador Administrador'];
       return opcionesReferenciador.filter(opcion => base.includes(opcion));
     }
+    if (this.nivelNuevo === 'Sub Afiliado') return catalogo;
     const permitidos = this.tiposComercioPorNivel[this.nivelNuevo] ?? [];
     return base.filter(tipo => permitidos.includes(tipo));
   }
@@ -300,7 +302,7 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   get camposDatosGenerales(): string[] {
-    if (this.nivelNuevo === 'Referenciador') {
+    if (this.nivelNuevo === 'Referenciador' || this.nivelNuevo === 'Sub Afiliado') {
       return this.camposReferenciador;
     }
     return this.datosGeneralesPorTipo[this.tipoComercioSeleccionado] ?? [];
@@ -545,7 +547,7 @@ export class AgregarNivelComercioComponent implements OnInit {
       'Empresa Grupo', 'Sucursales de Grupo', 'Sucursales Únicas', 'Empresa Agrupadora', 'Entidad Agrupadora'
     ];
     return this.datosForm.controls.tipoPersona.value === 'PM'
-      && tiposConRepresentante.includes(this.tipoComercioSeleccionado);
+      && (this.nivelNuevo === 'Sub Afiliado' || tiposConRepresentante.includes(this.tipoComercioSeleccionado));
   }
 
   private validadoresDatosPorCampo(nombre: string, requerido: boolean): ValidatorFn[] {
@@ -1042,7 +1044,7 @@ export class AgregarNivelComercioComponent implements OnInit {
     if (this.idRol === 6) return [];
     if (nodo.nivel === 'Sub Afiliado') {
       return this.idRol === 2
-        ? ['Entidad', 'Sucursal', 'Caja', 'Referenciador']
+        ? ['Sub Afiliado', 'Entidad', 'Sucursal', 'Caja', 'Referenciador']
         : ['Entidad', 'Sucursal', 'Caja'];
     }
     if (nodo.nivel === 'Entidad') return ['Sucursal', 'Caja'];
@@ -1109,6 +1111,7 @@ export class AgregarNivelComercioComponent implements OnInit {
 
   private idAffiliationTypePorNivel(nivel: string): number {
     const mapa: Record<string, number> = {
+      'Sub Afiliado': 3,
       Referenciador: 3,
       Entidad: 4,
       Sucursal: 5,

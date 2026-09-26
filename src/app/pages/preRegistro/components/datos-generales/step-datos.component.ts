@@ -31,6 +31,7 @@ export class StepDatosComponent implements OnInit {
   private readonly actividadesService = inject(ActividadesService);
   private readonly destroyRef = inject(DestroyRef);
 
+  @Input() incluirRepresentantePersonaMoral = false;
   @Input() form!: FormGroup;
   @Input() campos: string[] = [];
   @Input() regimenesFiscales: string[] = [];
@@ -384,12 +385,12 @@ export class StepDatosComponent implements OnInit {
     ].includes(tipo);
     const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Empresa Agrupadora', 'Entidad Agrupadora', 'Sucursales de Grupo', 'Sucursales Únicas'];
     const esPersonaFisica = this.form.get('tipoPersona')?.value === 'PF';
-    const esTipoPersonaFisicaSinRepresentante = tiposConRepresentante.includes(tipo) && esPersonaFisica;
+    const esTipoPersonaFisicaSinRepresentante = (this.incluirRepresentantePersonaMoral || tiposConRepresentante.includes(tipo)) && esPersonaFisica;
     const ocultarDatosPorCaja = esCaja && !this.forzarDatosCaja;
     const mostrarDireccionRepresentante = !esCaja
-      && tiposConRepresentante.includes(tipo)
+      && (this.incluirRepresentantePersonaMoral || tiposConRepresentante.includes(tipo))
       && !esTipoPersonaFisicaSinRepresentante;
-    const mostrarRepresentante = !esCaja && tiposConRepresentante.includes(tipo) && !esTipoPersonaFisicaSinRepresentante;
+    const mostrarRepresentante = !esCaja && (this.incluirRepresentantePersonaMoral || tiposConRepresentante.includes(tipo)) && !esTipoPersonaFisicaSinRepresentante;
 
     return {
       datosGenerales:     !ocultarDatosPorCaja,

@@ -3,7 +3,7 @@
     <header class="add-level-header">
       <span>Gestión de negocio</span>
       <h1>Agregar Nivel a Comercio Existente</h1>
-      <p>Selecciona el nodo donde deseas crear una entidad, sucursal o caja nueva.</p>
+      <p>Selecciona el nodo donde deseas crear {{ idRol === 2 ? 'un sub afiliado, entidad, sucursal o caja nueva.' : 'una entidad, sucursal o caja nueva.' }}</p>
     </header>
 
     <div class="stepper" aria-label="Progreso de alta de nivel">
@@ -144,7 +144,7 @@
               [niveles]="nivelNuevo ? [nivelNuevo] : []"
               [tiposComercio]="tiposComercio"
               [bloquearNivel]="true"
-              [mostrarTipoComercio]="nivelNuevo === 'Referenciador'"
+              [mostrarTipoComercio]="nivelNuevo === 'Referenciador' || nivelNuevo === 'Sub Afiliado'"
               [mostrarTipoPersona]="camposDatosGenerales.includes('tipoPersona')"
               (continuar)="continuarDescripcion()"
               (volver)="paso = 1" />
@@ -161,6 +161,7 @@
       [form]="datosForm"
       [campos]="camposDatosGenerales"
       [tipoComercio]="tipoComercioSeleccionado"
+      [incluirRepresentantePersonaMoral]="nivelNuevo === 'Sub Afiliado'"
       [regimenesFiscales]="datosCatalogo.regimenesFiscales"
       [girosComerciales]="datosCatalogo.girosComerciales"
       [tiposPersona]="datosCatalogo.tiposPersona"
