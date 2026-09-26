@@ -56,7 +56,7 @@ export class OrdenPagoService {
             .set('idUser', idUser)
             .set('type', 'TR');
 
-        console.log('GET beneficiarios:', url);
+        //console.log('GET beneficiarios:', url);
 
         return this.http.get(
             url,
@@ -139,17 +139,19 @@ export class OrdenPagoService {
 
     realizarSpei(data: any): Observable<any> {
 
-        console.log(
+        /*console.log(
             'DATA RECIBIDA SERVICE',
             data
-        );
+        );*/
 
         const referenciaNumerica = String(data.referencia || this.generarCadena('1234567890', 6));
-        const cuentaBeneficiaria = String(data.accountNumber || '') === '0'
-            ? data.cuenta
-            : data.accountNumber || data.cuenta;
+        //console.log('data.accountNumber',data.accountNumber);
+        //console.log('data.cuentaD',data.cuentaD);
+        //const cuentaBeneficiaria = (data.accountNumber  === '0') ? data.accountNumber : data.accountNumber || data.accountNumber;
 
         
+        const cuentaBeneficiaria = String(data.accountNumber);
+
         const body = {
             type: Number(data.idIns) === 40903 ? 4 : 1,
             amount: Number(data.importe),
@@ -170,10 +172,10 @@ export class OrdenPagoService {
             credit: false
         };
 
-        console.log(
+        /*console.log(
             'REQUEST OPERACION',
             JSON.stringify(body, null, 2)
-        );
+        );*/
 
         console.log(
             'BODY :: ',

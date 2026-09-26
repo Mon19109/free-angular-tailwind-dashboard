@@ -65,9 +65,26 @@ export class OrdenPagoComponent implements OnInit {
         this.formulario = this.fb.group({
             cuentaOr: ['', Validators.required],
             cuentaD: ['', Validators.required],
+            fullName: [''],
+            accountNumber: [''],
+            cardNumberMask: [''],
+            idInstitution: [''],
+            nameInstitution: [''],
             importe: [''],
             concepto: [''],
             referencia: ['']
+        });
+
+        this.formulario.get('cuentaD')?.valueChanges.subscribe(valor => {
+            const [fullName = '', accountNumber = '', cardNumberMask = '', idInstitution = '', nameInstitution = ''] =
+                String(valor || '').split('|');
+            this.formulario.patchValue({
+                fullName,
+                accountNumber: accountNumber === '0' ? cardNumberMask : accountNumber,
+                cardNumberMask,
+                idInstitution,
+                nameInstitution
+            }, { emitEvent: false });
         });
 
         this.cargarCuentas();
@@ -240,7 +257,9 @@ export class OrdenPagoComponent implements OnInit {
     }
 
     obtenerValorBeneficiario(beneficiario: any): string {
-        return beneficiario?.idContact || beneficiario?.id || beneficiario?.contactId || '';
+        //console.log('beneficiario',beneficiario);
+        //$contactos[$i]->fullName.'-'.$contactos[$i]->accountNumber.'-'.$contactos[$i]->cardNumberMask.'-'.$contactos[$i]->idInstitution.'-'.$contactos[$i]->nameInstitution
+        return beneficiario.fullName+'|'+beneficiario.accountNumber+'|'+beneficiario.cardNumberMask+'|'+beneficiario.idInstitution+'|'+beneficiario.nameInstitution;
     }
 
     obtenerTextoBeneficiario(beneficiario: any): string {
@@ -382,19 +401,19 @@ export class OrdenPagoComponent implements OnInit {
 
             fecha: new Date(),
 
-            titular: beneficiario?.fullName,
+            titular: this.formulario.value.fullName || beneficiario?.fullName,
 
-            nameIns: beneficiario?.nameInstitution,
+            nameIns: this.formulario.value.nameInstitution || beneficiario?.nameInstitution,
 
             saldoS: this.saldo,
 
-            idIns: beneficiario?.idInstitution,
+            idIns: this.formulario.value.idInstitution || beneficiario?.idInstitution,
 
-            accountNumber: beneficiario?.accountNumber,
+            accountNumber: this.formulario.value.accountNumber || beneficiario?.accountNumber,
 
             cuenta: beneficiario?.cardNumber || beneficiario?.accountNumber,
 
-            cuentaMascara: beneficiario?.cardNumberMask || beneficiario?.accountNumberMask,
+            cuentaMascara: this.formulario.value.cardNumberMask || beneficiario?.cardNumberMask || beneficiario?.accountNumberMask,
 
             tarjeta: beneficiario?.cardNumber,
 
@@ -629,6 +648,12 @@ export class OrdenPagoComponent implements OnInit {
             finalize(() => this.finalizandoEnvio = false)
         ).subscribe({
             next: resp => {
+                if (this.esSaldoInsuficiente(resp)) {
+                    this.mensajeErrorOperacion = 'Saldos insuficientes';
+                    this.mostrarModalErrorOperacion = true;
+                    return;
+                }
+
                 if (this.respuestaEsFallo(resp)) {
                     this.mensajeErrorOperacion = this.obtenerMensajeRespuesta(
                         resp,
@@ -654,10 +679,9 @@ export class OrdenPagoComponent implements OnInit {
             },
             error: err => {
                 console.error('Error al liberar el SPEI:', err);
-                this.mensajeErrorOperacion = this.obtenerMensajeRespuesta(
-                    err?.error,
-                    'No fue posible realizar el envío. Intenta nuevamente.'
-                );
+                this.mensajeErrorOperacion = this.esSaldoInsuficiente(err?.error)
+                    ? 'Saldos insuficientes'
+                    : this.obtenerMensajeRespuesta(err?.error, 'No fue posible realizar el envío. Intenta nuevamente.');
                 this.mostrarModalErrorOperacion = true;
             }
         });
@@ -725,6 +749,13 @@ export class OrdenPagoComponent implements OnInit {
         return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
     }
 
+    private esSaldoInsuficiente(resp: any): boolean {
+        const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
+        return [resp?.responseCode, rows?.responseCode, resp?.data?.responseCode,
+            resp?.response?.responseCode, resp?.error?.responseCode]
+            .some(codigo => String(codigo) === '51');
+    }
+
     private obtenerMensajeRespuesta(resp: any, respaldo: string): string {
         return resp?.message || resp?.error?.message || resp?.data?.message ||
             resp?.rows?.message || resp?.description || respaldo;
@@ -747,6 +778,11 @@ export class OrdenPagoComponent implements OnInit {
         this.formulario.reset({
             cuentaOr: '',
             cuentaD: '',
+            fullName: '',
+            accountNumber: '',
+            cardNumberMask: '',
+            idInstitution: '',
+            nameInstitution: '',
             importe: '',
             concepto: '',
             referencia: ''

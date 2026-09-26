@@ -94,6 +94,11 @@
                   {{ obtenerTextoBeneficiario(beneficiario) }}
                 </option>
               </select>
+              <input type="hidden" formControlName="fullName" name="fullName">
+              <input type="hidden" formControlName="accountNumber" name="accountNumber">
+              <input type="hidden" formControlName="cardNumberMask" name="cardNumberMask">
+              <input type="hidden" formControlName="idInstitution" name="idInstitution">
+              <input type="hidden" formControlName="nameInstitution" name="nameInstitution">
               <div *ngIf="formulario.get('cuentaD')?.touched && formulario.get('cuentaD')?.hasError('required')" class="campo-requerido" role="alert">
                 Selecciona una cuenta beneficiaria.
               </div>
