@@ -241,18 +241,17 @@ export class ReportesComponent implements OnInit, OnDestroy {
       if (!valor || typeof valor !== 'object') return;
 
       const nodo = valor as Record<string, any>;
-      const nivel = Number(nodo['levelType'] ?? nodo['idAffilationLevel'] ?? nodo['level']);
-      if (nivel === 4) {
-        const id = String(nodo['idSirio'] ?? nodo['sirioId'] ?? nodo['entitySonID'] ?? nodo['bundle'] ?? '');
-        if (id && !entidades.some(entidad => entidad.id === id)) {
-          entidades.push({
-            id,
-            texto: String(nodo['name'] ?? nodo['nodeName'] ?? nodo['contextDescription'] ?? nodo['businessName'] ?? nodo['bussinesName'] ?? id)
-          });
-        }
+      const nivel = nodo['levelType'] ?? nodo['idAffilationLevel'] ?? nodo['level'];
+      const id = String(nodo['idSirio'] ?? nodo['sirioId'] ?? nodo['entitySonID'] ?? nodo['bundle'] ?? nodo['idNode'] ?? nodo['nodeID'] ?? nodo['id'] ?? '');
+      const esEntidad = nivel == null || Number(nivel) === 4 || String(nivel).toLowerCase() === 'entidad';
+      if (id && esEntidad && !entidades.some(entidad => entidad.id === id)) {
+        entidades.push({
+          id,
+          texto: String(nodo['name'] ?? nodo['nombre'] ?? nodo['nodeName'] ?? nodo['contextDescription'] ?? nodo['businessName'] ?? nodo['bussinesName'] ?? id)
+        });
       }
 
-      for (const llave of ['contextResponse', 'rows', 'data', 'children', 'childs', 'nodes', 'tree', 'items', 'content']) {
+      for (const llave of ['contextResponse', 'rows', 'data', 'entities', 'entityLevels', 'children', 'childs', 'nodes', 'tree', 'items', 'content']) {
         if (nodo[llave] != null) visitar(nodo[llave]);
       }
     };

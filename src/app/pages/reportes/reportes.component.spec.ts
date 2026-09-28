@@ -92,16 +92,18 @@ describe('ReportesComponent', () => {
   it('loads entities for profile 8 and requests accounts for the selected entity', () => {
     localStorage.setItem('idPerfil', '8');
     service.obtenerEntidades.and.returnValue(of({ contextResponse: [
-      { levelType: 3, name: 'Subafiliado', children: [
+      { levelType: 3, idNode: 'SUB-1', name: 'Subafiliado', children: [
         { levelType: 4, idSirio: 'ENT-1', name: 'Entidad 1' },
-        { levelType: 4, idSirio: 'ENT-2', name: 'Entidad 2' }
+        { levelType: 4, idSirio: 'ENT-2', name: 'Entidad 2' },
+        { idSirio: 'ENT-3', name: 'Entidad 3' },
+        { idNode: 'ENT-4', name: 'Entidad 4' }
       ] }
     ] }));
     service.obtenerCuentas.and.returnValue(of({ rows: [{ idSirio: 'CUENTA-1', name: 'Cuenta emisión' }] }));
 
     component.ngOnInit();
     expect(component.mostrarEntidades).toBeTrue();
-    expect(component.entidades.map(entidad => entidad.id)).toEqual(['ENT-1', 'ENT-2']);
+    expect(component.entidades.map(entidad => entidad.id)).toEqual(['ENT-1', 'ENT-2', 'ENT-3', 'ENT-4']);
     expect(service.obtenerCuentas).not.toHaveBeenCalled();
 
     component.entidadSeleccionada = 'ENT-2';
