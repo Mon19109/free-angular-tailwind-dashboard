@@ -1,3 +1,6 @@
+import { nodosDelNivel } from '../../shared/utils/niveles-operaciones';
+import { leerPaginaOperaciones } from '../../shared/utils/pagina-operaciones';
+import { obtenerNodoSesion } from '../../shared/utils/nodo-sesion';
 import { nombreBancoPorCodigo } from '../../shared/utils/bancos';
 import { COLUMNAS_OPERACIONES, valorColumnaOperacion } from '../../shared/utils/operaciones-tabla';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -312,7 +315,7 @@ estatus: [this.defaultEstatus],
       : this.opeAdquiService.getCajas(nodeID);
     this.solicitudesNiveles[nivel] = request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
-        const lista = this.normalizarLista(response, ['rows', 'contextResponse', 'data']);
+        const lista = nodosDelNivel(response, nivel);
         if (nivel === 4) { this.entidades = lista; this.seleccionarEntidadSesion(lista); }
         if (nivel === 5) { this.sucursales = lista; this.seleccionarSucursalSesion(lista); }
         if (nivel === 6) { this.cajas = lista; this.seleccionarCajaSesion(lista); }
@@ -331,7 +334,8 @@ estatus: [this.defaultEstatus],
   }
 
   private nodoBaseFiltros(): string {
-    return String(this.formulario.getRawValue().cuenta || localStorage.getItem('nodeID') || '');
+    if (Number(this.rolId) >= 4) return obtenerNodoSesion();
+    return String(this.formulario.getRawValue().cuenta || obtenerNodoSesion());
   }
 
   cargarDatosIniciales(): void {
@@ -339,7 +343,7 @@ estatus: [this.defaultEstatus],
     this.formulario.get('cuenta')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ entidad: '', sucursal: '', caja: '' }, { emitEvent: false });
       this.limpiarNiveles(4);
-      const nodeID = String(valor || localStorage.getItem('nodeID') || '');
+      const nodeID = String(valor || obtenerNodoSesion());
       this.cargarNivel(4, nodeID);
       this.cargarNivel(5, nodeID);
       this.cargarNivel(6, nodeID);
@@ -357,7 +361,6 @@ estatus: [this.defaultEstatus],
       this.cargarNivel(6, String(valor || this.formulario.getRawValue().entidad || this.nodoBaseFiltros()));
     });
     this.cargarSubafiliados();
-    this.cargarDependenciasSesion();
 
     // Cargar estatus
     this.opeAdquiService.obtenerStatus().subscribe({
@@ -381,7 +384,9 @@ mostrarResultados = false;
 
     this.opeAdquiService.getSubafiliados().subscribe({
       next: (resp: any) => {
-        this.cuentas = this.normalizarLista(resp, ['contextResponse', 'rows', 'data']);
+        this.cuentas = nodosDelNivel(resp, 3);
+        this.seleccionarSubafiliadoSesion(this.cuentas);
+        this.cargarDependenciasSesion();
       },
       error: (error) => {
         console.error('Error al cargar subafiliados:', error);
@@ -393,49 +398,84 @@ mostrarResultados = false;
   private cargarSubafiliadoSesion(): void {
     this.opeAdquiService.getSubafiliadoById().subscribe({
       next: (resp: any) => {
-        this.cuentas = this.normalizarLista(resp, ['contextResponse', 'rows', 'data']);
+        this.cuentas = nodosDelNivel(resp, 3);
         this.seleccionarSubafiliadoSesion(this.cuentas);
+        this.cargarDependenciasSesion();
       },
       error: (error) => {
         this.cuentas = [];
         this.seleccionarSubafiliadoSesion([]);
+        this.cargarDependenciasSesion();
         console.error('Error al cargar subafiliado por sesión:', error);
       }
     });
   }
 
+  paginaActual = 1;
+  totalRegistros: number | null = null;
+  haySiguiente = false;
+  consultaRealizada = false;
+  errorResultados = '';
+  private filtrosConsulta: any = null;
+
+  get paginas(): number[] {
+    const total = this.totalRegistros === null
+      ? this.paginaActual + (this.haySiguiente ? 1 : 0)
+      : Math.max(1, Math.ceil(this.totalRegistros / 10));
+    const inicio = Math.max(1, Math.min(this.paginaActual - 2, total - 4));
+    return Array.from({ length: Math.min(5, total - inicio + 1) }, (_, i) => inicio + i);
+  }
+
   onSubmit(): void {
     if (this.buscando()) return;
     this.fechaErrorMensaje = this.obtenerMensajeValidacionFechas();
-
-    if (this.fechaErrorMensaje) {
+    if (this.fechaErrorMensaje || !this.formulario.valid) {
       this.formulario.markAllAsTouched();
       return;
     }
-
-    if (this.formulario.valid) {
-      const formValues = this.formulario.getRawValue();
-      console.log('Formulario enviado:', formValues);
-      
-      // Aquí puedes llamar a otro servicio para enviar los datos
-      this.buscando.set(true);
-      this.opeAdquiService.enviarFormulario(formValues).pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.buscando.set(false))
-      ).subscribe({
-        next: (response) => {
-          this.operaciones = response.response?.operations || response.operations || response.content || response.rows?.content || response.rows || [];
-          this.mostrarResultados = true;
-          console.log('Formulario enviado exitosamente:', response);
-
-          console.log('operaciones enviado exitosamente:', this.operaciones);
-          // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
-        },
-        error: (error) => {
-          console.error('Error al enviar formulario:', error);
+    const formValues = this.formulario.getRawValue();
+      const niveles: Array<[string, any[]]> = [
+        ['caja', this.cajas], ['sucursal', this.sucursales],
+        ['entidad', this.entidades], ['cuenta', this.cuentas]
+      ];
+      for (const [campo, lista] of niveles) {
+        if (!formValues[campo]) continue;
+        const nodo = lista.find(item => String(item.idNode ?? item.nodeID ?? item.nodeId ?? item.idEntity ?? item.idTerminal ?? item.idTerminalUser ?? item.affiliationId ?? item.id) === String(formValues[campo]));
+        const cuenta = nodo?.account || nodo?.bundle;
+        if (!cuenta) {
+          this.fechaErrorMensaje = 'El nivel seleccionado no tiene una cuenta asociada para consultar operaciones.';
+          return;
         }
-      });
-    }
+        formValues.cuentaConsulta = String(cuenta);
+        break;
+      }
+    this.filtrosConsulta = formValues;
+    this.operaciones = [];
+    this.totalRegistros = null;
+    this.haySiguiente = false;
+    this.paginaActual = 1;
+    this.cambiarPagina(1);
+  }
+
+  cambiarPagina(pagina: number): void {
+    if (this.buscando() || !this.filtrosConsulta || pagina < 1) return;
+    this.errorResultados = '';
+    this.buscando.set(true);
+    this.opeAdquiService.enviarFormulario(this.filtrosConsulta, pagina - 1).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.buscando.set(false))
+    ).subscribe({
+      next: response => {
+        const resultado = leerPaginaOperaciones(response, pagina);
+        this.operaciones = resultado.operaciones;
+        this.totalRegistros = resultado.total;
+        this.haySiguiente = resultado.siguiente;
+        this.paginaActual = pagina;
+        this.consultaRealizada = true;
+        this.mostrarResultados = true;
+      },
+      error: () => { this.errorResultados = 'No fue posible consultar las operaciones. Intenta de nuevo.'; }
+    });
   }
 
   cargarTiposOperacion(): void {
@@ -461,7 +501,7 @@ mostrarResultados = false;
 
         value: String(tipo.idOperationType),
 
-        text: tipo.name
+        text: tipo.descriptionApp || tipo.description || String(tipo.idOperationType)
 
       }));
 
@@ -489,8 +529,16 @@ mostrarResultados = false;
 }
 
   limpiarFormulario(): void {
+    this.operaciones = [];
+    this.filtrosConsulta = null;
+    this.consultaRealizada = false;
+    this.errorResultados = '';
+    this.totalRegistros = null;
+    this.paginaActual = 1;
+    this.haySiguiente = false;
     this.formulario.reset();
     this.fechaErrorMensaje = '';
+    this.seleccionarSubafiliadoSesion(this.cuentas);
     this.aplicarBloqueosSesion();
     this.cargarDependenciasSesion();
   }
@@ -536,7 +584,7 @@ mostrarResultados = false;
   }
 
   private cargarDependenciasSesion(): void {
-    const nodeID = localStorage.getItem('nodeID') || '';
+    const nodeID = this.nodoBaseFiltros();
     if (!nodeID) return;
     this.limpiarNiveles(4);
     this.cargarNivel(4, nodeID);
@@ -545,23 +593,13 @@ mostrarResultados = false;
   }
 
   private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
-    this.subafiliadoSesionBloqueado = false;
-
-    if (this.rolId !== '3') {
-      this.aplicarBloqueosSesion();
-      return;
+    const nodeIDSesion = obtenerNodoSesion();
+    const propio = subafiliados.find(item => this.obtenerNodeId(item) === nodeIDSesion);
+    const seleccionado = propio || (subafiliados.length === 1 ? subafiliados[0] : null);
+    if (seleccionado) {
+      this.formulario.patchValue({ cuenta: this.obtenerNodeId(seleccionado) }, { emitEvent: false });
     }
-
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
-    const existeSubafiliadoSesion = subafiliados.some(
-      subafiliado => this.obtenerNodeId(subafiliado) === nodeIDSesion
-    );
-
-    if (existeSubafiliadoSesion) {
-      this.formulario.patchValue({ cuenta: nodeIDSesion }, { emitEvent: false });
-      this.subafiliadoSesionBloqueado = true;
-    }
-
+    this.subafiliadoSesionBloqueado = Number(this.rolId) >= 3 || !!propio;
     this.aplicarBloqueosSesion();
   }
 
@@ -573,7 +611,7 @@ mostrarResultados = false;
       return;
     }
 
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     const existeEntidadSesion = entidades.some(
       entidad => this.obtenerNodeId(entidad) === nodeIDSesion
     );
@@ -594,7 +632,7 @@ mostrarResultados = false;
       return;
     }
 
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     const existeSucursalSesion = sucursales.some(
       sucursal => this.obtenerNodeId(sucursal) === nodeIDSesion
     );
@@ -615,7 +653,7 @@ mostrarResultados = false;
       return;
     }
 
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     const existeCajaSesion = cajas.some(
       caja => this.obtenerNodeId(caja) === nodeIDSesion
     );
@@ -629,9 +667,9 @@ mostrarResultados = false;
   }
 
   private aplicarBloqueosSesion(): void {
-    this.actualizarEstadoControl('cuenta', this.subafiliadoSesionBloqueado);
-    this.actualizarEstadoControl('entidad', this.entidadSesionBloqueada);
-    this.actualizarEstadoControl('sucursal', this.sucursalSesionBloqueada);
+    this.actualizarEstadoControl('cuenta', this.subafiliadoSesionBloqueado || Number(this.rolId) > 3);
+    this.actualizarEstadoControl('entidad', this.entidadSesionBloqueada || Number(this.rolId) > 4);
+    this.actualizarEstadoControl('sucursal', this.sucursalSesionBloqueada || Number(this.rolId) > 5);
     this.actualizarEstadoControl('caja', this.cajaSesionBloqueada);
   }
 
@@ -644,7 +682,7 @@ mostrarResultados = false;
   }
 
   private obtenerNodeId(item: any): string {
-    return String(item?.idNode ?? item?.nodeID ?? item?.affiliationId ?? item?.id ?? '');
+    return String(item?.idNode ?? item?.nodeID ?? item?.nodeId ?? item?.affiliationId ?? item?.id ?? '');
   }
 
   private normalizarLista(resp: any, keys: string[]): any[] {

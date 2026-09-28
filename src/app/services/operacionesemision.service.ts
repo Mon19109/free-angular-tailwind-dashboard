@@ -5,6 +5,13 @@ import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 //import { AuthService, UserSessionData } from '../services/auth.service';
 
+export interface FiltrosDetalleLiquidacion {
+  startDate?: string;
+  endDate?: string;
+  type?: string;
+  status?: string;
+}
+
 export interface Cuenta {
   id: number;
   nombre: string;
@@ -39,14 +46,6 @@ export class OperacionesEmisionService {
 
   
   constructor(private http: HttpClient) { }
-
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
-    });
-  }
 
   private getBearerHeaders(): HttpHeaders {
     const token = this.getStoredToken();
@@ -132,42 +131,49 @@ obtenerEntidades(cuenta: string): Observable<any> {
   }
 
 
-  obtenerDetalleOperacion(validate: string): Observable<any> {
-  const params = new HttpParams()
-    .set('liquidationID', validate)
-    .set('idContext', localStorage.getItem('idContext') || '')
-    .set('idEntity', localStorage.getItem('idEntity') || '')
-    .set('idTerminal', localStorage.getItem('idTerminal') || '')
-    .set('idTerminalUser', localStorage.getItem('idTerminalUser') || '');
+  obtenerDetalleOperacion(validate: string, filtros: FiltrosDetalleLiquidacion = {}): Observable<any> {
+    // Mismo contrato de búsqueda usado por Transacciones Adquirencia.
+    const params = new HttpParams()
+      .set('userID', localStorage.getItem('idUser') || '')
+      .set('rootNodeID', localStorage.getItem('nodeID') || '')
+      .set('liquidationID', validate.trim())
+      .set('typeOperation', filtros.type || '10008')
+      .set('type', filtros.type || '10008')
+      .set('amount', '')
+      .set('amountFrom', '')
+      .set('amountTo', '')
+      .set('email', '')
+      .set('responseCode', '')
+      .set('startDate', filtros.startDate || '')
+      .set('endDate', filtros.endDate || '')
+      .set('page', '')
+      .set('status', filtros.status || '')
+      .set('searchBy', '');
 
-  return this.http.get<any>(
-    `${this.apiV1Url}operations/searchOperations`,
-    {
-      headers: this.getCommonHeaders(),
+    return this.http.get<any>(`${this.apiV1Url}operations/searchOperations`, {
+      headers: this.getBearerHeaders(),
       params
-    }
-  );
-}
+    });
+  }
 
 
   /**
    * Envía los datos del formulario al API
    * @param formData Datos del formulario
    */
-  enviarFormulario(formData: FormularioData): Observable<any> {
-    // Opcional: Puedes transformar los datos si es necesario
-    const datosTransformados = {
-      ...formData,
-      // Convertir fechas al formato deseado si es necesario
-      fechaInicio: formData.fechaInicio ? new Date(formData.fechaInicio).toISOString() : null,
-      fechaFin: formData.fechaFin ? new Date(formData.fechaFin).toISOString() : null
-    };
-
-    //$urlServices =WS_SALDOS.
-    // '/Entities/entities/'.$_GET['entidad'].'/getoperationbytypeandstatuscustom?type='.$_GET['type'].'&status='.$_GET['status'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE.'&dateInit='.$location.'&dateFinish='.$location2;
-    
-    return this.http.get(`${this.apiUrlOpe}${localStorage.getItem('issueId') }/getoperationbytypeandstatuscustom?type=${formData.tipoOperacion}&status=${formData.estatus}&page=0&size=10&dateInit=${formData.fechaInicio}&dateFinish=${formData.fechaFin}`);
+  enviarFormulario(formData: FormularioData, page = 0): Observable<any> {
+    const cuenta = formData.cuenta || localStorage.getItem('issueId') || '';
+    const params = new HttpParams()
+      .set('type', String(formData.tipoOperacion ?? ''))
+      .set('status', String(formData.estatus ?? ''))
+      .set('page', page).set('size', 10)
+      .set('dateInit', formData.fechaInicio || '')
+      .set('dateFinish', formData.fechaFin || '');
+    return this.http.get<any>(`${this.apiUrlOpe}${encodeURIComponent(cuenta)}/getoperationbytypeandstatuscustom`, {
+      headers: this.getBearerHeaders(), params
+    });
   }
+
 
   /**
    * Método alternativo para enviar formulario con parámetros query

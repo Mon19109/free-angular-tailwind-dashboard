@@ -1,3 +1,4 @@
+import { obtenerNodoSesion } from '../shared/utils/nodo-sesion';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -54,6 +55,7 @@ export interface Status {
   codigo: string;
 }
 export interface FormularioData {
+  cuentaConsulta?: string;
   cuenta?: string;
   entidad?: string;
   sucursal?: string;
@@ -187,7 +189,7 @@ export class OperacionesAdquirenciaService {
 }
 
   getSubafiliados(): Observable<{ contextResponse: Subafiliado[] }> {
-      const nodeID = localStorage.getItem('nodeID') || '';
+      const nodeID = obtenerNodoSesion();
 
       if (nodeID) {
         return this.http.get<{ contextResponse: Subafiliado[] }>(
@@ -203,7 +205,7 @@ export class OperacionesAdquirenciaService {
     }
   
     getSubafiliadoById(): Observable<any> {
-      const nodeID = localStorage.getItem('nodeID') || '';
+      const nodeID = obtenerNodoSesion();
 
       return this.http.get<any>(
         `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`,
@@ -273,8 +275,8 @@ getCajas(idTerminal:number) {
    * Envía los datos del formulario al API
    * @param formData Datos del formulario
    */
-  enviarFormulario(formData: FormularioData): Observable<any> {
-    const validate = localStorage.getItem('acquiringId')
+  enviarFormulario(formData: FormularioData, page = 0): Observable<any> {
+    const validate = formData.cuentaConsulta || localStorage.getItem('acquiringId')
       || localStorage.getItem('validate')
       || localStorage.getItem('issueId')
       || '';
@@ -282,7 +284,7 @@ getCajas(idTerminal:number) {
     let params = new HttpParams()
       .set('type', this.emptyParam(formData.tipoOperacion))
       .set('status', this.emptyParam(formData.estatus))
-      .set('page', '0')
+      .set('page', page)
       .set('size', '10')
       .set('dateInit', this.emptyParam(formData.fechaInicio))
       .set('dateFinish', this.emptyParam(formData.fechaFin));

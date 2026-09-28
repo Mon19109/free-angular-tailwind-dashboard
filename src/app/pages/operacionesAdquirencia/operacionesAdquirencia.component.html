@@ -33,7 +33,7 @@
 
   <option
   *ngFor="let cuenta of cuentas"
-  [value]="cuenta.idNode || cuenta.nodeID || cuenta.affiliationId || cuenta.id">
+  [value]="cuenta.idNode || cuenta.nodeID || cuenta.nodeId || cuenta.affiliationId || cuenta.id">
 
   {{ cuenta.name || cuenta.contextDescription || cuenta.bussinesName || cuenta.businessName }}
 
@@ -57,7 +57,7 @@ Seleccione una entidad
 
 <option
 *ngFor="let entidad of entidades"
-[value]="entidad.idNode || entidad.nodeID || entidad.idEntity || entidad.id">
+[value]="entidad.idNode || entidad.nodeID || entidad.nodeId || entidad.idEntity || entidad.id">
 
 {{ entidad.name || entidad.entityDescription || entidad.businessName || entidad.bussinesName }}
 
@@ -81,7 +81,7 @@ Seleccione una sucursal
 
 <option
 *ngFor="let sucursal of sucursales"
-[value]="sucursal.idNode || sucursal.nodeID || sucursal.idTerminal || sucursal.id">
+[value]="sucursal.idNode || sucursal.nodeID || sucursal.nodeId || sucursal.idTerminal || sucursal.id">
 
 {{ sucursal.name || sucursal.businessName || sucursal.terminalDescription }}
 
@@ -104,7 +104,7 @@ Seleccione una caja
 
 <option
 *ngFor="let caja of cajas"
-[value]="caja.idNode || caja.nodeID || caja.idTerminalUser || caja.id">
+[value]="caja.idNode || caja.nodeID || caja.nodeId || caja.idTerminalUser || caja.id">
 
 {{ caja.name || caja.tuName || caja.terminalUserName }}
 
@@ -144,7 +144,7 @@ Seleccione una caja
           <div class="form-group">
 
            <app-multi-select
-  label="Tipo de operación*"
+  label="Tipo de Operación*"
   translate="no"
   class="notranslate"
   [options]="tipoOperacionOptions"
@@ -284,7 +284,7 @@ Seleccione una caja
           <tr *ngFor="let operacion of operaciones">
             <td *ngFor="let columna of columnasOperaciones">{{ valorColumnaOperacion(operacion, columna) }}</td>
             <td><button class="icon-btn btn-detail" type="button" (click)="verTicket(operacion)" title="Ver ticket" aria-label="Ver detalle">
-                  <i class="fa-regular fa-eye"></i>
+                  <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i>
                 </button></td>
           </tr>
           <tr *ngIf="operaciones.length === 0">
@@ -296,7 +296,20 @@ Seleccione una caja
 
     </div>
 
+
+
   </div>
+      <p *ngIf="errorResultados" role="alert">{{ errorResultados }}</p>
+      <footer class="pagination" *ngIf="consultaRealizada">
+        <span>Mostrando {{ operaciones.length }}{{ totalRegistros !== null ? ' de ' + totalRegistros : '' }} registros · 10 por página</span>
+        <div>
+          <button type="button" aria-label="Página anterior" (click)="cambiarPagina(paginaActual - 1)" [disabled]="buscando() || paginaActual === 1">‹</button>
+          <button *ngFor="let pagina of paginas" type="button" [class.active]="pagina === paginaActual"
+            [attr.aria-current]="pagina === paginaActual ? 'page' : null"
+            [disabled]="buscando()" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+          <button type="button" aria-label="Página siguiente" (click)="cambiarPagina(paginaActual + 1)" [disabled]="buscando() || !haySiguiente">›</button>
+        </div>
+      </footer>
 
     </section>
   </div>

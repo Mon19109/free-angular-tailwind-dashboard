@@ -24,7 +24,7 @@
           <div class="form-group">
 
            <app-multi-select
-  label="Tipo de operación"
+  label="Tipo de Operación"
   translate="no"
   class="notranslate"
   [options]="tipoOperacionOptions"
@@ -65,9 +65,9 @@
 
            <option
   *ngFor="let entidad of entidades"
-  [value]="entidad.bundle">
+  [value]="entidad.account || entidad.bundle">
 
-  {{ entidad.bussinesName }}
+  {{ entidad.name || entidad.bussinesName || entidad.businessName }}
 
 </option>
 
@@ -335,14 +335,14 @@
 <!-- DETALLE -->
 <td class="detalle-cell">
   <button
-    *ngIf="[1, 4, 10, 11, 10008].includes(+operacion.type)"
+    *ngIf="accionOperacion(operacion.type) as accion"
     type="button"
     class="btn-detalle-eye"
     (click)="verDetalle(operacion)"
     [title]="etiquetaDetalle(operacion)"
     [attr.aria-label]="etiquetaDetalle(operacion)">
 
-    <i class="fa-regular fa-eye"></i>
+    <i [class]="accion.icono" aria-hidden="true"></i>
   </button>
 </td>
 
@@ -354,7 +354,20 @@
 
       </div>
 
+
+
     </div>
+      <p *ngIf="errorResultados" role="alert">{{ errorResultados }}</p>
+      <footer class="pagination" *ngIf="consultaRealizada">
+        <span>Mostrando {{ operaciones.length }}{{ totalRegistros !== null ? ' de ' + totalRegistros : '' }} registros · 10 por página</span>
+        <div>
+          <button type="button" aria-label="Página anterior" (click)="cambiarPagina(paginaActual - 1)" [disabled]="buscando() || paginaActual === 1">‹</button>
+          <button *ngFor="let pagina of paginas" type="button" [class.active]="pagina === paginaActual"
+            [attr.aria-current]="pagina === paginaActual ? 'page' : null"
+            [disabled]="buscando()" (click)="cambiarPagina(pagina)">{{ pagina }}</button>
+          <button type="button" aria-label="Página siguiente" (click)="cambiarPagina(paginaActual + 1)" [disabled]="buscando() || !haySiguiente">›</button>
+        </div>
+      </footer>
 
       </section>
     </div>
@@ -494,7 +507,7 @@
             | currency:'MXN':'$':'1.2-2':'en-US' }}
         </div>
 
-        <div class="label">Nombre</div>
+        <div class="label">Referencia</div>
         <div class="value">
           {{ operacionSeleccionada.observation || 'N/A' }}
         </div>
@@ -509,7 +522,7 @@
           {{ operacionSeleccionada.description || 'N/A' }}
         </div>
 
-        <div class="label">Referencia</div>
+        <div class="label">Referencia interna</div>
         <div class="value">
           {{ operacionSeleccionada.internalReference || 'N/A' }}
         </div>
@@ -536,7 +549,7 @@
             | currency:'MXN':'$':'1.2-2':'en-US' }}
         </div>
 
-        <div class="label">Nombre</div>
+        <div class="label">Referencia</div>
         <div class="value">
           {{ operacionSeleccionada.observation || 'N/A' }}
         </div>
@@ -551,7 +564,7 @@
           {{ operacionSeleccionada.description || 'N/A' }}
         </div>
 
-        <div class="label">Referencia</div>
+        <div class="label">Referencia interna</div>
         <div class="value">
           {{ operacionSeleccionada.internalReference || 'N/A' }}
         </div>
@@ -570,4 +583,9 @@
     texto="Cargando información..."
     descripcion="Estamos consultando las operaciones. Espera un momento."
   />
+}
+
+@if (liquidacionSeleccionada; as liquidacion) {
+  <app-detalle-operacion [modal]="true" [referencia]="liquidacion.referencia" [filtros]="liquidacion.filtros"
+    (cerrar)="liquidacionSeleccionada = null" />
 }

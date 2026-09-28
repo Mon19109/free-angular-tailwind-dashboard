@@ -15,17 +15,27 @@ describe('Detalle de liquidación', () => {
       { provide: OperacionesEmisionService, useValue: service },
       { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap({ validate })) } }
     ] });
-    return TestBed.createComponent(DetalleOperacionComponent).componentInstance;
+    const component = TestBed.createComponent(DetalleOperacionComponent).componentInstance;
+    component.ngOnInit();
+    return component;
   }
   it('usa la referencia, normaliza la respuesta PHP y termina la carga', () => {
     const component = crear();
-    expect(service.obtenerDetalleOperacion).toHaveBeenCalledOnceWith('12345');
+    expect(service.obtenerDetalleOperacion).toHaveBeenCalledOnceWith('12345', {});
     expect(component.cargando()).toBeTrue();
     respuesta.next({ rows: { content: [{ amount: 2.5, authorizationNumber: '001' }] } });
     respuesta.complete();
     expect(component.cargando()).toBeFalse();
     expect(component.valor(component.operaciones()[0], 'amount')).toBe('$2.50');
     expect(component.valor(component.operaciones()[0], 'authorizationNumber')).toBe('001');
+  });
+  it('interpreta content cero como una liquidación sin operaciones', () => {
+    const component = crear();
+    respuesta.next({ number: 0, content: 0, totalElements: 0 });
+    respuesta.complete();
+    expect(component.operaciones()).toEqual([]);
+    expect(component.error()).toBe('');
+    expect(component.cargando()).toBeFalse();
   });
   it('maneja errores y omite consultas sin referencia', () => {
     const component = crear('');

@@ -687,3 +687,9 @@ html.dark .form-select option {
     padding: 24px 48px;
   }
 }
+
+.pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 18px 0; color: var(--app-text); }
+.pagination > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.pagination button { min-width: 36px; height: 36px; border: 1px solid var(--app-border); border-radius: 8px; background: var(--app-surface); color: var(--app-text); cursor: pointer; }
+.pagination button.active { background: var(--brand-secondary, #f5bc40); color: #111827; }
+.pagination button:disabled { opacity: .45; cursor: default; }

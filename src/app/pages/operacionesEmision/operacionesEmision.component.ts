@@ -1,12 +1,14 @@
+import { leerPaginaOperaciones } from '../../shared/utils/pagina-operaciones';
+import { accionOperacion } from '../../shared/utils/acciones-operaciones';
 import { fechaOperacion } from '../../shared/utils/operaciones-tabla';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { DetalleOperacionComponent } from '../detalleOperacion/detalle-operacion.component';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { OperacionesEmisionService } from '../../services/operacionesemision.service';
+import { FiltrosDetalleLiquidacion, OperacionesEmisionService } from '../../services/operacionesemision.service';
 import { MultiSelectComponent, Option }
 from '../../shared/components/form/multi-select/multi-select.component';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
@@ -20,7 +22,7 @@ import { nombreBancoPorCodigo } from '../../shared/utils/bancos';
 @Component({
   selector: 'app-operacionesEmi',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MultiSelectComponent, DatePickerComponent, ProcessingOverlayComponent],
+  imports: [DetalleOperacionComponent, CommonModule, ReactiveFormsModule, MultiSelectComponent, DatePickerComponent, ProcessingOverlayComponent],
   templateUrl: './operacionesEmision.component.html',
   styleUrls: ['./operacionesEmision.component.css']
 })
@@ -28,7 +30,7 @@ export class OperacionesEmisionComponent implements OnInit {
   readonly buscando = signal(false);
   readonly nombreEstatusOperacion = nombreEstatusOperacion;
   readonly nombreBancoPorCodigo = nombreBancoPorCodigo;
-  private readonly router = inject(Router);
+  liquidacionSeleccionada: { referencia: string; filtros: FiltrosDetalleLiquidacion } | null = null;
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -165,7 +167,7 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
 
     this.tipoOperacionOptions = this.tiposOperacion.map((tipo: any) => ({
       value: String(tipo.idOperationType),
-      text: tipo.name
+      text: tipo.descriptionApp || tipo.description || String(tipo.idOperationType)
     }));
     this.defaultTipoOperacion = [...new Set([
       ...this.tipoOperacionOptions.slice(0, 3).map(tipo => tipo.value),
@@ -181,37 +183,55 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
 });
   }
 
+  paginaActual = 1;
+  totalRegistros: number | null = null;
+  haySiguiente = false;
+  consultaRealizada = false;
+  errorResultados = '';
+  private filtrosConsulta: any = null;
+
+  get paginas(): number[] {
+    const total = this.totalRegistros === null
+      ? this.paginaActual + (this.haySiguiente ? 1 : 0)
+      : Math.max(1, Math.ceil(this.totalRegistros / 10));
+    const inicio = Math.max(1, Math.min(this.paginaActual - 2, total - 4));
+    return Array.from({ length: Math.min(5, total - inicio + 1) }, (_, i) => inicio + i);
+  }
+
   onSubmit(): void {
     if (this.buscando()) return;
     this.fechaErrorMensaje = this.obtenerMensajeValidacionFechas();
-
-    if (this.fechaErrorMensaje) {
+    if (this.fechaErrorMensaje || !this.formulario.valid) {
       this.formulario.markAllAsTouched();
       return;
     }
+    const formValues = this.formulario.getRawValue();
+    this.filtrosConsulta = formValues;
+    this.operaciones = [];
+    this.totalRegistros = null;
+    this.haySiguiente = false;
+    this.paginaActual = 1;
+    this.cambiarPagina(1);
+  }
 
-    if (this.formulario.valid) {
-      const formValues = this.formulario.value;
-      console.log('Formulario enviado:', formValues);
-      
-      // Aquí puedes llamar a otro servicio para enviar los datos
-      this.buscando.set(true);
-      this.operaEmiService.enviarFormulario(formValues).pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.buscando.set(false))
-      ).subscribe({
-        next: (response) => {
-          console.log('Formulario enviado exitosamente:', response);
-          this.operaciones = response.operations || [];
-
-          console.log('operaciones enviado exitosamente:', this.operaciones);
-          // Aquí puedes agregar lógica adicional, como mostrar un mensaje de éxito
-        },
-        error: (error) => {
-          console.error('Error al enviar formulario:', error);
-        }
-      });
-    }
+  cambiarPagina(pagina: number): void {
+    if (this.buscando() || !this.filtrosConsulta || pagina < 1) return;
+    this.errorResultados = '';
+    this.buscando.set(true);
+    this.operaEmiService.enviarFormulario(this.filtrosConsulta, pagina - 1).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.buscando.set(false))
+    ).subscribe({
+      next: response => {
+        const resultado = leerPaginaOperaciones(response, pagina);
+        this.operaciones = resultado.operaciones;
+        this.totalRegistros = resultado.total;
+        this.haySiguiente = resultado.siguiente;
+        this.paginaActual = pagina;
+        this.consultaRealizada = true;
+      },
+      error: () => { this.errorResultados = 'No fue posible consultar las operaciones. Intenta de nuevo.'; }
+    });
   }
 
   cargarTiposOperacion(): void {
@@ -229,6 +249,13 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
   }
 
   limpiarFormulario(): void {
+    this.operaciones = [];
+    this.filtrosConsulta = null;
+    this.consultaRealizada = false;
+    this.errorResultados = '';
+    this.totalRegistros = null;
+    this.paginaActual = 1;
+    this.haySiguiente = false;
 
   this.formulario.reset({
     cuenta: '',
@@ -243,15 +270,10 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
 
 readonly fechaOperacion = fechaOperacion;
 
+readonly accionOperacion = accionOperacion;
+
 etiquetaDetalle(operacion: any): string {
-  const acciones: Record<number, string> = {
-    1: 'Comprobante SPEI',
-    4: 'Comprobante de retiro entre cuentas',
-    10: 'Recarga TAE',
-    11: 'Pago de servicio',
-    10008: 'Detalle de liquidación'
-  };
-  return acciones[Number(operacion.type)] || 'Ver detalle';
+  return accionOperacion(operacion.type)?.titulo || '';
 }
 
 conceptoComprobante(operacion: any): string {
@@ -267,12 +289,15 @@ verDetalle(operacion: any): void {
   switch (tipo) {
 
    case 10008:
-  this.router.navigate(['/detalleOperacion'], {
-    queryParams: {
-      validate: operacion.numericReference,
-      page: 1
+  this.liquidacionSeleccionada = {
+    referencia: String(operacion.numericReference ?? ''),
+    filtros: {
+      startDate: this.formulario.getRawValue().fechaInicio || '',
+      endDate: this.formulario.getRawValue().fechaFin || '',
+      type: String(operacion.type),
+      status: String(operacion.status ?? '')
     }
-  });
+  };
   break;
 
     case 1:

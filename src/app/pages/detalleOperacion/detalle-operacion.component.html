@@ -1,7 +1,15 @@
+<div [class.detalle-backdrop]="modal" (keydown.escape)="modal && cerrar.emit()">
+<div [class.detalle-dialog]="modal" [attr.role]="modal ? 'dialog' : null"
+  [attr.aria-modal]="modal ? 'true' : null" aria-labelledby="titulo-liquidacion"
+  [cdkTrapFocus]="modal" [cdkTrapFocusAutoCapture]="modal">
 <section class="detalle-shell">
   <header>
-    <div><span class="eyebrow">Operaciones emisión</span><h1>Detalle de liquidación</h1><p>Referencia: {{ liquidationID || 'ND' }}</p></div>
-    <a routerLink="/operaciones_emision">Volver a operaciones</a>
+    <div><span class="eyebrow">Operaciones</span><h1 id="titulo-liquidacion">Detalle de liquidación</h1><p>Referencia: {{ liquidationID || 'ND' }}</p></div>
+    @if (modal) {
+      <button type="button" cdkFocusInitial (click)="cerrar.emit()" aria-label="Cerrar detalle de liquidación">Cerrar</button>
+    } @else {
+      <a routerLink="/operaciones_emision">Volver a operaciones</a>
+    }
   </header>
   @if (error()) {
     <div role="alert"><p>{{ error() }}</p><button type="button" (click)="cargar()" [disabled]="cargando()">Reintentar</button></div>
@@ -21,3 +29,6 @@
   </div>
 </section>
 @if (cargando()) { <app-processing-overlay texto="Cargando información..." descripcion="Estamos consultando el detalle de la liquidación. Espera un momento." /> }
+
+</div>
+</div>
