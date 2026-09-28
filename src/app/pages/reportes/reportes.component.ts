@@ -298,7 +298,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.mostrarReportes = true;
     this.cargando = true;
 
-    this.consultaSubscription = this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada())
+    this.consultaSubscription = this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), this.guidComerceSeleccionado)
       .pipe(
         finalize(() => {
           this.cargando = false;
@@ -349,7 +349,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   private verReporteDinamico(reporte: ReporteDisponible, ventanaReporte: Window | null): void {
-    this.reporteSubscription = this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), reporte.folder || reporte.id)
+    this.reporteSubscription = this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), reporte.folder || reporte.id, this.guidComerceSeleccionado)
       .pipe(finalize(() => this.abriendoReporte = ''))
       .subscribe({
         next: respuesta => {

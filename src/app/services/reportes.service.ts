@@ -79,12 +79,12 @@ export class ReportesService {
     );
   }
 
-  buscarFolderReportes(periodo: string, tipoCuenta: TipoCuentaReporte): Observable<ReporteArchivo[]> {
-    return this.listarDirectorio(this.construirFolderReportes(periodo, tipoCuenta));
+  buscarFolderReportes(periodo: string, tipoCuenta: TipoCuentaReporte, guidComerce: string): Observable<ReporteArchivo[]> {
+    return this.listarDirectorio(this.construirFolderReportes(periodo, tipoCuenta, guidComerce));
   }
 
-  buscarArchivosReporte(periodo: string, tipoCuenta: TipoCuentaReporte, reporte: string): Observable<ReporteArchivo[]> {
-    return this.listarDirectorio(`${this.construirFolderReportes(periodo, tipoCuenta)}${reporte}`);
+  buscarArchivosReporte(periodo: string, tipoCuenta: TipoCuentaReporte, reporte: string, guidComerce: string): Observable<ReporteArchivo[]> {
+    return this.listarDirectorio(`${this.construirFolderReportes(periodo, tipoCuenta, guidComerce)}${reporte}`);
   }
 
   obtenerEstadoCuenta(tipo: 'PDF' | 'EXCEL', periodo: string, cuenta: string, clabe = ''): Observable<any> {
@@ -173,15 +173,11 @@ export class ReportesService {
     });
   }
 
-  private construirFolderReportes(periodo: string, tipoCuentaReporte: TipoCuentaReporte): string {
+  private construirFolderReportes(periodo: string, tipoCuentaReporte: TipoCuentaReporte, guidComerce: string): string {
     const { anio, mesNumero } = this.parsePeriodo(periodo);
-    const guidCommerce = this.getStoredValue('guidCommerce')
-      || this.getStoredValue('commerceGuid')
-      || this.getStoredValue('guid')
-      || this.getStoredValue('validate');
     const tipoCuenta = tipoCuentaReporte === 'ADQUIRENTE' ? 'Adquirencia' : 'Emision';
 
-    return `${guidCommerce}/Reportes/${anio}/${mesNumero}/${tipoCuenta}/`;
+    return `${guidComerce}/Reportes/${anio}/${mesNumero}/${tipoCuenta}/`;
   }
 
   private getStoredValue(key: string): string {

@@ -13,6 +13,7 @@ describe('ReportesComponent', () => {
     component = new ReportesComponent(service);
     component.cuentas = [{ id: '123', texto: 'Cuenta Adquirente', guidComerce: 'GUID-123' }];
     component.cuentaSeleccionada = '123';
+    component.guidComerceSeleccionado = 'GUID-123';
     component.periodoSeleccionado = '2026 Agosto';
   });
 
@@ -33,7 +34,7 @@ describe('ReportesComponent', () => {
       { name: 'Compensacion' }, { name: 'Desconocido' }
     ]));
     component.consultar();
-    expect(service.buscarFolderReportes).toHaveBeenCalledWith('2026 Agosto', 'ADQUIRENTE');
+    expect(service.buscarFolderReportes).toHaveBeenCalledWith('2026 Agosto', 'ADQUIRENTE', 'GUID-123');
     expect(component.reportes.map(reporte => reporte.id)).toEqual([
       'ESTADO_PDF', 'ESTADO_EXCEL', 'CORTE_DIA', 'DIARIO_TRANSACCIONES',
       'TRANSACCIONES_SPLIT', 'EnRed', 'Factura', 'Comision', 'Conciliacion',
