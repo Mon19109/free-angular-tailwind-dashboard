@@ -67,6 +67,11 @@
   box-shadow: var(--reportes-shadow);
 }
 
+.reportes-filter-entidades {
+  grid-template-columns: repeat(3, minmax(180px, 1fr)) minmax(150px, 0.6fr);
+  gap: clamp(12px, 2vw, 32px);
+}
+
 :host-context(html.dark) .reportes-filter {
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(241, 178, 61, 0.08);
 }
@@ -377,7 +382,8 @@
 }
 
 @media (max-width: 900px) {
-  .reportes-filter {
+  .reportes-filter,
+  .reportes-filter-entidades {
     grid-template-columns: 1fr;
     gap: 18px;
   }

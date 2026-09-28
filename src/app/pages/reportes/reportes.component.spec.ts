@@ -8,10 +8,10 @@ describe('ReportesComponent', () => {
 
   beforeEach(() => {
     service = jasmine.createSpyObj<ReportesService>('ReportesService', [
-      'buscarFolderReportes', 'obtenerSaldo', 'buscarArchivosReporte'
+      'buscarFolderReportes', 'obtenerSaldo', 'buscarArchivosReporte', 'obtenerEntidades', 'obtenerCuentas'
     ]);
     component = new ReportesComponent(service);
-    component.cuentas = [{ id: '123', texto: 'Cuenta Adquirente' }];
+    component.cuentas = [{ id: '123', texto: 'Cuenta Adquirente', guidComerce: 'GUID-123' }];
     component.cuentaSeleccionada = '123';
     component.periodoSeleccionado = '2026 Agosto';
   });
@@ -86,5 +86,38 @@ describe('ReportesComponent', () => {
     component.onCuentaChange();
     pending.next({ rows: { onsignaEntity: { clabeAccount: 'old' } } });
     expect(component.clabe).toBe('new');
+  });
+
+  it('loads entities for profile 8 and requests accounts for the selected entity', () => {
+    localStorage.setItem('idPerfil', '8');
+    service.obtenerEntidades.and.returnValue(of({ contextResponse: [
+      { levelType: 3, name: 'Subafiliado', children: [
+        { levelType: 4, idSirio: 'ENT-1', name: 'Entidad 1' },
+        { levelType: 4, idSirio: 'ENT-2', name: 'Entidad 2' }
+      ] }
+    ] }));
+    service.obtenerCuentas.and.returnValue(of({ rows: [{ idSirio: 'CUENTA-1', name: 'Cuenta emisión' }] }));
+
+    component.ngOnInit();
+    expect(component.mostrarEntidades).toBeTrue();
+    expect(component.entidades.map(entidad => entidad.id)).toEqual(['ENT-1', 'ENT-2']);
+    expect(service.obtenerCuentas).not.toHaveBeenCalled();
+
+    component.entidadSeleccionada = 'ENT-2';
+    component.onEntidadChange();
+    expect(service.obtenerCuentas).toHaveBeenCalledWith('ENT-2');
+    expect(component.cuentas.map(cuenta => cuenta.id)).toEqual(['CUENTA-1']);
+    localStorage.removeItem('idPerfil');
+  });
+
+  it('clears the previous account when the entity changes', () => {
+    component.mostrarEntidades = true;
+    component.entidadSeleccionada = 'ENT-2';
+    service.obtenerCuentas.and.returnValue(of([]));
+
+    component.onEntidadChange();
+    expect(component.cuentaSeleccionada).toBe('');
+    expect(component.guidComerceSeleccionado).toBe('');
+    expect(component.cuentas).toEqual([]);
   });
 });

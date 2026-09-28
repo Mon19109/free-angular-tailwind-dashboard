@@ -21,6 +21,12 @@ interface ReporteDisponible {
 interface CuentaReporteDisponible {
   id: string;
   texto: string;
+  guidComerce: string;
+}
+
+interface EntidadReporteDisponible {
+  id: string;
+  texto: string;
 }
 
 @Component({
@@ -34,6 +40,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
   private consultaSubscription?: Subscription;
   private saldoSubscription?: Subscription;
   private reporteSubscription?: Subscription;
+  private entidadesSubscription?: Subscription;
+  private cuentasSubscription?: Subscription;
   private readonly assetBaseUrl = `${window.location.origin}/`;
   private readonly reporteTimeoutMs = 90000;
 
@@ -120,8 +128,12 @@ export class ReportesComponent implements OnInit, OnDestroy {
   };
 
   cuentas: CuentaReporteDisponible[] = [];
+  entidades: EntidadReporteDisponible[] = [];
+  mostrarEntidades = false;
+  entidadSeleccionada = '';
   periodos: string[] = [];
   cuentaSeleccionada = '';
+  guidComerceSeleccionado = '';
   periodoSeleccionado = '';
   clabe = '';
   mensaje = '';
@@ -139,13 +151,21 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.periodos = this.generarPeriodos();
-    this.cargarCuentas();
+    const idPerfil = this.obtenerIdPerfil();
+    this.mostrarEntidades = idPerfil === 8 || idPerfil === 9;
+    if (this.mostrarEntidades) {
+      this.cargarEntidades();
+    } else {
+      this.cargarCuentas();
+    }
   }
 
   ngOnDestroy(): void {
     this.consultaSubscription?.unsubscribe();
     this.saldoSubscription?.unsubscribe();
     this.reporteSubscription?.unsubscribe();
+    this.entidadesSubscription?.unsubscribe();
+    this.cuentasSubscription?.unsubscribe();
   }
 
   onPeriodoChange(): void {
@@ -160,8 +180,33 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.reportes = [];
   }
 
-  cargarCuentas(): void {
-    this.reportesService.obtenerCuentas().subscribe({
+  cargarEntidades(): void {
+    this.entidadesSubscription?.unsubscribe();
+    this.entidadesSubscription = this.reportesService.obtenerEntidades().subscribe({
+      next: respuesta => {
+        this.entidades = this.extraerEntidades(respuesta);
+      },
+      error: () => {
+        this.mensaje = 'No fue posible cargar las entidades.';
+      }
+    });
+  }
+
+  onEntidadChange(): void {
+    this.cuentasSubscription?.unsubscribe();
+    this.saldoSubscription?.unsubscribe();
+    this.cuentaSeleccionada = '';
+    this.guidComerceSeleccionado = '';
+    this.clabe = '';
+    this.cuentas = [];
+    this.limpiarResultados();
+
+    if (this.entidadSeleccionada) this.cargarCuentas(this.entidadSeleccionada);
+  }
+
+  cargarCuentas(entitySonID?: string): void {
+    this.cuentasSubscription?.unsubscribe();
+    this.cuentasSubscription = this.reportesService.obtenerCuentas(entitySonID).subscribe({
       next: respuesta => {
         this.cuentas = this.normalizarLista(respuesta, [
           'cuentas',
@@ -175,7 +220,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
           .filter(cuenta => this.debeMostrarCuenta(cuenta))
           .map(cuenta => ({
             id: this.obtenerValorCuenta(cuenta),
-            texto: this.obtenerTextoCuenta(cuenta)
+            texto: this.obtenerTextoCuenta(cuenta),
+            guidComerce: String(cuenta?.guidComerce ?? cuenta?.guidCommerce ?? cuenta?.commerceGuid ?? '')
           }))
           .filter(cuenta => !!cuenta.id);
       },
@@ -185,10 +231,41 @@ export class ReportesComponent implements OnInit, OnDestroy {
     });
   }
 
+  private extraerEntidades(respuesta: unknown): EntidadReporteDisponible[] {
+    const entidades: EntidadReporteDisponible[] = [];
+    const visitar = (valor: unknown): void => {
+      if (Array.isArray(valor)) {
+        valor.forEach(visitar);
+        return;
+      }
+      if (!valor || typeof valor !== 'object') return;
+
+      const nodo = valor as Record<string, any>;
+      const nivel = Number(nodo['levelType'] ?? nodo['idAffilationLevel'] ?? nodo['level']);
+      if (nivel === 4) {
+        const id = String(nodo['idSirio'] ?? nodo['sirioId'] ?? nodo['entitySonID'] ?? nodo['bundle'] ?? '');
+        if (id && !entidades.some(entidad => entidad.id === id)) {
+          entidades.push({
+            id,
+            texto: String(nodo['name'] ?? nodo['nodeName'] ?? nodo['contextDescription'] ?? nodo['businessName'] ?? nodo['bussinesName'] ?? id)
+          });
+        }
+      }
+
+      for (const llave of ['contextResponse', 'rows', 'data', 'children', 'childs', 'nodes', 'tree', 'items', 'content']) {
+        if (nodo[llave] != null) visitar(nodo[llave]);
+      }
+    };
+
+    visitar(respuesta);
+    return entidades;
+  }
+
   onCuentaChange(): void {
     this.saldoSubscription?.unsubscribe();
     this.limpiarResultados();
     this.clabe = '';
+    this.guidComerceSeleccionado = this.cuentas.find(cuenta => cuenta.id === this.cuentaSeleccionada)?.guidComerce || '';
 
     if (!this.cuentaSeleccionada) return;
 

@@ -51,27 +51,23 @@ export class ReportesService {
     return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
   }
 
-  obtenerCuentas(): Observable<any> {
-    const idPerfil = Number(this.getStoredValue('idPerfil'));
-    const headers = this.getCommonHeaders();
+  obtenerEntidades(): Observable<any> {
+    const nodeID = this.getStoredValue('nodeID');
+    return this.http.get(
+      `${this.baseUrl}api/nodes/${encodeURIComponent(nodeID)}/tree`,
+      {
+        headers: this.getCommonHeaders(),
+        params: new HttpParams().set('levels', '').set('type', '')
+      }
+    );
+  }
 
-    if (idPerfil === 8 || idPerfil === 9) {
-      const nodeID = this.getStoredValue('nodeID');
-
-      return this.http.get(
-        `${this.baseUrl}api/nodes/${encodeURIComponent(nodeID)}/tree`,
-        {
-          headers,
-          params: new HttpParams().set('levels', '').set('type', '')
-        }
-      );
-    }
-
+  obtenerCuentas(entitySonID?: string): Observable<any> {
     return this.http.get(
       `${this.apiV1Url}account/getConcentratorAccounts`,
       {
-        headers: headers.set('versionApp', '3'),
-        params: new HttpParams().set('sirioId', this.getStoredValue('entitySonID'))
+        headers: this.getCommonHeaders().set('versionApp', '3'),
+        params: new HttpParams().set('sirioId', entitySonID ?? this.getStoredValue('entitySonID'))
       }
     );
   }

@@ -1,16 +1,27 @@
 <section class="reportes-shell">
   <p class="reportes-intro">Seleccione los filtros y el reporte que desee consultar</p>
 
-  <form class="reportes-filter" (ngSubmit)="consultar()">
+  <form class="reportes-filter" [class.reportes-filter-entidades]="mostrarEntidades" (ngSubmit)="consultar()">
+    <label *ngIf="mostrarEntidades" class="reportes-field">
+      <span>Selecciona Entidad</span>
+      <select class="reportes-control" [(ngModel)]="entidadSeleccionada" name="entidad" (change)="onEntidadChange()">
+        <option value=""></option>
+        <option *ngFor="let entidad of entidades" [value]="entidad.id">
+          {{ entidad.texto }}
+        </option>
+      </select>
+    </label>
+
     <label class="reportes-field">
       <span>Selecciona Cuenta</span>
-      <select class="reportes-control" [(ngModel)]="cuentaSeleccionada" name="cuenta" (change)="onCuentaChange()">
+      <select class="reportes-control" [(ngModel)]="cuentaSeleccionada" name="cuenta" [disabled]="mostrarEntidades && !entidadSeleccionada" (change)="onCuentaChange()">
         <option value=""></option>
         <option *ngFor="let cuenta of cuentas" [value]="cuenta.id">
           {{ cuenta.texto }}
         </option>
       </select>
     </label>
+    <input type="hidden" name="guidComerce" [value]="guidComerceSeleccionado" />
 
     <label class="reportes-field">
       <span>Periodo</span>
