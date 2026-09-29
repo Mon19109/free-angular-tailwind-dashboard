@@ -176,6 +176,8 @@ export class StepLiquidacionComponent implements OnInit {
     if (!this.giroSeleccionado) return;
     this.form.patchValue({
       giroBeneficiario: this.giroSeleccionado.descripcion || this.giroSeleccionado.familia,
+      giro: this.codigoCatalogo(this.giroSeleccionado.mcc),
+      idActivity: null,
     });
     this.mostrarModalGiro = false;
   }
@@ -198,8 +200,18 @@ export class StepLiquidacionComponent implements OnInit {
 
   guardarActividadModal(): void {
     if (!this.actividadSeleccionada) return;
-    this.form.patchValue({ actividadBeneficiario: this.actividadSeleccionada.descripcion });
+    this.form.patchValue({
+      actividadBeneficiario: this.actividadSeleccionada.descripcion,
+      idActivity: this.codigoCatalogo(this.actividadSeleccionada.id),
+      giro: null,
+    });
     this.mostrarModalActividad = false;
+  }
+
+  private codigoCatalogo(valor: string): number | null {
+    if (!valor.trim()) return null;
+    const codigo = Number(valor);
+    return Number.isFinite(codigo) ? codigo : null;
   }
 
   buscarBanco(): void {

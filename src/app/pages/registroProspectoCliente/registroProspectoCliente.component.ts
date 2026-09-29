@@ -22,6 +22,7 @@ import { ProspectoCliente, ProspectoClienteService } from '../../services/prospe
 import { CuentaComercioService } from '../../services/cuenta-comercio.service';
 import { ArbolNodoApi, ArbolNodosService } from '../../services/arbol-nodos.service';
 import { DocumentoProspectoApi, DocumentosProspectoService } from '../../services/documentos-prospecto.service';
+import { ActividadesService } from '../../services/actividades.service';
 
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
@@ -58,6 +59,7 @@ interface NodoProspecto {
 export class RegistroProspectoClienteComponent implements OnInit {
   readonly prospectoBearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
   private readonly fb = inject(FormBuilder);
+  private readonly actividadesService = inject(ActividadesService);
   private readonly route = inject(ActivatedRoute);
   private readonly prospectoService = inject(ProspectoClienteService);
   private readonly cuentaComercioService = inject(CuentaComercioService);
@@ -145,6 +147,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
     rfcBeneficiario: ['', [Validators.required, this.rfcValidator()]],
     actividadBeneficiario: ['', Validators.required],
     giroBeneficiario: ['', Validators.required],
+    idActivity: this.fb.control<number | null>(null),
+    giro: this.fb.control<number | null>(null),
     tipoCuenta: ['', Validators.required],
     cuentaClabe: ['', Validators.required],
     nombreBanco: ['', Validators.required],
@@ -483,6 +487,10 @@ export class RegistroProspectoClienteComponent implements OnInit {
       tipoPersona: this.texto(datos['typePerson']) || 'PM',
       razonSocial: this.texto(datos['businessName']),
       nombreComercial: this.texto(datos['nameCommerce'] || datos['name']),
+      nombre: this.texto(datos['name']),
+      apellidoPaterno: this.texto(datos['paternalSurname']),
+      apellidoMaterno: this.texto(datos['maternalSurname']),
+      actividad: this.texto(datos['activityDescription']),
       rfc: this.texto(datos['rfc']),
       regimenFiscal: this.texto(datos['fiscalRegime']),
       giroComercial: this.texto(datos['bussinesLineDescription']),
@@ -537,6 +545,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
   private sincronizarBeneficiarioDesdeComercio(): void {
     const direccion = this.datosForm.getRawValue();
+    const datos = { ...(this.prospecto ?? {}), ...(this.cuentaComercio ?? {}) } as Record<string, unknown>;
     const esMoral = this.texto(direccion.tipoPersona) === 'PM';
     const nombre = esMoral
       ? this.texto(direccion.razonSocial) || this.texto(direccion.nombreComercial)
@@ -557,13 +566,30 @@ export class RegistroProspectoClienteComponent implements OnInit {
       nombreBeneficiario: nombre,
       apellidoPaternoBeneficiario: esMoral ? '' : this.texto(direccion.apellidoPaterno),
       apellidoMaternoBeneficiario: esMoral ? '' : this.texto(direccion.apellidoMaterno),
-      correoBeneficiario: this.texto(direccion.correo),
+      correoBeneficiario: this.texto(datos['email']),
       direccionBeneficiario: direccionCompleta,
       rfcBeneficiario: this.texto(direccion.rfc),
-      actividadBeneficiario: this.texto(direccion.actividad || direccion.descripcionGiro),
-      giroBeneficiario: this.texto(direccion.giroComercial || direccion.descripcionGiro)
+      actividadBeneficiario: esMoral ? '' : this.texto(datos['activityDescription']) || this.texto(datos['idActivity']),
+      giroBeneficiario: esMoral ? this.texto(datos['bussinesLineDescription']) || this.texto(datos['businessActivityCode']) : '',
+      idActivity: esMoral ? null : this.codigoCatalogo(datos['idActivity']),
+      giro: esMoral ? this.codigoCatalogo(datos['businessActivityCode']) : null
     }, { emitEvent: false });
     this.actualizarValidadoresBeneficiario(esMoral ? 'moral' : 'fisica');
+    const idActivity = this.liquidacionForm.controls.idActivity.value;
+    if (!esMoral && idActivity !== null && !this.texto(datos['activityDescription'])) {
+      this.actividadesService.getActividades().subscribe({
+        next: actividades => {
+          if (!this.liquidacionForm.controls.beneficiarioIgualComercio.value
+            || this.liquidacionForm.controls.idActivity.value !== idActivity) return;
+          const actividad = actividades.find(item =>
+            this.codigoCatalogo(item['idcat_actividades'] ?? item.idActivity ?? item.id ?? item.code) === idActivity);
+          const descripcion = actividad && (actividad.descripcion || actividad.description || actividad.actividad
+            || actividad.activity || actividad.nombre || actividad.name || actividad.label);
+          if (descripcion) this.liquidacionForm.controls.actividadBeneficiario.setValue(descripcion);
+        },
+        error: () => { /* Se conserva el ID recibido si el catálogo no está disponible. */ }
+      });
+    }
   }
 
   private limpiarDatosBeneficiario(): void {
@@ -575,7 +601,9 @@ export class RegistroProspectoClienteComponent implements OnInit {
       direccionBeneficiario: '',
       rfcBeneficiario: '',
       actividadBeneficiario: '',
-      giroBeneficiario: ''
+      giroBeneficiario: '',
+      idActivity: null,
+      giro: null
     }, { emitEvent: false });
   }
 
@@ -729,6 +757,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   private actualizarValidadoresBeneficiario(tipo: TipoPersonaBeneficiario): void {
+    if (tipo === 'moral') this.liquidacionForm.controls.idActivity.setValue(null, { emitEvent: false });
+    else this.liquidacionForm.controls.giro.setValue(null, { emitEvent: false });
     const apellidosRequeridos = tipo === 'fisica';
     this.liquidacionForm.controls.apellidoPaternoBeneficiario.setValidators(apellidosRequeridos ? [Validators.required] : []);
     this.liquidacionForm.controls.apellidoMaternoBeneficiario.setValidators(apellidosRequeridos ? [Validators.required] : []);
@@ -800,7 +830,6 @@ export class RegistroProspectoClienteComponent implements OnInit {
         this.cargarFormulariosDesdeGet();
         this.arbol = this.construirArbol();
         this.nodoSeleccionado = this.arbol[0]?.id || '';
-        this.precargarBeneficiarioDesdeComercio();
         this.consultarArbolReal();
       },
       error: () => {
@@ -1001,16 +1030,10 @@ export class RegistroProspectoClienteComponent implements OnInit {
     return undefined;
   }
 
-  private precargarBeneficiarioDesdeComercio(): void {
-    if (!this.liquidacionForm.controls.beneficiarioIgualComercio.value) return;
-    this.liquidacionForm.patchValue({
-      nombreBeneficiario: this.texto(this.cuentaComercio?.['businessName']) || this.contextoNombre,
-      correoBeneficiario: this.texto(this.cuentaComercio?.['email']) || this.texto(this.prospecto?.email),
-      direccionBeneficiario: this.texto(this.cuentaComercio?.['commerceAddress']),
-      rfcBeneficiario: this.texto(this.cuentaComercio?.['rfc']),
-      actividadBeneficiario: this.texto(this.cuentaComercio?.['activityDescription']),
-      giroBeneficiario: this.texto(this.cuentaComercio?.['bussinesLineDescription'])
-    }, { emitEvent: false });
+  private codigoCatalogo(valor: unknown): number | null {
+    if (valor === null || valor === undefined || String(valor).trim() === '') return null;
+    const codigo = Number(valor);
+    return Number.isFinite(codigo) ? codigo : null;
   }
 
   private actualizarValidadoresAccesos(): void {
