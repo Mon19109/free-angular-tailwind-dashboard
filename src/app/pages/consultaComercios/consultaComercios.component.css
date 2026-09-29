@@ -851,3 +851,13 @@ td {
   outline: 2px solid var(--consulta-gold);
   outline-offset: 3px;
 }
+
+
+.export-button {
+  color: #ffffff;
+  background: #28313e;
+}
+
+.export-button:hover {
+  background: #344052;
+}
