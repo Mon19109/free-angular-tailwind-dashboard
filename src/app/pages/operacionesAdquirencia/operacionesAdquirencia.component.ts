@@ -1,3 +1,7 @@
+import { accionOperacion } from '../../shared/utils/acciones-operaciones';
+import { nombreEstatusOperacion } from '../../shared/utils/estatus-operaciones';
+import { fechaOperacion } from '../../shared/utils/operaciones-tabla';
+import { DetalleOperacionComponent } from '../detalleOperacion/detalle-operacion.component';
 import { nodosDelNivel } from '../../shared/utils/niveles-operaciones';
 import { leerPaginaOperaciones } from '../../shared/utils/pagina-operaciones';
 import { obtenerNodoSesion } from '../../shared/utils/nodo-sesion';
@@ -9,7 +13,7 @@ import { ProcessingOverlayComponent } from '../../shared/components/processing-o
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { OperacionesAdquirenciaService } from '../../services/operacionesadquirencia.service';
+import { cuentaAdquirencia, OperacionesAdquirenciaService } from '../../services/operacionesadquirencia.service';
 import { MultiSelectComponent, Option }
 from '../../shared/components/form/multi-select/multi-select.component';
 import { DatePickerComponent }
@@ -19,12 +23,18 @@ import * as XLSX from 'xlsx';
 @Component({
   selector: 'app-operacionesAdqui',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule , MultiSelectComponent, DatePickerComponent, ProcessingOverlayComponent],
+  imports: [DetalleOperacionComponent, CommonModule, ReactiveFormsModule , MultiSelectComponent, DatePickerComponent, ProcessingOverlayComponent],
   templateUrl: './operacionesAdquirencia.component.html',
   styleUrls: ['./operacionesAdquirencia.component.css']
 })
 export class OperacionesAdquirenciaComponent implements OnInit {
   readonly buscando = signal(false);
+  readonly exportando = signal(false);
+  readonly accionOperacion = accionOperacion;
+  liquidacionSeleccionada: { referencia: string; filtros: any } | null = null;
+  avisosNiveles: Partial<Record<4 | 5 | 6, string>> = {};
+  get mensajesNiveles(): string[] { return Object.values(this.avisosNiveles); }
+
   private readonly destroyRef = inject(DestroyRef);
 
   readonly columnasOperaciones = COLUMNAS_OPERACIONES;
@@ -41,8 +51,8 @@ export class OperacionesAdquirenciaComponent implements OnInit {
 tipoOperacionOptions: Option[] = [];
 estatusMultiOptions: Option[] = [];
 
-defaultEstatus: string[] = ['15', '27', '31'];
-defaultTipoOperacion: string[] = ['1', '2', '3'];
+defaultEstatus: string[] = ['15', '31', '27'];
+defaultTipoOperacion: string[] = ['10007', '1', '10008'];
 
 entidades:any[] = [];
 sucursales:any[] = [];
@@ -172,18 +182,9 @@ clasificaciones:any[] = [
 ];
 rolId = '2';
 
-// Filtros visibles según el rol de la sesión (2 = admin ve todo, 6 = solo caja).
-private readonly filtrosPorRol: Record<string, string[]> = {
-  '2': ['cuenta', 'entidad', 'sucursal', 'caja'],
-  '3': ['cuenta', 'entidad', 'caja'],
-  '4': ['entidad', 'sucursal', 'caja'],
-  '5': ['sucursal', 'caja'],
-  '6': ['caja']
-};
-
+// PHP muestra los cuatro niveles; el rol determina cuáles se pueden editar.
 mostrarFiltro(filtro: string): boolean {
-  const visibles = this.filtrosPorRol[this.rolId];
-  return visibles ? visibles.includes(filtro) : true;
+  return ['cuenta', 'entidad', 'sucursal', 'caja'].includes(filtro);
 }
 
 subafiliadoSesionBloqueado = false;
@@ -277,11 +278,12 @@ onFechaFinChange(event: any) {
   entidad: [''],
   sucursal: [''],
   caja: [''],
+  // operaciones2.js no envía newop/clasificación en la búsqueda.
   clasificacion: [''],
-  tipoOperacion: [this.defaultTipoOperacion],
-estatus: [this.defaultEstatus],
-  fechaInicio: ['', [Validators.required, this.fechaNoFuturaValidator]],
-  fechaFin: ['', [Validators.required, this.fechaNoFuturaValidator]]
+  tipoOperacion: [this.defaultTipoOperacion, Validators.required],
+estatus: [this.defaultEstatus, Validators.required],
+  fechaInicio: ['', [Validators.required, this.fechaValidaValidator]],
+  fechaFin: ['', [Validators.required, this.fechaValidaValidator]]
 });
 
   }
@@ -295,12 +297,9 @@ estatus: [this.defaultEstatus],
     text: item.label
   }));
 
+  this.aplicarBloqueosSesion();
+  this.restaurarBusqueda();
   this.cargarDatosIniciales();
-
-  this.formulario.patchValue({
-  tipoOperacion: this.defaultTipoOperacion,
-  estatus: this.defaultEstatus
-});
 }
 
   /*onSubAfiliadoChange(event: Event): void {
@@ -324,6 +323,7 @@ estatus: [this.defaultEstatus],
 
   private cargarNivel(nivel: 4 | 5 | 6, nodeID: string): void {
     this.solicitudesNiveles[nivel]?.unsubscribe();
+    delete this.avisosNiveles[nivel];
     if (!nodeID) return;
     const request = nivel === 4 ? this.opeAdquiService.getEntidades(nodeID)
       : nivel === 5 ? this.opeAdquiService.getSucursales(nodeID)
@@ -331,17 +331,21 @@ estatus: [this.defaultEstatus],
     this.solicitudesNiveles[nivel] = request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         const lista = nodosDelNivel(response, nivel);
+        if (!lista.length) this.avisosNiveles[nivel] = nivel === 4
+          ? 'El nodo seleccionado no tiene entidades relacionadas.'
+          : nivel === 5 ? 'El nodo seleccionado no tiene sucursales relacionadas.'
+          : 'El nodo seleccionado no tiene cajas relacionadas.';
         if (nivel === 4) { this.entidades = lista; this.seleccionarEntidadSesion(lista); }
         if (nivel === 5) { this.sucursales = lista; this.seleccionarSucursalSesion(lista); }
         if (nivel === 6) { this.cajas = lista; this.seleccionarCajaSesion(lista); }
       },
-      error: error => console.error('Error al cargar nivel ' + nivel, error)
+      error: () => { this.avisosNiveles[nivel] = 'No fue posible cargar ' + ({4: 'entidades', 5: 'sucursales', 6: 'cajas'}[nivel]) + '. Vuelve a seleccionar el nivel superior.'; }
     });
   }
 
   private limpiarNiveles(desde: 4 | 5 | 6): void {
     for (const nivel of [4, 5, 6] as const) {
-      if (nivel >= desde) this.solicitudesNiveles[nivel]?.unsubscribe();
+      if (nivel >= desde) { this.solicitudesNiveles[nivel]?.unsubscribe(); delete this.avisosNiveles[nivel]; }
     }
     if (desde <= 4) this.entidades = [];
     if (desde <= 5) this.sucursales = [];
@@ -358,34 +362,21 @@ estatus: [this.defaultEstatus],
     this.formulario.get('cuenta')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ entidad: '', sucursal: '', caja: '' }, { emitEvent: false });
       this.limpiarNiveles(4);
-      const nodeID = String(valor || obtenerNodoSesion());
-      this.cargarNivel(4, nodeID);
-      this.cargarNivel(5, nodeID);
-      this.cargarNivel(6, nodeID);
+      this.cargarNivel(4, String(valor || ''));
     });
     this.formulario.get('entidad')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ sucursal: '', caja: '' }, { emitEvent: false });
       this.limpiarNiveles(5);
-      const nodeID = String(valor || this.nodoBaseFiltros());
-      this.cargarNivel(5, nodeID);
-      this.cargarNivel(6, nodeID);
+      this.cargarNivel(5, String(valor || ''));
     });
     this.formulario.get('sucursal')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ caja: '' }, { emitEvent: false });
       this.limpiarNiveles(6);
-      this.cargarNivel(6, String(valor || this.formulario.getRawValue().entidad || this.nodoBaseFiltros()));
+      this.cargarNivel(6, String(valor || ''));
     });
     this.cargarSubafiliados();
 
-    // Cargar estatus
-    this.opeAdquiService.obtenerStatus().subscribe({
-      next: (data) => {
-        this.estatus = data;
-      },
-      error: (error) => {
-        console.error('Error al cargar estatus:', error);
-      }
-    });
+
   }
 mostrarResultados = false;
 
@@ -444,6 +435,9 @@ mostrarResultados = false;
   onSubmit(): void {
     if (this.buscando()) return;
     this.fechaErrorMensaje = this.obtenerMensajeValidacionFechas();
+    if (!this.fechaErrorMensaje && (!this.formulario.getRawValue().tipoOperacion?.length || !this.formulario.getRawValue().estatus?.length)) {
+      this.fechaErrorMensaje = 'Selecciona al menos un tipo y un estatus de operación.';
+    }
     if (this.fechaErrorMensaje || !this.formulario.valid) {
       this.formulario.markAllAsTouched();
       return;
@@ -454,16 +448,22 @@ mostrarResultados = false;
         ['entidad', this.entidades], ['cuenta', this.cuentas]
       ];
       for (const [campo, lista] of niveles) {
-        if (!formValues[campo]) continue;
+        if (!this.mostrarFiltro(campo) || !formValues[campo]) continue;
         const nodo = lista.find(item => String(item.idNode ?? item.nodeID ?? item.nodeId ?? item.idEntity ?? item.idTerminal ?? item.idTerminalUser ?? item.affiliationId ?? item.id) === String(formValues[campo]));
-        const cuenta = nodo?.account || nodo?.bundle;
-        if (!cuenta) {
-          this.fechaErrorMensaje = 'El nivel seleccionado no tiene una cuenta asociada para consultar operaciones.';
+        const idSirio = cuentaAdquirencia(nodo) || (String(formValues[campo]) === obtenerNodoSesion()
+          ? this.opeAdquiService.obtenerCuentaSesion() : '');
+        if (!idSirio || idSirio === '0') {
+          this.fechaErrorMensaje = 'El nivel seleccionado no tiene una cuenta de adquirencia válida (idSirio o account) para consultar operaciones.';
           return;
         }
-        formValues.cuentaConsulta = String(cuenta);
+        formValues.idSirioConsulta = idSirio;
         break;
       }
+    formValues.idSirioConsulta ||= this.opeAdquiService.obtenerCuentaSesion();
+    if (!formValues.idSirioConsulta) {
+      this.fechaErrorMensaje = 'La sesión no tiene una cuenta de adquirencia disponible.';
+      return;
+    }
     this.filtrosConsulta = formValues;
     this.operaciones = [];
     this.totalRegistros = null;
@@ -488,6 +488,7 @@ mostrarResultados = false;
         this.paginaActual = pagina;
         this.consultaRealizada = true;
         this.mostrarResultados = true;
+        this.guardarBusqueda();
       },
       error: () => { this.errorResultados = 'No fue posible consultar las operaciones. Intenta de nuevo.'; }
     });
@@ -502,15 +503,6 @@ mostrarResultados = false;
       this.tiposOperacion =
       Array.isArray(response) ? response : (response?.catOperationTypes ?? []);
 
-    if (!this.tiposOperacion.some(tipo => String(tipo.idOperationType) === '10008')) {
-      this.tiposOperacion = [...this.tiposOperacion, {
-        idOperationType: 10008,
-        name: 'Liquidación Compras',
-        showPortal: 1,
-        descriptionApp: 'Liquidación total Day Settlement'
-      }];
-    }
-
       this.tipoOperacionOptions =
       this.tiposOperacion.map((tipo: any) => ({
 
@@ -520,14 +512,7 @@ mostrarResultados = false;
 
       }));
 
-      this.defaultTipoOperacion = [...new Set([
-        ...this.tipoOperacionOptions.slice(0, 3).map(tipo => tipo.value),
-        '10008'
-      ])];
 
-      this.formulario.patchValue({
-        tipoOperacion: this.defaultTipoOperacion
-      });
 
     },
 
@@ -544,18 +529,53 @@ mostrarResultados = false;
 }
 
   limpiarFormulario(): void {
-    this.operaciones = [];
-    this.filtrosConsulta = null;
-    this.consultaRealizada = false;
-    this.errorResultados = '';
-    this.totalRegistros = null;
-    this.paginaActual = 1;
-    this.haySiguiente = false;
-    this.formulario.reset();
-    this.fechaErrorMensaje = '';
-    this.seleccionarSubafiliadoSesion(this.cuentas);
+    if (this.buscando()) return;
+    const { fechaInicio, fechaFin } = this.filtrosConsulta || this.formulario.getRawValue();
+    this.defaultTipoOperacion = ['10007', '1', '10008'];
+    this.defaultEstatus = ['15', '31', '27'];
+    this.formulario.reset({ cuenta: '', entidad: '', sucursal: '', caja: '', clasificacion: '',
+      tipoOperacion: this.defaultTipoOperacion, estatus: this.defaultEstatus, fechaInicio, fechaFin
+    }, { emitEvent: false });
+    // Limpiar vuelve a la cuenta de sesión, sin depender de listas del padre anterior.
+    this.formulario.patchValue({ cuenta: obtenerNodoSesion() }, { emitEvent: false });
     this.aplicarBloqueosSesion();
-    this.cargarDependenciasSesion();
+    this.cargarSubafiliados();
+    this.onSubmit();
+  }
+
+  private guardarBusqueda(): void {
+    const f = this.filtrosConsulta;
+    if (!f) return;
+    const params = new URLSearchParams({
+      type: String(f.tipoOperacion), status: String(f.estatus), page: String(this.paginaActual),
+      dateInit: f.fechaInicio, dateFinish: f.fechaFin,
+      subafiliado: f.cuenta || '0', entidad: f.entidad || '0', sucursal: f.sucursal || '0', caja: f.caja || '0',
+      validate: f.idSirioConsulta || this.opeAdquiService.obtenerCuentaSesion(),
+      nodoSesion: obtenerNodoSesion()
+    });
+    window.history.replaceState(window.history.state, '', window.location.pathname + '?' + params.toString());
+  }
+
+  private restaurarBusqueda(): void {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('nodoSesion') && params.get('nodoSesion') !== obtenerNodoSesion()) return;
+    const tipo = (params.get('type') || '').split(',').filter(Boolean);
+    const estatus = (params.get('status') || '').split(',').filter(Boolean);
+    if (!tipo.length || !estatus.length) return;
+    this.defaultTipoOperacion = tipo;
+    this.defaultEstatus = estatus;
+    const nivel = (key: string) => params.get(key) === '0' ? '' : params.get(key) || '';
+    const filtros = {
+      cuenta: nivel('subafiliado'), entidad: nivel('entidad'),
+      sucursal: nivel('sucursal'), caja: nivel('caja'), tipoOperacion: tipo, estatus,
+      fechaInicio: params.get('dateInit') || '', fechaFin: params.get('dateFinish') || '',
+      idSirioConsulta: params.get('validate') || this.opeAdquiService.obtenerCuentaSesion()
+    };
+    this.formulario.patchValue(filtros, { emitEvent: false });
+    if (!filtros.idSirioConsulta || !this.formulario.valid || this.obtenerMensajeValidacionFechas()) return;
+    this.filtrosConsulta = filtros;
+    const pagina = Number(params.get('page'));
+    this.cambiarPagina(Number.isInteger(pagina) && pagina > 0 ? pagina : 1);
   }
 
   private obtenerMensajeValidacionFechas(): string {
@@ -566,28 +586,21 @@ mostrarResultados = false;
       return 'Selecciona fecha inicio y fecha fin para buscar.';
     }
 
-    if (fechaInicio?.hasError('fechaFutura') || fechaFin?.hasError('fechaFutura')) {
-      return 'No puedes seleccionar una fecha mayor a la fecha actual.';
-    }
-
-    const inicio = this.obtenerFechaFormulario(fechaInicio?.value);
-    const fin = this.obtenerFechaFormulario(fechaFin?.value);
-
-    if (inicio && fin && fin.getTime() < inicio.getTime()) {
-      return 'La fecha fin no puede ser anterior a la fecha inicio.';
+    if (fechaInicio?.hasError('fechaInvalida') || fechaFin?.hasError('fechaInvalida')) {
+      return 'Selecciona fechas válidas para buscar.';
     }
 
     return '';
   }
 
-  private fechaNoFuturaValidator(control: AbstractControl): ValidationErrors | null {
+  private fechaValidaValidator(control: AbstractControl): ValidationErrors | null {
     const value = String(control.value ?? '').trim();
     if (!value) return null;
 
     const fecha = new Date(value.replace(' ', 'T'));
-    if (Number.isNaN(fecha.getTime())) return null;
+    if (Number.isNaN(fecha.getTime())) return { fechaInvalida: true };
 
-    return fecha.getTime() > Date.now() ? { fechaFutura: true } : null;
+    return null;
   }
 
   private obtenerFechaFormulario(value: unknown): Date | null {
@@ -603,18 +616,20 @@ mostrarResultados = false;
     if (!nodeID) return;
     this.limpiarNiveles(4);
     this.cargarNivel(4, nodeID);
-    this.cargarNivel(5, nodeID);
-    this.cargarNivel(6, nodeID);
+    const valores = this.formulario.getRawValue();
+    this.cargarNivel(5, valores.entidad || nodeID);
+    this.cargarNivel(6, valores.sucursal || valores.entidad || nodeID);
   }
 
   private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
     const nodeIDSesion = obtenerNodoSesion();
     const propio = subafiliados.find(item => this.obtenerNodeId(item) === nodeIDSesion);
-    const seleccionado = propio || (subafiliados.length === 1 ? subafiliados[0] : null);
+    const actual = subafiliados.find(item => this.obtenerNodeId(item) === String(this.formulario.getRawValue().cuenta));
+    const seleccionado = actual || propio || (subafiliados.length === 1 ? subafiliados[0] : null);
     if (seleccionado) {
       this.formulario.patchValue({ cuenta: this.obtenerNodeId(seleccionado) }, { emitEvent: false });
     }
-    this.subafiliadoSesionBloqueado = Number(this.rolId) >= 3 || !!propio;
+    this.subafiliadoSesionBloqueado = this.rolId !== '2';
     this.aplicarBloqueosSesion();
   }
 
@@ -632,7 +647,7 @@ mostrarResultados = false;
     );
 
     if (existeEntidadSesion) {
-      this.formulario.patchValue({ entidad: nodeIDSesion });
+      this.formulario.patchValue({ entidad: nodeIDSesion }, { emitEvent: false });
       this.entidadSesionBloqueada = true;
     }
 
@@ -653,7 +668,7 @@ mostrarResultados = false;
     );
 
     if (existeSucursalSesion) {
-      this.formulario.patchValue({ sucursal: nodeIDSesion });
+      this.formulario.patchValue({ sucursal: nodeIDSesion }, { emitEvent: false });
       this.sucursalSesionBloqueada = true;
     }
 
@@ -674,7 +689,7 @@ mostrarResultados = false;
     );
 
     if (existeCajaSesion) {
-      this.formulario.patchValue({ caja: nodeIDSesion });
+      this.formulario.patchValue({ caja: nodeIDSesion }, { emitEvent: false });
       this.cajaSesionBloqueada = true;
     }
 
@@ -682,10 +697,10 @@ mostrarResultados = false;
   }
 
   private aplicarBloqueosSesion(): void {
-    this.actualizarEstadoControl('cuenta', this.subafiliadoSesionBloqueado || Number(this.rolId) > 3);
-    this.actualizarEstadoControl('entidad', this.entidadSesionBloqueada || Number(this.rolId) > 4);
-    this.actualizarEstadoControl('sucursal', this.sucursalSesionBloqueada || Number(this.rolId) > 5);
-    this.actualizarEstadoControl('caja', this.cajaSesionBloqueada);
+    this.actualizarEstadoControl('cuenta', this.rolId !== '2');
+    this.actualizarEstadoControl('entidad', !['2', '3'].includes(this.rolId));
+    this.actualizarEstadoControl('sucursal', !['2', '3', '4'].includes(this.rolId));
+    this.actualizarEstadoControl('caja', !['2', '3', '4', '5'].includes(this.rolId));
   }
 
   private actualizarEstadoControl(nombre: string, bloqueado: boolean): void {
@@ -713,28 +728,41 @@ mostrarResultados = false;
   }
 
   verTicket(operacion: any): void {
+    if (!accionOperacion(operacion.type)) return;
+    if (Number(operacion.type) === 10008) {
+      this.liquidacionSeleccionada = {
+        referencia: String(operacion.numericReference ?? ''),
+        filtros: {}
+      };
+      return;
+    }
     this.mostrarComprobanteOperacion(operacion);
   }
 
   private mostrarComprobanteOperacion(operacion: any): void {
     const fechaCompleta = this.obtenerPrimerValor(operacion.createdAt, operacion.posDate, operacion.timestamp);
-    const fecha = fechaCompleta ? new Date(fechaCompleta) : null;
+    const [fecha, hora] = fechaOperacion(fechaCompleta).split(' ');
     const monto = Number(operacion.amount || 0).toLocaleString('es-MX', {
       style: 'currency',
       currency: operacion.currency?.alphabeticCode || 'MXN'
     });
 
     this.comprobanteOperacion = {
+      tipo: Number(operacion.type),
+      titulo: accionOperacion(operacion.type)?.titulo,
+      estatus: nombreEstatusOperacion(operacion.status),
+      referenciaServicio: this.obtenerPrimerValor(operacion.observation),
+      referenciaInterna: this.obtenerPrimerValor(operacion.internalReference),
       id: operacion.id || '',
-      fecha: fecha ? fecha.toISOString().slice(0, 10) : '',
-      hora: fecha ? fecha.toTimeString().slice(0, 8) : '',
+      fecha: fecha || '',
+      hora: hora || '',
       monto,
       banco: this.obtenerBancoDestinatario(operacion),
       cuentaDestino: this.obtenerPrimerValor(operacion.targetID, operacion.accountNumber),
       destinatario: this.obtenerPrimerValor(operacion.targetName, operacion.originalUsername),
       referenciaNumerica: this.obtenerPrimerValor(operacion.numericReference),
       claveRastreo: this.obtenerPrimerValor(operacion.externalReference, operacion.internalReference),
-      concepto: this.obtenerConceptoPago(operacion),
+      concepto: [10, 11].includes(Number(operacion.type)) ? this.obtenerPrimerValor(operacion.description) : this.obtenerConceptoPago(operacion),
       usuarioOrigen: this.obtenerPrimerValor(operacion.originalUsername),
       emailOrigen: this.obtenerPrimerValor(operacion.originalEmail, operacion.observation),
       observacion: this.obtenerPrimerValor(operacion.observation, operacion.description),
@@ -799,25 +827,47 @@ mostrarResultados = false;
   }
 
   exportarExcel(): void {
-    if (!this.operaciones?.length) return;
+    if (!this.filtrosConsulta || this.exportando() || !this.operaciones.length) return;
+    this.exportando.set(true);
+    this.errorResultados = '';
+    this.opeAdquiService.obtenerTodasOperaciones(this.filtrosConsulta).pipe(
+      takeUntilDestroyed(this.destroyRef), finalize(() => this.exportando.set(false))
+    ).subscribe({
+      next: filas => this.generarExcel(filas),
+      error: () => { this.errorResultados = 'No fue posible exportar todos los resultados. Intenta de nuevo.'; }
+    });
+  }
 
+  private generarExcel(operaciones: any[]): void {
     const fecha = this.obtenerFechaArchivo();
-    const encabezados = this.columnasOperaciones.map(columna => columna.titulo);
-    const filas = this.operaciones.map(operacion =>
-      this.columnasOperaciones.map(columna => this.valorColumnaOperacion(operacion, columna))
-    );
-
-    const worksheet = XLSX.utils.aoa_to_sheet([
-      [`Operaciones-Adquirencia-${fecha}`],
-      encabezados,
-      ...filas
-    ]);
-    worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: encabezados.length - 1 } }];
+    // Mismas 19 columnas y orden que OperacionesAdqui::reporte().
+    const columnas = [
+      ['Id', 'id'], ['Tipo', 'descriptionType'], ['Venta neta', 'amount'],
+      ['Monto', 'processingCode'], ['Estatus', 'status'], ['Descripción', 'description'],
+      ['Fecha', 'createdAt'], ['Codigo de Respuesta', 'responseCode'],
+      ['Referencia numerica', 'numericReference'], ['Referencia Alfanumerica', 'alphanumericReference'],
+      ['Nombre del Destinatario', 'targetName'], ['Id Destinatario', 'targetID'],
+      ['targetIDCode', 'targetIDCode'], ['targetEmail', 'targetEmail'],
+      ['Referencia Interna', 'internalReference'], ['Referencia Externa', 'externalReference'],
+      ['TransactionBundler', 'transactionBundler'], ['Observación', 'observation'], ['Usuario', 'targetName']
+    ];
+    const encabezados = columnas.map(([titulo]) => titulo);
+    const filas = operaciones.map(operacion => columnas.map(([, campo]) => {
+      if (campo === 'status') return nombreEstatusOperacion(operacion[campo]);
+      if (campo === 'createdAt') return fechaOperacion(operacion[campo]);
+      if (campo === 'amount' || campo === 'processingCode') {
+        return '$ ' + Number(operacion[campo] || 0).toLocaleString('en-US', {
+          minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+      }
+      return operacion[campo] ?? '';
+    }));
+    const worksheet = XLSX.utils.aoa_to_sheet([encabezados, ...filas]);
     worksheet['!cols'] = encabezados.map((encabezado) => ({ wch: Math.max(14, Math.min(34, encabezado.length + 4)) }));
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Operaciones');
-    XLSX.writeFile(workbook, `Operaciones-Adquirencia-${fecha}.xlsx`);
+    XLSX.writeFile(workbook, `Operaciones-${fecha}.xls`, { bookType: 'biff8' });
   }
 
   private obtenerFechaArchivo(): string {
@@ -866,7 +916,7 @@ mostrarResultados = false;
 
   private obtenerConceptoPago(operacion: any): string {
     const descripcion = this.obtenerPrimerValor(operacion.description);
-    const partes = descripcion.split('|').filter(Boolean);
+    const partes = descripcion.split('|');
     return partes.length >= 3 ? partes[2] : descripcion;
   }
 

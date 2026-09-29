@@ -17,6 +17,7 @@
           <p>Define los criterios para consultar operaciones de adquirencia.</p>
         </div>
 
+    <p *ngFor="let aviso of mensajesNiveles" role="status" class="form-alert">{{ aviso }}</p>
     <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
 
       <div class="admin-form-grid operations-form-grid row">
@@ -173,9 +174,9 @@ Seleccione una caja
 
           <app-date-picker
   id="fechaInicio"
+  [defaultDate]="formulario.getRawValue().fechaInicio"
   label="Fecha Inicio*"
   placeholder="YYYY-MM-DD HH:mm"
-  maxDate="today"
   (dateChange)="onFechaInicioChange($event)">
 </app-date-picker>
 
@@ -187,10 +188,10 @@ Seleccione una caja
 
             <app-date-picker
   id="fechaFin"
+  [defaultDate]="formulario.getRawValue().fechaFin"
   label="Fecha Fin*"
   placeholder="YYYY-MM-DD HH:mm"
   position="above"
-  maxDate="today"
   (dateChange)="onFechaFinChange($event)">
 </app-date-picker>
 
@@ -246,9 +247,9 @@ Seleccione una caja
       <button
         type="button"
         class="button ghost btn-export"
-        (click)="exportarExcel()">
+        (click)="exportarExcel()" [disabled]="exportando() || buscando()">
 
-        Exportar Excel
+        {{ exportando() ? 'Exportando...' : 'Exportar Excel' }}
 
       </button>
     </div>
@@ -262,7 +263,7 @@ Seleccione una caja
     class="empty-message"
     *ngIf="!operaciones || operaciones.length === 0">
 
-    <h3>No se encontraron datos.</h3>
+    <h3>{{ consultaRealizada ? 'No se encontraron datos.' : 'Selecciona los filtros y presiona Buscar.' }}</h3>
 
   </div>
 
@@ -283,8 +284,8 @@ Seleccione una caja
         <tbody>
           <tr *ngFor="let operacion of operaciones">
             <td *ngFor="let columna of columnasOperaciones">{{ valorColumnaOperacion(operacion, columna) }}</td>
-            <td><button class="icon-btn btn-detail" type="button" (click)="verTicket(operacion)" title="Ver ticket" aria-label="Ver detalle">
-                  <i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i>
+            <td><button *ngIf="accionOperacion(operacion.type) as accion" class="icon-btn btn-detail" type="button" (click)="verTicket(operacion)" [title]="accion.titulo" [attr.aria-label]="accion.titulo">
+                  <i [class]="accion.icono" aria-hidden="true"></i>
                 </button></td>
           </tr>
           <tr *ngIf="operaciones.length === 0">
@@ -316,7 +317,7 @@ Seleccione una caja
 
 </article>
 
-<div class="voucher-backdrop" *ngIf="comprobanteOperacion">
+<div class="voucher-backdrop" *ngIf="comprobanteOperacion" (keydown.escape)="cerrarComprobante()">
   <section class="voucher-modal" role="dialog" aria-modal="true" aria-label="Comprobante de operación">
     <button class="voucher-close" type="button" (click)="cerrarComprobante()" title="Cerrar">
       <i class="fa-solid fa-xmark"></i>
@@ -327,15 +328,18 @@ Seleccione una caja
         <span>KASHPAY</span>
       </header>
 
+      <h3>{{ comprobanteOperacion.titulo }}</h3>
       <div class="voucher-datetime">
         <p><strong>Fecha:</strong> {{ comprobanteOperacion.fecha }}</p>
         <p><strong>Hora:</strong> {{ comprobanteOperacion.hora }}</p>
       </div>
 
+      <ng-container *ngIf="comprobanteOperacion.tipo === 1 || comprobanteOperacion.tipo === 4">
       <p class="voucher-message">
         Su transferencia ha sido aplicada con número de autorización #{{ comprobanteOperacion.id }}
       </p>
 
+      <h4>{{ comprobanteOperacion.usuarioOrigen }}</h4>
       <div class="voucher-section">
         <div class="voucher-section-title">Cuentas</div>
         <div class="voucher-section-body">
@@ -374,6 +378,19 @@ Seleccione una caja
           <strong>NA</strong>
         </div>
       </div>
+      </ng-container>
+      <ng-container *ngIf="comprobanteOperacion.tipo === 10 || comprobanteOperacion.tipo === 11">
+        <p class="voucher-message">{{ comprobanteOperacion.tipo === 10 ? 'Su recarga ha sido aplicada' : 'Su pago de servicio ha sido aplicado' }} con número de autorización #{{ comprobanteOperacion.id }}</p>
+        <div class="voucher-section">
+          <div class="voucher-section-title">{{ comprobanteOperacion.titulo }}</div>
+          <div class="voucher-grid">
+            <span>Monto</span><strong>{{ comprobanteOperacion.monto }} {{ comprobanteOperacion.moneda }}</strong>
+            <span>Concepto</span><strong>{{ comprobanteOperacion.concepto || 'NA' }}</strong>
+            <span>Referencia</span><strong>{{ comprobanteOperacion.referenciaServicio || 'NA' }}</strong>
+            <span>Estatus</span><strong>{{ comprobanteOperacion.estatus }}</strong>
+          </div>
+        </div>
+      </ng-container>
     </div>
 
     <footer class="voucher-actions">
@@ -390,4 +407,9 @@ Seleccione una caja
     texto="Cargando información..."
     descripcion="Estamos consultando las operaciones. Espera un momento."
   />
+}
+
+@if (liquidacionSeleccionada; as liquidacion) {
+  <app-detalle-operacion [modal]="true" [referencia]="liquidacion.referencia" [filtros]="liquidacion.filtros"
+    (cerrar)="liquidacionSeleccionada = null" />
 }

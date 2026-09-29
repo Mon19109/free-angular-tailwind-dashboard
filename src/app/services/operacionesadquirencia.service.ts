@@ -1,7 +1,8 @@
 import { obtenerNodoSesion } from '../shared/utils/nodo-sesion';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, EMPTY, expand, reduce, throwError } from 'rxjs';
+import { leerPaginaOperaciones } from '../shared/utils/pagina-operaciones';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 //import { AuthService, UserSessionData } from '../services/auth.service';
@@ -55,7 +56,7 @@ export interface Status {
   codigo: string;
 }
 export interface FormularioData {
-  cuentaConsulta?: string;
+  idSirioConsulta?: string;
   cuenta?: string;
   entidad?: string;
   sucursal?: string;
@@ -95,6 +96,15 @@ export interface TicketResponse {
   data?: {
     url?: string;
   };
+}
+
+/** El árbol nuevo entrega idSirio; el PHP recibía la cuenta en account. */
+export function cuentaAdquirencia(nodo: any): string {
+  for (const valor of [nodo?.idSirio, nodo?.account, nodo?.acquiringId]) {
+    const cuenta = String(valor ?? '').trim();
+    if (cuenta && cuenta !== '0') return cuenta;
+  }
+  return '';
 }
 
 @Injectable({
@@ -182,7 +192,7 @@ export class OperacionesAdquirenciaService {
   return this.http.get<any>(
     `${this.apiV1Url}catOperationType/getAll`,
     {
-      headers: this.getBearerHeaders()
+      headers: this.getBearerHeaders().set('versionApp', '3')
     }
   );
 
@@ -275,11 +285,21 @@ getCajas(idTerminal:number) {
    * Envía los datos del formulario al API
    * @param formData Datos del formulario
    */
+  obtenerCuentaSesion(): string {
+    try {
+      const session = JSON.parse(localStorage.getItem('auth_session') || 'null');
+      if (session) return cuentaAdquirencia({ acquiringId: session.acquiringId });
+    } catch {
+      // Sesiones anteriores a auth_session.
+    }
+    return cuentaAdquirencia({ acquiringId: localStorage.getItem('acquiringId') });
+  }
+
   enviarFormulario(formData: FormularioData, page = 0): Observable<any> {
-    const validate = formData.cuentaConsulta || localStorage.getItem('acquiringId')
-      || localStorage.getItem('validate')
-      || localStorage.getItem('issueId')
-      || '';
+    const validate = formData.idSirioConsulta || this.obtenerCuentaSesion();
+    if (!validate || validate === '0') {
+      return throwError(() => new Error('No hay una cuenta de adquirencia válida.'));
+    }
 
     let params = new HttpParams()
       .set('type', this.emptyParam(formData.tipoOperacion))
@@ -295,6 +315,23 @@ getCajas(idTerminal:number) {
         headers: this.getCommonHeaders(),
         params
       }
+    );
+  }
+
+  obtenerTodasOperaciones(filtros: FormularioData): Observable<any[]> {
+    const cargar = (pagina: number) => this.enviarFormulario(filtros, pagina - 1).pipe(
+      map(response => {
+        const body = response?.response ?? response?.rows ?? response;
+        const filas = Array.isArray(body) ? body : body?.operations ?? body?.content;
+        if (response?.success === false || (!Array.isArray(filas) && !(filas === 0 && Number(body?.totalElements ?? body?.totalItems) === 0))) {
+          throw new Error('Respuesta inválida al exportar operaciones');
+        }
+        return { pagina, ...leerPaginaOperaciones(response, pagina) };
+      })
+    );
+    return cargar(1).pipe(
+      expand(resultado => resultado.siguiente ? cargar(resultado.pagina + 1) : EMPTY, 1),
+      reduce((filas: any[], resultado) => { filas.push(...resultado.operaciones); return filas; }, [])
     );
   }
 

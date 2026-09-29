@@ -1,5 +1,5 @@
 
-import { Component, Input, Output, EventEmitter, ElementRef, ViewChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, SimpleChanges } from '@angular/core';
 import flatpickr from 'flatpickr';
 import { LabelComponent } from '../label/label.component';
 
@@ -53,6 +53,12 @@ export class DatePickerComponent {
     }
   });
 }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['defaultDate'] && this.flatpickrInstance) {
+      this.flatpickrInstance.setDate(this.defaultDate || [], false);
+    }
+  }
 
   ngOnDestroy() {
     if (this.flatpickrInstance) {
