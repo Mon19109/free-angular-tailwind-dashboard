@@ -70,7 +70,7 @@ export function prospectoTokenMatcher(segments: UrlSegment[]): UrlMatchResult | 
 }
 
 export function miAngularProspectoMatcher(segments: UrlSegment[]): UrlMatchResult | null {
-  if (segments.length !== 2 || segments[0].path !== 'mi-angular') return null;
+  if (segments.length !== 2 || segments[0].path !== 'seguimiento') return null;
   const token = segments[1].path;
   if (token.length < 80 || !/^[A-Za-z0-9_-]+$/.test(token)) return null;
   return {
@@ -114,12 +114,12 @@ export const routes: Routes = [
     title: 'Registro de prospecto | KASHPAY'
   },
   {
-    path: 'mi-angular',
+    path: 'seguimiento',
     redirectTo: '',
     pathMatch: 'full'
   },
   {
-    path: 'mi-angular/:invalidLink',
+    path: 'seguimiento/:invalidLink',
     redirectTo: '',
     pathMatch: 'full'
   },
