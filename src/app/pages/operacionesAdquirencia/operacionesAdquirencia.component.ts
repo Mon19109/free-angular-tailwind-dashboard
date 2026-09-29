@@ -171,6 +171,21 @@ clasificaciones:any[] = [
   { id: '460', name: 'Cuota de Servicio Mensual' }
 ];
 rolId = '2';
+
+// Filtros visibles según el rol de la sesión (2 = admin ve todo, 6 = solo caja).
+private readonly filtrosPorRol: Record<string, string[]> = {
+  '2': ['cuenta', 'entidad', 'sucursal', 'caja'],
+  '3': ['cuenta', 'entidad', 'caja'],
+  '4': ['entidad', 'sucursal', 'caja'],
+  '5': ['sucursal', 'caja'],
+  '6': ['caja']
+};
+
+mostrarFiltro(filtro: string): boolean {
+  const visibles = this.filtrosPorRol[this.rolId];
+  return visibles ? visibles.includes(filtro) : true;
+}
+
 subafiliadoSesionBloqueado = false;
 entidadSesionBloqueada = false;
 sucursalSesionBloqueada = false;

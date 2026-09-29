@@ -146,7 +146,7 @@ onFechaFinChange(event: any) {
     // Cargar cuentas
    this.operaEmiService.obtenerCuentas().subscribe({
   next: (data) => {
-    this.entidades = data.filter((entidad: any) => entidad.active === true);
+    this.entidades = data.filter((entidad: any) => entidad.active === true && Number(entidad.type) === 4);
   }
 });
 

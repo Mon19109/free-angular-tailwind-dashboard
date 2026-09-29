@@ -21,7 +21,7 @@
 
       <div class="admin-form-grid operations-form-grid row">
 
-        <div class="operation-field col-md-6">
+        <div class="operation-field col-md-6" *ngIf="mostrarFiltro('cuenta')">
           <div class="form-group">
             <label class="form-label">SubAfiliado*</label>
 
@@ -43,7 +43,7 @@
           </div>
         </div>
 
-        <div class="operation-field col-md-6">
+        <div class="operation-field col-md-6" *ngIf="mostrarFiltro('entidad')">
           <div class="form-group">
             <label class="form-label">Entidad*</label>
 
@@ -67,7 +67,7 @@ Seleccione una entidad
           </div>
         </div>
 
-        <div class="operation-field col-md-6">
+        <div class="operation-field col-md-6" *ngIf="mostrarFiltro('sucursal')">
           <div class="form-group">
             <label class="form-label">Sucursal</label>
 
@@ -91,7 +91,7 @@ Seleccione una sucursal
           </div>
         </div>
 
-        <div class="operation-field col-md-6">
+        <div class="operation-field col-md-6" *ngIf="mostrarFiltro('caja')">
           <div class="form-group">
             <label class="form-label">Caja</label>
 <select
