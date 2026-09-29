@@ -166,8 +166,12 @@ export class PagarLinkPagoComponent implements OnInit {
     this.cargandoTarjetas = true;
     this.pagarLinkPagoService.obtenerCliente(identificador).subscribe({
       next: response => {
-        const cliente = response?.rows ?? response?.data ?? response;
-        this.merchantId = String(cliente?.merchanID ?? cliente?.merchantID ?? cliente?.merchantId ?? identificador);
+        this.merchantId = this.obtenerMerchantId(response);
+        if (!this.merchantId) {
+          this.cargandoTarjetas = false;
+          this.mensajeTarjetas = 'No fue posible obtener el merchanID del cliente.';
+          return;
+        }
         this.pagarLinkPagoService.obtenerTarjetas(this.merchantId).subscribe({
           next: resultado => {
             const datos = resultado?.rows ?? resultado?.data ?? resultado;
@@ -185,6 +189,26 @@ export class PagarLinkPagoComponent implements OnInit {
       },
       error: () => { this.cargandoTarjetas = false; this.mensajeTarjetas = 'No fue posible consultar el cliente.'; }
     });
+  }
+
+  private obtenerMerchantId(respuesta: any): string {
+    if (Array.isArray(respuesta)) {
+      for (const item of respuesta) {
+        const id = this.obtenerMerchantId(item);
+        if (id) return id;
+      }
+      return '';
+    }
+    if (!respuesta || typeof respuesta !== 'object') return '';
+
+    const id = respuesta.merchanID ?? respuesta.merchantID ?? respuesta.merchantId;
+    if (id != null && String(id).trim()) return String(id).trim();
+
+    for (const llave of ['rows', 'data', 'customer', 'customerResponse', 'contextResponse']) {
+      const valor = this.obtenerMerchantId(respuesta[llave]);
+      if (valor) return valor;
+    }
+    return '';
   }
 
   get permitePropina(): boolean {
