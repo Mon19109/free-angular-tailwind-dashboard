@@ -260,7 +260,7 @@
               [bearerToken]="prospectoBearerToken"
               textoContinuar="Guardar y continuar"
               (continuar)="continuarLiquidacion()" />
-            @if (liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos' || liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos-en-red') {
+            @if (liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos' || liquidacionForm.controls.cuentaFueraRed.value === 'en-red' || liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos-en-red') {
             <section class="liquidation-documents-panel" aria-label="Documentos de liquidación">
               <div class="liquidation-documents-heading">
                 <span class="liquidation-documents-icon"><i class="fa-solid fa-file-shield"></i></span>

@@ -311,6 +311,13 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
   continuarLiquidacion(): void {
     this.mensaje = '';
+    this.liquidacionForm.markAllAsTouched();
+    if (!this.liquidacionForm.valid) {
+      this.error = 'Completa los campos obligatorios (*) de liquidación y corrige los datos inválidos antes de continuar.';
+      this.pasoActivo = 'liquidacion';
+      return;
+    }
+    this.error = '';
     this.pasoActivo = 'accesos';
     this.asegurarUsuarioActivo();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -674,7 +681,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   private actualizarEstadoLiquidacion(): void {
-    const requiereDatos = ['otros-bancos', 'otros-bancos-en-red', 'si'].includes(this.liquidacionForm.controls.cuentaFueraRed.value);
+    const requiereDatos = ['otros-bancos', 'en-red', 'otros-bancos-en-red', 'si'].includes(this.liquidacionForm.controls.cuentaFueraRed.value);
     const controles = [
       this.liquidacionForm.controls.tipoPersonaBeneficiario,
       this.liquidacionForm.controls.nombreBeneficiario,
@@ -704,6 +711,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     }
 
     controles.forEach(control => control.enable({ emitEvent: false }));
+    this.liquidacionForm.controls.tipoPersonaBeneficiario.setValidators([Validators.required]);
     this.liquidacionForm.controls.nombreBeneficiario.setValidators([Validators.required]);
     this.liquidacionForm.controls.correoBeneficiario.setValidators([Validators.required, Validators.email]);
     this.liquidacionForm.controls.direccionBeneficiario.setValidators([Validators.required]);
@@ -716,6 +724,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     this.liquidacionForm.controls.emailBanco.setValidators([Validators.required, Validators.email]);
     this.actualizarValidadoresBeneficiario(this.liquidacionForm.controls.tipoPersonaBeneficiario.value as TipoPersonaBeneficiario);
     controles.forEach(control => control.updateValueAndValidity({ emitEvent: false }));
+    this.actualizarValidadorCuentaLiquidacion();
     this.actualizarValidadoresAccesos();
   }
 

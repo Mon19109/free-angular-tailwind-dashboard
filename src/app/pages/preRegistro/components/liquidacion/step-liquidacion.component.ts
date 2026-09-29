@@ -80,7 +80,7 @@ export class StepLiquidacionComponent implements OnInit {
 
   get requiereDatosLiquidacion(): boolean {
     const valor = this.form.get('cuentaFueraRed')?.value;
-    return valor === 'otros-bancos' || valor === 'otros-bancos-en-red' || valor === 'si';
+    return valor === 'otros-bancos' || valor === 'en-red' || valor === 'otros-bancos-en-red' || valor === 'si';
   }
 
   get tipoCuenta(): string {

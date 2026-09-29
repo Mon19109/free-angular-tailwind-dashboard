@@ -758,7 +758,7 @@
   padding-top: 20px;
 }
 
-.prospect-liquidacion-body ::ng-deep app-step-liquidacion .step-actions {
+.prospect-liquidacion-body ::ng-deep app-step-liquidacion > .step-form > .step-actions {
   display: none;
 }
 
