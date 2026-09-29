@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TransaccionesAdquirenciaService, FiltrosTransaccion, Transaccion, TicketResponse } from '../../services/transaccionesadquirencia.service';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -16,7 +17,7 @@ declare var moment: any;
 @Component({
   selector: 'app-transacciones',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePickerComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DatePickerComponent, ProcessingOverlayComponent],
   templateUrl: './transaccionesAdquirencia.component.html',
   styleUrls: ['./transaccionesAdquirencia.component.css']
 })

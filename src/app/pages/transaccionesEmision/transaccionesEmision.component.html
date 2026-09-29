@@ -112,7 +112,7 @@
               <i class="fa-solid fa-magnifying-glass"></i>
               Buscar
             </button>
-   <div class="export-wrapper">
+   <div class="export-wrapper" *ngIf="operaciones.length > 0">
         <button class="btn btn-primary export-button" type="button" (click)="exportMenuAbierto = !exportMenuAbierto">
           <i class="fa-solid fa-download"></i>
           Exportar
@@ -216,3 +216,10 @@
     </div>
   </article>
 </div>
+
+@if (loading) {
+  <app-processing-overlay
+    texto="Cargando información..."
+    descripcion="Estamos consultando las transacciones. Espera un momento."
+  />
+}

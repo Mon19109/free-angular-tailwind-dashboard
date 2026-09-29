@@ -3,6 +3,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 import { FormularioData, TransaccionesEmisionService } from '../../services/transaccionesemision.service';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,7 +11,7 @@ import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-operacionesEmi',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePickerComponent],
+  imports: [CommonModule, FormsModule, DatePickerComponent, ProcessingOverlayComponent],
   templateUrl: './transaccionesEmision.component.html',
   styleUrls: ['./transaccionesEmision.component.css']
 })
