@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { PagarLinkPagoService } from '../../services/pagarlinkpago.service';
 import { PaymentHeaderComponent } from '../../shared/layout/payment-header/payment-header.component';
 
@@ -53,9 +54,11 @@ export class PagarLinkPagoComponent implements OnInit {
   tarjetasGuardadas: Array<{ token: string; etiqueta: string }> = [];
   tarjetaSeleccionada = 'nueva';
   cargandoTarjetas = false;
+  cargandoDetalleTarjeta = false;
   mensajeTarjetas = '';
   private merchantId = '';
   private detalleTarjeta: any = null;
+  private detalleTarjetaSubscription?: Subscription;
   private ultimoBinValidado = '';
   private temporizadorMonto?: ReturnType<typeof setTimeout>;
 
@@ -131,8 +134,10 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   seleccionarTarjeta(event: Event): void {
+    this.detalleTarjetaSubscription?.unsubscribe();
     this.tarjetaSeleccionada = (event.target as HTMLSelectElement).value;
     this.detalleTarjeta = null;
+    this.cargandoDetalleTarjeta = false;
     this.mensajeTarjetas = '';
     this.mostrarOpcionesPago = false;
     this.mostrarResumen = false;
@@ -142,20 +147,47 @@ export class PagarLinkPagoComponent implements OnInit {
       if (this.usaTarjetaGuardada) control.disable({ emitEvent: false });
       else control.enable({ emitEvent: false });
     }
+    this.formulario.patchValue({
+      nameCard: '', numCard: '', vencimiento: '', pais: 'Mexico', cp: '',
+      address: '', ciudad: '', estado: ''
+    }, { emitEvent: false });
     this.formulario.controls.ccv.reset('');
     this.msiDisponibles = [];
     this.ultimoBinValidado = '';
     if (this.usaTarjetaGuardada) {
-      this.pagarLinkPagoService.obtenerDetalleTarjeta(this.merchantId, this.tarjetaSeleccionada).subscribe({
+      this.cargandoDetalleTarjeta = true;
+      this.detalleTarjetaSubscription = this.pagarLinkPagoService.obtenerDetalleTarjeta(this.merchantId, this.tarjetaSeleccionada).subscribe({
         next: response => {
-          const detalle = response?.rows ?? response?.data ?? response;
+          const datos = response?.rows ?? response?.data ?? response;
+          const detalle = Array.isArray(datos) ? datos[0] : datos;
           this.detalleTarjeta = detalle;
+          const instrumento = detalle?.paymentInstrument;
+          const tarjeta = detalle?.paymentInformation?.card ?? detalle?.enrollmentRequest?.paymentInformation?.card ?? detalle?.card ?? {};
+          const facturacion = detalle?.orderInformation?.billTo ?? detalle?.enrollmentRequest?.orderInformation?.billTo ?? detalle?.billTo ?? {};
+          const nombre = instrumento?.name ?? tarjeta?.name ?? tarjeta?.cardholderName
+            ?? [facturacion?.firstName, facturacion?.lastName].filter(Boolean).join(' ');
+          const mes = String(tarjeta?.expirationMonth ?? '').padStart(2, '0');
+          const anio = String(tarjeta?.expirationYear ?? '');
+          const [mesInstrumento, anioInstrumento] = String(instrumento?.expirationDate ?? '').split('-');
+          this.formulario.patchValue({
+            nameCard: String(nombre || ''),
+            numCard: this.formatearTarjetaGuardada(instrumento?.card ?? tarjeta?.number ?? detalle?.maskedPan
+              ?? this.tarjetasGuardadas.find(item => item.token === this.tarjetaSeleccionada)?.etiqueta ?? ''),
+            vencimiento: mesInstrumento && anioInstrumento ? `${mesInstrumento}/${anioInstrumento}`
+              : mes !== '00' && anio ? `${mes}/${anio.slice(-2)}` : '',
+            address: String(instrumento?.address ?? facturacion?.address1 ?? facturacion?.address ?? ''),
+            ciudad: String(instrumento?.city ?? facturacion?.locality ?? facturacion?.city ?? ''),
+            cp: String(instrumento?.postalCode ?? facturacion?.postalCode ?? ''),
+            estado: String(instrumento?.locality ?? facturacion?.administrativeArea ?? facturacion?.state ?? ''),
+            pais: String(instrumento?.country ?? facturacion?.country ?? 'Mexico')
+          }, { emitEvent: false });
           this.actualizarValidacionCvv();
-          const numero = detalle?.paymentInformation?.card?.number ?? detalle?.card?.number ?? detalle?.maskedPan;
-          const tarjeta = this.tarjetasGuardadas.find(item => item.token === this.tarjetaSeleccionada);
-          if (tarjeta && numero) tarjeta.etiqueta = `Tarjeta **** ${String(numero).slice(-4)}`;
+          this.cargandoDetalleTarjeta = false;
         },
-        error: () => { this.mensajeTarjetas = 'No fue posible consultar el detalle de la tarjeta.'; }
+        error: () => {
+          this.cargandoDetalleTarjeta = false;
+          this.mensajeTarjetas = 'No fue posible consultar el detalle de la tarjeta.';
+        }
       });
     }
   }
@@ -178,9 +210,7 @@ export class PagarLinkPagoComponent implements OnInit {
             const lista = Array.isArray(datos) ? datos : datos?.tokens ?? datos?.cards ?? [];
             this.tarjetasGuardadas = lista.map((item: any) => ({
               token: String(item?.cardToken ?? item?.token ?? ''),
-              etiqueta: item?.maskedPan || item?.maskedNumber || item?.lastFour || item?.last4
-                ? `Tarjeta **** ${String(item?.maskedPan ?? item?.maskedNumber ?? item?.lastFour ?? item?.last4).slice(-4)}`
-                : 'Tarjeta guardada'
+              etiqueta: this.obtenerNumeroTarjeta(item)
             })).filter((item: { token: string }) => item.token);
             this.cargandoTarjetas = false;
           },
@@ -189,6 +219,24 @@ export class PagarLinkPagoComponent implements OnInit {
       },
       error: () => { this.cargandoTarjetas = false; this.mensajeTarjetas = 'No fue posible consultar el cliente.'; }
     });
+  }
+
+  private obtenerNumeroTarjeta(item: any): string {
+    const card = item?.card;
+    if (typeof card === 'string' && card.trim()) return card.trim();
+
+    const numero = card?.number ?? card?.maskedPan ?? item?.maskedPan ?? item?.maskedNumber
+      ?? item?.paymentInformation?.card?.number ?? item?.cardNumber ?? item?.number;
+    if (numero != null && String(numero).trim()) return String(numero).trim();
+
+    const ultimosDigitos = item?.lastFour ?? item?.last4;
+    return ultimosDigitos != null && String(ultimosDigitos).trim()
+      ? `**** ${String(ultimosDigitos).trim()}`
+      : 'Número no disponible';
+  }
+
+  private formatearTarjetaGuardada(numero: unknown): string {
+    return String(numero ?? '').replace(/[\s-]/g, '').replace(/(.{4})(?=.)/g, '$1-');
   }
 
   private obtenerMerchantId(respuesta: any): string {
@@ -239,14 +287,16 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   get tarjetaOculta(): string {
-    if (this.usaTarjetaGuardada) return this.tarjetasGuardadas.find(item => item.token === this.tarjetaSeleccionada)?.etiqueta ?? 'Tarjeta guardada';
+    if (this.usaTarjetaGuardada) return this.tarjetasGuardadas.find(item => item.token === this.tarjetaSeleccionada)?.etiqueta ?? 'Número no disponible';
     const numero = (this.formulario.controls.numCard.value || '').replace(/\s/g, '');
     return numero ? `**** **** **** ${numero.slice(-4)}` : 'ND';
   }
 
   get longitudCvv(): number {
     if (this.usaTarjetaGuardada) {
-      const marca = String(this.detalleTarjeta?.card?.brand ?? this.detalleTarjeta?.brand ?? '').toLowerCase();
+      const marca = String(this.detalleTarjeta?.paymentInstrument?.brand
+        ?? this.detalleTarjeta?.paymentInformation?.card?.brand
+        ?? this.detalleTarjeta?.card?.brand ?? this.detalleTarjeta?.brand ?? '').toLowerCase();
       return marca.includes('amex') || marca.includes('american express') ? 4 : 3;
     }
     const numeroTarjeta = String(this.formulario.controls.numCard.value || '').replace(/\D/g, '');
@@ -268,6 +318,10 @@ export class PagarLinkPagoComponent implements OnInit {
 
   continuar(): void {
     if (!this.mostrarOpcionesPago) {
+      if (this.usaTarjetaGuardada && !this.detalleTarjeta) {
+        this.mensajeTarjetas = 'Espera a que se carguen los datos de la tarjeta.';
+        return;
+      }
       const camposTarjeta = this.usaTarjetaGuardada ? [this.formulario.controls.ccv] : [
         this.formulario.controls.nameCard,
         this.formulario.controls.numCard,
@@ -299,14 +353,16 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   procesarPago(): void {
-    if (this.formulario.invalid || this.enviandoPago) return;
+    if (this.formulario.invalid || this.enviandoPago || (this.usaTarjetaGuardada && !this.detalleTarjeta)) return;
 
     const vencimiento = String(this.formulario.controls.vencimiento.value || '').split('/');
+    const instrumento = this.detalleTarjeta?.paymentInstrument;
     const tarjetaDetalle = this.detalleTarjeta?.paymentInformation?.card ?? this.detalleTarjeta?.card ?? {};
+    const [mesInstrumento, anioInstrumento] = String(instrumento?.expirationDate ?? '').split('-');
     const expirationMonth = this.usaTarjetaGuardada
-      ? String(tarjetaDetalle.expirationMonth ?? '') : (vencimiento[0] || '').trim();
+      ? String(mesInstrumento || tarjetaDetalle.expirationMonth || '') : (vencimiento[0] || '').trim();
     const expirationYear = this.usaTarjetaGuardada
-      ? String(tarjetaDetalle.expirationYear ?? '') : (vencimiento[1] || '').trim();
+      ? String(anioInstrumento || tarjetaDetalle.expirationYear || '') : (vencimiento[1] || '').trim();
     const cliente = this.orden?.customerInfo || {};
     const payInfo = this.orden?.payInfo || {};
     const numeroTarjeta = String(this.formulario.controls.numCard.value || '').replace(/\D/g, '');
@@ -347,7 +403,7 @@ export class PagarLinkPagoComponent implements OnInit {
         cardNumber: this.usaTarjetaGuardada ? '' : numeroTarjeta,
         ...(this.usaTarjetaGuardada ? { cardToken: this.tarjetaSeleccionada } : {}),
         cvv: this.formulario.controls.ccv.value || '',
-        cardholderName: this.usaTarjetaGuardada ? String(tarjetaDetalle.name ?? tarjetaDetalle.cardholderName ?? '') : this.formulario.controls.nameCard.value || '',
+        cardholderName: this.formulario.controls.nameCard.value || '',
         expirationYear,
         expirationMonth
       },
