@@ -24,3 +24,8 @@ export function nodosDelNivel(response: unknown, nivel: number): any[] {
   visitar(response);
   return resultado;
 }
+
+/** Adquirencia exige levelType explícito para no mezclar niveles del árbol. */
+export function nodosDelNivelEstricto(response: unknown, nivel: number): any[] {
+  return nodosDelNivel(response, nivel).filter(nodo => Number(nodo.levelType) === nivel);
+}

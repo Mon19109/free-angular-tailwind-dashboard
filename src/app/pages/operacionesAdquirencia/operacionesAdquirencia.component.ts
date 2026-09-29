@@ -2,7 +2,7 @@ import { accionOperacion } from '../../shared/utils/acciones-operaciones';
 import { nombreEstatusOperacion } from '../../shared/utils/estatus-operaciones';
 import { fechaOperacion } from '../../shared/utils/operaciones-tabla';
 import { DetalleOperacionComponent } from '../detalleOperacion/detalle-operacion.component';
-import { nodosDelNivel } from '../../shared/utils/niveles-operaciones';
+import { nodosDelNivelEstricto as nodosDelNivel } from '../../shared/utils/niveles-operaciones';
 import { leerPaginaOperaciones } from '../../shared/utils/pagina-operaciones';
 import { obtenerNodoSesion } from '../../shared/utils/nodo-sesion';
 import { nombreBancoPorCodigo } from '../../shared/utils/bancos';
@@ -362,17 +362,22 @@ estatus: [this.defaultEstatus, Validators.required],
     this.formulario.get('cuenta')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ entidad: '', sucursal: '', caja: '' }, { emitEvent: false });
       this.limpiarNiveles(4);
-      this.cargarNivel(4, String(valor || ''));
+      const nodeID = String(valor || obtenerNodoSesion());
+      this.cargarNivel(4, nodeID);
+      this.cargarNivel(5, nodeID);
+      this.cargarNivel(6, nodeID);
     });
     this.formulario.get('entidad')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ sucursal: '', caja: '' }, { emitEvent: false });
       this.limpiarNiveles(5);
-      this.cargarNivel(5, String(valor || ''));
+      const nodeID = String(valor || this.nodoBaseFiltros());
+      this.cargarNivel(5, nodeID);
+      this.cargarNivel(6, nodeID);
     });
     this.formulario.get('sucursal')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ caja: '' }, { emitEvent: false });
       this.limpiarNiveles(6);
-      this.cargarNivel(6, String(valor || ''));
+      this.cargarNivel(6, String(valor || this.formulario.getRawValue().entidad || this.nodoBaseFiltros()));
     });
     this.cargarSubafiliados();
 
@@ -443,8 +448,8 @@ mostrarResultados = false;
       return;
     }
     const formValues = this.formulario.getRawValue();
+      // Este endpoint consulta la entidad; los descendientes no sustituyen su cuenta.
       const niveles: Array<[string, any[]]> = [
-        ['caja', this.cajas], ['sucursal', this.sucursales],
         ['entidad', this.entidades], ['cuenta', this.cuentas]
       ];
       for (const [campo, lista] of niveles) {

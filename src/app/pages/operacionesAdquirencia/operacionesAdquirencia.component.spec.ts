@@ -20,10 +20,10 @@ describe('Niveles de Operaciones adquirencia', () => {
       'obtenerTiposOperacion', 'obtenerStatus', 'enviarFormulario', 'obtenerCuentaSesion'
     ]);
     service.obtenerCuentaSesion.and.returnValue('SESION-83');
-    service.getSubafiliadoById.and.returnValue(of([{ idNode: 83, name: 'Subafiliado' }]));
-    service.getEntidades.and.returnValue(of([{ idNode: 84 }]));
-    service.getSucursales.and.returnValue(of([{ idNode: 85 }]));
-    service.getCajas.and.returnValue(of([{ idNode: 86 }]));
+    service.getSubafiliadoById.and.returnValue(of([{ idNode: 83, levelType: 3, name: 'Subafiliado' }]));
+    service.getEntidades.and.returnValue(of([{ idNode: 84, levelType: 4 }]));
+    service.getSucursales.and.returnValue(of([{ idNode: 85, levelType: 5 }]));
+    service.getCajas.and.returnValue(of([{ idNode: 86, levelType: 6 }]));
     service.obtenerTiposOperacion.and.returnValue(of({ catOperationTypes: [] }));
     service.obtenerStatus.and.returnValue(of([]));
     service.enviarFormulario.and.returnValue(of({ operations: [{ id: 1 }], totalItems: 21 }));
@@ -49,41 +49,67 @@ describe('Niveles de Operaciones adquirencia', () => {
     expect(component.cajas.length).toBe(1);
   });
 
-  it('carga el siguiente nivel y limpia descendientes al cambiar el padre, como operaciones2.js', () => {
-    service.getCajas.calls.reset();
+  it('carga sucursales y cajas de la entidad, y restaura el alcance del padre al deseleccionar', () => {
     component.formulario.patchValue({ entidad: '84' });
-    expect(service.getSucursales).toHaveBeenCalledWith('84');
-    expect(service.getCajas).not.toHaveBeenCalled();
-    expect(component.cajas).toEqual([]);
+    expect(service.getSucursales.calls.mostRecent().args).toEqual(['84']);
+    expect(service.getCajas.calls.mostRecent().args).toEqual(['84']);
     component.formulario.patchValue({ sucursal: '85' });
-    expect(service.getCajas).toHaveBeenCalledWith('85');
-    service.getSucursales.calls.reset();
+    expect(service.getCajas.calls.mostRecent().args).toEqual(['85']);
+    component.formulario.patchValue({ sucursal: '' });
+    expect(service.getCajas.calls.mostRecent().args).toEqual(['84']);
     component.formulario.patchValue({ entidad: '' });
-    expect(service.getSucursales).not.toHaveBeenCalled();
-    expect(component.sucursales).toEqual([]);
-    expect(component.cajas).toEqual([]);
+    expect(service.getSucursales.calls.mostRecent().args).toEqual(['83']);
+    expect(service.getCajas.calls.mostRecent().args).toEqual(['83']);
+  });
+
+  it('muestra solo levelType 4, 5 y 6 en su selector aunque los endpoints devuelvan todo el árbol', () => {
+    const arbol = { idNode: 83, levelType: 3, children: [
+      { idNode: 84, levelType: 4, children: [
+        { idNode: 85, levelType: 5, children: [{ idNode: 86, levelType: 6 }] }
+      ] }, { idNode: 99 }, { idNode: 100, levelType: 7 }
+    ] };
+    service.getEntidades.and.returnValue(of(arbol));
+    service.getSucursales.and.returnValue(of(arbol));
+    service.getCajas.and.returnValue(of(arbol));
+    component.formulario.patchValue({ cuenta: '83' });
+    expect(component.entidades.map(n => n.idNode)).toEqual([84]);
+    expect(component.sucursales.map(n => n.idNode)).toEqual([85]);
+    expect(component.cajas.map(n => n.idNode)).toEqual([86]);
+  });
+
+  it('cambiar entidad elimina la caja anterior y consulta la cuenta de la nueva entidad', () => {
+    component.entidades = [{ idNode: 84, levelType: 4, idSirio: 'ENT84' },
+      { idNode: 94, levelType: 4, idSirio: 'ENT94' }];
+    component.formulario.patchValue({ entidad: '84', sucursal: '85', caja: '86' }, { emitEvent: false });
+    component.formulario.patchValue({ entidad: '94', fechaInicio: '2023-09-01 00:00', fechaFin: '2023-09-30 23:59' });
+    expect(component.formulario.getRawValue().sucursal).toBe('');
+    expect(component.formulario.getRawValue().caja).toBe('');
+    expect(service.getSucursales.calls.mostRecent().args).toEqual(['94']);
+    expect(service.getCajas.calls.mostRecent().args).toEqual(['94']);
+    component.onSubmit();
+    expect(service.enviarFormulario.calls.mostRecent().args[0].idSirioConsulta).toBe('ENT94');
   });
 
   it('descarta respuestas anteriores al cambiar de entidad', () => {
     const anterior = new Subject<any>();
     service.getSucursales.and.returnValue(anterior);
     component.formulario.patchValue({ entidad: '84' });
-    service.getSucursales.and.returnValue(of([{ idNode: 99 }]));
+    service.getSucursales.and.returnValue(of([{ idNode: 99, levelType: 5 }]));
     component.formulario.patchValue({ entidad: '88' });
-    anterior.next([{ idNode: 85 }]);
-    expect(component.sucursales).toEqual([{ idNode: 99 }]);
+    anterior.next([{ idNode: 85, levelType: 5 }]);
+    expect(component.sucursales).toEqual([{ idNode: 99, levelType: 5 }]);
   });
   for (const [campo, id, cuenta] of [
     ['cuenta', '83', 'SUB-83'], ['entidad', '84', 'ENT-84'],
-    ['sucursal', '85', 'SUC-85'], ['caja', '86', 'CAJA-86']
+    ['sucursal', '85', 'ENT-84'], ['caja', '86', 'ENT-84']
   ]) {
-    it(`envía el idSirio de ${campo} aunque account sea cero y conserva filtros al paginar`, () => {
+    it(`consulta la entidad o subafiliado al seleccionar ${campo} y conserva filtros al paginar`, () => {
       component.rolId = '2';
       component.cuentas = [{ idNode: 83, idSirio: 'SUB-83', account: '0' }];
       component.entidades = [{ idNode: 84, idSirio: 'ENT-84', account: '0' }];
       component.sucursales = [{ idNode: 85, idSirio: 'SUC-85', account: '0' }];
       component.cajas = [{ idNode: 86, idSirio: 'CAJA-86', account: '0' }];
-      component.formulario.patchValue({ cuenta: '83', entidad: '', sucursal: '', caja: '',
+      component.formulario.patchValue({ cuenta: '83', entidad: ['sucursal', 'caja'].includes(campo) ? '84' : '', sucursal: '', caja: '',
         fechaInicio: '2023-09-01 00:00', fechaFin: '2023-09-30 23:59', [campo]: id
       }, { emitEvent: false });
       component.onSubmit();
@@ -216,6 +242,18 @@ describe('Niveles de Operaciones adquirencia', () => {
   it('conserva segmentos vacíos al extraer el concepto del comprobante PHP', () => {
     component.verTicket({ type: 1, description: 'origen||Concepto correcto', amount: 10 });
     expect(component.comprobanteOperacion.concepto).toBe('Concepto correcto');
+  });
+
+  it('mantiene SUB1651662 aunque se seleccione una caja con cuenta SUB165166235394130', () => {
+    component.entidades = [{ idNode: 1662, levelType: 4, idSirio: 'SUB1651662' }];
+    component.sucursales = [{ idNode: 3539, levelType: 5, idSirio: 'SUB16516623539' }];
+    component.cajas = [{ idNode: 4130, levelType: 6, idSirio: 'SUB165166235394130' }];
+    component.formulario.patchValue({ entidad: '1662', sucursal: '3539', caja: '4130',
+      fechaInicio: '2012-09-05 12:00', fechaFin: '2026-09-29 12:00' }, { emitEvent: false });
+    component.onSubmit();
+    expect(service.enviarFormulario.calls.mostRecent().args[0].idSirioConsulta).toBe('SUB1651662');
+    component.cambiarPagina(2);
+    expect(service.enviarFormulario.calls.mostRecent().args[0].idSirioConsulta).toBe('SUB1651662');
   });
 
 });
