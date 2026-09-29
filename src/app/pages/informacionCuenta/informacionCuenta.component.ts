@@ -85,7 +85,7 @@ export class InformacionCuentaComponent implements OnInit {
           'accounts',
           'concentratorAccounts',
           'accountList'
-        ]);
+        ]).filter(cuenta => !this.esCuentaReserva(cuenta));
 
         const cuentaAdquirencia = this.cuentas.find(
           cuenta => this.esAdquirente(cuenta)
@@ -137,7 +137,7 @@ export class InformacionCuentaComponent implements OnInit {
           'entities',
           'entityLevels',
           'items'
-        ]);
+        ]).filter(entidad => !this.esCuentaReserva(entidad));
       },
       error: () => { this.errorCarga = 'No se pudieron cargar las entidades. Vuelve a seleccionar la cuenta.'; }
     });
@@ -183,6 +183,10 @@ export class InformacionCuentaComponent implements OnInit {
       },
       error: () => { this.errorCarga = 'No se pudo cargar la información de la entidad. Intenta de nuevo.'; }
     });
+  }
+
+  private esCuentaReserva(cuenta: any): boolean {
+    return this.obtenerTextoCuenta(cuenta).trim().toLocaleLowerCase('es-MX') === 'cuenta reserva';
   }
 
   private esAdquirente(cuenta: any): boolean {
