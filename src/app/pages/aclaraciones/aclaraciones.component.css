@@ -24,7 +24,7 @@ small { display: block; margin-top: 5px; }
 .archivos { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 10px 0 22px; }
 .archivos input { max-width: 300px; }
 .aceptaciones { margin: 28px 0; }
-button { border: 0; background: #0a4f91; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+button { border: 0; background: #2d4460; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
 button:disabled { opacity: .6; cursor: wait; }
 button.secundario { background: #edf1f6; color: #344054; }
 .detalles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 20px; }
@@ -43,4 +43,19 @@ button.secundario { background: #edf1f6; color: #344054; }
   .panel { padding: 18px; }
   .detalles { grid-template-columns: 1fr; }
   .linea-tiempo ol { flex-direction: column; }
+}
+@layer base {
+  button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button {
+    appearance: button;
+    border: 1px solid #2d4460;
+    padding: 5px;
+    background: #2d4460;
+    color: #ccd2dd;
+    border-radius: 1px;
+    cursor: pointer;
+  }
+}
+.archivos[_ngcontent-ng-c1306014989] input[_ngcontent-ng-c1306014989] {
+  max-width: 300px;
+  border: 1px solid gray;
 }
