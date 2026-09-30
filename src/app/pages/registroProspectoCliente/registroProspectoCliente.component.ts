@@ -188,6 +188,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   guardandoLiquidacion = false;
   liquidacionRegistrada = false;
   modalLiquidacion: 'en-red' | 'guardada' | null = null;
+  modalAccesos: string | null = null;
   cargandoArbol = false;
   errorArbol = '';
   showTokenModal = true;
@@ -362,11 +363,6 @@ export class RegistroProspectoClienteComponent implements OnInit {
       return;
     }
     const datos = this.liquidacionForm.getRawValue();
-    const idUser = this.cuentaComercio?.['idUser'];
-    if ((typeof idUser !== 'string' && typeof idUser !== 'number') || !idUser) {
-      this.error = 'No se encontró el identificador del usuario para registrar la cuenta de liquidación.';
-      return;
-    }
     if (!datos.idInstitution || (datos.tipoPersonaBeneficiario === 'moral' ? datos.giro === null : datos.idActivity === null)) {
       this.error = 'Selecciona el banco y el giro o actividad desde sus búsquedas antes de continuar.';
       return;
@@ -374,12 +370,12 @@ export class RegistroProspectoClienteComponent implements OnInit {
     const tipo = datos.tipoPersonaBeneficiario === 'moral' ? 'PM' : 'PF';
     const nombre = (tipo === 'PM' ? [datos.nombreBeneficiario] : [datos.nombreBeneficiario, datos.apellidoPaternoBeneficiario, datos.apellidoMaternoBeneficiario]).filter(Boolean).join(' ').trim();
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
-    const sirioId = nodo?.idSirio;
+    const sirioId = nodo?.idSirio?.trim();
 
-if (!sirioId) {
-  this.error = 'No se encontró el idSirio para registrar la cuenta de liquidación.';
-  return;
-}
+    if (!sirioId) {
+      this.error = 'No se encontró el idSirio del nodo seleccionado para registrar la cuenta de liquidación.';
+      return;
+    }
     const payload: RegistroLiquidacionPayload = {
       identifier: sirioId,
       nameAlias: nombre,
@@ -422,8 +418,7 @@ if (!sirioId) {
         ? throwError(() => new Error('No fue posible subir los documentos.'))
         : of(respuestas)),
       tap(() => this.documentosLiquidacionSubidos = true),
-      //switchMap(() => this.registroLiquidacionService.registrar(payload, this.obtenerBearerConsulta())),
-      switchMap(() =>this.registroLiquidacionService.registrar(payload)),
+      switchMap(() => this.registroLiquidacionService.registrar(payload)),
       finalize(() => this.guardandoLiquidacion = false)
     ).subscribe({
       next: respuesta => {
@@ -553,10 +548,7 @@ if (!sirioId) {
     }).filter(solicitud => !enviados.includes(solicitud.payload.idProfile));
     this.guardando = true;
     from(solicitudes).pipe(
-      concatMap(solicitud =>
-  this.registroAccesosService.agregarUsuario(
-    solicitud.payload
-  ).pipe(
+      concatMap(solicitud => this.registroAccesosService.agregarUsuario(solicitud.payload, this.obtenerBearerConsulta()).pipe(
         tap(() => {
           enviados.push(solicitud.payload.idProfile);
           this.bloquearAccesoEnviado(solicitud.prefijo);
@@ -564,7 +556,10 @@ if (!sirioId) {
       )),
       finalize(() => this.guardando = false)
     ).subscribe({
-      complete: () => this.mensaje = `Accesos enviados correctamente para ${nodo.nombre}. Continúa con los demás nodos que requieran accesos.`,
+      complete: () => {
+        this.mensaje = `Accesos enviados correctamente para ${nodo.nombre}. Continúa con los demás nodos que requieran accesos.`;
+        this.modalAccesos = nodo.nombre;
+      },
       error: () => this.error = 'No fue posible enviar todos los accesos de este nodo. Reintenta; los accesos ya enviados no se enviarán nuevamente.'
     });
   }

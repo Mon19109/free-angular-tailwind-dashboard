@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface RegistroLiquidacionPayload {
-  identifier: string | number;
+  identifier: string;
   nameAlias: string;
   cardNumberMask: string;
   numberPhone: string;

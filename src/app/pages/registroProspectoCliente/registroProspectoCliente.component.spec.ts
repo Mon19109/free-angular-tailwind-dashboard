@@ -90,7 +90,12 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   for (const tipo of ['fisica', 'moral'] as const) {
     it(`registra ${tipo} con su catálogo y no completa antes del éxito`, async () => {
       consulta().flush([]);
-      component.cuentaComercio = { idUser: 405, commerceGuid: 'commerce-del-get' };
+      component.cuentaComercio = { commerceGuid: 'commerce-del-get', idSirio: 'NO-USAR-CUENTA' };
+      component.arbol = [
+        { id: 'raiz', nombre: 'Entidad', nivel: 'entidad', idSirio: 'NO-USAR-RAIZ' },
+        { id: 'seleccionado', nombre: 'Sucursal', nivel: 'sucursal', idSirio: 'SUB0048790' }
+      ];
+      component.nodoSeleccionado = 'seleccionado';
       await adjuntar('carta');
       await adjuntar('edc');
       component.liquidacionForm.patchValue({
@@ -107,9 +112,10 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       expect(upload.request.body.get('folderName')).toBe('commerce-del-get');
       expect(upload.request.body.getAll('files').length).toBe(2);
       upload.flush({ success: true });
-      const request = http.expectOne(`${environment.api.kashpay}api/v1/register`);
+      const request = http.expectOne(`${environment.api.KashpayCoreAPI}contact`);
       const body = request.request.body;
-      expect(body.idUser).toBe(405);
+      expect(body.identifier).toBe('SUB0048790');
+      expect(body.idUser).toBeUndefined();
       expect(body.accountNumber).toBe('0');
       expect(body.typeRegister).toBe('CL');
       expect(body.typeTransfer).toBe(1);
@@ -119,7 +125,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       expect(body.aditionalData[tipo === 'moral' ? 'businessActivity' : 'businessLine']).toBeUndefined();
       expect(component.liquidacionCompleta).toBeFalse();
       component.continuarLiquidacion();
-      http.expectNone(`${environment.api.kashpay}api/v1/register`);
+      http.expectNone(`${environment.api.KashpayCoreAPI}contact`);
       request.flush({ success: true });
       expect(component.liquidacionCompleta).toBeTrue();
       expect(component.modalLiquidacion).toBe('guardada');
@@ -169,11 +175,13 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(tkt.request.body.idProfile).toBe(7);
     tkt.flush({ success: false });
     expect(component.accesosCompletos).toBeFalse();
+    expect(component.modalAccesos).toBeNull();
     component.finalizar();
     const reintento = http.expectOne(`${environment.api.antaresAuth}user/add`);
     expect(reintento.request.body.idProfile).toBe(7);
     reintento.flush({ success: true });
     expect(component.accesosCompletos).toBeTrue();
+    expect(component.modalAccesos).toBe('Sucursal');
     component.finalizar();
     http.expectNone(`${environment.api.antaresAuth}user/add`);
     component.seleccionarNodo('entidad');
@@ -195,6 +203,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       expect(request.request.body.idAffiliationLevel).toBe(4);
       request.flush({ success: true });
       expect(component.accesosCompletos).toBeTrue();
+      expect(component.modalAccesos).toBe('Entidad');
     });
   }
 
@@ -207,7 +216,12 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   it('requiere ambos documentos y bloquea el registro si falla la carga', async () => {
     consulta().flush([]);
-    component.cuentaComercio = { idUser: 405, commerceGuid: 'commerce-del-get' };
+    component.cuentaComercio = { commerceGuid: 'commerce-del-get', idSirio: 'NO-USAR-CUENTA' };
+      component.arbol = [
+        { id: 'raiz', nombre: 'Entidad', nivel: 'entidad', idSirio: 'NO-USAR-RAIZ' },
+        { id: 'seleccionado', nombre: 'Sucursal', nivel: 'sucursal', idSirio: 'SUB0048790' }
+      ];
+      component.nodoSeleccionado = 'seleccionado';
     component.liquidacionForm.patchValue({ idInstitution: 90646, idActivity: 12 });
     component.liquidacionForm.disable();
     component.continuarLiquidacion();
@@ -223,7 +237,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(directorio.request.headers.get('Authorization')).toBe(`Bearer ${component.prospectoBearerToken}`);
     directorio.flush({ success: true });
     http.expectOne(`${environment.api.documents}uploadFiles`).flush({ success: false });
-    http.expectNone(`${environment.api.kashpay}api/v1/register`);
+    http.expectNone(`${environment.api.KashpayCoreAPI}contact`);
     expect(component.liquidacionCompleta).toBeFalse();
     expect(component.guardandoLiquidacion).toBeFalse();
   });
@@ -235,6 +249,20 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component.finalizar();
     expect(component.error).toContain('idSirio');
     http.expectNone(`${environment.api.antaresAuth}user/add`);
+  });
+
+  it('bloquea contact si el nodo seleccionado no tiene idSirio, aunque la cuenta sí lo tenga', async () => {
+    consulta().flush([]);
+    component.cuentaComercio = { commerceGuid: 'commerce-del-get', idSirio: 'NO-USAR', idUser: 405 };
+    component.arbol = [{ id: 'sin-sirio', nombre: 'Sucursal', nivel: 'sucursal' }];
+    component.nodoSeleccionado = 'sin-sirio';
+    component.liquidacionForm.patchValue({ idInstitution: 90646, idActivity: 12 });
+    component.liquidacionForm.disable();
+    await adjuntar('carta');
+    await adjuntar('edc');
+    component.continuarLiquidacion();
+    expect(component.error).toContain('idSirio del nodo seleccionado');
+    http.expectNone(request => request.method === 'POST');
   });
 
 });

@@ -1,4 +1,18 @@
 <div class="registro-shell">
+  @if (modalAccesos !== null) {
+  <div class="token-modal-backdrop">
+    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="accesos-modal-title" aria-describedby="accesos-modal-description">
+      <div class="token-modal-body">
+        <h2 id="accesos-modal-title">Registro exitoso</h2>
+        <p id="accesos-modal-description">Los accesos a la plataforma de {{ modalAccesos }} se registraron correctamente.</p>
+      </div>
+      <div class="token-modal-actions">
+        <button type="button" class="token-btn token-btn-primary" (click)="modalAccesos = null" autofocus>Aceptar</button>
+      </div>
+    </div>
+  </div>
+  }
+
   @if (modalLiquidacion) {
   <div class="token-modal-backdrop">
     <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="liquidacion-modal-title">
