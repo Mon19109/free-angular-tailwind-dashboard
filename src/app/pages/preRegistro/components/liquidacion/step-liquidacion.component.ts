@@ -41,6 +41,7 @@ export class StepLiquidacionComponent implements OnInit {
   @Input() permitirVacio = false;
   @Input() varianteRegistro = false;
   @Input() bearerToken = '';
+  @Input() asignacionEnRed = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 
@@ -65,6 +66,7 @@ export class StepLiquidacionComponent implements OnInit {
   errorGiros = '';
   errorActividades = '';
   errorInstituciones = '';
+  private numeroCuentaInstitucion: string | null = null;
 
   ngOnInit(): void {
     this.terminoBusqueda.valueChanges.pipe(
@@ -80,6 +82,7 @@ export class StepLiquidacionComponent implements OnInit {
 
   get requiereDatosLiquidacion(): boolean {
     const valor = this.form.get('cuentaFueraRed')?.value;
+    if (this.asignacionEnRed && valor === 'en-red') return false;
     return valor === 'otros-bancos' || valor === 'en-red' || valor === 'otros-bancos-en-red' || valor === 'si';
   }
 
@@ -103,6 +106,8 @@ export class StepLiquidacionComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const digitos = input.value.replace(/\D/g, '').slice(0, this.longitudCuenta);
     input.value = this.agruparCuenta(digitos);
+    this.instituciones = [];
+    this.form.patchValue({ idInstitution: null, accountNumber: null, nombreBanco: '' }, { emitEvent: false });
     this.form.get('cuentaClabe')?.setValue(digitos, { emitEvent: false });
   }
 
@@ -217,6 +222,7 @@ export class StepLiquidacionComponent implements OnInit {
   buscarBanco(): void {
     this.errorInstituciones = '';
     this.instituciones = [];
+    this.form.patchValue({ idInstitution: null, accountNumber: null, nombreBanco: '' }, { emitEvent: false });
     const cuenta = `${this.form.get('cuentaClabe')?.value ?? ''}`.trim();
     if (!cuenta) {
       this.errorInstituciones = 'Captura una cuenta o CLABE para buscar el banco.';
@@ -229,7 +235,9 @@ export class StepLiquidacionComponent implements OnInit {
       finalize(() => this.buscandoInstitucion = false)
     ).subscribe({
       next: resp => {
+        if (String(this.form.get('cuentaClabe')?.value ?? '').replace(/\s+/g, '') !== cuentaSinEspacios) return;
         const institutionResponse = resp?.institutionResponse || resp?.data?.institutionResponse || resp?.data || resp;
+        this.numeroCuentaInstitucion = institutionResponse?.numCuenta == null ? null : String(institutionResponse.numCuenta);
         this.instituciones = Array.isArray(institutionResponse?.institutions) ? institutionResponse.institutions : [];
         if (!this.instituciones.length) {
           this.errorInstituciones = 'No se encontraron instituciones para la cuenta capturada.';
@@ -245,7 +253,11 @@ export class StepLiquidacionComponent implements OnInit {
 
   seleccionarInstitucion(id: string): void {
     const institucion = this.instituciones.find(item => this.obtenerInstitucionId(item) === id);
-    this.form.patchValue({ nombreBanco: this.obtenerInstitucionTexto(institucion) });
+    this.form.patchValue({
+      nombreBanco: this.obtenerInstitucionTexto(institucion),
+      idInstitution: institucion ? Number(this.obtenerInstitucionId(institucion)) : null,
+      accountNumber: this.numeroCuentaInstitucion
+    });
   }
 
   obtenerInstitucionId(institucion: any): string {

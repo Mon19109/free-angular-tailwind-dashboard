@@ -10,7 +10,7 @@ import {
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { finalize } from 'rxjs';
+import { concatMap, finalize, from, of, switchMap, tap, throwError } from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -24,6 +24,11 @@ import { ArbolNodoApi, ArbolNodosService } from '../../services/arbol-nodos.serv
 import { DocumentoProspectoApi, DocumentosProspectoService } from '../../services/documentos-prospecto.service';
 import { ActividadesService } from '../../services/actividades.service';
 
+import { RegistroLiquidacionPayload, RegistroLiquidacionService } from '../../services/registro-liquidacion.service';
+
+import { PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
+import { RegistroAccesoPayload, RegistroAccesosService } from '../../services/registro-accesos.service';
+
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
 type PrefijoAcceso = 'admin' | 'fac' | 'tkt' | 'controlador' | 'supervisor';
@@ -34,6 +39,7 @@ interface NodoProspecto {
   nivel: 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | string;
   idSirio?: string;
   nodeID?: string;
+  levelType?: number;
   commerceGuid?: string;
   hijos?: NodoProspecto[];
 }
@@ -59,6 +65,9 @@ interface NodoProspecto {
 export class RegistroProspectoClienteComponent implements OnInit {
   readonly prospectoBearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
   private readonly fb = inject(FormBuilder);
+  private readonly registroAccesosService = inject(RegistroAccesosService);
+  private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
+  private readonly registroLiquidacionService = inject(RegistroLiquidacionService);
   private readonly actividadesService = inject(ActividadesService);
   private readonly route = inject(ActivatedRoute);
   private readonly prospectoService = inject(ProspectoClienteService);
@@ -151,6 +160,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
     giro: this.fb.control<number | null>(null),
     tipoCuenta: ['', Validators.required],
     cuentaClabe: ['', Validators.required],
+    idInstitution: this.fb.control<number | null>(null),
+    accountNumber: this.fb.control<string | null>(null),
     nombreBanco: ['', Validators.required],
     direccionBanco: ['', Validators.required],
     telefonoBanco: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
@@ -170,6 +181,13 @@ export class RegistroProspectoClienteComponent implements OnInit {
   nodoSeleccionado = '';
   usuarioActivo = 'admin';
   cargandoCuenta = false;
+  cargandoLiquidacion = false;
+  liquidacionConsultada = false;
+  liquidacionExistente = false;
+  errorLiquidacion = '';
+  guardandoLiquidacion = false;
+  liquidacionRegistrada = false;
+  modalLiquidacion: 'en-red' | 'guardada' | null = null;
   cargandoArbol = false;
   errorArbol = '';
   showTokenModal = true;
@@ -184,6 +202,9 @@ export class RegistroProspectoClienteComponent implements OnInit {
   archivosInvalidos = false;
   cartaLiquidacionArchivoNombre = '';
   caratulaEdcArchivoNombre = '';
+  private documentosLiquidacionSubidos = false;
+  validandoArchivos = 0;
+  private perfilesEnviadosPorNodo: Record<string, number[]> = {};
   private cartaLiquidacionArchivo: File | null = null;
   private caratulaEdcArchivo: File | null = null;
   readonly comercioForm = this.fb.nonNullable.group({
@@ -230,6 +251,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
     this.liquidacionForm.controls.cuentaFueraRed.valueChanges
       .subscribe(() => {
+        if (this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red') this.modalLiquidacion = 'en-red';
         this.actualizarEstadoLiquidacion();
         this.actualizarValidadoresAccesos();
       });
@@ -314,13 +336,107 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   continuarLiquidacion(): void {
+    if (!this.liquidacionConsultada || this.cargandoLiquidacion || this.guardandoLiquidacion) return;
+    if (this.liquidacionCompleta) {
+      this.abrirAccesos();
+      return;
+    }
+    if (this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red') {
+      this.modalLiquidacion = 'en-red';
+      return;
+    }
     this.mensaje = '';
     this.liquidacionForm.markAllAsTouched();
-    if (!this.liquidacionForm.valid) {
+    if (this.liquidacionForm.invalid) {
       this.error = 'Completa los campos obligatorios (*) de liquidación y corrige los datos inválidos antes de continuar.';
       this.pasoActivo = 'liquidacion';
       return;
     }
+    if (this.validandoArchivos || !this.cartaLiquidacionArchivo || !this.caratulaEdcArchivo) {
+      this.error = 'Adjunta la Carta de Liquidación y la Carátula EDC en PDF antes de continuar.';
+      return;
+    }
+    const guid = this.texto(this.cuentaComercio?.['commerceGuid']);
+    if (!guid) {
+      this.error = 'No se encontró el identificador del comercio para subir los documentos.';
+      return;
+    }
+    const datos = this.liquidacionForm.getRawValue();
+    const idUser = this.cuentaComercio?.['idUser'];
+    if ((typeof idUser !== 'string' && typeof idUser !== 'number') || !idUser) {
+      this.error = 'No se encontró el identificador del usuario para registrar la cuenta de liquidación.';
+      return;
+    }
+    if (!datos.idInstitution || (datos.tipoPersonaBeneficiario === 'moral' ? datos.giro === null : datos.idActivity === null)) {
+      this.error = 'Selecciona el banco y el giro o actividad desde sus búsquedas antes de continuar.';
+      return;
+    }
+    const tipo = datos.tipoPersonaBeneficiario === 'moral' ? 'PM' : 'PF';
+    const nombre = (tipo === 'PM' ? [datos.nombreBeneficiario] : [datos.nombreBeneficiario, datos.apellidoPaternoBeneficiario, datos.apellidoMaternoBeneficiario]).filter(Boolean).join(' ').trim();
+    const payload: RegistroLiquidacionPayload = {
+      idUser,
+      nameAlias: nombre,
+      cardNumberMask: datos.cuentaClabe,
+      numberPhone: '',
+      typeRegister: 'CL',
+      email: datos.correoBeneficiario,
+      typeTransfer: 1,
+      fullName: nombre,
+      nameInstitution: datos.nombreBanco,
+      idInstitution: datos.idInstitution,
+      razonSocial: tipo === 'PM' ? nombre : '',
+      accountNumber: datos.accountNumber,
+      beneficiaryType: tipo,
+      show: true,
+      aditionalData: {
+        addressBank: { street: datos.direccionBanco },
+        beneficiaryAddress: { street: datos.direccionBeneficiario },
+        aditionalReferences: ['', '', ''],
+        destinationCountry: '',
+        intermediaryBank: '',
+        bankName: datos.nombreBanco,
+        bankPhone: datos.telefonoBanco,
+        bankEmail: datos.emailBanco,
+        currency: '484',
+        ...(tipo === 'PM'
+          ? { businessLine: `${datos.giro}|${datos.giroBeneficiario}` }
+          : { businessActivity: `${datos.idActivity}|${datos.actividadBeneficiario}` }),
+        typeAccount: tipo
+      }
+    };
+    this.error = '';
+    this.guardandoLiquidacion = true;
+    const documentos = this.documentosLiquidacionSubidos ? of([]) : this.preregistroDocumentosService.subirDocumentos([
+      { guid, fileName: `${guid}_CARTA_LIQUIDACION.pdf`, file: this.cartaLiquidacionArchivo },
+      { guid, fileName: `${guid}_CARATULA_EDO_CTA.pdf`, file: this.caratulaEdcArchivo }
+    ], this.obtenerBearerConsulta());
+    documentos.pipe(
+      switchMap(respuestas => respuestas.some(respuesta => (respuesta as { success?: boolean } | null)?.success === false)
+        ? throwError(() => new Error('No fue posible subir los documentos.'))
+        : of(respuestas)),
+      tap(() => this.documentosLiquidacionSubidos = true),
+      switchMap(() => this.registroLiquidacionService.registrar(payload, this.obtenerBearerConsulta())),
+      finalize(() => this.guardandoLiquidacion = false)
+    ).subscribe({
+      next: respuesta => {
+        if (respuesta?.success === false) {
+          this.error = respuesta.message || 'No fue posible registrar la cuenta de liquidación.';
+          return;
+        }
+        this.liquidacionRegistrada = true;
+        this.modalLiquidacion = 'guardada';
+      },
+      error: () => this.error = 'No fue posible completar la carga de documentos o el registro de liquidación. Intenta nuevamente.'
+    });
+  }
+
+  aceptarModalLiquidacion(): void {
+    if (this.modalLiquidacion === 'en-red') this.liquidacionRegistrada = true;
+    this.modalLiquidacion = null;
+    this.abrirAccesos();
+  }
+
+  private abrirAccesos(): void {
     this.error = '';
     this.pasoActivo = 'accesos';
     this.asegurarUsuarioActivo();
@@ -355,54 +471,97 @@ export class RegistroProspectoClienteComponent implements OnInit {
     event.preventDefault();
   }
 
-  private asignarArchivoLiquidacion(archivo: File | null, tipo: 'carta' | 'edc'): void {
-    if (!archivo) return;
-
-    if (tipo === 'carta') {
-      this.cartaLiquidacionArchivo = archivo;
-      this.cartaLiquidacionArchivoNombre = archivo?.name ?? '';
-      return;
+  private async asignarArchivoLiquidacion(archivo: File | null, tipo: 'carta' | 'edc'): Promise<void> {
+    if (!archivo || this.guardandoLiquidacion || this.validandoArchivos || this.liquidacionCompleta) return;
+    this.validandoArchivos++;
+    try {
+      const cabecera = new TextDecoder().decode(await archivo.slice(0, 5).arrayBuffer());
+      if (!/\.pdf$/i.test(archivo.name) || (archivo.type && archivo.type !== 'application/pdf') || cabecera !== '%PDF-') {
+        this.error = 'Solo se permiten archivos PDF válidos para la Carta de Liquidación y la Carátula EDC.';
+        return;
+      }
+      this.error = '';
+      this.documentosLiquidacionSubidos = false;
+      if (tipo === 'carta') {
+        this.cartaLiquidacionArchivo = archivo;
+        this.cartaLiquidacionArchivoNombre = archivo.name;
+      } else {
+        this.caratulaEdcArchivo = archivo;
+        this.caratulaEdcArchivoNombre = archivo.name;
+      }
+    } catch {
+      this.error = 'No fue posible leer el archivo. Selecciona nuevamente el PDF.';
+    } finally {
+      this.validandoArchivos--;
     }
-
-    this.caratulaEdcArchivo = archivo;
-    this.caratulaEdcArchivoNombre = archivo?.name ?? '';
   }
 
   volverLiquidacion(): void {
+    if (this.liquidacionCompleta) return;
     this.mensaje = '';
     this.pasoActivo = 'liquidacion';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  get accesosCompletos(): boolean {
+    const perfiles = this.perfilesEnviadosPorNodo[this.nodoSeleccionado] || [];
+    return this.nodoRequiereAccesos && this.usuariosAcceso.every(usuario => perfiles.includes(this.perfilAcceso(usuario.prefijo)));
+  }
+
+  private perfilAcceso(prefijo: string): 5 | 7 {
+    if (prefijo === 'fac') return 5;
+    if (prefijo === 'tkt') return 7;
+    return this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red' ? 5 : 7;
+  }
+
   finalizar(): void {
-    this.mensaje = '';
+    if (!this.nodoRequiereAccesos || this.guardando || this.accesosCompletos) return;
     this.error = '';
-    this.liquidacionForm.markAllAsTouched();
+    this.mensaje = '';
+    this.actualizarValidadoresAccesos();
     this.accesosForm.markAllAsTouched();
-
     this.guardarAccesosNodoActual();
-
-    if (this.liquidacionForm.invalid || this.accesosForm.invalid) {
-      this.error = 'Completa los campos obligatorios para enviar el registro.';
+    if (!this.liquidacionCompleta || this.accesosForm.invalid) {
+      this.error = 'Completa todos los datos de los accesos requeridos. Si aparecen FAC y TKT, debes llenar ambos.';
+      const incompleto = this.usuariosAcceso.find(usuario => ['Nombre', 'Paterno', 'Materno', 'Correo', 'ConfirmarCorreo', 'Telefono'].some(campo => this.accesosForm.get(`${usuario.prefijo}${campo}`)?.invalid) || this.accesosForm.hasError(`${usuario.prefijo}CorreosDistintos`));
+      if (incompleto) this.usuarioActivo = incompleto.prefijo;
       return;
     }
-
+    const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    if (!nodo?.idSirio || !nodo.levelType || ![3, 4, 5].includes(nodo.levelType)) {
+      this.error = 'No se encontró el idSirio o el nivel del nodo en el árbol. No se enviaron los accesos.';
+      return;
+    }
+    const nodoId = nodo.id;
+    const enviados = this.perfilesEnviadosPorNodo[nodoId] ??= [];
+    const solicitudes = this.usuariosAcceso.map(usuario => {
+      const valor = (campo: string) => String(this.accesosForm.get(`${usuario.prefijo}${campo}`)?.value ?? '').trim();
+      const payload: RegistroAccesoPayload = {
+        sirioId: nodo.idSirio!, idAffiliationLevel: nodo.levelType!, idProfile: this.perfilAcceso(usuario.prefijo),
+        name: valor('Nombre'), paternalSurname: valor('Paterno'), maternalSurname: valor('Materno'),
+        email: valor('Correo'), phoneNumber: valor('Telefono')
+      };
+      return { prefijo: usuario.prefijo, payload };
+    }).filter(solicitud => !enviados.includes(solicitud.payload.idProfile));
     this.guardando = true;
-    this.prospectoService.guardarCapturaCliente({
-      prospectId: this.prospectId,
-      link: this.link,
-      liquidacion: this.liquidacionForm.getRawValue(),
-      accesos: this.accesosPorNodo
-    }).pipe(
+    from(solicitudes).pipe(
+      concatMap(solicitud => this.registroAccesosService.agregarUsuario(solicitud.payload, this.obtenerBearerConsulta()).pipe(
+        tap(() => {
+          enviados.push(solicitud.payload.idProfile);
+          this.bloquearAccesoEnviado(solicitud.prefijo);
+        })
+      )),
       finalize(() => this.guardando = false)
     ).subscribe({
-      next: () => {
-        this.mensaje = 'Información enviada correctamente.';
-      },
-      error: () => {
-        this.error = 'No fue posible guardar la información. Verifica el endpoint de guardado del prospecto.';
-      }
+      complete: () => this.mensaje = `Accesos enviados correctamente para ${nodo.nombre}. Continúa con los demás nodos que requieran accesos.`,
+      error: () => this.error = 'No fue posible enviar todos los accesos de este nodo. Reintenta; los accesos ya enviados no se enviarán nuevamente.'
     });
+  }
+
+  private bloquearAccesoEnviado(prefijo: string): void {
+    for (const campo of ['Nombre', 'Paterno', 'Materno', 'Correo', 'ConfirmarCorreo', 'Telefono']) {
+      this.accesosForm.get(`${prefijo}${campo}`)?.disable({ emitEvent: false });
+    }
   }
 
   private cargarProspecto(): void {
@@ -642,9 +801,13 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   seleccionarNodo(id: string): void {
+    if (this.guardando || this.guardandoLiquidacion || this.validandoArchivos) return;
+    this.error = '';
+    this.mensaje = '';
     this.guardarAccesosNodoActual();
     this.nodoSeleccionado = id;
     const accesos = this.accesosPorNodo[id];
+    this.accesosForm.enable({ emitEvent: false });
     this.accesosForm.reset();
     if (accesos) this.accesosForm.patchValue(accesos, { emitEvent: false });
     this.asegurarUsuarioActivo();
@@ -653,7 +816,6 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
   get usuariosAcceso(): UsuarioAccesoConfig[] {
     if (!this.nodoRequiereAccesos) return [];
-    if (this.esSucursalAgrupadora) return this.usuariosAgrupadora;
     if (this.liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos-en-red') return this.usuariosFacTkt;
     return this.usuariosBase;
   }
@@ -709,7 +871,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   private actualizarEstadoLiquidacion(): void {
-    const requiereDatos = ['otros-bancos', 'en-red', 'otros-bancos-en-red', 'si'].includes(this.liquidacionForm.controls.cuentaFueraRed.value);
+    const requiereDatos = ['otros-bancos', 'otros-bancos-en-red', 'si'].includes(this.liquidacionForm.controls.cuentaFueraRed.value);
     const controles = [
       this.liquidacionForm.controls.tipoPersonaBeneficiario,
       this.liquidacionForm.controls.nombreBeneficiario,
@@ -822,11 +984,14 @@ export class RegistroProspectoClienteComponent implements OnInit {
     if (!sirioId) return;
 
     this.cargandoCuenta = true;
+    this.liquidacionConsultada = false;
+    this.liquidacionExistente = false;
     this.cuentaComercioService.consultarCuenta(sirioId, this.obtenerBearerConsulta()).pipe(
       finalize(() => this.cargandoCuenta = false)
     ).subscribe({
       next: respuesta => {
         this.cuentaComercio = this.extraerCuenta(respuesta);
+        this.consultarLiquidacion();
         this.cargarFormulariosDesdeGet();
         this.arbol = this.construirArbol();
         this.nodoSeleccionado = this.arbol[0]?.id || '';
@@ -834,6 +999,41 @@ export class RegistroProspectoClienteComponent implements OnInit {
       },
       error: () => {
         this.cuentaComercio = null;
+      }
+    });
+  }
+
+  get liquidacionCompleta(): boolean {
+    return this.liquidacionConsultada && (this.liquidacionExistente || this.liquidacionRegistrada);
+  }
+
+  consultarLiquidacion(): void {
+    if (this.cargandoLiquidacion) return;
+    const commerceGuid = this.texto(this.cuentaComercio?.['commerceGuid']).trim();
+    this.liquidacionConsultada = false;
+    this.liquidacionExistente = false;
+    this.errorLiquidacion = '';
+    if (!commerceGuid) {
+      this.errorLiquidacion = 'No se encontró el identificador del comercio para consultar la cuenta de liquidación.';
+      return;
+    }
+
+    this.cargandoLiquidacion = true;
+    this.cuentaComercioService.consultarLiquidacion(commerceGuid, this.obtenerBearerConsulta()).pipe(
+      finalize(() => this.cargandoLiquidacion = false)
+    ).subscribe({
+      next: cuentas => {
+        if (!Array.isArray(cuentas)) {
+          this.errorLiquidacion = 'No fue posible interpretar la respuesta de la cuenta de liquidación. Reintenta la consulta.';
+          return;
+        }
+        this.liquidacionExistente = cuentas.length > 0;
+        this.liquidacionConsultada = true;
+        this.pasoActivo = this.liquidacionExistente ? 'accesos' : 'liquidacion';
+        this.asegurarUsuarioActivo();
+      },
+      error: () => {
+        this.errorLiquidacion = 'No fue posible consultar la cuenta de liquidación. Reintenta la consulta.';
       }
     });
   }
@@ -917,8 +1117,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
         if (!arbol.length) return;
         this.arbol = arbol;
         const primerNivelAccesos = this.buscarPrimerNodoAccesos(this.arbol) || this.arbol[0];
-        this.nodoSeleccionado = primerNivelAccesos.id;
-        this.seleccionarNodo(this.nodoSeleccionado);
+        this.seleccionarNodo(primerNivelAccesos.id);
       },
       error: (error: unknown) => {
         const respuesta = error as { error?: { error?: { message?: string }; message?: string } };
@@ -943,6 +1142,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
       id,
       nombre: this.valorNodo(nodo, ['name', 'nodeName', 'contextDescription', 'nameCommerce', 'businessName', 'tuName', 'description']) || id,
       nivel: this.nivelNodoDesdeApi(nodo),
+      levelType: this.numeroNodo(nodo, ['levelType', 'idAffiliationLevel', 'idAffilationLevel']),
       idSirio: this.valorNodo(nodo, ['idSirio', 'sirioId', 'entitySonID']),
       nodeID: id,
       commerceGuid: this.valorNodo(nodo, ['commerceGuid', 'guid', 'commerceID']),
@@ -1063,12 +1263,15 @@ export class RegistroProspectoClienteComponent implements OnInit {
         } else if (campo === 'Telefono') {
           control.setValidators([Validators.required, Validators.pattern(/^\d{10}$/)]);
         } else {
-          control.setValidators([Validators.required]);
+          control.setValidators([Validators.required, Validators.pattern(/\S/)]);
         }
         control.updateValueAndValidity({ emitEvent: false });
       });
     });
 
+    for (const usuario of this.usuariosAcceso) {
+      if (this.perfilesEnviadosPorNodo[this.nodoSeleccionado]?.includes(this.perfilAcceso(usuario.prefijo))) this.bloquearAccesoEnviado(usuario.prefijo);
+    }
     this.asegurarUsuarioActivo();
     this.accesosForm.updateValueAndValidity({ emitEvent: false });
   }

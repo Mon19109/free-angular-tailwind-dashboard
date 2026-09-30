@@ -29,7 +29,7 @@ export interface ProspectoCliente {
 export interface ProspectoClienteCapturaPayload {
   prospectId?: string;
   link: string;
-  liquidacion: Record<string, unknown>;
+  liquidacion?: Record<string, unknown>;
   accesos: Record<string, unknown>;
 }
 

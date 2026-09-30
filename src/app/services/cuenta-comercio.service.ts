@@ -33,6 +33,21 @@ export class CuentaComercioService {
     });
   }
 
+  consultarLiquidacion(commerceGuid: string, bearerToken?: string): Observable<unknown[]> {
+    const params = new HttpParams()
+      .set('contextID', '0')
+      .set('entityID', '0')
+      .set('terminalID', '0')
+      .set('terminalUserID', '0')
+      .set('idUser', commerceGuid)
+      .set('type', 'CL');
+
+    return this.http.get<unknown[]>(`${environment.api.kashpay}api/v1/svc-8a7f3c/v2/h7q2_x91`, {
+      headers: this.headers(bearerToken),
+      params,
+    });
+  }
+
   private headers(bearerToken?: string): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',

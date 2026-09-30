@@ -1,6 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { forkJoin, Observable, of, switchMap } from 'rxjs';
+import { forkJoin, Observable, of, switchMap, throwError } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface DocumentoPreregistroUpload {
@@ -16,7 +16,7 @@ export class PreregistroDocumentosService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.api.documents;
 
-  subirDocumentos(documentos: DocumentoPreregistroUpload[]): Observable<unknown[]> {
+  subirDocumentos(documentos: DocumentoPreregistroUpload[], bearerToken?: string): Observable<unknown[]> {
     if (!documentos.length) {
       console.info('[Preregistro documentos] No hay archivos para subir.');
       return of([]);
@@ -38,21 +38,23 @@ export class PreregistroDocumentosService {
 
     return forkJoin(
       Object.entries(porGuid).map(([guid, docs]) =>
-        this.crearDirectorio(guid).pipe(
-          switchMap(() => this.subirDocumentosDirectorio(guid, docs))
+        this.crearDirectorio(guid, bearerToken).pipe(
+          switchMap(respuesta => (respuesta as { success?: boolean } | null)?.success === false
+            ? throwError(() => new Error('No fue posible crear el directorio de documentos.'))
+            : this.subirDocumentosDirectorio(guid, docs, bearerToken))
         )
       )
     );
   }
 
-  private crearDirectorio(guid: string): Observable<unknown> {
+  private crearDirectorio(guid: string, bearerToken?: string): Observable<unknown> {
     const formData = new FormData();
     formData.append('folderName', guid);
     console.info('[Preregistro documentos] Creando carpeta:', guid);
-    return this.http.post(`${this.apiUrl}createDirectory`, formData);
+    return this.http.post(`${this.apiUrl}createDirectory`, formData, { headers: this.headers(bearerToken) });
   }
 
-  private subirDocumentosDirectorio(guid: string, documentos: DocumentoPreregistroUpload[]): Observable<unknown> {
+  private subirDocumentosDirectorio(guid: string, documentos: DocumentoPreregistroUpload[], bearerToken?: string): Observable<unknown> {
     const formData = new FormData();
     formData.append('folderName', guid);
     documentos.forEach(documento => {
@@ -65,6 +67,10 @@ export class PreregistroDocumentosService {
       archivos: documentos.map(documento => documento.fileName),
     });
 
-    return this.http.post(`${this.apiUrl}uploadFiles`, formData);
+    return this.http.post(`${this.apiUrl}uploadFiles`, formData, { headers: this.headers(bearerToken) });
+  }
+
+  private headers(bearerToken?: string): HttpHeaders {
+    return bearerToken ? new HttpHeaders({ Authorization: `Bearer ${bearerToken}`, versionApp: '3' }) : new HttpHeaders();
   }
 }

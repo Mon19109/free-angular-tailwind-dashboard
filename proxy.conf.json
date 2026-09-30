@@ -1,4 +1,9 @@
 {
+  "/AntaresAuthAPI": {
+    "target": "http://10.15.5.160",
+     "secure": true,
+    "changeOrigin": true
+  },
   "/sdbx-api-antaresv2.kashplataforma.com": {
     "target": "http://10.15.5.160",
     "secure": false,

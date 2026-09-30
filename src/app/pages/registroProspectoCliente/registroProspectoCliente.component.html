@@ -1,4 +1,18 @@
 <div class="registro-shell">
+  @if (modalLiquidacion) {
+  <div class="token-modal-backdrop">
+    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="liquidacion-modal-title">
+      <div class="token-modal-body">
+        <h2 id="liquidacion-modal-title">{{ modalLiquidacion === 'en-red' ? 'Cuenta de liquidación En Red' : 'Información enviada' }}</h2>
+        <p>{{ modalLiquidacion === 'en-red' ? 'KashPay asignará una cuenta para su liquidación.' : 'La información de su cuenta de liquidación se envió correctamente.' }}</p>
+      </div>
+      <div class="token-modal-actions">
+        <button type="button" class="token-btn token-btn-primary" (click)="aceptarModalLiquidacion()" autofocus>Aceptar</button>
+      </div>
+    </div>
+  </div>
+  }
+
   @if (showTokenModal) {
   <div class="token-modal-backdrop">
     <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
@@ -49,7 +63,7 @@
   </div>
   }
 
-  @if (guardando) {
+  @if (guardando || guardandoLiquidacion) {
   <div class="processing-overlay" role="status" aria-live="polite">
     <div class="processing-card">
       <span class="processing-spinner" aria-hidden="true"></span>
@@ -89,12 +103,12 @@
       </div>
       }
       @if (nodoRequiereAccesos) {
-      <div class="flow-step" [class.active]="pasoActivo === 'liquidacion'" [class.done]="liquidacionForm.valid">
-        <span>{{ liquidacionForm.valid ? '✓' : '4' }}</span>
+      <div class="flow-step" [class.active]="pasoActivo === 'liquidacion'" [class.done]="liquidacionCompleta">
+        <span>{{ liquidacionCompleta ? '✓' : '4' }}</span>
         <strong>Cuenta de Liquidación</strong>
       </div>
-      <div class="flow-step" [class.active]="pasoActivo === 'accesos'" [class.done]="accesosForm.valid">
-        <span>{{ accesosForm.valid ? '✓' : '5' }}</span>
+      <div class="flow-step" [class.active]="pasoActivo === 'accesos'" [class.done]="accesosCompletos">
+        <span>{{ accesosCompletos ? '✓' : '5' }}</span>
         <strong>Acceso a Plataforma</strong>
       </div>
       }
@@ -235,22 +249,28 @@
         <p class="registration-message error"><i class="fa-solid fa-circle-exclamation"></i>{{ error }}</p>
         }
 
+        @if (errorLiquidacion) {
+        <p class="registration-message error" role="alert">{{ errorLiquidacion }}</p>
+        <button type="button" class="button ghost" (click)="consultarLiquidacion()" [disabled]="cargandoCuenta || cargandoLiquidacion">Reintentar consulta</button>
+        }
+
         @if (nodoRequiereAccesos) {
-        <article class="section-card" [class.open]="pasoActivo === 'liquidacion'" [class.done]="liquidacionForm.valid">
-          <button type="button" class="section-trigger" (click)="volverLiquidacion()">
+        <article class="section-card" [class.open]="pasoActivo === 'liquidacion' && liquidacionConsultada && !liquidacionCompleta" [class.done]="liquidacionCompleta">
+          <button type="button" class="section-trigger" (click)="volverLiquidacion()" [disabled]="!liquidacionConsultada || liquidacionCompleta">
             <span class="section-icon"><i class="fa-solid fa-building-columns"></i></span>
             <span class="section-copy">
               <strong>4. Cuenta de Liquidación</strong>
               <small>Datos de la cuenta donde se recibirán las liquidaciones</small>
             </span>
-            <span class="step-status">{{ liquidacionForm.valid ? 'Completado' : 'Pendiente' }}</span>
+            <span class="step-status">{{ cargandoCuenta || cargandoLiquidacion ? 'Consultando' : errorLiquidacion ? 'Sin verificar' : liquidacionCompleta ? 'Concluida' : 'Pendiente' }}</span>
             <i class="fa-solid" [ngClass]="pasoActivo === 'liquidacion' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
-          @if (pasoActivo === 'liquidacion') {
+          @if (pasoActivo === 'liquidacion' && liquidacionConsultada && !liquidacionCompleta) {
           <div class="section-body prospect-liquidacion-body">
             <app-step-liquidacion
               [form]="liquidacionForm"
+              [asignacionEnRed]="true"
               [tiposCuenta]="tiposCuenta"
               [beneficiarioIgualComercio]="true"
               [mostrarBeneficiarioIgualComercio]="true"
@@ -260,13 +280,13 @@
               [bearerToken]="prospectoBearerToken"
               textoContinuar="Guardar y continuar"
               (continuar)="continuarLiquidacion()" />
-            @if (liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos' || liquidacionForm.controls.cuentaFueraRed.value === 'en-red' || liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos-en-red') {
+            @if (liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos' || liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos-en-red') {
             <section class="liquidation-documents-panel" aria-label="Documentos de liquidación">
               <div class="liquidation-documents-heading">
                 <span class="liquidation-documents-icon"><i class="fa-solid fa-file-shield"></i></span>
                 <div>
                   <h3>Documentos de liquidación</h3>
-                  <p>Adjunta la Carta de Liquidación y la Carátula EDC en PDF, JPG o PNG.</p>
+                  <p>Adjunta la Carta de Liquidación y la Carátula EDC en PDF. Ambos documentos son obligatorios.</p>
                 </div>
               </div>
 
@@ -281,11 +301,12 @@
                   <input
                     id="carta-liquidacion-file"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,application/pdf"
+                    [disabled]="guardandoLiquidacion || validandoArchivos > 0"
                     (change)="seleccionarArchivoLiquidacion($event, 'carta')" />
                   <span class="upload-icon"><i class="fa-solid fa-file-arrow-up"></i></span>
                   <span class="upload-copy">
-                    <strong>Carta de Liquidación</strong>
+                    <strong>Carta de Liquidación *</strong>
                     <small>{{ cartaLiquidacionArchivoNombre || 'Selecciona el archivo' }}</small>
                   </span>
                   <span class="upload-action">
@@ -303,11 +324,12 @@
                   <input
                     id="caratula-edc-file"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,application/pdf"
+                    [disabled]="guardandoLiquidacion || validandoArchivos > 0"
                     (change)="seleccionarArchivoLiquidacion($event, 'edc')" />
                   <span class="upload-icon"><i class="fa-solid fa-file-invoice"></i></span>
                   <span class="upload-copy">
-                    <strong>Carátula EDC</strong>
+                    <strong>Carátula EDC *</strong>
                     <small>{{ caratulaEdcArchivoNombre || 'Selecciona el archivo' }}</small>
                   </span>
                   <span class="upload-action">
@@ -325,18 +347,18 @@
           }
         </article>
 
-        <article class="section-card" [class.open]="pasoActivo === 'accesos'" [class.done]="accesosForm.valid">
-          <button type="button" class="section-trigger" (click)="continuarLiquidacion()">
+        <article class="section-card" [class.open]="pasoActivo === 'accesos'" [class.done]="accesosCompletos">
+          <button type="button" class="section-trigger" (click)="continuarLiquidacion()" [disabled]="!liquidacionConsultada">
             <span class="section-icon"><i class="fa-solid fa-lock"></i></span>
             <span class="section-copy">
               <strong>5. Accesos a Plataforma</strong>
               <small>Credenciales requeridas según la cuenta de liquidación y tipo de comercio</small>
             </span>
-            <span class="step-status">{{ accesosForm.valid ? 'Completado' : 'Pendiente' }}</span>
+            <span class="step-status">{{ accesosCompletos ? 'Completado' : 'Pendiente' }}</span>
             <i class="fa-solid" [ngClass]="pasoActivo === 'accesos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
-          @if (pasoActivo === 'accesos') {
+          @if (pasoActivo === 'accesos' && liquidacionConsultada && !accesosCompletos) {
           <div class="section-body">
             <app-step-accesos
               [form]="accesosForm"
@@ -360,7 +382,7 @@
 <ng-template #treeTemplate let-nodos="nodos" let-nivel="nivel">
   @for (nodo of nodos; track nodo.id) {
   <div class="tree-row" [style.--level]="nivel">
-    <button type="button" class="tree-node" [class.selected]="nodoSeleccionado === nodo.id" [class.leaf]="!(nodo.hijos?.length)" (click)="seleccionarNodo(nodo.id)">
+    <button type="button" class="tree-node" [class.selected]="nodoSeleccionado === nodo.id" [class.leaf]="!(nodo.hijos?.length)" (click)="seleccionarNodo(nodo.id)" [disabled]="guardando || guardandoLiquidacion || validandoArchivos > 0">
       <i class="fa-solid" [ngClass]="nodo.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'"></i>
       <span>{{ nodo.nivel }} - {{ nodo.nombre }}</span>
       @if (nodo.nivel !== 'caja') { <i class="fa-solid fa-circle-check documentos-validados-mark"></i> }
