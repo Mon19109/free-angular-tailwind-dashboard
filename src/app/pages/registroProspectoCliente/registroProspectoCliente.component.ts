@@ -580,7 +580,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     }).filter(solicitud => !enviados.includes(solicitud.payload.idProfile));
     this.guardando = true;
     from(solicitudes).pipe(
-      concatMap(solicitud => this.registroAccesosService.agregarUsuario(solicitud.payload, this.obtenerBearerConsulta()).pipe(
+      concatMap(solicitud => this.registroAccesosService.agregarUsuario(solicitud.payload).pipe(
         tap(() => {
           enviados.push(solicitud.payload.idProfile);
           this.bloquearAccesoEnviado(solicitud.prefijo);
