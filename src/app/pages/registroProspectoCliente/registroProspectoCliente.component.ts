@@ -26,6 +26,7 @@ import { ActividadesService } from '../../services/actividades.service';
 
 import { RegistroLiquidacionPayload, RegistroLiquidacionService } from '../../services/registro-liquidacion.service';
 
+import { PreRegistroService } from '../../services/preregistro.service';
 import { PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
 import { RegistroAccesoPayload, RegistroAccesosService } from '../../services/registro-accesos.service';
 
@@ -68,6 +69,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   private readonly registroAccesosService = inject(RegistroAccesosService);
   private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly registroLiquidacionService = inject(RegistroLiquidacionService);
+  private readonly preRegistroService = inject(PreRegistroService);
   private readonly actividadesService = inject(ActividadesService);
   private readonly route = inject(ActivatedRoute);
   private readonly prospectoService = inject(ProspectoClienteService);
@@ -189,6 +191,10 @@ export class RegistroProspectoClienteComponent implements OnInit {
   liquidacionRegistrada = false;
   modalLiquidacion: 'en-red' | 'guardada' | null = null;
   modalAccesos: string | null = null;
+  intentoGuardarLiquidacion = false;
+  erroresArchivos: Record<'carta' | 'edc', string> = { carta: '', edc: '' };
+  errorCatalogoLiquidacion = '';
+  private consultaCatalogoVersion = 0;
   cargandoArbol = false;
   errorArbol = '';
   showTokenModal = true;
@@ -347,13 +353,14 @@ export class RegistroProspectoClienteComponent implements OnInit {
       return;
     }
     this.mensaje = '';
+    this.intentoGuardarLiquidacion = true;
     this.liquidacionForm.markAllAsTouched();
     if (this.liquidacionForm.invalid) {
       this.error = 'Completa los campos obligatorios (*) de liquidación y corrige los datos inválidos antes de continuar.';
       this.pasoActivo = 'liquidacion';
       return;
     }
-    if (this.validandoArchivos || !this.cartaLiquidacionArchivo || !this.caratulaEdcArchivo) {
+    if (this.validandoArchivos || this.erroresArchivos.carta || this.erroresArchivos.edc || !this.cartaLiquidacionArchivo || !this.caratulaEdcArchivo) {
       this.error = 'Adjunta la Carta de Liquidación y la Carátula EDC en PDF antes de continuar.';
       return;
     }
@@ -480,10 +487,12 @@ export class RegistroProspectoClienteComponent implements OnInit {
     try {
       const cabecera = new TextDecoder().decode(await archivo.slice(0, 5).arrayBuffer());
       if (!/\.pdf$/i.test(archivo.name) || (archivo.type && archivo.type !== 'application/pdf') || cabecera !== '%PDF-') {
-        this.error = 'Solo se permiten archivos PDF válidos para la Carta de Liquidación y la Carátula EDC.';
+        this.erroresArchivos[tipo] = 'Solo se permiten archivos PDF válidos.';
+        this.error = this.erroresArchivos[tipo];
         return;
       }
       this.error = '';
+      this.erroresArchivos[tipo] = '';
       this.documentosLiquidacionSubidos = false;
       if (tipo === 'carta') {
         this.cartaLiquidacionArchivo = archivo;
@@ -493,10 +502,17 @@ export class RegistroProspectoClienteComponent implements OnInit {
         this.caratulaEdcArchivoNombre = archivo.name;
       }
     } catch {
-      this.error = 'No fue posible leer el archivo. Selecciona nuevamente el PDF.';
+      this.erroresArchivos[tipo] = 'No fue posible leer el archivo. Selecciona nuevamente el PDF.';
+      this.error = this.erroresArchivos[tipo];
     } finally {
       this.validandoArchivos--;
     }
+  }
+
+  errorArchivoLiquidacion(tipo: 'carta' | 'edc'): string {
+    if (this.erroresArchivos[tipo]) return this.erroresArchivos[tipo];
+    const archivo = tipo === 'carta' ? this.cartaLiquidacionArchivo : this.caratulaEdcArchivo;
+    return this.intentoGuardarLiquidacion && !archivo ? 'Debes adjuntar este documento en PDF.' : '';
   }
 
   volverLiquidacion(): void {
@@ -705,6 +721,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
     this.consultarDocumentos(this.texto(datos['commerceID'] || datos['commerceId'] || datos['commerceGuid'] || this.prospecto?.id));
     if (this.liquidacionForm.controls.beneficiarioIgualComercio.value) {
       this.sincronizarBeneficiarioDesdeComercio();
+    } else {
+      this.precargarCatalogoLiquidacion();
     }
   }
 
@@ -734,27 +752,60 @@ export class RegistroProspectoClienteComponent implements OnInit {
       correoBeneficiario: this.texto(datos['email']),
       direccionBeneficiario: direccionCompleta,
       rfcBeneficiario: this.texto(direccion.rfc),
-      actividadBeneficiario: esMoral ? '' : this.texto(datos['activityDescription']) || this.texto(datos['idActivity']),
-      giroBeneficiario: esMoral ? this.texto(datos['bussinesLineDescription']) || this.texto(datos['businessActivityCode']) : '',
-      idActivity: esMoral ? null : this.codigoCatalogo(datos['idActivity']),
-      giro: esMoral ? this.codigoCatalogo(datos['businessActivityCode']) : null
     }, { emitEvent: false });
-    this.actualizarValidadoresBeneficiario(esMoral ? 'moral' : 'fisica');
-    const idActivity = this.liquidacionForm.controls.idActivity.value;
-    if (!esMoral && idActivity !== null && !this.texto(datos['activityDescription'])) {
-      this.actividadesService.getActividades().subscribe({
-        next: actividades => {
-          if (!this.liquidacionForm.controls.beneficiarioIgualComercio.value
-            || this.liquidacionForm.controls.idActivity.value !== idActivity) return;
-          const actividad = actividades.find(item =>
-            this.codigoCatalogo(item['idcat_actividades'] ?? item.idActivity ?? item.id ?? item.code) === idActivity);
-          const descripcion = actividad && (actividad.descripcion || actividad.description || actividad.actividad
-            || actividad.activity || actividad.nombre || actividad.name || actividad.label);
-          if (descripcion) this.liquidacionForm.controls.actividadBeneficiario.setValue(descripcion);
-        },
-        error: () => { /* Se conserva el ID recibido si el catálogo no está disponible. */ }
-      });
+    this.precargarCatalogoLiquidacion();
+  }
+
+  private precargarCatalogoLiquidacion(): void {
+    const datos = { ...(this.prospecto ?? {}), ...(this.cuentaComercio ?? {}) };
+    const tipo: TipoPersonaBeneficiario = this.texto(datos['typePerson']).toUpperCase() === 'PM' ? 'moral' : 'fisica';
+    const codigo = this.codigoCatalogo(tipo === 'moral' ? datos['businessActivityCode'] : datos['idActivity']);
+    const version = ++this.consultaCatalogoVersion;
+    this.errorCatalogoLiquidacion = '';
+    this.liquidacionForm.patchValue({
+      tipoPersonaBeneficiario: tipo,
+      idActivity: tipo === 'fisica' ? codigo : null,
+      giro: tipo === 'moral' ? codigo : null,
+      actividadBeneficiario: tipo === 'fisica' ? this.texto(datos['activityDescription']) : '',
+      giroBeneficiario: tipo === 'moral' ? this.texto(datos['bussinesLineDescription']) : ''
+    }, { emitEvent: false });
+    this.actualizarValidadoresBeneficiario(tipo);
+    if (codigo === null) return;
+    const campoId = tipo === 'moral' ? 'giro' : 'idActivity';
+    const campoDescripcion = tipo === 'moral' ? 'giroBeneficiario' : 'actividadBeneficiario';
+    const descripcionInicial = this.liquidacionForm.controls[campoDescripcion].value;
+    const sigueVigente = () => version === this.consultaCatalogoVersion
+      && this.liquidacionForm.controls.tipoPersonaBeneficiario.value === tipo
+      && this.liquidacionForm.controls[campoId].value === codigo
+      && this.liquidacionForm.controls[campoDescripcion].value === descripcionInicial;
+    const consulta = tipo === 'moral'
+      ? this.preRegistroService.getGirosByFamily(String(codigo))
+      : this.actividadesService.getActividades();
+    consulta.subscribe({
+      next: respuesta => {
+        if (!sigueVigente()) return;
+        const entradas = this.entradasCatalogo(respuesta);
+        const claves = tipo === 'moral' ? ['giro', 'idGiro', 'mcc', 'MCC', 'id', 'code'] : ['idcat_actividades', 'idActivity', 'id', 'code'];
+        const entrada = entradas.find(item => claves.some(clave => this.codigoCatalogo(item[clave]) === codigo));
+        const descripcion = entrada && ['descripcion', 'description', 'desGiro', 'actividad', 'activity', 'nombre', 'name', 'label'].map(clave => this.texto(entrada[clave])).find(Boolean);
+        if (descripcion) this.liquidacionForm.controls[campoDescripcion].setValue(descripcion);
+        else if (!descripcionInicial) this.errorCatalogoLiquidacion = 'No se encontró la descripción del catálogo. Selecciona la actividad o el giro con Buscar.';
+      },
+      error: () => {
+        if (sigueVigente()) this.errorCatalogoLiquidacion = 'No fue posible consultar el catálogo. Usa Buscar para seleccionar la actividad o el giro.';
+      }
+    });
+  }
+
+  private entradasCatalogo(respuesta: unknown): Record<string, unknown>[] {
+    if (Array.isArray(respuesta)) return this.listaObjetos(respuesta);
+    if (!respuesta || typeof respuesta !== 'object') return [];
+    const objeto = respuesta as Record<string, unknown>;
+    for (const clave of ['rows', 'data', 'giros', 'catGiroResponse', 'result', 'response', 'items', 'list', 'content']) {
+      const entradas = this.entradasCatalogo(objeto[clave]);
+      if (entradas.length) return entradas;
     }
+    return [objeto];
   }
 
   private limpiarDatosBeneficiario(): void {

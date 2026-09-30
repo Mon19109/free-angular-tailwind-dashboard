@@ -124,9 +124,15 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       expect(body.aditionalData[tipo === 'moral' ? 'businessLine' : 'businessActivity']).toBe(tipo === 'moral' ? '780|WYNN LAS VEGAS' : '12|Actividad');
       expect(body.aditionalData[tipo === 'moral' ? 'businessActivity' : 'businessLine']).toBeUndefined();
       expect(component.liquidacionCompleta).toBeFalse();
+      expect(component.modalLiquidacion).toBeNull();
       component.continuarLiquidacion();
       http.expectNone(`${environment.api.KashpayCoreAPI}contact`);
-      request.flush({ success: true });
+      request.flush({ success: false, message: 'Error al registrar' });
+      expect(component.modalLiquidacion).toBeNull();
+      expect(component.liquidacionCompleta).toBeFalse();
+      component.continuarLiquidacion();
+      http.expectNone(`${environment.api.documents}uploadFiles`);
+      http.expectOne(`${environment.api.KashpayCoreAPI}contact`).flush({ success: true });
       expect(component.liquidacionCompleta).toBeTrue();
       expect(component.modalLiquidacion).toBe('guardada');
     });
@@ -226,8 +232,12 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component.liquidacionForm.disable();
     component.continuarLiquidacion();
     expect(component.error).toContain('Adjunta');
+    expect(component.errorArchivoLiquidacion('carta')).toContain('PDF');
+    expect(component.errorArchivoLiquidacion('edc')).toContain('PDF');
     http.expectNone(request => request.method === 'POST');
     await adjuntar('carta');
+    expect(component.errorArchivoLiquidacion('carta')).toBe('');
+    expect(component.errorArchivoLiquidacion('edc')).toContain('PDF');
     component.continuarLiquidacion();
     expect(component.error).toContain('Adjunta');
     http.expectNone(request => request.method === 'POST');
@@ -263,6 +273,50 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component.continuarLiquidacion();
     expect(component.error).toContain('idSirio del nodo seleccionado');
     http.expectNone(request => request.method === 'POST');
+  });
+
+  it('precarga la actividad del GET por ID sin marcar mismo beneficiario', () => {
+    component.cuentaComercio = { typePerson: 'PF', idActivity: 1 };
+    component['cargarFormulariosDesdeGet']();
+    expect(component.liquidacionForm.controls.beneficiarioIgualComercio.value).toBeFalse();
+    http.expectOne(request => request.url.endsWith('/getActividades')).flush([
+      { idcat_actividades: 2, descripcion: 'Otra actividad' },
+      { idcat_actividades: 1, descripcion: 'Estaciones de servicio y gasolinerías' }
+    ]);
+    expect(component.liquidacionForm.controls.idActivity.value).toBe(1);
+    expect(component.liquidacionForm.controls.actividadBeneficiario.value).toBe('Estaciones de servicio y gasolinerías');
+    expect(component.liquidacionForm.controls.giro.value).toBeNull();
+  });
+
+  it('precarga el giro de persona moral por businessActivityCode', () => {
+    component.cuentaComercio = { typePerson: 'PM', businessActivityCode: '780' };
+    component['cargarFormulariosDesdeGet']();
+    const giro = http.expectOne(request => request.url.endsWith('/getGirosByFamily'));
+    expect(giro.request.params.get('family')).toBe('780');
+    giro.flush({ data: { rows: [
+      { giro: 781, descripcion: 'Otro giro' },
+      { giro: 780, descripcion: 'WYNN LAS VEGAS' }
+    ] } });
+    expect(component.liquidacionForm.controls.tipoPersonaBeneficiario.value).toBe('moral');
+    expect(component.liquidacionForm.controls.giro.value).toBe(780);
+    expect(component.liquidacionForm.controls.giroBeneficiario.value).toBe('WYNN LAS VEGAS');
+    expect(component.liquidacionForm.controls.idActivity.value).toBeNull();
+  });
+
+  it('no inventa un giro cuando businessActivityCode está vacío', () => {
+    component.cuentaComercio = { typePerson: 'PM', businessActivityCode: '' };
+    component['cargarFormulariosDesdeGet']();
+    expect(component.liquidacionForm.controls.giro.value).toBeNull();
+    expect(component.liquidacionForm.controls.giroBeneficiario.invalid).toBeTrue();
+    http.expectNone(request => request.url.endsWith('/getGirosByFamily'));
+  });
+
+  it('no sobrescribe la actividad que el usuario cambió durante la consulta', () => {
+    component.cuentaComercio = { typePerson: 'PF', idActivity: 1 };
+    component['cargarFormulariosDesdeGet']();
+    component.liquidacionForm.patchValue({ idActivity: 2, actividadBeneficiario: 'Selección del usuario' });
+    http.expectOne(request => request.url.endsWith('/getActividades')).flush([{ idcat_actividades: 1, descripcion: 'Original' }]);
+    expect(component.liquidacionForm.controls.actividadBeneficiario.value).toBe('Selección del usuario');
   });
 
 });

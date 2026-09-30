@@ -1,35 +1,37 @@
 <div class="registro-shell">
   @if (modalAccesos !== null) {
-  <div class="token-modal-backdrop">
-    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="accesos-modal-title" aria-describedby="accesos-modal-description">
-      <div class="token-modal-body">
+  <div class="result-modal-backdrop">
+    <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="accesos-modal-title" aria-describedby="accesos-modal-description">
+      <div class="result-modal-body">
+        <i class="fa-regular fa-circle-check result-modal-icon success" aria-hidden="true"></i>
         <h2 id="accesos-modal-title">Registro exitoso</h2>
         <p id="accesos-modal-description">Los accesos a la plataforma de {{ modalAccesos }} se registraron correctamente.</p>
       </div>
-      <div class="token-modal-actions">
-        <button type="button" class="token-btn token-btn-primary" (click)="modalAccesos = null" autofocus>Aceptar</button>
+      <div class="result-modal-footer">
+        <button type="button" class="button primary result-modal-ok" (click)="modalAccesos = null" autofocus>Aceptar</button>
       </div>
     </div>
   </div>
   }
 
   @if (modalLiquidacion) {
-  <div class="token-modal-backdrop">
-    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="liquidacion-modal-title">
-      <div class="token-modal-body">
-        <h2 id="liquidacion-modal-title">{{ modalLiquidacion === 'en-red' ? 'Cuenta de liquidación En Red' : 'Información enviada' }}</h2>
+  <div class="result-modal-backdrop">
+    <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="liquidacion-modal-title">
+      <div class="result-modal-body">
+        <i class="fa-regular result-modal-icon" [class.fa-circle-check]="modalLiquidacion === 'guardada'" [class.fa-circle-info]="modalLiquidacion === 'en-red'" [class.success]="modalLiquidacion === 'guardada'" aria-hidden="true"></i>
+        <h2 id="liquidacion-modal-title">{{ modalLiquidacion === 'en-red' ? 'Cuenta de liquidación En Red' : 'Registro exitoso' }}</h2>
         <p>{{ modalLiquidacion === 'en-red' ? 'KashPay asignará una cuenta para su liquidación.' : 'La información de su cuenta de liquidación se envió correctamente.' }}</p>
       </div>
-      <div class="token-modal-actions">
-        <button type="button" class="token-btn token-btn-primary" (click)="aceptarModalLiquidacion()" autofocus>Aceptar</button>
+      <div class="result-modal-footer">
+        <button type="button" class="button primary result-modal-ok" (click)="aceptarModalLiquidacion()" autofocus>Aceptar</button>
       </div>
     </div>
   </div>
   }
 
   @if (showTokenModal) {
-  <div class="token-modal-backdrop">
-    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
+  <div class="result-modal-backdrop">
+    <div class="token-modal result-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
       <button
         type="button"
         class="token-modal-close"
@@ -40,7 +42,7 @@
       </button>
 
       <form (ngSubmit)="validarTokenSms()">
-        <div class="token-modal-body">
+        <div class="token-modal-body result-modal-body">
           <label id="prospect-token-title" for="prospect-token">
             Ingresa el token enviado por SMS para consultar tu registro.
           </label>
@@ -64,7 +66,7 @@
           }
         </div>
 
-        <div class="token-modal-actions">
+        <div class="result-modal-footer">
           <button type="submit" class="token-btn token-btn-primary" [disabled]="validandoToken">
             {{ validandoToken ? 'VALIDANDO...' : 'VALIDAR' }}
           </button>
@@ -282,9 +284,13 @@
 
           @if (pasoActivo === 'liquidacion' && liquidacionConsultada && !liquidacionCompleta) {
           <div class="section-body prospect-liquidacion-body">
+            @if (errorCatalogoLiquidacion) {
+            <p class="field-error" role="alert">{{ errorCatalogoLiquidacion }}</p>
+            }
             <app-step-liquidacion
               [form]="liquidacionForm"
               [asignacionEnRed]="true"
+              [permitirVacio]="true"
               [tiposCuenta]="tiposCuenta"
               [beneficiarioIgualComercio]="true"
               [mostrarBeneficiarioIgualComercio]="true"
@@ -305,15 +311,19 @@
               </div>
 
               <div class="document-upload-grid">
+                <div class="document-upload-field">
                 <label
                   class="document-upload-card"
                   for="carta-liquidacion-file"
                   [class.has-file]="cartaLiquidacionArchivoNombre"
+                  [class.invalid]="errorArchivoLiquidacion('carta')"
                   (dragover)="bloquearArrastreArchivo($event)"
                   (dragenter)="bloquearArrastreArchivo($event)"
                   (drop)="soltarArchivoLiquidacion($event, 'carta')">
                   <input
                     id="carta-liquidacion-file"
+                    [attr.aria-invalid]="!!errorArchivoLiquidacion('carta')"
+                    aria-describedby="carta-error"
                     type="file"
                     accept=".pdf,application/pdf"
                     [disabled]="guardandoLiquidacion || validandoArchivos > 0"
@@ -327,16 +337,24 @@
                     <i class="fa-solid" [ngClass]="cartaLiquidacionArchivoNombre ? 'fa-circle-check' : 'fa-plus'"></i>
                   </span>
                 </label>
+                  @if (errorArchivoLiquidacion('carta')) {
+                  <small class="field-error" id="carta-error" role="alert">{{ errorArchivoLiquidacion('carta') }}</small>
+                  }
+                </div>
 
+                <div class="document-upload-field">
                 <label
                   class="document-upload-card"
                   for="caratula-edc-file"
                   [class.has-file]="caratulaEdcArchivoNombre"
+                  [class.invalid]="errorArchivoLiquidacion('edc')"
                   (dragover)="bloquearArrastreArchivo($event)"
                   (dragenter)="bloquearArrastreArchivo($event)"
                   (drop)="soltarArchivoLiquidacion($event, 'edc')">
                   <input
                     id="caratula-edc-file"
+                    [attr.aria-invalid]="!!errorArchivoLiquidacion('edc')"
+                    aria-describedby="edc-error"
                     type="file"
                     accept=".pdf,application/pdf"
                     [disabled]="guardandoLiquidacion || validandoArchivos > 0"
@@ -350,12 +368,19 @@
                     <i class="fa-solid" [ngClass]="caratulaEdcArchivoNombre ? 'fa-circle-check' : 'fa-plus'"></i>
                   </span>
                 </label>
+                  @if (errorArchivoLiquidacion('edc')) {
+                  <small class="field-error" id="edc-error" role="alert">{{ errorArchivoLiquidacion('edc') }}</small>
+                  }
+                </div>
               </div>
             </section>
             }
+            @if (error && intentoGuardarLiquidacion) {
+            <p class="field-error" role="alert">{{ error }}</p>
+            }
             <div class="prospect-step-actions">
               <button type="button" class="button ghost" (click)="volverLiquidacion()">Anterior</button>
-              <button type="button" class="button primary" (click)="continuarLiquidacion()">Guardar y continuar</button>
+              <button type="button" class="button primary" (click)="continuarLiquidacion()" [disabled]="guardandoLiquidacion || validandoArchivos > 0">{{ guardandoLiquidacion ? 'Guardando...' : 'Guardar y continuar' }}</button>
             </div>
           </div>
           }
