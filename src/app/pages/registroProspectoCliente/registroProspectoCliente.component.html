@@ -23,15 +23,18 @@
         <p>{{ modalLiquidacion === 'en-red' ? 'KashPay asignará una cuenta para su liquidación.' : 'La información de su cuenta de liquidación se envió correctamente.' }}</p>
       </div>
       <div class="result-modal-footer">
-        <button type="button" class="button primary result-modal-ok" (click)="aceptarModalLiquidacion()" autofocus>Aceptar</button>
+        @if (modalLiquidacion === 'en-red') {
+        <button type="button" class="button ghost" (click)="cancelarModalLiquidacion()">Cancelar</button>
+        }
+        <button type="button" class="button primary result-modal-ok" (click)="aceptarModalLiquidacion()" autofocus>{{ modalLiquidacion === 'en-red' ? 'Confirmar' : 'Aceptar' }}</button>
       </div>
     </div>
   </div>
   }
 
   @if (showTokenModal) {
-  <div class="result-modal-backdrop">
-    <div class="token-modal result-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
+  <div class="token-modal-backdrop">
+    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
       <button
         type="button"
         class="token-modal-close"
@@ -42,7 +45,7 @@
       </button>
 
       <form (ngSubmit)="validarTokenSms()">
-        <div class="token-modal-body result-modal-body">
+        <div class="token-modal-body">
           <label id="prospect-token-title" for="prospect-token">
             Ingresa el token enviado por SMS para consultar tu registro.
           </label>
@@ -66,7 +69,7 @@
           }
         </div>
 
-        <div class="result-modal-footer">
+        <div class="token-modal-actions">
           <button type="submit" class="token-btn token-btn-primary" [disabled]="validandoToken">
             {{ validandoToken ? 'VALIDANDO...' : 'VALIDAR' }}
           </button>

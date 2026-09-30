@@ -107,7 +107,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
         accountNumber: '0', direccionBanco: 'Calle 2', telefonoBanco: '5512345678', emailBanco: 'banco@example.com'
       });
       component.continuarLiquidacion();
-      http.expectOne(`${environment.api.documents}createDirectory`).flush({ success: true });
+      http.expectNone(`${environment.api.documents}createDirectory`);
       const upload = http.expectOne(`${environment.api.documents}uploadFiles`);
       expect(upload.request.body.get('folderName')).toBe('commerce-del-get');
       expect(upload.request.body.getAll('files').length).toBe(2);
@@ -243,10 +243,11 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     http.expectNone(request => request.method === 'POST');
     await adjuntar('edc');
     component.continuarLiquidacion();
-    const directorio = http.expectOne(`${environment.api.documents}createDirectory`);
-    expect(directorio.request.headers.get('Authorization')).toBe(`Bearer ${component.prospectoBearerToken}`);
-    directorio.flush({ success: true });
-    http.expectOne(`${environment.api.documents}uploadFiles`).flush({ success: false });
+    http.expectNone(`${environment.api.documents}createDirectory`);
+    const upload = http.expectOne(`${environment.api.documents}uploadFiles`);
+    expect(upload.request.headers.get('Authorization')).toBe(`Bearer ${component.prospectoBearerToken}`);
+    upload.flush({ success: false });
+    expect(component.error).toContain('aún no se ha enviado');
     http.expectNone(`${environment.api.KashpayCoreAPI}contact`);
     expect(component.liquidacionCompleta).toBeFalse();
     expect(component.guardandoLiquidacion).toBeFalse();
@@ -318,5 +319,24 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     http.expectOne(request => request.url.endsWith('/getActividades')).flush([{ idcat_actividades: 1, descripcion: 'Original' }]);
     expect(component.liquidacionForm.controls.actividadBeneficiario.value).toBe('Selección del usuario');
   });
+
+  for (const anterior of ['otros-bancos', 'otros-bancos-en-red']) {
+    it(`cancelar En Red restaura ${anterior} sin completar ni enviar`, () => {
+      consulta().flush([]);
+      component.liquidacionForm.controls.cuentaFueraRed.setValue(anterior);
+      component['cambiarOpcionLiquidacion'](anterior);
+      component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
+      component['cambiarOpcionLiquidacion']('en-red');
+      expect(component.modalLiquidacion).toBe('en-red');
+      expect(component.liquidacionCompleta).toBeFalse();
+      component.cancelarModalLiquidacion();
+      expect(component.modalLiquidacion).toBeNull();
+      expect(component.liquidacionForm.controls.cuentaFueraRed.value).toBe(anterior);
+      expect(component.liquidacionForm.controls.nombreBeneficiario.enabled).toBeTrue();
+      expect(component.liquidacionCompleta).toBeFalse();
+      expect(component.pasoActivo).toBe('liquidacion');
+      http.expectNone(request => request.method === 'POST');
+    });
+  }
 
 });

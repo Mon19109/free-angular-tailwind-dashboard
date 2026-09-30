@@ -967,6 +967,7 @@
 
 .result-modal-footer {
   display: flex;
+  gap: 12px;
   justify-content: center;
   padding: 14px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);

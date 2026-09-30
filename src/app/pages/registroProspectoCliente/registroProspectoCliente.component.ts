@@ -190,6 +190,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   guardandoLiquidacion = false;
   liquidacionRegistrada = false;
   modalLiquidacion: 'en-red' | 'guardada' | null = null;
+  private opcionLiquidacionAnterior = 'otros-bancos';
   modalAccesos: string | null = null;
   intentoGuardarLiquidacion = false;
   erroresArchivos: Record<'carta' | 'edc', string> = { carta: '', edc: '' };
@@ -257,11 +258,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     }
 
     this.liquidacionForm.controls.cuentaFueraRed.valueChanges
-      .subscribe(() => {
-        if (this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red') this.modalLiquidacion = 'en-red';
-        this.actualizarEstadoLiquidacion();
-        this.actualizarValidadoresAccesos();
-      });
+      .subscribe(valor => this.cambiarOpcionLiquidacion(valor));
     this.liquidacionForm.controls.tipoPersonaBeneficiario.valueChanges
       .subscribe(tipo => this.actualizarValidadoresBeneficiario(tipo as TipoPersonaBeneficiario));
     this.liquidacionForm.controls.beneficiarioIgualComercio.valueChanges
@@ -419,7 +416,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     const documentos = this.documentosLiquidacionSubidos ? of([]) : this.preregistroDocumentosService.subirDocumentos([
       { guid, fileName: `${guid}_CARTA_LIQUIDACION.pdf`, file: this.cartaLiquidacionArchivo },
       { guid, fileName: `${guid}_CARATULA_EDO_CTA.pdf`, file: this.caratulaEdcArchivo }
-    ], this.obtenerBearerConsulta());
+    ], this.obtenerBearerConsulta(), { crearDirectorio: false });
     documentos.pipe(
       switchMap(respuestas => respuestas.some(respuesta => (respuesta as { success?: boolean } | null)?.success === false)
         ? throwError(() => new Error('No fue posible subir los documentos.'))
@@ -436,14 +433,33 @@ export class RegistroProspectoClienteComponent implements OnInit {
         this.liquidacionRegistrada = true;
         this.modalLiquidacion = 'guardada';
       },
-      error: () => this.error = 'No fue posible completar la carga de documentos o el registro de liquidación. Intenta nuevamente.'
+      error: () => this.error = this.documentosLiquidacionSubidos
+        ? 'Los documentos se subieron, pero no fue posible registrar la cuenta de liquidación. Intenta nuevamente.'
+        : 'No fue posible subir los documentos. El registro de liquidación aún no se ha enviado. Intenta nuevamente.'
     });
   }
 
   aceptarModalLiquidacion(): void {
+    if (!this.modalLiquidacion) return;
     if (this.modalLiquidacion === 'en-red') this.liquidacionRegistrada = true;
     this.modalLiquidacion = null;
     this.abrirAccesos();
+  }
+
+  private cambiarOpcionLiquidacion(valor: string): void {
+    if (valor === 'en-red') this.modalLiquidacion = 'en-red';
+    else this.opcionLiquidacionAnterior = valor;
+    this.actualizarEstadoLiquidacion();
+    this.actualizarValidadoresAccesos();
+  }
+
+  cancelarModalLiquidacion(): void {
+    if (this.modalLiquidacion !== 'en-red') return;
+    this.modalLiquidacion = null;
+    this.liquidacionForm.controls.cuentaFueraRed.setValue(this.opcionLiquidacionAnterior, { emitEvent: false });
+    this.actualizarEstadoLiquidacion();
+    this.actualizarValidadoresAccesos();
+    this.pasoActivo = 'liquidacion';
   }
 
   private abrirAccesos(): void {
