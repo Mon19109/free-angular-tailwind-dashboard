@@ -16,7 +16,7 @@ export class PreregistroDocumentosService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.api.documents;
 
-  subirDocumentos(documentos: DocumentoPreregistroUpload[], bearerToken?: string): Observable<unknown[]> {
+  subirDocumentos(documentos: DocumentoPreregistroUpload[], bearerToken?: string, opciones: { crearDirectorio?: boolean } = {}): Observable<unknown[]> {
     if (!documentos.length) {
       console.info('[Preregistro documentos] No hay archivos para subir.');
       return of([]);
@@ -38,7 +38,9 @@ export class PreregistroDocumentosService {
 
     return forkJoin(
       Object.entries(porGuid).map(([guid, docs]) =>
-        this.crearDirectorio(guid, bearerToken).pipe(
+        opciones.crearDirectorio === false
+          ? this.subirDocumentosDirectorio(guid, docs, bearerToken)
+          : this.crearDirectorio(guid, bearerToken).pipe(
           switchMap(respuesta => (respuesta as { success?: boolean } | null)?.success === false
             ? throwError(() => new Error('No fue posible crear el directorio de documentos.'))
             : this.subirDocumentosDirectorio(guid, docs, bearerToken))
