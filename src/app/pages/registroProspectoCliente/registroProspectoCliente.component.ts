@@ -373,8 +373,15 @@ export class RegistroProspectoClienteComponent implements OnInit {
     }
     const tipo = datos.tipoPersonaBeneficiario === 'moral' ? 'PM' : 'PF';
     const nombre = (tipo === 'PM' ? [datos.nombreBeneficiario] : [datos.nombreBeneficiario, datos.apellidoPaternoBeneficiario, datos.apellidoMaternoBeneficiario]).filter(Boolean).join(' ').trim();
+    const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    const sirioId = nodo?.idSirio;
+
+if (!sirioId) {
+  this.error = 'No se encontró el idSirio para registrar la cuenta de liquidación.';
+  return;
+}
     const payload: RegistroLiquidacionPayload = {
-      idUser,
+      identifier: sirioId,
       nameAlias: nombre,
       cardNumberMask: datos.cuentaClabe,
       numberPhone: '',
@@ -415,7 +422,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
         ? throwError(() => new Error('No fue posible subir los documentos.'))
         : of(respuestas)),
       tap(() => this.documentosLiquidacionSubidos = true),
-      switchMap(() => this.registroLiquidacionService.registrar(payload, this.obtenerBearerConsulta())),
+      //switchMap(() => this.registroLiquidacionService.registrar(payload, this.obtenerBearerConsulta())),
+      switchMap(() =>this.registroLiquidacionService.registrar(payload)),
       finalize(() => this.guardandoLiquidacion = false)
     ).subscribe({
       next: respuesta => {
@@ -545,7 +553,10 @@ export class RegistroProspectoClienteComponent implements OnInit {
     }).filter(solicitud => !enviados.includes(solicitud.payload.idProfile));
     this.guardando = true;
     from(solicitudes).pipe(
-      concatMap(solicitud => this.registroAccesosService.agregarUsuario(solicitud.payload, this.obtenerBearerConsulta()).pipe(
+      concatMap(solicitud =>
+  this.registroAccesosService.agregarUsuario(
+    solicitud.payload
+  ).pipe(
         tap(() => {
           enviados.push(solicitud.payload.idProfile);
           this.bloquearAccesoEnviado(solicitud.prefijo);

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface RegistroLiquidacionPayload {
-  idUser: string | number;
+  identifier: string | number;
   nameAlias: string;
   cardNumberMask: string;
   numberPhone: string;
@@ -38,8 +38,12 @@ export interface RegistroLiquidacionPayload {
 export class RegistroLiquidacionService {
   private readonly http = inject(HttpClient);
 
-  registrar(payload: RegistroLiquidacionPayload, bearerToken: string): Observable<{ success?: boolean; message?: string }> {
-    return this.http.post<{ success?: boolean; message?: string }>(`${environment.api.kashpay}api/v1/register`, payload, {
+ // registrar(payload: RegistroLiquidacionPayload, bearerToken: string): Observable<{ success?: boolean; message?: string }> {
+    registrar(
+  payload: RegistroLiquidacionPayload
+): Observable<{ success?: boolean; message?: string }> {
+  const bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
+    return this.http.post<{ success?: boolean; message?: string }>(`${environment.api.KashpayCoreAPI}contact`, payload, {
       headers: new HttpHeaders({ Authorization: `Bearer ${bearerToken}`, versionApp: '3' })
     });
   }
