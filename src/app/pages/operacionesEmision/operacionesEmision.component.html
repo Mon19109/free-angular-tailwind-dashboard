@@ -82,6 +82,7 @@
 
           <app-date-picker
   id="fechaInicio"
+  [defaultDate]="formulario.getRawValue().fechaInicio"
   label="Fecha Inicio"
  placeholder="YYYY-MM-DD HH:mm"
   maxDate="today"
@@ -98,6 +99,7 @@
 
          <app-date-picker
   id="fechaFin"
+  [defaultDate]="formulario.getRawValue().fechaFin"
   label="Fecha Fin"
   placeholder="YYYY-MM-DD HH:mm"
   position="above"

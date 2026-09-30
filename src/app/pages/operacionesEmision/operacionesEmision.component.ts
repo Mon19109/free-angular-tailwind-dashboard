@@ -2,7 +2,7 @@ import { leerPaginaOperaciones } from '../../shared/utils/pagina-operaciones';
 import { accionOperacion } from '../../shared/utils/acciones-operaciones';
 import { fechaOperacion } from '../../shared/utils/operaciones-tabla';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { DetalleOperacionComponent } from '../detalleOperacion/detalle-operacion.component';
@@ -189,6 +189,7 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
   consultaRealizada = false;
   errorResultados = '';
   private filtrosConsulta: any = null;
+  private solicitudOperaciones?: Subscription;
 
   get paginas(): number[] {
     const total = this.totalRegistros === null
@@ -218,7 +219,7 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
     if (this.buscando() || !this.filtrosConsulta || pagina < 1) return;
     this.errorResultados = '';
     this.buscando.set(true);
-    this.operaEmiService.enviarFormulario(this.filtrosConsulta, pagina - 1).pipe(
+    this.solicitudOperaciones = this.operaEmiService.enviarFormulario(this.filtrosConsulta, pagina - 1).pipe(
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.buscando.set(false))
     ).subscribe({
@@ -249,24 +250,29 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
   }
 
   limpiarFormulario(): void {
+    this.solicitudOperaciones?.unsubscribe();
+    this.buscando.set(false);
     this.operaciones = [];
     this.filtrosConsulta = null;
     this.consultaRealizada = false;
     this.errorResultados = '';
+    this.fechaErrorMensaje = '';
     this.totalRegistros = null;
     this.paginaActual = 1;
     this.haySiguiente = false;
-
-  this.formulario.reset({
-    cuenta: '',
-    estatus: [],
-    tipoOperacion: [],
-    fechaInicio: '',
-    fechaFin: ''
-  });
-  this.fechaErrorMensaje = '';
-
-}
+    this.liquidacionSeleccionada = null;
+    this.operacionSeleccionada = null;
+    this.tipoDetalleSeleccionado = null;
+    this.mostrarModalDetalle = false;
+    this.defaultTipoOperacion = [...this.defaultTipoOperacion];
+    this.defaultEstatus = [...this.defaultEstatus];
+    this.formulario.reset({
+      cuenta: '',
+      estatus: this.defaultEstatus,
+      tipoOperacion: this.defaultTipoOperacion,
+      fechaInicio: '', fechaFin: ''
+    }, { emitEvent: false });
+  }
 
 readonly fechaOperacion = fechaOperacion;
 

@@ -428,6 +428,7 @@ mostrarResultados = false;
   consultaRealizada = false;
   errorResultados = '';
   private filtrosConsulta: any = null;
+  private solicitudOperaciones?: Subscription;
 
   get paginas(): number[] {
     const total = this.totalRegistros === null
@@ -481,7 +482,7 @@ mostrarResultados = false;
     if (this.buscando() || !this.filtrosConsulta || pagina < 1) return;
     this.errorResultados = '';
     this.buscando.set(true);
-    this.opeAdquiService.enviarFormulario(this.filtrosConsulta, pagina - 1).pipe(
+    this.solicitudOperaciones = this.opeAdquiService.enviarFormulario(this.filtrosConsulta, pagina - 1).pipe(
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.buscando.set(false))
     ).subscribe({
@@ -534,18 +535,29 @@ mostrarResultados = false;
 }
 
   limpiarFormulario(): void {
-    if (this.buscando()) return;
-    const { fechaInicio, fechaFin } = this.filtrosConsulta || this.formulario.getRawValue();
+    this.solicitudOperaciones?.unsubscribe();
+    this.buscando.set(false);
+    this.operaciones = [];
+    this.filtrosConsulta = null;
+    this.consultaRealizada = false;
+    this.errorResultados = '';
+    this.fechaErrorMensaje = '';
+    this.totalRegistros = null;
+    this.paginaActual = 1;
+    this.haySiguiente = false;
+    this.liquidacionSeleccionada = null;
+    Object.values(this.solicitudesNiveles).forEach(solicitud => solicitud?.unsubscribe());
+    this.avisosNiveles = {};
+    this.mostrarResultados = false;
+    this.comprobanteOperacion = null;
     this.defaultTipoOperacion = ['10007', '1', '10008'];
     this.defaultEstatus = ['15', '31', '27'];
-    this.formulario.reset({ cuenta: '', entidad: '', sucursal: '', caja: '', clasificacion: '',
-      tipoOperacion: this.defaultTipoOperacion, estatus: this.defaultEstatus, fechaInicio, fechaFin
+    this.formulario.reset({
+      cuenta: '', entidad: '', sucursal: '', caja: '', clasificacion: '',
+      tipoOperacion: this.defaultTipoOperacion, estatus: this.defaultEstatus,
+      fechaInicio: '', fechaFin: ''
     }, { emitEvent: false });
-    // Limpiar vuelve a la cuenta de sesión, sin depender de listas del padre anterior.
-    this.formulario.patchValue({ cuenta: obtenerNodoSesion() }, { emitEvent: false });
-    this.aplicarBloqueosSesion();
-    this.cargarSubafiliados();
-    this.onSubmit();
+    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
   }
 
   private guardarBusqueda(): void {

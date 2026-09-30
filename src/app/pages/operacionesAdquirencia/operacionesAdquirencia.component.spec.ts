@@ -213,17 +213,37 @@ describe('Niveles de Operaciones adquirencia', () => {
     expect(component.paginaActual).toBe(2);
   });
 
-  it('limpiar restaura fechas consultadas y valores predeterminados, luego vuelve a consultar', () => {
+  it('limpiar vacía filtros, resultados y URL sin volver a consultar', () => {
     component.formulario.patchValue({ fechaInicio: '2023-09-01 00:00', fechaFin: '2023-09-30 23:59' });
     component.onSubmit();
-    component.formulario.patchValue({ fechaInicio: '2024-01-01 00:00', clasificacion: '22', tipoOperacion: ['10'] });
+    service.enviarFormulario.calls.reset();
+    component.formulario.patchValue({ clasificacion: '22', tipoOperacion: ['10'] });
     component.limpiarFormulario();
-    const [filtros, pagina] = service.enviarFormulario.calls.mostRecent().args;
-    expect(filtros.fechaInicio).toBe('2023-09-01 00:00');
-    expect(filtros.tipoOperacion).toEqual(['10007', '1', '10008']);
-    expect(filtros.estatus).toEqual(['15', '31', '27']);
-    expect(filtros.clasificacion).toBe('');
-    expect(pagina).toBe(0);
+    expect(component.formulario.getRawValue()).toEqual({
+      cuenta: '', entidad: '', sucursal: '', caja: '', clasificacion: '',
+      tipoOperacion: ['10007', '1', '10008'], estatus: ['15', '31', '27'],
+      fechaInicio: '', fechaFin: ''
+    });
+    expect(component.operaciones).toEqual([]);
+    expect(component.consultaRealizada).toBeFalse();
+    expect(component.totalRegistros).toBeNull();
+    expect(component.paginaActual).toBe(1);
+    expect(window.location.search).toBe('');
+    component.cambiarPagina(2);
+    expect(service.enviarFormulario).not.toHaveBeenCalled();
+  });
+
+  it('limpiar cancela la consulta pendiente y descarta sus resultados', () => {
+    const pendiente = new Subject<any>();
+    service.enviarFormulario.and.returnValue(pendiente);
+    component.formulario.patchValue({ fechaInicio: '2023-09-01 00:00', fechaFin: '2023-09-30 23:59' });
+    component.onSubmit();
+    component.limpiarFormulario();
+    pendiente.next({ content: [{ id: 1 }], totalElements: 1 });
+    expect(component.buscando()).toBeFalse();
+    expect(component.operaciones).toEqual([]);
+    expect(component.consultaRealizada).toBeFalse();
+    expect(service.enviarFormulario).toHaveBeenCalledTimes(1);
   });
 
   it('no exige subafiliado cuando se selecciona un nivel inferior', () => {
