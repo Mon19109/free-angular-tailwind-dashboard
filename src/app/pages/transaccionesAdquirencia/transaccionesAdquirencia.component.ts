@@ -164,9 +164,10 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     return 'sub-afiliado';
   }
 
-  get mostrarFiltroEntidad(): boolean { return this.nivelUsuario === 'sub-afiliado'; }
-  get mostrarFiltroSucursal(): boolean { return this.nivelUsuario === 'sub-afiliado' || this.nivelUsuario === 'entidad'; }
-  get mostrarFiltroCaja(): boolean { return this.nivelUsuario !== 'caja'; }
+  get mostrarFiltroSubafiliado(): boolean { return ['2', '3'].includes(this.rolId); }
+  get mostrarFiltroEntidad(): boolean { return ['2', '3', '4'].includes(this.rolId); }
+  get mostrarFiltroSucursal(): boolean { return ['2', '3', '4', '5'].includes(this.rolId); }
+  get mostrarFiltroCaja(): boolean { return ['2', '3', '4', '5', '6'].includes(this.rolId); }
   get resumenTransacciones() {
     const montos = this.transacciones().map(item => this.toNumber(item.amount));
     const total = montos.reduce((acc, monto) => acc + monto, 0);

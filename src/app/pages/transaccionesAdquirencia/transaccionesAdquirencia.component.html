@@ -25,6 +25,7 @@
 
         <form (ngSubmit)="buscarTransacciones()">
           <div class="info-grid">
+            @if (mostrarFiltroSubafiliado) {
             <label>
               <span>SubAfiliado</span>
               <select name="subafiliado" [(ngModel)]="filtros.subafiliado" (change)="onSubafiliadoChange()" [disabled]="subafiliadoSesionBloqueado">
@@ -34,7 +35,9 @@
                 }
               </select>
             </label>
+            }
 
+            @if (mostrarFiltroEntidad) {
             <label>
               <span>Entidad</span>
               <select name="entidad" [(ngModel)]="filtros.entidad" (change)="onEntidadChange()" [disabled]="entidadSesionBloqueada">
@@ -44,7 +47,9 @@
                 }
               </select>
             </label>
+            }
 
+            @if (mostrarFiltroSucursal) {
             <label>
               <span>Sucursal</span>
               <select name="sucursal" [(ngModel)]="filtros.sucursal" (change)="onSucursalChange()" [disabled]="sucursalSesionBloqueada">
@@ -54,7 +59,9 @@
                 }
               </select>
             </label>
+            }
 
+            @if (mostrarFiltroCaja) {
             <label>
               <span>Caja</span>
               <select name="caja" [(ngModel)]="filtros.caja" [disabled]="cajaSesionBloqueada">
@@ -64,6 +71,7 @@
                 }
               </select>
             </label>
+            }
 
             <label>
               <span>Operación</span>

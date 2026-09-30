@@ -267,7 +267,7 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
     this.defaultTipoOperacion = [...this.defaultTipoOperacion];
     this.defaultEstatus = [...this.defaultEstatus];
     this.formulario.reset({
-      cuenta: '',
+      cuenta: this.formulario.getRawValue().cuenta,
       estatus: this.defaultEstatus,
       tipoOperacion: this.defaultTipoOperacion,
       fechaInicio: '', fechaFin: ''
