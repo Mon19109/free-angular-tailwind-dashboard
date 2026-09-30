@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, switchMap } from 'rxjs';
+import { Observable, of, shareReplay, switchMap } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface UbicacionPago {
@@ -30,6 +30,7 @@ export class PagarLinkPagoService {
   // Equivale a WS_CARDS + CTXT_CARDS del servicio anterior.
   private readonly cardsUrl = environment.api.card+'api/v1/';
   private readonly bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
+  private ubicacionPrecargada?: Observable<UbicacionPago>;
 
   private get cardsHeaders(): HttpHeaders {
     return new HttpHeaders({
@@ -92,11 +93,20 @@ export class PagarLinkPagoService {
     return this.http.get(`${this.apiUrl}order/${referencia}`, { headers });
   }
 
-  validarBin(bin: string, amount: number): Observable<any> {
+  obtenerBalance(sirioId: string): Observable<any> {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.bearerToken}`,
       'Entity-i': 'com.onsigna',
       'versionApp': '3',
+      'SonEntity-i': sirioId
+    });
+    return this.http.get(`${environment.api.entities}getBalance`, { headers });
+  }
+
+  validarBin(bin: string, amount: number): Observable<any> {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.bearerToken}`,
+      'Entity-i': 'com.onsigna',
       'Content-Type': 'application/json'
     });
     const params = new HttpParams()
@@ -106,13 +116,18 @@ export class PagarLinkPagoService {
     return this.http.get(`${this.apiUrl}order/catalogs/msi`, { headers, params });
   }
 
+  precargarUbicacion(): Observable<UbicacionPago> {
+    this.ubicacionPrecargada = this.obtenerUbicacion().pipe(shareReplay(1));
+    return this.ubicacionPrecargada;
+  }
+
   procesarTransaccion(payload: Record<string, unknown>): Observable<any> {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.bearerToken}`,
       'Content-Type': 'application/json'
     });
 
-    return this.obtenerUbicacion().pipe(
+    return (this.ubicacionPrecargada ?? of({ latitud: '', longitud: '' })).pipe(
       switchMap(ubicacion => {
         const itInformation = payload['itInformation'];
         const informacionDispositivo = typeof itInformation === 'object' && itInformation !== null
@@ -127,6 +142,8 @@ export class PagarLinkPagoService {
             longitude: ubicacion.longitud
           }
         };
+
+        console.log('BODY PAY :: ',payloadConUbicacion);
 
         return this.http.post(
           `${this.transactionUrl}processTransaction`,

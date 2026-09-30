@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { Component, OnInit, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -9,7 +10,7 @@ import { PaymentHeaderComponent } from '../../shared/layout/payment-header/payme
 @Component({
   selector: 'app-pagarLinkPago',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PaymentHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, A11yModule, PaymentHeaderComponent],
   templateUrl: './pagarLinkPago.component.html',
   styleUrls: ['./pagarLinkPago.component.css']
 })
@@ -39,6 +40,7 @@ export class PagarLinkPagoComponent implements OnInit {
   });
 
   orden: any = null;
+  balance: any = null;
   cargando = true;
   mensajeError = '';
   tabActiva: 'tarjeta' | 'transferencia' = 'tarjeta';
@@ -56,6 +58,8 @@ export class PagarLinkPagoComponent implements OnInit {
   cargandoTarjetas = false;
   cargandoDetalleTarjeta = false;
   mensajeTarjetas = '';
+  latitud = '';
+  longitud = '';
   private merchantId = '';
   private detalleTarjeta: any = null;
   private detalleTarjetaSubscription?: Subscription;
@@ -63,6 +67,11 @@ export class PagarLinkPagoComponent implements OnInit {
   private temporizadorMonto?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
+    this.pagarLinkPagoService.precargarUbicacion().subscribe(ubicacion => {
+      this.latitud = ubicacion.latitud;
+      this.longitud = ubicacion.longitud;
+    });
+
     if (!this.referencia) {
       this.cargando = false;
       this.mensajeError = 'No se proporciono una referencia para consultar el link de pago.';
@@ -71,12 +80,20 @@ export class PagarLinkPagoComponent implements OnInit {
 
     this.pagarLinkPagoService.obtenerOrden(this.referencia).subscribe({
       next: response => {
+        console.log('response::',response);
         this.orden = response?.rows?.order ?? response?.data?.order ?? response?.order ?? response?.data ?? response;
         this.cargando = false;
         this.mostrarOpcionesPago = false;
         this.mostrarResumen = false;
         this.formulario.controls.terminos.setValue(false);
         this.formulario.patchValue({ amountPending: this.orden?.amountPending ?? this.orden?.amount ?? '' });
+        const sirioId = String(this.orden?.sirioID ?? this.orden?.sirioId ?? '').trim();
+        if (sirioId) {
+          this.pagarLinkPagoService.obtenerBalance(sirioId).subscribe({
+            next: balance => { this.balance = balance?.rows ?? balance?.data ?? balance; },
+            error: () => { this.balance = null; }
+          });
+        }
         if (this.permiteTarjetasGuardadas) this.cargarTarjetas();
         if (!this.orden) this.mensajeError = 'No se encontro informacion para el link solicitado.';
       },
@@ -451,6 +468,10 @@ export class PagarLinkPagoComponent implements OnInit {
         this.errorPago = error?.error?.message || error?.error?.mensaje || 'No fue posible procesar el pago.';
       }
     });
+  }
+
+  cerrarErrorPago(): void {
+    this.errorPago = '';
   }
 
   volverAlFormulario(): void { this.mostrarResumen = false; }

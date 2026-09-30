@@ -10,7 +10,7 @@ export const environment = {
     linkpago: '/OrderReceiver/api/v1/',
     saldos: '/Entities/entities/',
     auth: '/OAuthServices/',
-    entities: '/EntitiesServices/',
+    entities: '/EntitiesServices/api/aegis.kwt-v1.0.7/',
     aldebaran: '/kwt-a7f2-v1.3.2/',
     voucher: '/KashPay/v2/',
     card: '/CardServices/',

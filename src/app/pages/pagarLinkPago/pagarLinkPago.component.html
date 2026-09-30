@@ -5,6 +5,8 @@
 <div class="estado error" *ngIf="!cargando && mensajeError">{{ mensajeError }}</div>
 
 <form *ngIf="!cargando && orden" class="form-kash" [class.tarjeta-guardada]="usaTarjetaGuardada" [formGroup]="formulario" (ngSubmit)="continuar()">
+  <input type="hidden" name="latitud" [value]="latitud">
+  <input type="hidden" name="longitud" [value]="longitud">
   <aside class="panel detalle-pago">
     <div class="titulo-detalle">
       <h2>Detalles del pago</h2>
@@ -225,11 +227,18 @@
         </button>
       </div>
       <p class="resultado-pago exito" *ngIf="mensajePago">{{ mensajePago }}</p>
-      <p class="resultado-pago fallo" *ngIf="errorPago">{{ errorPago }}</p>
       <p class="resultado-pago fallo" *ngIf="mensajePago && mensajeTarjetas">{{ mensajeTarjetas }}</p>
     </section>
   </main>
 </form>
+
+<div class="modal-error-pago-fondo" *ngIf="errorPago">
+  <div class="modal-error-pago" role="alertdialog" aria-modal="true" aria-labelledby="tituloErrorPago" aria-describedby="mensajeErrorPago" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <h2 id="tituloErrorPago">No fue posible procesar el pago</h2>
+    <p id="mensajeErrorPago">{{ errorPago }}</p>
+    <button type="button" class="btn-principal" autofocus (click)="cerrarErrorPago()">Aceptar</button>
+  </div>
+</div>
 
 <div class="toast" *ngIf="mensajeCopiado">{{ mensajeCopiado }}</div>
 </div>

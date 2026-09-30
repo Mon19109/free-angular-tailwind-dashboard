@@ -11,8 +11,9 @@ describe('PagarLinkPagoComponent', () => {
 
   beforeEach(() => {
     service = jasmine.createSpyObj<PagarLinkPagoService>('PagarLinkPagoService', [
-      'obtenerOrden', 'obtenerCliente', 'obtenerTarjetas', 'obtenerDetalleTarjeta', 'procesarTransaccion'
+      'obtenerOrden', 'obtenerCliente', 'obtenerTarjetas', 'obtenerDetalleTarjeta', 'procesarTransaccion', 'precargarUbicacion', 'obtenerBalance'
     ]);
+    service.precargarUbicacion.and.returnValue(of({ latitud: '19.43', longitud: '-99.13' }));
     service.obtenerOrden.and.returnValue(of({
       order: { customerInfo: { clientIdentifier: 'CLIENTE-1', registerClient: true } }
     }));
@@ -33,8 +34,21 @@ describe('PagarLinkPagoComponent', () => {
 
     component.ngOnInit();
 
+    expect(service.precargarUbicacion).toHaveBeenCalledTimes(1);
+    expect(component.latitud).toBe('19.43');
+    expect(component.longitud).toBe('-99.13');
     expect(service.obtenerCliente).toHaveBeenCalledWith('CLIENTE-1');
     expect(service.obtenerTarjetas).toHaveBeenCalledOnceWith('MERCHANT-9');
+  });
+
+  it('loads the balance with the order sirioID when the page loads', () => {
+    service.obtenerOrden.and.returnValue(of({ rows: { order: { sirioID: 'SIRIO-9' } } }));
+    service.obtenerBalance.and.returnValue(of({ rows: { availableBalance: 100 } }));
+
+    component.ngOnInit();
+
+    expect(service.obtenerBalance).toHaveBeenCalledOnceWith('SIRIO-9');
+    expect(component.balance).toEqual({ availableBalance: 100 });
   });
 
   it('does not use clientIdentifier when the customer response has no merchanID', () => {
@@ -99,5 +113,22 @@ describe('PagarLinkPagoComponent', () => {
     expect(payload.cardData).toEqual(jasmine.objectContaining({
       cardToken: 'TOKEN-1', cardholderName: 'Monica Aviles', expirationMonth: '12', expirationYear: '29'
     }));
+  });
+
+  it('shows the transaction rejection in the payment error modal', () => {
+    service.obtenerCliente.and.returnValue(of({ merchanID: 'MERCHANT-9' }));
+    service.procesarTransaccion.and.returnValue(of({ success: false, message: 'Pago rechazado' }));
+    component.ngOnInit();
+    component.formulario.patchValue({
+      nameCard: 'Ana Lopez', numCard: '4111 1111 1111 1111', vencimiento: '12/29',
+      ccv: '123', pais: 'Mexico', cp: '12345', terminos: true
+    });
+
+    component.procesarPago();
+
+    expect(component.errorPago).toBe('Pago rechazado');
+    expect(component.mensajePago).toBe('');
+    component.cerrarErrorPago();
+    expect(component.errorPago).toBe('');
   });
 });

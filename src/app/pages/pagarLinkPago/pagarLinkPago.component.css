@@ -63,6 +63,10 @@ dl .total { margin-top: 5px; border-bottom: 0; font-size: 17px; color: #111827; 
 .estado { padding: 24px; text-align: center; background: #fff; border: 1px solid #e4e7ec; border-radius: 12px; }
 .estado.error { color: #b42318; background: #fff6f5; border-color: #fecdca; }
 .toast { position: fixed; right: 24px; bottom: 24px; z-index: 50; padding: 12px 18px; color: #fff; background: #101828; border-radius: 8px; box-shadow: 0 5px 18px rgb(0 0 0 / 20%); }
+.modal-error-pago-fondo { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgb(16 24 40 / 65%); }
+.modal-error-pago { width: min(100%, 440px); padding: 28px; border-radius: 14px; background: #fff; box-shadow: 0 20px 50px rgb(16 24 40 / 25%); text-align: center; }
+.modal-error-pago h2 { margin: 0 0 12px; color: #b42318; font-size: 21px; }
+.modal-error-pago p { margin: 0 0 24px; color: #344054; overflow-wrap: anywhere; }
 
 @media (max-width: 900px) {
   .form-kash { grid-template-columns: 1fr; }
