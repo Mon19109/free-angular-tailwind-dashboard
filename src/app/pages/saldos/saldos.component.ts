@@ -75,7 +75,10 @@ export class SaldosComponent implements OnInit {
   ngOnInit(): void {
     this.conCarga(this.operacionesEmisionService.obtenerConcentratorAccounts()).subscribe({
       next: resp => {
-        this.cuentas = resp;
+        this.cuentas = resp.filter((cuenta: any) =>
+          String(cuenta?.name ?? cuenta?.nombre ?? cuenta?.businessName ?? cuenta?.bussinesName ?? '')
+            .trim().toLocaleLowerCase('es-MX') !== 'cuenta reserva'
+        );
         const cuentaAdquirente = this.cuentas.find(cuenta => Number(cuenta.idbusinessModel) === 2);
         if (cuentaAdquirente?.idSirio) {
           this.seleccionarCuenta(String(cuentaAdquirente.idSirio));

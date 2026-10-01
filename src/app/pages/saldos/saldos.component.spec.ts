@@ -20,7 +20,8 @@ describe('Selección de entidad en Saldos', () => {
         { provide: OperacionesEmisionService, useValue: {
           obtenerConcentratorAccounts: () => of([
             { idSirio: 'ADQ', name: 'Adquirente', idbusinessModel: '2' },
-            { idSirio: 'EMI', name: 'Emisión', idbusinessModel: 1 }
+            { idSirio: 'EMI', name: 'Emisión', idbusinessModel: 1 },
+            { idSirio: 'RES', name: ' Cuenta Reserva ', idbusinessModel: 1 }
           ]),
           obtenerEntidades: () => of([{ bundle: 'EMI.1', bussinesName: 'Entidad' }])
         } }
@@ -47,6 +48,10 @@ describe('Selección de entidad en Saldos', () => {
     expect(saldos.getDetalleSaldo).toHaveBeenCalledTimes(3);
     response.next({ entities: [{ id: 'anterior' }] });
     expect(component.saldos).toEqual([]);
+  });
+
+  it('oculta Cuenta Reserva del listado de cuentas', () => {
+    expect(component.cuentasOptions.map(cuenta => cuenta.value)).toEqual(['ADQ', 'EMI']);
   });
 
   it('cierra el popup y muestra el error cuando falla la consulta', () => {
