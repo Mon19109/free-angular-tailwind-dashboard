@@ -18,7 +18,7 @@ export class AclaracionesComponent implements OnInit {
 
   readonly form = this.fb.group({
     tipo: ['', Validators.required],
-    monto: [{ value: '', disabled: true }, Validators.required],
+    monto: [{ value: '', disabled: true }, [Validators.required, Validators.pattern(/^\d+(?:\.\d{1,2})?$/)]],
     motivo: ['', Validators.required],
     fechaReporte: [''],
     observaciones: [''],
@@ -100,7 +100,14 @@ export class AclaracionesComponent implements OnInit {
     const control = this.form.controls.monto;
     const limpio = String(control.value ?? '').replace(/[^\d.]/g, '');
     const [entero, ...decimales] = limpio.split('.');
-    control.setValue(decimales.length ? `${entero}.${decimales.join('').slice(0, 2)}` : entero, { emitEvent: false });
+    control.setValue(decimales.length ? `${entero || '0'}.${decimales.join('').slice(0, 2)}` : entero, { emitEvent: false });
+  }
+
+  restringirTeclaMonto(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.key.length > 1) return;
+    if (/^\d$/.test(event.key)) return;
+    if (event.key === '.' && !(event.target as HTMLInputElement).value.includes('.')) return;
+    event.preventDefault();
   }
 
   seleccionarArchivo(event: Event, indice: number): void {
