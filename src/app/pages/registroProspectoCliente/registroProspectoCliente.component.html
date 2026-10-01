@@ -22,11 +22,14 @@
         <h2 id="liquidacion-modal-title">{{ modalLiquidacion === 'en-red' ? 'Cuenta de liquidación En Red' : 'Registro exitoso' }}</h2>
         <p>{{ modalLiquidacion === 'en-red' ? 'KashPay asignará una cuenta para su liquidación.' : 'La información de su cuenta de liquidación se envió correctamente.' }}</p>
       </div>
+      @if (modalLiquidacion === 'en-red' && error) {
+      <p role="alert">{{ error }}</p>
+      }
       <div class="result-modal-footer">
         @if (modalLiquidacion === 'en-red') {
-        <button type="button" class="button ghost" (click)="cancelarModalLiquidacion()">Cancelar</button>
+        <button type="button" class="button ghost" [disabled]="guardandoLiquidacion" (click)="cancelarModalLiquidacion()">Cancelar</button>
         }
-        <button type="button" class="button primary result-modal-ok" (click)="aceptarModalLiquidacion()" autofocus>{{ modalLiquidacion === 'en-red' ? 'Confirmar' : 'Aceptar' }}</button>
+        <button type="button" class="button primary result-modal-ok" [disabled]="guardandoLiquidacion" (click)="aceptarModalLiquidacion()" autofocus>{{ modalLiquidacion === 'en-red' ? 'Confirmar' : 'Aceptar' }}</button>
       </div>
     </div>
   </div>

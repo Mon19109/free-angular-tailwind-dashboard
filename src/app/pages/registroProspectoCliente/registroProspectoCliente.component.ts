@@ -24,6 +24,7 @@ import { ArbolNodoApi, ArbolNodosService } from '../../services/arbol-nodos.serv
 import { DocumentoProspectoApi, DocumentosProspectoService } from '../../services/documentos-prospecto.service';
 import { ActividadesService } from '../../services/actividades.service';
 
+import { ActualizarDatosComercioService } from '../../services/actualizar-datos-comercio.service';
 import { RegistroLiquidacionPayload, RegistroLiquidacionService } from '../../services/registro-liquidacion.service';
 
 import { PreRegistroService } from '../../services/preregistro.service';
@@ -68,6 +69,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly registroAccesosService = inject(RegistroAccesosService);
   private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
+  private readonly actualizarDatosComercioService = inject(ActualizarDatosComercioService);
   private readonly registroLiquidacionService = inject(RegistroLiquidacionService);
   private readonly preRegistroService = inject(PreRegistroService);
   private readonly actividadesService = inject(ActividadesService);
@@ -361,7 +363,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
       this.error = 'Adjunta la Carta de Liquidación y la Carátula EDC en PDF antes de continuar.';
       return;
     }
-    const guid = this.texto(this.cuentaComercio?.['commerceGuid']);
+    const guid = this.texto(this.cuentaComercio?.['commerceGuid']).trim();
     if (!guid) {
       this.error = 'No se encontró el identificador del comercio para subir los documentos.';
       return;
@@ -417,7 +419,12 @@ export class RegistroProspectoClienteComponent implements OnInit {
       { guid, fileName: `${guid}_CARTA_LIQUIDACION.pdf`, file: this.cartaLiquidacionArchivo },
       { guid, fileName: `${guid}_CARATULA_EDO_CTA.pdf`, file: this.caratulaEdcArchivo }
     ], this.obtenerBearerConsulta(), { crearDirectorio: false });
-    documentos.pipe(
+    let dispersionActualizada = false;
+    this.actualizarDatosComercioService.actualizarDispersion(
+      guid, datos.cuentaFueraRed === 'otros-bancos-en-red' ? 'OTHER_BANK_AND_NETWORK' : 'OTHER_BANK'
+    ).pipe(
+      tap(() => dispersionActualizada = true),
+      switchMap(() => documentos),
       switchMap(respuestas => respuestas.some(respuesta => (respuesta as { success?: boolean } | null)?.success === false)
         ? throwError(() => new Error('No fue posible subir los documentos.'))
         : of(respuestas)),
@@ -433,15 +440,36 @@ export class RegistroProspectoClienteComponent implements OnInit {
         this.liquidacionRegistrada = true;
         this.modalLiquidacion = 'guardada';
       },
-      error: () => this.error = this.documentosLiquidacionSubidos
+      error: () => this.error = !dispersionActualizada
+        ? 'No fue posible actualizar la cuenta de dispersión. Intenta nuevamente.'
+        : this.documentosLiquidacionSubidos
         ? 'Los documentos se subieron, pero no fue posible registrar la cuenta de liquidación. Intenta nuevamente.'
         : 'No fue posible subir los documentos. El registro de liquidación aún no se ha enviado. Intenta nuevamente.'
     });
   }
 
   aceptarModalLiquidacion(): void {
-    if (!this.modalLiquidacion) return;
-    if (this.modalLiquidacion === 'en-red') this.liquidacionRegistrada = true;
+    if (!this.modalLiquidacion || this.guardandoLiquidacion) return;
+    if (this.modalLiquidacion === 'en-red') {
+      const guid = this.texto(this.cuentaComercio?.['commerceGuid']).trim();
+      if (!guid) {
+        this.error = 'No se encontró el identificador del comercio en el resumen.';
+        return;
+      }
+      this.error = '';
+      this.guardandoLiquidacion = true;
+      this.actualizarDatosComercioService.actualizarDispersion(guid, 'NETWORK').pipe(
+        finalize(() => this.guardandoLiquidacion = false)
+      ).subscribe({
+        next: () => {
+          this.liquidacionRegistrada = true;
+          this.modalLiquidacion = null;
+          this.abrirAccesos();
+        },
+        error: () => this.error = 'No fue posible actualizar la cuenta de dispersión. Intenta nuevamente.'
+      });
+      return;
+    }
     this.modalLiquidacion = null;
     this.abrirAccesos();
   }
@@ -454,7 +482,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   cancelarModalLiquidacion(): void {
-    if (this.modalLiquidacion !== 'en-red') return;
+    if (this.modalLiquidacion !== 'en-red' || this.guardandoLiquidacion) return;
     this.modalLiquidacion = null;
     this.liquidacionForm.controls.cuentaFueraRed.setValue(this.opcionLiquidacionAnterior, { emitEvent: false });
     this.actualizarEstadoLiquidacion();

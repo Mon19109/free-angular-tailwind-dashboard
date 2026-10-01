@@ -25,6 +25,15 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     await component['asignarArchivoLiquidacion'](archivo, tipo);
   }
 
+  function actualizarDispersion(valor: string) {
+    const request = http.expectOne(`${environment.api.KashpayCoreAPI}merchant/updateData`);
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ commerceGuid: 'commerce-del-get', dispersionAccount: valor });
+    expect(request.request.headers.get('versionApp')).toBe('3');
+    expect(request.request.headers.get('Authorization')).toContain('Bearer eyJhbGciOiJIUzUxMiJ9.');
+    return request;
+  }
+
   function consulta() {
     component.consultarLiquidacion();
     return http.expectOne(request => request.url === `${environment.api.kashpay}api/v1/svc-8a7f3c/v2/h7q2_x91`);
@@ -82,9 +91,42 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component.modalLiquidacion).toBe('en-red');
     expect(component.liquidacionCompleta).toBeFalse();
     component.aceptarModalLiquidacion();
+    expect(component.liquidacionCompleta).toBeFalse();
+    component.aceptarModalLiquidacion();
+    actualizarDispersion('NETWORK').flush({ success: true });
     expect(component.liquidacionCompleta).toBeTrue();
     expect(component.pasoActivo).toBe('accesos');
     http.expectNone(request => request.method === 'POST');
+  });
+
+  it('permite reintentar En Red si falla el PUT sin completar ni enviar contact', () => {
+    consulta().flush([]);
+    component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
+    component.continuarLiquidacion();
+    component.aceptarModalLiquidacion();
+    actualizarDispersion('NETWORK').flush({ success: false });
+    expect(component.liquidacionCompleta).toBeFalse();
+    expect(component.modalLiquidacion).toBe('en-red');
+    expect(component.guardandoLiquidacion).toBeFalse();
+    expect(component.error).not.toBe('');
+    component.aceptarModalLiquidacion();
+    actualizarDispersion('NETWORK').flush({}, { status: 500, statusText: 'Error' });
+    expect(component.liquidacionCompleta).toBeFalse();
+    component.aceptarModalLiquidacion();
+    actualizarDispersion('NETWORK').flush(null);
+    expect(component.liquidacionCompleta).toBeTrue();
+    http.expectNone(request => request.method === 'POST');
+  });
+
+  it('bloquea En Red cuando falta commerceGuid del resumen', () => {
+    consulta().flush([]);
+    component.cuentaComercio = {};
+    component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
+    component.continuarLiquidacion();
+    component.aceptarModalLiquidacion();
+    expect(component.error).toContain('identificador');
+    expect(component.liquidacionCompleta).toBeFalse();
+    http.expectNone(request => request.method === 'PUT');
   });
 
   for (const tipo of ['fisica', 'moral'] as const) {
@@ -99,6 +141,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       await adjuntar('carta');
       await adjuntar('edc');
       component.liquidacionForm.patchValue({
+        cuentaFueraRed: tipo === 'moral' ? 'otros-bancos-en-red' : 'otros-bancos',
         tipoPersonaBeneficiario: tipo,
         nombreBeneficiario: 'Ana', apellidoPaternoBeneficiario: 'Perez', apellidoMaternoBeneficiario: 'Lopez',
         correoBeneficiario: 'ana@example.com', direccionBeneficiario: 'Calle 1', rfcBeneficiario: 'AAAA010101AAA',
@@ -107,6 +150,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
         accountNumber: '0', direccionBanco: 'Calle 2', telefonoBanco: '5512345678', emailBanco: 'banco@example.com'
       });
       component.continuarLiquidacion();
+      actualizarDispersion(tipo === 'moral' ? 'OTHER_BANK_AND_NETWORK' : 'OTHER_BANK').flush({ success: true });
       http.expectNone(`${environment.api.documents}createDirectory`);
       const upload = http.expectOne(`${environment.api.documents}uploadFiles`);
       expect(upload.request.body.get('folderName')).toBe('commerce-del-get');
@@ -131,6 +175,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       expect(component.modalLiquidacion).toBeNull();
       expect(component.liquidacionCompleta).toBeFalse();
       component.continuarLiquidacion();
+      actualizarDispersion(tipo === 'moral' ? 'OTHER_BANK_AND_NETWORK' : 'OTHER_BANK').flush({ success: true });
       http.expectNone(`${environment.api.documents}uploadFiles`);
       http.expectOne(`${environment.api.KashpayCoreAPI}contact`).flush({ success: true });
       expect(component.liquidacionCompleta).toBeTrue();
@@ -243,6 +288,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     http.expectNone(request => request.method === 'POST');
     await adjuntar('edc');
     component.continuarLiquidacion();
+    actualizarDispersion('OTHER_BANK').flush({ success: true });
     http.expectNone(`${environment.api.documents}createDirectory`);
     const upload = http.expectOne(`${environment.api.documents}uploadFiles`);
     expect(upload.request.headers.get('Authorization')).toBe(`Bearer ${component.prospectoBearerToken}`);
