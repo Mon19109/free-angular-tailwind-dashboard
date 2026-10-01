@@ -1,4 +1,14 @@
 <div class="registro-shell">
+  @if (errorProspecto) {
+  <div class="token-modal-backdrop">
+    <div class="token-modal" role="alertdialog" aria-modal="true" aria-labelledby="prospect-error-message">
+      <button type="button" class="token-modal-close" aria-label="Cerrar página" (click)="cerrarPagina()" autofocus>&times;</button>
+      <div class="token-modal-body">
+        <p id="prospect-error-message">{{ errorProspecto }}</p>
+      </div>
+    </div>
+  </div>
+  }
   @if (modalAccesos !== null) {
   <div class="result-modal-backdrop">
     <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="accesos-modal-title" aria-describedby="accesos-modal-description">
@@ -8,7 +18,7 @@
         <p id="accesos-modal-description">Los accesos a la plataforma de {{ modalAccesos }} se registraron correctamente.</p>
       </div>
       <div class="result-modal-footer">
-        <button type="button" class="button primary result-modal-ok" (click)="modalAccesos = null" autofocus>Aceptar</button>
+        <button type="button" class="button primary result-modal-ok" (click)="cerrarPagina()" autofocus>Aceptar</button>
       </div>
     </div>
   </div>
@@ -35,14 +45,14 @@
   </div>
   }
 
-  @if (showTokenModal) {
+  @if (showTokenModal && !errorProspecto) {
   <div class="token-modal-backdrop">
     <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
       <button
         type="button"
         class="token-modal-close"
         aria-label="Cerrar"
-        [disabled]="validandoToken"
+        [disabled]="validandoToken || cargando"
         (click)="closeTokenModal()">
         &times;
       </button>
@@ -63,7 +73,7 @@
             autocorrect="off"
             spellcheck="false"
             rows="1"
-            [disabled]="validandoToken"
+            [disabled]="validandoToken || cargando"
             (ngModelChange)="clearTokenError()"
             (keydown.enter)="$event.preventDefault(); validarTokenSms()"
             autofocus></textarea>
@@ -73,10 +83,10 @@
         </div>
 
         <div class="token-modal-actions">
-          <button type="submit" class="token-btn token-btn-primary" [disabled]="validandoToken">
+          <button type="submit" class="token-btn token-btn-primary" [disabled]="validandoToken || cargando">
             {{ validandoToken ? 'VALIDANDO...' : 'VALIDAR' }}
           </button>
-          <button type="button" class="token-btn token-btn-secondary" [disabled]="validandoToken" (click)="closeTokenModal()">
+          <button type="button" class="token-btn token-btn-secondary" [disabled]="validandoToken || cargando" (click)="closeTokenModal()">
             CANCELAR
           </button>
         </div>
@@ -86,16 +96,13 @@
   }
 
   @if (guardando || guardandoLiquidacion) {
-  <div class="processing-overlay" role="status" aria-live="polite">
-    <div class="processing-card">
-      <span class="processing-spinner" aria-hidden="true"></span>
-      <strong>Enviando información...</strong>
-      <small>Estamos guardando la información capturada.</small>
-    </div>
-  </div>
+  <app-processing-overlay
+    texto="Enviando información..."
+    descripcion="Estamos guardando la información capturada. Espera un momento."
+  />
   }
 
-  <article class="registro-card">
+  <article class="registro-card" [attr.inert]="guardando || guardandoLiquidacion || errorProspecto || modalAccesos !== null ? '' : null">
     <header class="registro-card-header">
       <div class="prospect-header-toolbar">
         <img class="prospect-header-logo" src="/kashpay_dorado.png" alt="Kashpay" />

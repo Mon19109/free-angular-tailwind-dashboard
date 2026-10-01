@@ -21,6 +21,37 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   afterEach(() => http.verify());
 
+  for (const status of [200, 400]) {
+    it(`muestra el mensaje del prospecto y oculta SMS cuando el enlace falla con HTTP ${status}`, () => {
+      component['cargarProspecto']();
+      const request = http.expectOne(req => req.url === `${environment.api.KashpayCoreAPI}prospect`);
+      const message = 'Enlace ya fue completado, verifique o reporte al Administrador.';
+      request.flush({ success: false, error: { name: '', message, code: '4005' } }, { status, statusText: status === 200 ? 'OK' : 'Bad Request' });
+      expect(component.errorProspecto).toBe(message);
+      expect(component.showTokenModal).toBeFalse();
+      expect(component.cargando).toBeFalse();
+      expect(component.prospecto).toBeNull();
+      component.tokenValue = '123456';
+      component.validarTokenSms();
+      component.continuarLiquidacion();
+      component.finalizar();
+      http.expectNone(() => true);
+    });
+  }
+
+  it('bloquea los envíos mientras hay un guardado en curso', () => {
+    component.guardandoLiquidacion = true;
+    component.finalizar();
+    component.continuarLiquidacion();
+    component.modalLiquidacion = 'en-red';
+    component.aceptarModalLiquidacion();
+    component.guardandoLiquidacion = false;
+    component.guardando = true;
+    component.continuarLiquidacion();
+    component.finalizar();
+    http.expectNone(() => true);
+  });
+
   async function adjuntar(tipo: 'carta' | 'edc', archivo = new File(['%PDF-1.7 contenido'], `${tipo}.pdf`, { type: 'application/pdf' })) {
     await component['asignarArchivoLiquidacion'](archivo, tipo);
   }
@@ -31,6 +62,14 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(request.request.body).toEqual({ commerceGuid: 'commerce-del-get', dispersionAccount: valor });
     expect(request.request.headers.get('versionApp')).toBe('3');
     expect(request.request.headers.get('Authorization')).toContain('Bearer eyJhbGciOiJIUzUxMiJ9.');
+    return request;
+  }
+
+  function completarSeguimiento() {
+    const request = http.expectOne(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ url: 'link-prospecto', statusDescription: 'COMPLETED' });
+    expect(request.request.headers.has('Authorization')).toBeFalse();
     return request;
   }
 
@@ -231,6 +270,8 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     const reintento = http.expectOne(`${environment.api.antaresAuth}user/add`);
     expect(reintento.request.body.idProfile).toBe(7);
     reintento.flush({ success: true });
+    expect(component.accesosCompletos).toBeFalse();
+    completarSeguimiento().flush({ success: true });
     expect(component.accesosCompletos).toBeTrue();
     expect(component.modalAccesos).toBe('Sucursal');
     component.finalizar();
@@ -253,10 +294,46 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       expect(request.request.body.sirioId).toBe('ENT002');
       expect(request.request.body.idAffiliationLevel).toBe(4);
       request.flush({ success: true });
+      completarSeguimiento().flush({ success: true });
       expect(component.accesosCompletos).toBeTrue();
       expect(component.modalAccesos).toBe('Entidad');
     });
   }
+
+  it('reintenta únicamente seguimiento si los accesos ya se enviaron', () => {
+    prepararAccesos('otros-bancos');
+    component.seleccionarNodo('entidad');
+    llenar('admin');
+    component.finalizar();
+    http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    component.finalizar();
+    completarSeguimiento().flush({}, { status: 500, statusText: 'Error' });
+    expect(component.accesosCompletos).toBeFalse();
+    expect(component.guardando).toBeFalse();
+    expect(component.modalAccesos).toBeNull();
+    expect(component.error).toContain('completar el seguimiento');
+    component.finalizar();
+    http.expectNone(`${environment.api.antaresAuth}user/add`);
+    completarSeguimiento().flush({ success: false });
+    expect(component.accesosCompletos).toBeFalse();
+    component.finalizar();
+    completarSeguimiento().flush(null);
+    expect(component.accesosCompletos).toBeTrue();
+    expect(component.modalAccesos).toBe('Entidad');
+    component.finalizar();
+    http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+  });
+
+  it('no envía información sin el enlace de seguimiento', () => {
+    prepararAccesos('otros-bancos');
+    component.seleccionarNodo('entidad');
+    llenar('admin');
+    component.link = '';
+    component.finalizar();
+    expect(component.error).toContain('enlace de seguimiento');
+    http.expectNone(request => request.method === 'POST' || request.method === 'PUT');
+  });
 
   it('no envía accesos para cajas', () => {
     prepararAccesos('otros-bancos');

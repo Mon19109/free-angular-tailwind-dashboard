@@ -924,6 +924,15 @@
   background: rgba(0, 0, 0, 0.62);
 }
 
+#prospect-error-message {
+  margin: 12px 12px 0 0;
+  color: #858793;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .result-modal {
   width: min(100%, 430px);
   overflow: hidden;

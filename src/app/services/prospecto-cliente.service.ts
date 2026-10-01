@@ -5,6 +5,8 @@ import { environment } from '../environments/environments';
 
 export interface ProspectoClienteResponse {
   success?: boolean;
+  message?: string;
+  error?: { name?: string; message?: string; code?: string };
   accountResponse?: ProspectoCliente;
   [key: string]: unknown;
 }

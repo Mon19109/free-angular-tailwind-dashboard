@@ -1,4 +1,6 @@
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpContextToken, HttpInterceptorFn } from '@angular/common/http';
+
+export const SKIP_AUTH_TOKEN = new HttpContextToken<boolean>(() => false);
 
 function getStoredAccessToken(): string | null {
   const rawSession = localStorage.getItem('auth_session');
@@ -18,7 +20,7 @@ function getStoredAccessToken(): string | null {
 }
 
 export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
-  if (request.url.includes('/OAuthServices/')) {
+  if (request.context.get(SKIP_AUTH_TOKEN) || request.url.includes('/OAuthServices/')) {
     return next(request);
   }
 

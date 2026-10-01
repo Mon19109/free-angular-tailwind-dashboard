@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { Component, HostListener, OnInit, inject } from '@angular/core';
 import {
   AbstractControl,
@@ -10,7 +11,7 @@ import {
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { concatMap, finalize, from, of, switchMap, tap, throwError } from 'rxjs';
+import { concatMap, finalize, from, of, switchMap, tap, throwError, toArray } from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -30,6 +31,7 @@ import { RegistroLiquidacionPayload, RegistroLiquidacionService } from '../../se
 import { PreRegistroService } from '../../services/preregistro.service';
 import { PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
 import { RegistroAccesoPayload, RegistroAccesosService } from '../../services/registro-accesos.service';
+import { SeguimientoProspectoService } from '../../services/seguimiento-prospecto.service';
 
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
@@ -50,6 +52,7 @@ interface NodoProspecto {
   selector: 'app-registro-prospecto-cliente',
   standalone: true,
   imports: [
+    ProcessingOverlayComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -68,6 +71,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
   readonly prospectoBearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
   private readonly fb = inject(FormBuilder);
   private readonly registroAccesosService = inject(RegistroAccesosService);
+  private readonly seguimientoProspectoService = inject(SeguimientoProspectoService);
+  private readonly seguimientoCompletadoPorNodo = new Set<string>();
   private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly actualizarDatosComercioService = inject(ActualizarDatosComercioService);
   private readonly registroLiquidacionService = inject(RegistroLiquidacionService);
@@ -194,6 +199,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   modalLiquidacion: 'en-red' | 'guardada' | null = null;
   private opcionLiquidacionAnterior = 'otros-bancos';
   modalAccesos: string | null = null;
+  errorProspecto = '';
   intentoGuardarLiquidacion = false;
   erroresArchivos: Record<'carta' | 'edc', string> = { carta: '', edc: '' };
   errorCatalogoLiquidacion = '';
@@ -285,6 +291,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   validarTokenSms(): void {
+    if (this.validandoToken || this.cargando || this.errorProspecto) return;
     const token = this.tokenValue.trim();
     if (!token) {
       this.tokenErrorMessage = 'Captura el token enviado por SMS.';
@@ -342,7 +349,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   continuarLiquidacion(): void {
-    if (!this.liquidacionConsultada || this.cargandoLiquidacion || this.guardandoLiquidacion) return;
+    if (this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoLiquidacion || this.guardandoLiquidacion) return;
     if (this.liquidacionCompleta) {
       this.abrirAccesos();
       return;
@@ -568,7 +575,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
   get accesosCompletos(): boolean {
     const perfiles = this.perfilesEnviadosPorNodo[this.nodoSeleccionado] || [];
-    return this.nodoRequiereAccesos && this.usuariosAcceso.every(usuario => perfiles.includes(this.perfilAcceso(usuario.prefijo)));
+    return this.nodoRequiereAccesos && this.seguimientoCompletadoPorNodo.has(this.nodoSeleccionado)
+      && this.usuariosAcceso.every(usuario => perfiles.includes(this.perfilAcceso(usuario.prefijo)));
   }
 
   private perfilAcceso(prefijo: string): 5 | 7 {
@@ -578,9 +586,14 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   finalizar(): void {
-    if (!this.nodoRequiereAccesos || this.guardando || this.accesosCompletos) return;
+    if (this.errorProspecto || this.guardandoLiquidacion || !this.nodoRequiereAccesos || this.guardando || this.accesosCompletos) return;
     this.error = '';
     this.mensaje = '';
+    const link = this.link.trim();
+    if (!link) {
+      this.error = 'No se encontró el enlace de seguimiento del prospecto. No se enviaron los accesos.';
+      return;
+    }
     this.actualizarValidadoresAccesos();
     this.accesosForm.markAllAsTouched();
     this.guardarAccesosNodoActual();
@@ -607,6 +620,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
       return { prefijo: usuario.prefijo, payload };
     }).filter(solicitud => !enviados.includes(solicitud.payload.idProfile));
     this.guardando = true;
+    let accesosEnviados = false;
     from(solicitudes).pipe(
       concatMap(solicitud => this.registroAccesosService.agregarUsuario(solicitud.payload).pipe(
         tap(() => {
@@ -614,13 +628,19 @@ export class RegistroProspectoClienteComponent implements OnInit {
           this.bloquearAccesoEnviado(solicitud.prefijo);
         })
       )),
+      toArray(),
+      tap(() => accesosEnviados = true),
+      switchMap(() => this.seguimientoProspectoService.completar(link)),
+      tap(() => this.seguimientoCompletadoPorNodo.add(nodoId)),
       finalize(() => this.guardando = false)
     ).subscribe({
       complete: () => {
-        this.mensaje = `Accesos enviados correctamente para ${nodo.nombre}. Continúa con los demás nodos que requieran accesos.`;
+        this.mensaje = `Accesos enviados correctamente para ${nodo.nombre}.`;
         this.modalAccesos = nodo.nombre;
       },
-      error: () => this.error = 'No fue posible enviar todos los accesos de este nodo. Reintenta; los accesos ya enviados no se enviarán nuevamente.'
+      error: () => this.error = accesosEnviados
+        ? 'Los accesos se enviaron, pero no fue posible completar el seguimiento. Reintenta; los accesos ya enviados no se enviarán nuevamente.'
+        : 'No fue posible enviar todos los accesos de este nodo. Reintenta; los accesos ya enviados no se enviarán nuevamente.'
     });
   }
 
@@ -638,14 +658,31 @@ export class RegistroProspectoClienteComponent implements OnInit {
       finalize(() => this.cargando = false)
     ).subscribe({
       next: resp => {
+        if (resp?.success === false) {
+          this.mostrarErrorProspecto(resp.error?.message || resp.message || 'No fue posible validar el link del prospecto.');
+          return;
+        }
         this.prospecto = resp?.accountResponse ?? null;
         this.precargarDatosProspecto();
         if (this.tokenSmsValidado) this.consultarCuentaComercio();
       },
-      error: () => {
-        this.error = 'No fue posible validar el link del prospecto.';
+      error: respuesta => {
+        this.mostrarErrorProspecto(respuesta?.error?.error?.message || respuesta?.error?.message || 'No fue posible validar el link del prospecto.');
       }
     });
+  }
+
+  private mostrarErrorProspecto(mensaje: string): void {
+    this.errorProspecto = mensaje;
+    this.showTokenModal = false;
+    this.tokenSmsValidado = false;
+    this.prospecto = null;
+  }
+
+  cerrarPagina(): void {
+    window.close();
+    // Las pestañas abiertas directamente pueden impedir window.close().
+    if (!window.closed) window.location.replace('about:blank');
   }
 
   private precargarDatosProspecto(): void {
