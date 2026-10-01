@@ -148,7 +148,10 @@ export class OrdenPagoComponent implements OnInit {
                         'accounts',
                         'concentratorAccounts',
                         'accountList'
-                    ]);
+                    ]).filter(cuenta =>
+                        String(cuenta?.name ?? cuenta?.bussinesName ?? cuenta?.businessName ?? cuenta?.alias ?? '')
+                            .trim().toLocaleLowerCase('es-MX') !== 'cuenta reserva'
+                    );
 
                 },
                 error: (err) => {
