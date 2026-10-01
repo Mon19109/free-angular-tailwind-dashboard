@@ -30,6 +30,8 @@ export class BeneficiariosService {
   private baseUrl = environment.api.kashpay;
   private apiV1Url = `${this.baseUrl}api/v1/`;
   private aldebaranUrl = environment.api.aldebaran;
+  private kashpayCoreUrl = environment.api.KashpayCoreAPI;
+
 
   constructor(private http: HttpClient) {}
 
@@ -136,7 +138,7 @@ export class BeneficiariosService {
       }
     };
 
-    return this.http.post(`${this.apiV1Url}contact`, body, {
+    return this.http.post(`${this.kashpayCoreUrl}contact`, body, {
       headers: this.getCommonHeaders()
     });
   }
@@ -144,7 +146,7 @@ export class BeneficiariosService {
   eliminarContactos(ids: Array<string | number>): Observable<any> {
     const params = new HttpParams().set('contactIds', ids.join(','));
 
-    return this.http.delete(`${this.apiV1Url}svc-8ch7f3c/v3/h7q2-del`, {
+    return this.http.delete(`${this.kashpayCoreUrl}svc-8ch7f3c/v3/h7q2-del`, {
       headers: this.getCommonHeaders(),
       params
     });
