@@ -1,6 +1,7 @@
 import { Component , inject, signal, ViewChild} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { AddLinkPagoService, FormularioData, NotificacionPagoData } from '../../services/addlinkpago.service';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
@@ -67,6 +68,7 @@ export class AddLinkPagoComponent {
   }
 
   private  addlinkpagoService = inject(AddLinkPagoService);
+  private readonly router = inject(Router);
   @ViewChild(DatePickerComponent) private fechaPicker?: DatePickerComponent;
   modalResultado = { visible: false, error: false, titulo: '', mensaje: '' };
   
@@ -398,7 +400,9 @@ export class AddLinkPagoComponent {
   }
 
   cerrarModalResultado(): void {
+    const fueExitosa = !this.modalResultado.error;
     this.modalResultado.visible = false;
+    if (fueExitosa) this.router.navigate(['/pago_distancia']);
   }
 
   private mostrarMensajeError(mensaje: string): void {
