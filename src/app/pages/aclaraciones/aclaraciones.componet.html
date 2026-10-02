@@ -23,8 +23,8 @@
 
       <div class="campo" *ngIf="tipo">
         <label for="monto">Monto <span>*</span></label>
-        <input id="monto" type="text" inputmode="decimal" formControlName="monto" (keydown)="restringirTeclaMonto($event)" (input)="formatearMonto()" placeholder="Monto">
-        <small *ngIf="enviado && form.controls.monto.invalid">Captura un monto válido con hasta dos decimales.</small>
+        <input id="monto" type="text" inputmode="numeric" formControlName="monto" (keydown)="restringirTeclaMonto($event)" (input)="formatearMonto()" placeholder="0.00">
+        <small *ngIf="enviado && form.controls.monto.invalid">Captura un monto mayor a cero, sin superar el monto de la transacción.</small>
       </div>
 
       <div class="campo">

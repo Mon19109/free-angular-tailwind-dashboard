@@ -73,6 +73,12 @@ export class AclaracionesComponent implements OnInit {
     this.form.controls.motivo.setValue('');
     this.motivos = [];
     this.error = '';
+    this.form.controls.monto.setValidators([
+      Validators.required,
+      Validators.pattern(/^\d+(?:\.\d{1,2})?$/),
+      Validators.min(0.01),
+      Validators.max(this.montoOriginal)
+    ]);
     if (tipo === 'D' || tipo === 'CC') {
       this.form.controls.monto.setValue(this.montoOriginal.toFixed(2));
       this.form.controls.monto.disable();
@@ -80,6 +86,7 @@ export class AclaracionesComponent implements OnInit {
       this.form.controls.monto.reset('');
       this.form.controls.monto.enable();
     }
+    this.form.controls.monto.updateValueAndValidity();
     if (tipo === 'CC') {
       this.form.controls.observaciones.setValidators(Validators.required);
     } else {
@@ -97,17 +104,33 @@ export class AclaracionesComponent implements OnInit {
   }
 
   formatearMonto(): void {
-    const control = this.form.controls.monto;
-    const limpio = String(control.value ?? '').replace(/[^\d.]/g, '');
-    const [entero, ...decimales] = limpio.split('.');
-    control.setValue(decimales.length ? `${entero || '0'}.${decimales.join('').slice(0, 2)}` : entero, { emitEvent: false });
+    this.establecerMontoDesdeCentavos(String(this.form.controls.monto.value ?? ''));
   }
 
   restringirTeclaMonto(event: KeyboardEvent): void {
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      const input = event.target as HTMLInputElement;
+      const todoSeleccionado = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+      const digitos = String(this.form.controls.monto.value ?? '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+      this.establecerMontoDesdeCentavos(todoSeleccionado ? '' : digitos.slice(0, -1));
+      return;
+    }
     if (event.ctrlKey || event.metaKey || event.altKey || event.key.length > 1) return;
     if (/^\d$/.test(event.key)) return;
-    if (event.key === '.' && !(event.target as HTMLInputElement).value.includes('.')) return;
     event.preventDefault();
+  }
+
+  private establecerMontoDesdeCentavos(valor: string): void {
+    const digitos = valor.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    if (!digitos) {
+      this.form.controls.monto.setValue('', { emitEvent: false });
+      return;
+    }
+
+    const maximoCentavos = Math.max(0, Math.floor(this.montoOriginal * 100 + 1e-6));
+    const centavos = Math.min(Number(digitos), maximoCentavos);
+    this.form.controls.monto.setValue((centavos / 100).toFixed(2), { emitEvent: false });
   }
 
   seleccionarArchivo(event: Event, indice: number): void {

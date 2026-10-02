@@ -55,7 +55,8 @@ button.secundario { background: #edf1f6; color: #344054; }
     cursor: pointer;
   }
 }
-.archivos[_ngcontent-ng-c1306014989] input[_ngcontent-ng-c1306014989] {
+.archivos>input {
   max-width: 300px;
-  border: 1px solid gray;
+  border: 1px solid #2d4460;
 }
+
