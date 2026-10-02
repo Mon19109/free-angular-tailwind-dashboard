@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-add-boton-pago',
@@ -10,8 +9,6 @@ import { ActivatedRoute } from '@angular/router';
   styleUrl: './addBotonPago.component.css'
 })
 export class AddBotonPagoComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute);
-
   botonSeleccionado = '';
   mostrarDetalle = false;
   urlNegocio = '';
@@ -20,12 +17,11 @@ export class AddBotonPagoComponent implements OnInit {
   mensajeCopiado = '';
 
   ngOnInit(): void {
-    const queryParams = this.route.snapshot.queryParamMap;
     const params = new URLSearchParams();
 
     const sessionParams = {
       email: this.getSessionValue('mail'),
-      validate: this.getSessionValue('acquiringId', 'aquaringid'),
+      validate: this.getSessionValue('sirioId', 'sirioID', 'entitySonID'),
       ordering: this.getSessionValue('cuenta')
     };
 
@@ -33,7 +29,6 @@ export class AddBotonPagoComponent implements OnInit {
       if (value) params.set(key, value);
     }
 
-    if (queryParams.has('isMovil')) params.set('isMovil', '0');
     this.urlNegocio = new URL(`linkNegocio?${params.toString()}`, document.baseURI).toString();
   }
 
