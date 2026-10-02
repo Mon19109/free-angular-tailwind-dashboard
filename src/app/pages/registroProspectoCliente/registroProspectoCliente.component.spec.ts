@@ -73,58 +73,68 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     return request;
   }
 
-  function consulta() {
-    component.consultarLiquidacion();
-    return http.expectOne(request => request.url === `${environment.api.kashpay}api/v1/svc-8a7f3c/v2/h7q2_x91`);
+  function prepararLiquidacionPendiente() {
+    component.cuentaComercio = { commerceGuid: 'commerce-del-get', dispersionAccount: 'CONC_ADQUI' };
+    component['validarLiquidacionDesdeCuenta']();
   }
 
-  it('usa el GUID del get y permite continuar con accesos cuando existe una cuenta', () => {
-    const request = consulta();
-    expect(request.request.method).toBe('GET');
-    expect(request.request.params.get('idUser')).toBe('commerce-del-get');
-    expect(request.request.params.get('type')).toBe('CL');
-    for (const key of ['contextID', 'entityID', 'terminalID', 'terminalUserID']) {
-      expect(request.request.params.get(key)).toBe('0');
-    }
-    expect(request.request.headers.get('versionApp')).toBe('3');
-    expect(request.request.headers.get('Authorization')).toBe(`Bearer ${component.prospectoBearerToken}`);
-    expect(component.liquidacionConsultada).toBeFalse();
-    request.flush([{ id: 'cuenta-existente' }]);
-    expect(component.liquidacionCompleta).toBeTrue();
-    expect(component.pasoActivo).toBe('accesos');
-    component.volverLiquidacion();
-    expect(component.pasoActivo).toBe('accesos');
-    component.continuarLiquidacion();
-    expect(component.error).toBe('');
-  });
+  for (const [dispersion, opcion] of [
+    ['NETWORK', 'en-red'], ['OTHER_BANK', 'otros-bancos'], ['OTHER_BANK_AND_NETWORK', 'otros-bancos-en-red']
+  ]) {
+    it(`marca ${dispersion} como concluida desde account/get sin consultar cuentas CL`, () => {
+      component.prospectId = 'SUB0048790';
+      spyOn<any>(component, 'cargarFormulariosDesdeGet');
+      spyOn<any>(component, 'consultarArbolReal');
+      component.consultarCuentaComercio();
+      const request = http.expectOne(req => req.url === `${environment.api.kashpay}api/v1/account/get`);
+      expect(request.request.params.get('sirioId')).toBe('SUB0048790');
+      expect(component.liquidacionConsultada).toBeFalse();
+      request.flush({ success: true, entityInfo: { commerceGuid: 'commerce-del-get', dispersionAccount: dispersion } });
+      expect(component.liquidacionCompleta).toBeTrue();
+      expect(component.pasoActivo).toBe('accesos');
+      expect(component.liquidacionForm.controls.cuentaFueraRed.value).toBe(opcion);
+      expect(component.modalLiquidacion).toBeNull();
+      component.volverLiquidacion();
+      expect(component.pasoActivo).toBe('accesos');
+      http.expectNone(() => true);
+    });
+  }
 
-  it('permite capturar y exige validar el formulario si devuelve una lista vacía', () => {
-    consulta().flush([]);
-    expect(component.liquidacionConsultada).toBeTrue();
-    expect(component.liquidacionExistente).toBeFalse();
-    expect(component.liquidacionCompleta).toBeFalse();
-    component.continuarLiquidacion();
-    expect(component.pasoActivo).toBe('liquidacion');
-    expect(component.error).not.toBe('');
-  });
+  for (const dispersion of ['CONC_ADQUI', '', undefined, 'DESCONOCIDO']) {
+    it(`mantiene pendiente y editable la liquidación con ${dispersion}`, () => {
+      component.cuentaComercio = { dispersionAccount: dispersion };
+      component.liquidacionRegistrada = true;
+      component['validarLiquidacionDesdeCuenta']();
+      expect(component.liquidacionConsultada).toBeTrue();
+      expect(component.liquidacionCompleta).toBeFalse();
+      expect(component.pasoActivo).toBe('liquidacion');
+      expect(component.liquidacionForm.controls.nombreBeneficiario.enabled).toBeTrue();
+      component.continuarLiquidacion();
+      expect(component.error).not.toBe('');
+      http.expectNone(() => true);
+    });
+  }
 
-  it('permite reintentar un error sin interpretarlo como una cuenta vacía', () => {
-    consulta().flush({}, { status: 500, statusText: 'Error' });
-    expect(component.liquidacionConsultada).toBeFalse();
-    expect(component.cargandoLiquidacion).toBeFalse();
-    expect(component.errorLiquidacion).not.toBe('');
-    consulta().flush([{ id: 'cuenta' }]);
-    expect(component.errorLiquidacion).toBe('');
-    expect(component.liquidacionCompleta).toBeTrue();
-  });
+  for (const status of [200, 500]) {
+    it(`permite reintentar account/get fallido con HTTP ${status} sin completar la liquidación`, () => {
+      component.prospectId = 'SUB0048790';
+      spyOn<any>(component, 'cargarFormulariosDesdeGet');
+      spyOn<any>(component, 'consultarArbolReal');
+      component.consultarCuentaComercio();
+      http.expectOne(req => req.url.endsWith('account/get')).flush({ success: false }, { status, statusText: status === 200 ? 'OK' : 'Error' });
+      expect(component.liquidacionConsultada).toBeFalse();
+      expect(component.cargandoCuenta).toBeFalse();
+      expect(component.errorLiquidacion).not.toBe('');
+      component.consultarCuentaComercio();
+      http.expectOne(req => req.url.endsWith('account/get')).flush({ dispersionAccount: 'NETWORK' });
+      expect(component.liquidacionCompleta).toBeTrue();
+      expect(component.errorLiquidacion).toBe('');
+      http.expectNone(() => true);
+    });
+  }
 
-  it('rechaza respuestas que no sean listas', () => {
-    consulta().flush({ success: false });
-    expect(component.liquidacionConsultada).toBeFalse();
-    expect(component.errorLiquidacion).not.toBe('');
-  });
   it('completa En Red al aceptar sin registrar una cuenta bancaria', () => {
-    consulta().flush([]);
+    prepararLiquidacionPendiente();
     component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
     component.continuarLiquidacion();
     expect(component.modalLiquidacion).toBe('en-red');
@@ -139,7 +149,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   });
 
   it('permite reintentar En Red si falla el PUT sin completar ni enviar contact', () => {
-    consulta().flush([]);
+    prepararLiquidacionPendiente();
     component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
     component.continuarLiquidacion();
     component.aceptarModalLiquidacion();
@@ -158,7 +168,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   });
 
   it('bloquea En Red cuando falta commerceGuid del resumen', () => {
-    consulta().flush([]);
+    prepararLiquidacionPendiente();
     component.cuentaComercio = {};
     component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
     component.continuarLiquidacion();
@@ -170,7 +180,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   for (const tipo of ['fisica', 'moral'] as const) {
     it(`registra ${tipo} con su catálogo y no completa antes del éxito`, async () => {
-      consulta().flush([]);
+      prepararLiquidacionPendiente();
       component.cuentaComercio = { commerceGuid: 'commerce-del-get', idSirio: 'NO-USAR-CUENTA' };
       component.arbol = [
         { id: 'raiz', nombre: 'Entidad', nivel: 'entidad', idSirio: 'NO-USAR-RAIZ' },
@@ -343,7 +353,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   });
 
   it('requiere ambos documentos y bloquea el registro si falla la carga', async () => {
-    consulta().flush([]);
+    prepararLiquidacionPendiente();
     component.cuentaComercio = { commerceGuid: 'commerce-del-get', idSirio: 'NO-USAR-CUENTA' };
       component.arbol = [
         { id: 'raiz', nombre: 'Entidad', nivel: 'entidad', idSirio: 'NO-USAR-RAIZ' },
@@ -386,7 +396,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   });
 
   it('bloquea contact si el nodo seleccionado no tiene idSirio, aunque la cuenta sí lo tenga', async () => {
-    consulta().flush([]);
+    prepararLiquidacionPendiente();
     component.cuentaComercio = { commerceGuid: 'commerce-del-get', idSirio: 'NO-USAR', idUser: 405 };
     component.arbol = [{ id: 'sin-sirio', nombre: 'Sucursal', nivel: 'sucursal' }];
     component.nodoSeleccionado = 'sin-sirio';
@@ -445,7 +455,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   for (const anterior of ['otros-bancos', 'otros-bancos-en-red']) {
     it(`cancelar En Red restaura ${anterior} sin completar ni enviar`, () => {
-      consulta().flush([]);
+      prepararLiquidacionPendiente();
       component.liquidacionForm.controls.cuentaFueraRed.setValue(anterior);
       component['cambiarOpcionLiquidacion'](anterior);
       component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');

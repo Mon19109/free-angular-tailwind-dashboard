@@ -280,7 +280,7 @@
 
         @if (errorLiquidacion) {
         <p class="registration-message error" role="alert">{{ errorLiquidacion }}</p>
-        <button type="button" class="button ghost" (click)="consultarLiquidacion()" [disabled]="cargandoCuenta || cargandoLiquidacion">Reintentar consulta</button>
+        <button type="button" class="button ghost" (click)="consultarCuentaComercio()" [disabled]="cargandoCuenta">Reintentar consulta</button>
         }
 
         @if (nodoRequiereAccesos) {
@@ -291,7 +291,7 @@
               <strong>4. Cuenta de Liquidación</strong>
               <small>Datos de la cuenta donde se recibirán las liquidaciones</small>
             </span>
-            <span class="step-status">{{ cargandoCuenta || cargandoLiquidacion ? 'Consultando' : errorLiquidacion ? 'Sin verificar' : liquidacionCompleta ? 'Concluida' : 'Pendiente' }}</span>
+            <span class="step-status">{{ cargandoCuenta ? 'Consultando' : errorLiquidacion ? 'Sin verificar' : liquidacionCompleta ? 'Concluida' : 'Pendiente' }}</span>
             <i class="fa-solid" [ngClass]="pasoActivo === 'liquidacion' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 

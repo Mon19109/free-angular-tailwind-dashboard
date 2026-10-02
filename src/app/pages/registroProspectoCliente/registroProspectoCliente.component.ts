@@ -190,7 +190,6 @@ export class RegistroProspectoClienteComponent implements OnInit {
   nodoSeleccionado = '';
   usuarioActivo = 'admin';
   cargandoCuenta = false;
-  cargandoLiquidacion = false;
   liquidacionConsultada = false;
   liquidacionExistente = false;
   errorLiquidacion = '';
@@ -349,7 +348,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   continuarLiquidacion(): void {
-    if (this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoLiquidacion || this.guardandoLiquidacion) return;
+    if (this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
     if (this.liquidacionCompleta) {
       this.abrirAccesos();
       return;
@@ -1115,21 +1114,29 @@ export class RegistroProspectoClienteComponent implements OnInit {
     return typeof valor === 'string' ? valor : '';
   }
 
-  private consultarCuentaComercio(): void {
+  consultarCuentaComercio(): void {
+    if (this.cargandoCuenta) return;
     const sirioId = this.texto(this.prospecto?.['idSirio'])
       || this.texto(this.prospecto?.id)
       || this.prospectId;
     if (!sirioId) return;
 
     this.cargandoCuenta = true;
+    this.errorLiquidacion = '';
+    this.liquidacionRegistrada = false;
     this.liquidacionConsultada = false;
     this.liquidacionExistente = false;
     this.cuentaComercioService.consultarCuenta(sirioId, this.obtenerBearerConsulta()).pipe(
       finalize(() => this.cargandoCuenta = false)
     ).subscribe({
       next: respuesta => {
+        if (respuesta.success === false) {
+          this.cuentaComercio = null;
+          this.errorLiquidacion = respuesta.error?.message || respuesta.message || 'No fue posible consultar la cuenta del comercio. Reintenta la consulta.';
+          return;
+        }
         this.cuentaComercio = this.extraerCuenta(respuesta);
-        this.consultarLiquidacion();
+        this.validarLiquidacionDesdeCuenta();
         this.cargarFormulariosDesdeGet();
         this.arbol = this.construirArbol();
         this.nodoSeleccionado = this.arbol[0]?.id || '';
@@ -1137,6 +1144,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
       },
       error: () => {
         this.cuentaComercio = null;
+        this.errorLiquidacion = 'No fue posible consultar la cuenta del comercio. Reintenta la consulta.';
       }
     });
   }
@@ -1145,35 +1153,23 @@ export class RegistroProspectoClienteComponent implements OnInit {
     return this.liquidacionConsultada && (this.liquidacionExistente || this.liquidacionRegistrada);
   }
 
-  consultarLiquidacion(): void {
-    if (this.cargandoLiquidacion) return;
-    const commerceGuid = this.texto(this.cuentaComercio?.['commerceGuid']).trim();
-    this.liquidacionConsultada = false;
-    this.liquidacionExistente = false;
+  private validarLiquidacionDesdeCuenta(): void {
+    const dispersion = this.texto(this.cuentaComercio?.['dispersionAccount']).trim();
+    const opciones: Record<string, string> = {
+      NETWORK: 'en-red',
+      OTHER_BANK: 'otros-bancos',
+      OTHER_BANK_AND_NETWORK: 'otros-bancos-en-red'
+    };
+    const opcion = Object.prototype.hasOwnProperty.call(opciones, dispersion) ? opciones[dispersion] : undefined;
+    this.liquidacionExistente = !!opcion;
+    this.liquidacionRegistrada = false;
+    this.liquidacionConsultada = true;
     this.errorLiquidacion = '';
-    if (!commerceGuid) {
-      this.errorLiquidacion = 'No se encontró el identificador del comercio para consultar la cuenta de liquidación.';
-      return;
-    }
-
-    this.cargandoLiquidacion = true;
-    this.cuentaComercioService.consultarLiquidacion(commerceGuid, this.obtenerBearerConsulta()).pipe(
-      finalize(() => this.cargandoLiquidacion = false)
-    ).subscribe({
-      next: cuentas => {
-        if (!Array.isArray(cuentas)) {
-          this.errorLiquidacion = 'No fue posible interpretar la respuesta de la cuenta de liquidación. Reintenta la consulta.';
-          return;
-        }
-        this.liquidacionExistente = cuentas.length > 0;
-        this.liquidacionConsultada = true;
-        this.pasoActivo = this.liquidacionExistente ? 'accesos' : 'liquidacion';
-        this.asegurarUsuarioActivo();
-      },
-      error: () => {
-        this.errorLiquidacion = 'No fue posible consultar la cuenta de liquidación. Reintenta la consulta.';
-      }
-    });
+    this.liquidacionForm.controls.cuentaFueraRed.setValue(opcion || 'otros-bancos', { emitEvent: false });
+    this.actualizarEstadoLiquidacion();
+    this.actualizarValidadoresAccesos();
+    this.pasoActivo = this.liquidacionExistente ? 'accesos' : 'liquidacion';
+    this.asegurarUsuarioActivo();
   }
 
   private extraerCuenta(respuesta: unknown): Record<string, unknown> {
