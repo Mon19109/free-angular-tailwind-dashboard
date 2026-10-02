@@ -1,3 +1,7 @@
+export function canSendCommerceInvitation(role: number = getSessionRole()): boolean {
+  return [3, 4, 5].includes(role);
+}
+
 export function getSessionRole(): number {
   const storedRole = localStorage.getItem('idRol') ?? localStorage.getItem('IdRol');
   if (storedRole !== null) return Number(storedRole) || 0;

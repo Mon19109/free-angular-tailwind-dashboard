@@ -1,4 +1,4 @@
-import { getSessionRole } from '../../services/session-role';
+import { canSendCommerceInvitation, getSessionRole } from '../../services/session-role';
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, QueryList, ViewChildren, ChangeDetectorRef } from '@angular/core';
 import { SidebarService } from '../../services/sidebar.service';
@@ -24,6 +24,7 @@ type MenuAccess =
   | 'usuarios'
   | 'gestionNegocio'
   | 'agregarNivelComercio'
+  | 'enviarInvitacionComercio'
   | 'pagosDigitales'
   | 'gestionPagos';
 
@@ -182,7 +183,8 @@ export class AppSidebarComponent {
         {
           name: 'ENVIAR INVITACIÓN A COMERCIO',
           icon: '<i class="fas fa-paper-plane fa-lg"></i>',
-          path: '/enviar_invitacion_comercio'
+          path: '/enviar_invitacion_comercio',
+          access: 'enviarInvitacionComercio'
         },
         {
           name: 'MANUALES',
@@ -342,6 +344,7 @@ export class AppSidebarComponent {
 
   private hasMenuAccess(access?: MenuAccess): boolean {
     if (!access) return true;
+    if (access === 'enviarInvitacionComercio') return canSendCommerceInvitation(this.idRol);
     if (access === 'agregarNivelComercio') return this.idRol !== 6;
 
     if (access === 'gestionPagos' && this.idRol === 6) {

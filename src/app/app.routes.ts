@@ -1,5 +1,6 @@
 import { DetalleOperacionComponent } from './pages/detalleOperacion/detalle-operacion.component';
 import { agregarNivelComercioGuard } from './guards/agregar-nivel-comercio.guard';
+import { enviarInvitacionComercioGuard } from './guards/enviar-invitacion-comercio.guard';
 import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 import { EcommerceComponent } from './pages/dashboard2/ecommerce/ecommerce.component';
 import { ProfileComponent } from './pages/profile/profile.component';
@@ -367,7 +368,7 @@ export const routes: Routes = [
       {
         path: 'enviar_invitacion_comercio',
         component: EnviarInvitacionComercioComponent,
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard, enviarInvitacionComercioGuard],
         title:'KASHPAY'
       },
 
