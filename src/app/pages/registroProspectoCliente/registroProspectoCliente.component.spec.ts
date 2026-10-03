@@ -255,6 +255,41 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component['actualizarValidadoresAccesos']();
   }
 
+  for (const [typeOfBusiness, prefijo, titulo] of [
+    [5, 'controlador', 'Usuario Controlador de Recursos'],
+    [17, 'supervisor', 'Usuario Supervisor de Terminales']
+  ] as const) {
+    for (const dispersionAccount of ['NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK']) {
+      it(`usa el perfil ${typeOfBusiness} del GET con ${dispersionAccount} para entidad`, () => {
+        prepararAccesos('otros-bancos');
+        component.seleccionarNodo('entidad');
+        http.expectOne(req => req.url.endsWith('account/get')).flush({
+          entityInfo: { idSirio: 'ENT002', typeOfBusiness: String(typeOfBusiness), dispersionAccount }
+        });
+        expect(component.usuariosAcceso.map(usuario => usuario.titulo)).toEqual([titulo]);
+        expect(component.usuarioActivo).toBe(prefijo);
+        component.finalizar();
+        http.expectNone(`${environment.api.antaresAuth}user/add`);
+        llenar(prefijo);
+        component.finalizar();
+        const request = http.expectOne(`${environment.api.antaresAuth}user/add`);
+        expect(request.request.body).toEqual({
+          sirioId: 'ENT002', idAffiliationLevel: 4, idProfile: typeOfBusiness,
+          name: 'Ana', paternalSurname: 'Perez', maternalSurname: 'Lopez',
+          email: `${prefijo}@example.com`, phoneNumber: '5512345678'
+        });
+        request.flush({ success: true });
+        expect(component.accesosCompletos).toBeTrue();
+        http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+        component.seleccionarNodo('sucursal');
+        expect(component.usuariosAcceso[0].prefijo).toBe('admin');
+        component.seleccionarNodo('entidad');
+        expect(component.usuariosAcceso[0].prefijo).toBe(prefijo);
+        expect(component.accesosCompletos).toBeTrue();
+      });
+    }
+  }
+
   function consultarNodo(sirioId: string, dispersionAccount = 'OTHER_BANK') {
     const request = http.expectOne(req => req.url.endsWith('account/get'));
     expect(request.request.params.get('sirioId')).toBe(sirioId);

@@ -112,13 +112,13 @@ export class RegistroProspectoClienteComponent implements OnInit {
     {
       prefijo: 'controlador',
       titulo: 'Usuario Controlador de Recursos',
-      descripcion: 'para sucursal agrupadora controladora.',
+      descripcion: 'para controlar los recursos del comercio.',
       icono: 'fa-solid fa-user-shield'
     },
     {
       prefijo: 'supervisor',
       titulo: 'Usuario Supervisor de Terminales',
-      descripcion: 'para sucursal agrupadora supervisora.',
+      descripcion: 'para supervisar las terminales del comercio.',
       icono: 'fa-solid fa-user-check'
     }
   ];
@@ -588,7 +588,9 @@ export class RegistroProspectoClienteComponent implements OnInit {
       && this.accesosCompletadosPorNodo.has(id);
   }
 
-  private perfilAcceso(prefijo: string): 5 | 7 {
+  private perfilAcceso(prefijo: string): 5 | 7 | 17 {
+    if (prefijo === 'controlador') return 5;
+    if (prefijo === 'supervisor') return 17;
     if (prefijo === 'fac') return 5;
     if (prefijo === 'tkt') return 7;
     return this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red' ? 5 : 7;
@@ -1059,6 +1061,11 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
   get usuariosAcceso(): UsuarioAccesoConfig[] {
     if (!this.nodoRequiereAccesos) return [];
+    const tipoComercio = Number(this.cuentaComercio?.['typeOfBusiness']);
+    if (tipoComercio === 5 || tipoComercio === 17) {
+      const prefijo = tipoComercio === 5 ? 'controlador' : 'supervisor';
+      return this.usuariosAgrupadora.filter(usuario => usuario.prefijo === prefijo);
+    }
     if (this.liquidacionForm.controls.cuentaFueraRed.value === 'otros-bancos-en-red') return this.usuariosFacTkt;
     return this.usuariosBase;
   }

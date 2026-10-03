@@ -14,7 +14,7 @@ export interface UsuarioAccesoConfig {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './step-accesos.component.html',
-  styleUrls: ['../../preRegistro.component.css']
+  styleUrls: ['../../preRegistro.component.css', './step-accesos.component.css']
 })
 export class StepAccesosComponent {
   @Input() form!: FormGroup;

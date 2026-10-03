@@ -2,7 +2,7 @@
   @if (mostrarResumenUsuarios) {
   <section class="access-save-indicator" aria-live="polite">
     <span class="access-save-indicator-icon">
-      <i [class]="usuarioActual?.icono || 'fa-regular fa-user'"></i>
+      <ng-container *ngTemplateOutlet="iconoUsuario; context: { $implicit: usuarioActual }"></ng-container>
     </span>
     <div class="access-save-copy">
       <strong>{{ usuarioActual?.titulo }}</strong>
@@ -32,7 +32,7 @@
       <section class="step-section access-admin-section">
         <div class="access-admin-heading">
           <span class="access-admin-icon" aria-hidden="true">
-            <i [class]="usuario.icono || 'fa-regular fa-user'"></i>
+            <ng-container *ngTemplateOutlet="iconoUsuario; context: { $implicit: usuario }"></ng-container>
           </span>
           <div>
             <h3>{{ usuario.titulo }}</h3>
@@ -103,7 +103,7 @@
         [class.complete]="usuarioEstaCompleto(usuario.prefijo)"
         (click)="seleccionarUsuario(usuario.prefijo)">
         <span aria-hidden="true">
-          <i [class]="usuario.icono || 'fa-regular fa-user'"></i>
+          <ng-container *ngTemplateOutlet="iconoUsuario; context: { $implicit: usuario }"></ng-container>
         </span>
         <strong>{{ usuario.titulo }}</strong>
         @if (usuarioEstaCompleto(usuario.prefijo)) {
@@ -137,3 +137,21 @@
     <button type="submit" class="button primary">{{ textoContinuar }}</button>
   </div>
 </form>
+
+<ng-template #iconoUsuario let-usuario>
+  @if (usuario?.prefijo === 'controlador' || usuario?.prefijo === 'supervisor') {
+    <svg class="access-role-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      @if (usuario.prefijo === 'controlador') {
+        <path d="M16 2.5 28 7v9c0 6-5 10.5-12 13.5C9 26.5 4 22 4 16V7Z" />
+        <circle cx="16" cy="12" r="3.2" fill="currentColor" stroke="none" />
+        <path d="M9.5 22v-1.5a6.5 6.5 0 0 1 13 0V22Z" fill="currentColor" stroke="none" />
+      } @else {
+        <path d="M15 23H3V3h24v13M3 19h12M10 23v5m-4 0h9" />
+        <rect x="18" y="16" width="12" height="14" rx="1.8" />
+        <path d="M21 20h6m-6 3h1m4 0h1m-6 3h1m4 0h1" />
+      }
+    </svg>
+  } @else {
+    <i [class]="usuario?.icono || 'fa-regular fa-user'" aria-hidden="true"></i>
+  }
+</ng-template>

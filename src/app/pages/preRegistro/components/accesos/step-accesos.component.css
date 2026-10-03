@@ -1,0 +1,16 @@
+.access-role-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  color: #f6c555;
+}
+
+.access-admin-icon .access-role-icon {
+  width: 36px;
+  height: 36px;
+}
+
+:host-context(html:not(.dark)) .access-role-icon {
+  color: #926000;
+}
