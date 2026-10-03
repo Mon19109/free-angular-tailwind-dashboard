@@ -16,6 +16,8 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component = TestBed.runInInjectionContext(() => new RegistroProspectoClienteComponent());
     component.cuentaComercio = { commerceGuid: 'commerce-del-get' };
     component.link = 'link-prospecto';
+    component.arbol = [{ id: 'inicial', nombre: 'Sucursal', nivel: 'sucursal', idSirio: 'SUC000', levelType: 5 }];
+    component.nodoSeleccionado = 'inicial';
     http = TestBed.inject(HttpTestingController);
   });
 
@@ -246,11 +248,93 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       { id: 'entidad', nombre: 'Entidad', nivel: 'entidad', idSirio: 'ENT002', levelType: 4 },
       { id: 'caja', nombre: 'Caja', nivel: 'caja', idSirio: 'CAJ003', levelType: 6 }
     ];
+    component.nodoSeleccionado = 'sucursal';
     component.liquidacionConsultada = true;
     component.liquidacionRegistrada = true;
     component.liquidacionForm.controls.cuentaFueraRed.setValue(modo);
-    component.seleccionarNodo('sucursal');
+    component['actualizarValidadoresAccesos']();
   }
+
+  function consultarNodo(sirioId: string, dispersionAccount = 'OTHER_BANK') {
+    const request = http.expectOne(req => req.url.endsWith('account/get'));
+    expect(request.request.params.get('sirioId')).toBe(sirioId);
+    request.flush({ success: true, entityInfo: { idSirio: sirioId, dispersionAccount } });
+  }
+
+  it('conserva liquidación, archivos y accesos por nodo sin concluir la sucursal al llenar entidad', async () => {
+    prepararAccesos('otros-bancos');
+    component.nodoSeleccionado = '';
+    component.seleccionarNodo('entidad');
+    consultarNodo('ENT002', '');
+    component.liquidacionForm.controls.nombreBeneficiario.setValue('Entidad beneficiaria');
+    await adjuntar('carta');
+    component.liquidacionRegistrada = true;
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+    component.seleccionarNodo('sucursal');
+    expect(component.liquidacionCompleta).toBeFalse();
+    consultarNodo('SUC001', '');
+    expect(component.liquidacionCompleta).toBeFalse();
+    expect(component.accesosCompletos).toBeFalse();
+    expect(component.nodoRegistroCompleto('entidad')).toBeTrue();
+    expect(component.nodoRegistroCompleto('sucursal')).toBeFalse();
+    expect(component.liquidacionForm.controls.nombreBeneficiario.value).toBe('');
+    expect(component.cartaLiquidacionArchivoNombre).toBe('');
+    expect(component.accesosForm.controls.adminNombre.value).toBe('');
+    component.seleccionarNodo('entidad');
+    expect(component.liquidacionCompleta).toBeTrue();
+    expect(component.accesosCompletos).toBeTrue();
+    expect(component.liquidacionForm.controls.nombreBeneficiario.value).toBe('Entidad beneficiaria');
+    expect(component.cartaLiquidacionArchivoNombre).toBe('carta.pdf');
+    expect(component.nodoRegistroCompleto('entidad')).toBeTrue();
+    expect(component.nodoRegistroCompleto('sucursal')).toBeFalse();
+    expect(component.nodoRegistroCompleto('caja')).toBeFalse();
+    expect(component.accesosForm.controls.adminNombre.value).toBe('Ana');
+    http.expectNone(() => true);
+  });
+
+  it('mantiene la página abierta después de entidad y permite cerrarla después de sucursal', () => {
+    prepararAccesos('otros-bancos');
+    const cerrar = spyOn(component, 'cerrarPagina');
+    component.nodoSeleccionado = 'entidad';
+    component.modalAccesos = 'Entidad';
+    component.aceptarModalAccesos();
+    expect(cerrar).not.toHaveBeenCalled();
+    expect(component.modalAccesos).toBeNull();
+    component.nodoSeleccionado = 'sucursal';
+    component.modalAccesos = 'Sucursal';
+    component.aceptarModalAccesos();
+    expect(cerrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('actualiza la dispersión con el commerceGuid de la cuenta del nodo consultado', () => {
+    prepararAccesos('otros-bancos');
+    component.seleccionarNodo('entidad');
+    const consulta = http.expectOne(req => req.url.endsWith('account/get'));
+    spyOn<any>(component, 'cargarFormulariosDesdeGet');
+    consulta.flush({ entityInfo: { idSirio: 'ENT002', commerceGuid: 'guid-entidad', dispersionAccount: '' } });
+    component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
+    component.continuarLiquidacion();
+    component.aceptarModalLiquidacion();
+    const registro = http.expectOne(`${environment.api.KashpayCoreAPI}merchant/updateData`);
+    expect(registro.request.body).toEqual({ commerceGuid: 'guid-entidad', dispersionAccount: 'NETWORK' });
+    registro.flush({ success: true });
+    component.seleccionarNodo('sucursal');
+    expect(component.cuentaComercio?.['commerceGuid']).toBe('commerce-del-get');
+    http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+  });
+
+  it('ignora respuestas de cuentas de un nodo que dejó de estar seleccionado', () => {
+    prepararAccesos('otros-bancos');
+    component.seleccionarNodo('entidad');
+    const entidad = http.expectOne(req => req.url.endsWith('account/get'));
+    component.seleccionarNodo('sucursal');
+    entidad.flush({ entityInfo: { idSirio: 'ENT002', dispersionAccount: 'NETWORK' } });
+    expect(component.liquidacionForm.controls.cuentaFueraRed.value).toBe('otros-bancos');
+    expect(component.nodoSeleccionado).toBe('sucursal');
+  });
 
   function llenar(prefijo: string) {
     component.accesosForm.patchValue({
@@ -287,6 +371,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component.finalizar();
     http.expectNone(`${environment.api.antaresAuth}user/add`);
     component.seleccionarNodo('entidad');
+    consultarNodo('ENT002');
     expect(component.accesosCompletos).toBeFalse();
     expect(component.accesosForm.controls.facNombre.value).toBe('');
     component.seleccionarNodo('sucursal');
@@ -297,6 +382,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     it(`envía un administrador con perfil ${perfil} para el nodo seleccionado`, () => {
       prepararAccesos(modo);
       component.seleccionarNodo('entidad');
+      consultarNodo('ENT002', modo === 'en-red' ? 'NETWORK' : 'OTHER_BANK');
       llenar('admin');
       component.finalizar();
       const request = http.expectOne(`${environment.api.antaresAuth}user/add`);
@@ -304,7 +390,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       expect(request.request.body.sirioId).toBe('ENT002');
       expect(request.request.body.idAffiliationLevel).toBe(4);
       request.flush({ success: true });
-      completarSeguimiento().flush({ success: true });
+      http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
       expect(component.accesosCompletos).toBeTrue();
       expect(component.modalAccesos).toBe('Entidad');
     });
@@ -312,7 +398,6 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   it('reintenta únicamente seguimiento si los accesos ya se enviaron', () => {
     prepararAccesos('otros-bancos');
-    component.seleccionarNodo('entidad');
     llenar('admin');
     component.finalizar();
     http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
@@ -330,7 +415,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component.finalizar();
     completarSeguimiento().flush(null);
     expect(component.accesosCompletos).toBeTrue();
-    expect(component.modalAccesos).toBe('Entidad');
+    expect(component.modalAccesos).toBe('Sucursal');
     component.finalizar();
     http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
   });
@@ -338,6 +423,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   it('no envía información sin el enlace de seguimiento', () => {
     prepararAccesos('otros-bancos');
     component.seleccionarNodo('entidad');
+    consultarNodo('ENT002');
     llenar('admin');
     component.link = '';
     component.finalizar();
@@ -349,7 +435,10 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     prepararAccesos('otros-bancos');
     component.seleccionarNodo('caja');
     component.finalizar();
-    http.expectNone(`${environment.api.antaresAuth}user/add`);
+    component.continuarLiquidacion();
+    component.modalLiquidacion = 'en-red';
+    component.aceptarModalLiquidacion();
+    http.expectNone(() => true);
   });
 
   it('requiere ambos documentos y bloquea el registro si falla la carga', async () => {
