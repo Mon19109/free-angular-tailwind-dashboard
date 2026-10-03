@@ -140,6 +140,8 @@ export class PreRegistroComponent {
     'Empresa Grupo': 16,
     'Empresa Agrupadora': 4,
     'Entidad Agrupadora': 5,
+    'Entidad Agrupadora con auditor': 5,
+    'Entidad Agrupadora con supervisor': 17,
     'Persona Física': 3,
     'Sucursales de Grupo': 6,
     'Sucursal Persona Física': 6,
@@ -846,6 +848,11 @@ export class PreRegistroComponent {
 
   // ── Constructor ──────────────────────────────────────────────────────────────
   constructor() {
+    for (const tipo of ['Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor']) {
+      this.datosGeneralesPorTipo[tipo] = this.datosGeneralesPorTipo['Entidad Agrupadora'];
+      this.documentosPorTipoComercio[tipo] = this.documentosPorTipoComercio['Entidad Agrupadora'];
+      this.tiposConRepresentante.push(tipo);
+    }
     this.actualizarValidadoresAccesos(this.accesosForm.controls.modoReserva.value);
     this.actualizarEstadoLiquidacion(this.liquidacionForm.controls.beneficiarioIgualComercio.value);
 
@@ -1062,7 +1069,7 @@ export class PreRegistroComponent {
 
     if (this.contextoComercio === 'paquete' && nivel === 'Entidad') {
       if (this.tipoNegocioSeleccionado?.id === 'auditor-unico') {
-        const permitidosAuditor = ['Empresa Agrupadora', 'Entidad Agrupadora'];
+        const permitidosAuditor = ['Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor'];
         return permitidosAuditor.filter(tipo => tipos.includes(tipo));
       }
 
@@ -1305,7 +1312,7 @@ export class PreRegistroComponent {
 
   private obtenerReglasDocumentos(tipoComercio: string, tipoPersona: unknown): ReglaDocumento[] {
     const tipoPersonaNormalizada = this.tipoPersonaPayload(tipoPersona);
-    if (['Empresa Agrupadora', 'Entidad Agrupadora'].includes(tipoComercio)) {
+    if (['Empresa Agrupadora', 'Entidad Agrupadora', 'Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor'].includes(tipoComercio)) {
       if (tipoPersonaNormalizada === 'PF') {
         return this.documentosPorTipoComercio['Persona Física'] ?? [];
       }

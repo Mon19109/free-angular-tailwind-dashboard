@@ -8,7 +8,11 @@
       </div>
     </div>
   </div>
-  }
+  } {
+            "id": 32,
+            "name": "Entidad Agrupadora con supervisor",
+            "idAffiliationType": 4
+        }
   @if (modalAccesos !== null) {
   <div class="result-modal-backdrop">
     <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="accesos-modal-title" aria-describedby="accesos-modal-description">
@@ -18,7 +22,7 @@
         <p id="accesos-modal-description">Los accesos a la plataforma de {{ modalAccesos }} se registraron correctamente.</p>
       </div>
       <div class="result-modal-footer">
-        <button type="button" class="button primary result-modal-ok" (click)="aceptarModalAccesos()" autofocus>Aceptar</button>
+        <button type="button" class="button primary result-modal-ok" (click)="cerrarPagina()" autofocus>Aceptar</button>
       </div>
     </div>
   </div>
@@ -437,7 +441,7 @@
     <button type="button" class="tree-node" [class.selected]="nodoSeleccionado === nodo.id" [class.leaf]="!(nodo.hijos?.length)" (click)="seleccionarNodo(nodo.id)" [disabled]="guardando || guardandoLiquidacion || validandoArchivos > 0">
       <i class="fa-solid" [ngClass]="nodo.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'"></i>
       <span>{{ nodo.nivel }} - {{ nodo.nombre }}</span>
-      @if (nodoRegistroCompleto(nodo.id)) { <i class="fa-solid fa-circle-check documentos-validados-mark" aria-label="Registro completo"></i> }
+      @if (nodo.nivel !== 'caja') { <i class="fa-solid fa-circle-check documentos-validados-mark"></i> }
     </button>
   </div>
   @if (nodo.hijos?.length) {
