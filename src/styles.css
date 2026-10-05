@@ -402,9 +402,9 @@ html.dark app-header > .app-page-title-bar span:last-child {
   }
 
   app-header > header a img {
-    width: auto;
+    width: 30%;
     height: clamp(68px, 14vw, 148px);
-    max-width: min(78vw, 980px);
+    /*max-width: min(78vw, 980px);*/
     object-fit: contain;
   }
 
