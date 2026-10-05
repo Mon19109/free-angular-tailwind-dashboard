@@ -346,8 +346,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
   closeTokenModal(): void {
     if (this.validandoToken) return;
-    this.tokenValue = '';
-    this.tokenErrorMessage = 'Debes validar el token enviado por SMS para continuar.';
+    this.cerrarPagina();
   }
 
   continuarLiquidacion(): void {
@@ -658,7 +657,19 @@ export class RegistroProspectoClienteComponent implements OnInit {
   aceptarModalAccesos(): void {
     if (this.modalAccesos === null) return;
     this.modalAccesos = null;
-    if (this.buscarNodo(this.arbol, this.nodoSeleccionado)?.levelType === 5) this.cerrarPagina();
+    const aplanar = (nodos: NodoProspecto[]): NodoProspecto[] =>
+      nodos.flatMap(nodo => [nodo, ...aplanar(nodo.hijos ?? [])]);
+    const nodos = aplanar(this.arbol);
+    const indice = nodos.findIndex(nodo => nodo.id === this.nodoSeleccionado);
+    const siguientes = [...nodos.slice(indice + 1), ...nodos.slice(0, indice)];
+    const siguiente = siguientes.find(nodo => {
+      const requiereRegistro = nodo.levelType
+        ? [3, 4, 5].includes(nodo.levelType)
+        : ['SUB AFILIADO', 'ENTIDAD', 'SUCURSAL'].includes(this.normalizar(nodo.nivel));
+      return requiereRegistro && !this.nodoRegistroCompleto(nodo.id);
+    });
+    if (siguiente) this.seleccionarNodo(siguiente.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   private bloquearAccesoEnviado(prefijo: string): void {

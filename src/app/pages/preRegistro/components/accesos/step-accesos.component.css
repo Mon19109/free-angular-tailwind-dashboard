@@ -14,3 +14,7 @@
 :host-context(html:not(.dark)) .access-role-icon {
   color: #926000;
 }
+
+:host .access-registro-user.active .access-role-icon {
+  color: #111827;
+}

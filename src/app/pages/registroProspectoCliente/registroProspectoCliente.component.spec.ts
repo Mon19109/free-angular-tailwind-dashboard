@@ -330,18 +330,55 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     http.expectNone(() => true);
   });
 
-  it('mantiene la página abierta después de entidad y permite cerrarla después de sucursal', () => {
+  it('al aceptar los accesos de entidad avanza a la sucursal pendiente y omite cajas', () => {
     prepararAccesos('otros-bancos');
-    const cerrar = spyOn(component, 'cerrarPagina');
+    const sucursal = component.arbol[0];
+    const entidad = component.arbol[1];
+    entidad.hijos = [component.arbol[2], sucursal];
+    component.arbol = [entidad];
     component.nodoSeleccionado = 'entidad';
-    component.modalAccesos = 'Entidad';
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    const cerrar = spyOn(component, 'cerrarPagina');
     component.aceptarModalAccesos();
     expect(cerrar).not.toHaveBeenCalled();
     expect(component.modalAccesos).toBeNull();
-    component.nodoSeleccionado = 'sucursal';
-    component.modalAccesos = 'Sucursal';
+    expect(component.nodoSeleccionado).toBe('sucursal');
+    consultarNodo('SUC001', '');
+    expect(component.pasoActivo).toBe('liquidacion');
+    expect(component.liquidacionCompleta).toBeFalse();
+    expect(component.nodoRegistroCompleto('entidad')).toBeTrue();
+  });
+
+  it('al aceptar el último nodo permanece en la página con el registro completo', () => {
+    prepararAccesos('otros-bancos');
+    component.arbol = [component.arbol[0], component.arbol[2]];
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    completarSeguimiento().flush({ success: true });
+    const cerrar = spyOn(component, 'cerrarPagina');
     component.aceptarModalAccesos();
-    expect(cerrar).toHaveBeenCalledTimes(1);
+    expect(cerrar).not.toHaveBeenCalled();
+    expect(component.modalAccesos).toBeNull();
+    expect(component.nodoSeleccionado).toBe('sucursal');
+    expect(component.accesosCompletos).toBeTrue();
+    http.expectNone(() => true);
+  });
+
+  it('al aceptar liquidación abre accesos del mismo nodo sin cerrar la página', () => {
+    prepararAccesos('otros-bancos');
+    component.nodoSeleccionado = 'entidad';
+    component.pasoActivo = 'liquidacion';
+    component.modalLiquidacion = 'guardada';
+    const cerrar = spyOn(component, 'cerrarPagina');
+    component.aceptarModalLiquidacion();
+    expect(component.nodoSeleccionado).toBe('entidad');
+    expect(component.pasoActivo).toBe('accesos');
+    expect(component.modalLiquidacion).toBeNull();
+    expect(cerrar).not.toHaveBeenCalled();
+    http.expectNone(() => true);
   });
 
   it('actualiza la dispersión con el commerceGuid de la cuenta del nodo consultado', () => {
