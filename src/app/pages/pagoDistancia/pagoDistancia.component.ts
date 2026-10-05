@@ -16,6 +16,10 @@ import { LabelComponent } from '../../shared/components/form/label/label.compone
   styleUrls: ['./pagoDistancia.component.css']
 }) 
 export class PagoDistanciaComponent {
+  private readonly formatoMoneda = new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN'
+  });
   formulario: FormGroup;
   readonly idRol = Number(localStorage.getItem('idRol') || 0);
   readonly mostrarCrearLink = [5, 6].includes(this.idRol);
@@ -81,6 +85,12 @@ export class PagoDistanciaComponent {
     this.formulario.reset();
     this.ordenes = [];
     this.selectedOptionFil = '';
+  }
+
+  formatearMonto(monto: unknown): string {
+    if (monto === null || monto === undefined || String(monto).trim() === '') return 'ND';
+    const valor = Number(String(monto).replace(/[$,\s]/g, ''));
+    return Number.isFinite(valor) ? this.formatoMoneda.format(valor) : 'ND';
   }
 
   private normalizarOrdenes(response: any): any[] {
