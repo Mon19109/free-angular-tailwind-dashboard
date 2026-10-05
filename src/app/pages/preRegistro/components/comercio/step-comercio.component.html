@@ -1,7 +1,13 @@
 <form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
   @if (nombreCaja) {
   <div class="field span-2 caja-name-context">
+    @if (editarNombreCaja) {
+    <label for="nombre-caja">Nombre de la caja <b>*</b></label>
+    <input id="nombre-caja" type="text" [value]="nombreCaja" required
+      (change)="nombreCajaChange.emit($any($event.target).value)" />
+    } @else {
     <strong>{{ nombreCaja }}</strong>
+    }
   </div>
   }
   <div class="form-grid cols-2">

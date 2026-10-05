@@ -383,7 +383,7 @@ export class StepDatosComponent implements OnInit {
       'Caja con Tarjeta sólo Fondeo', 'Caja con Tarjeta SPEI',
       'Cuenta Entidad', 'Cuenta Terminal', 'Cuenta Terminal Pin Rapido'
     ].includes(tipo);
-    const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Empresa Agrupadora', 'Entidad Agrupadora', 'Sucursales de Grupo', 'Sucursales Únicas'];
+    const tiposConRepresentante = ['Empresa Holding', 'Empresa Grupo', 'Empresa Agrupadora', 'Entidad Agrupadora', 'Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor', 'Sucursales de Grupo', 'Sucursales Únicas'];
     const esPersonaFisica = this.form.get('tipoPersona')?.value === 'PF';
     const esTipoPersonaFisicaSinRepresentante = (this.incluirRepresentantePersonaMoral || tiposConRepresentante.includes(tipo)) && esPersonaFisica;
     const ocultarDatosPorCaja = esCaja && !this.forzarDatosCaja;
