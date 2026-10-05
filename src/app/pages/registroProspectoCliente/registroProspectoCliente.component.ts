@@ -594,8 +594,10 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   get accesosCompletos(): boolean {
+    if (!this.nodoRequiereAccesos) return false;
+    if (this.cuentaComercio?.['hasPlatformAccess'] === true) return true;
     const perfiles = this.perfilesEnviadosPorNodo[this.nodoSeleccionado] || [];
-    return this.nodoRequiereAccesos && this.accesosCompletadosPorNodo.has(this.nodoSeleccionado)
+    return this.accesosCompletadosPorNodo.has(this.nodoSeleccionado)
       && this.usuariosAcceso.every(usuario => perfiles.includes(this.perfilAcceso(usuario.prefijo)));
   }
 
@@ -603,7 +605,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     if (id === this.nodoSeleccionado) return this.liquidacionCompleta && this.accesosCompletos;
     const liquidacion = this.liquidacionPorNodo[id];
     return !!liquidacion && (liquidacion.existente || liquidacion.registrada)
-      && this.accesosCompletadosPorNodo.has(id);
+      && (liquidacion.cuenta?.['hasPlatformAccess'] === true || this.accesosCompletadosPorNodo.has(id));
   }
 
   private perfilAcceso(prefijo: string): RegistroAccesoPayload['idProfile'] {
@@ -1298,7 +1300,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
         this.cargarFormulariosDesdeGet();
         this.arbol = this.construirArbol();
         this.nodoSeleccionado = this.arbol[0]?.id || '';
-        this.consultarArbolReal();
+        this.consultarArbolReal(sirioId);
       },
       error: () => {
         this.cuentaComercio = null;
@@ -1337,9 +1339,13 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       .find(item => item && typeof item === 'object' && !Array.isArray(item));
     if (!contenido) return objeto;
     const cuenta = this.extraerCuenta(contenido);
-    // El GET puede enviar el tipo junto a entityInfo, account o data.
-    // El valor de la cuenta tiene prioridad sobre el del contenedor.
-    return { ...cuenta, typeOfBusiness: cuenta['typeOfBusiness'] ?? objeto['typeOfBusiness'] };
+    // El GET puede enviar estos datos junto a entityInfo, account o data.
+    // Los valores de la cuenta tienen prioridad sobre los del contenedor.
+    return {
+      ...cuenta,
+      typeOfBusiness: cuenta['typeOfBusiness'] ?? objeto['typeOfBusiness'],
+      hasPlatformAccess: cuenta['hasPlatformAccess'] ?? objeto['hasPlatformAccess'],
+    };
   }
 
   private obtenerBearerConsulta(): string {
@@ -1393,7 +1399,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     return undefined;
   }
 
-  private consultarArbolReal(): void {
+  private consultarArbolReal(sirioIdConsultado: string): void {
     const nodeID = this.valorTexto(this.cuentaComercio?.['nodeID'])
       || this.valorTexto(this.cuentaComercio?.['nodeId'])
       || this.valorTexto(this.prospecto?.['nodeID'])
@@ -1404,6 +1410,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       || this.prospectId;
     if (!nodeID) return;
 
+    const cuentaInicial = this.estadoLiquidacionActual();
     this.cargandoArbol = true;
     this.errorArbol = '';
     this.arbolNodosService.obtenerArbol(nodeID, this.link ? this.prospectoBearerToken : undefined).pipe(
@@ -1412,6 +1419,14 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       next: respuesta => {
         const arbol = this.nodosDesdeArbol(respuesta);
         if (!arbol.length) return;
+        const aplanar = (nodos: NodoProspecto[]): NodoProspecto[] =>
+          nodos.flatMap(nodo => [nodo, ...aplanar(nodo.hijos ?? [])]);
+        const nodoConsultado = aplanar(arbol).find(nodo => nodo.idSirio === sirioIdConsultado);
+        // Asociar la consulta inicial al ID real del árbol evita consultar al padre dos veces.
+        // Nunca reutilizar esa cuenta para un nodo con otro idSirio.
+        if (nodoConsultado && [3, 4, 5].includes(nodoConsultado.levelType ?? 0)) {
+          this.liquidacionPorNodo[nodoConsultado.id] = cuentaInicial;
+        }
         this.arbol = arbol;
         this.arbolRealCargado = true;
         this.nodoSeleccionado = '';

@@ -23,6 +23,56 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   afterEach(() => http.verify());
 
+  it('reutiliza el GET inicial de entidad y consulta y registra la sucursal con el Sirio de su nodo', () => {
+    component.prospecto = { idSirio: 'SUB0204400', nodeId: 4602 } as any;
+    component.consultarCuentaComercio();
+    const entidad = http.expectOne(req => req.url.endsWith('account/get'));
+    expect(entidad.request.params.get('sirioId')).toBe('SUB0204400');
+    entidad.flush({ entityInfo: {
+      idSirio: 'SUB0204400', nodeId: 4602,
+      dispersionAccount: 'NETWORK', hasPlatformAccess: true
+    } });
+    http.expectOne(req => req.url.endsWith('/nodes/4602/tree')).flush([
+      { idStatus: 26, idSirio: 'SUB0204400', levelType: 4, idNode: 4602, name: 'Farmacias del Centro', depth: 0 },
+      { idStatus: 25, idSirio: 'SUB0204448850', levelType: 5, idNode: 4603, name: 'Farmacias del Centro', depth: 1 },
+      { idStatus: 0, idSirio: 'SUB0204448856079', levelType: 6, idNode: 4604, name: 'Caja test', depth: 2 }
+    ]);
+    http.expectNone(req => req.url.endsWith('account/get'));
+    expect(component.nodoSeleccionado).toBe('4602');
+    expect(component.accesosCompletos).toBeTrue();
+
+    component.seleccionarNodo('4603');
+    const sucursal = http.expectOne(req => req.url.endsWith('account/get'));
+    expect(sucursal.request.params.get('sirioId')).toBe('SUB0204448850');
+    // Aunque account/get incluya el ID del padre, el envío usa el nodo del árbol.
+    sucursal.flush({ entityInfo: {
+      idSirio: 'SUB0204400', dispersionAccount: 'NETWORK',
+      hasPlatformAccess: false, typeOfBusiness: 5
+    } });
+    expect(component.contextoSirio).toBe('SUB0204448850');
+    expect(component.accesosCompletos).toBeFalse();
+    llenar('controlador');
+    component.finalizar();
+    const acceso = http.expectOne(`${environment.api.antaresAuth}user/add`);
+    expect(acceso.request.body.sirioId).toBe('SUB0204448850');
+    expect(acceso.request.body.idAffiliationLevel).toBe(5);
+    expect(acceso.request.body.idProfile).toBe(9);
+    acceso.flush({ success: true });
+    completarSeguimiento().flush({ success: true });
+
+    component.seleccionarNodo('4604');
+    expect(component.nodoRequiereAccesos).toBeFalse();
+    expect(component.cuentaComercio).toBeNull();
+    component.consultarCuentaComercio();
+    component.finalizar();
+    http.expectNone(() => true);
+
+    component.seleccionarNodo('4602');
+    expect(component.contextoSirio).toBe('SUB0204400');
+    expect(component.accesosCompletos).toBeTrue();
+    http.expectNone(req => req.url.endsWith('account/get'));
+  });
+
   it('conserva el aviso del enlace y la URL si el navegador bloquea el cierre', () => {
     const cerrar = spyOn(window, 'close');
     const url = window.location.href;
@@ -358,6 +408,57 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     component.liquidacionForm.controls.cuentaFueraRed.setValue(modo);
     component['actualizarValidadoresAccesos']();
   }
+
+  for (const formato of ['entityInfo', 'account', 'data']) {
+    it(`reconoce hasPlatformAccess junto a ${formato} y evita volver a enviar accesos`, () => {
+      prepararAccesos('en-red');
+      component.seleccionarNodo('entidad');
+      http.expectOne(req => req.url.endsWith('account/get')).flush({
+        hasPlatformAccess: true,
+        [formato]: { idSirio: 'ENT002', dispersionAccount: 'NETWORK' }
+      });
+      expect(component.accesosCompletos).toBeTrue();
+      expect(component.nodoRegistroCompleto('entidad')).toBeTrue();
+      component.finalizar();
+      http.expectNone(`${environment.api.antaresAuth}user/add`);
+      http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+
+      component.seleccionarNodo('sucursal');
+      expect(component.accesosCompletos).toBeFalse();
+      expect(component.nodoRegistroCompleto('entidad')).toBeTrue();
+      component.seleccionarNodo('entidad');
+      expect(component.accesosCompletos).toBeTrue();
+    });
+  }
+
+  it('permite capturar y enviar cuando la cuenta tiene hasPlatformAccess false', () => {
+    prepararAccesos('en-red');
+    component.seleccionarNodo('entidad');
+    http.expectOne(req => req.url.endsWith('account/get')).flush({
+      hasPlatformAccess: true,
+      entityInfo: { idSirio: 'ENT002', dispersionAccount: 'NETWORK', hasPlatformAccess: false }
+    });
+    expect(component.accesosCompletos).toBeFalse();
+    expect(component.accesosForm.controls.adminNombre.enabled).toBeTrue();
+    expect(component.pasoActivo).toBe('accesos');
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    expect(component.accesosCompletos).toBeTrue();
+  });
+
+  it('marca solo accesos como concluido si la liquidación aún está pendiente', () => {
+    prepararAccesos('en-red');
+    component.seleccionarNodo('entidad');
+    http.expectOne(req => req.url.endsWith('account/get')).flush({
+      entityInfo: { hasPlatformAccess: true, dispersionAccount: '' }
+    });
+    expect(component.accesosCompletos).toBeTrue();
+    expect(component.liquidacionCompleta).toBeFalse();
+    expect(component.nodoRegistroCompleto('entidad')).toBeFalse();
+    component.seleccionarNodo('sucursal');
+    expect(component.nodoRegistroCompleto('entidad')).toBeFalse();
+  });
 
   for (const [typeOfBusiness, prefijo, titulo] of [
     [5, 'controlador', 'Usuario Controlador de Recursos'],
