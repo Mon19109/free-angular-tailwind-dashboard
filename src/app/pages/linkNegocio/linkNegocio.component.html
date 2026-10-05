@@ -75,9 +75,10 @@
                     name="monto"
                     class="form-control monto"
                     formControlName="monto"
-                    inputmode="decimal"
+                    inputmode="numeric"
                     placeholder="0.00"
                     autocomplete="off"
+                    (keydown)="restringirTeclaMonto($event)"
                     (input)="procesarMonto($event)"
                     aria-required="true"
                     required

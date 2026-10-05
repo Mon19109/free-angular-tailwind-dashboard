@@ -129,15 +129,31 @@ export class AddLinkPagoComponent {
 
   procesarMonto(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const valorNormalizado = input.value.replace(',', '.').replace(/[^\d.]/g, '');
-    const partes = valorNormalizado.split('.');
-    const entero = partes.shift() || '';
-    const tieneDecimal = valorNormalizado.includes('.');
-    const decimales = partes.join('').slice(0, 2);
-    const monto = tieneDecimal ? `${entero || '0'}.${decimales}` : entero;
-
+    const monto = this.formatearCentavos(input.value);
     input.value = monto;
     this.actualizarControl('monto', monto);
+  }
+
+  restringirTeclaMonto(event: KeyboardEvent): void {
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      const input = event.target as HTMLInputElement;
+      const todoSeleccionado = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+      const digitos = String(this.formulario.get('monto')?.value ?? '').replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+      this.actualizarControl('monto', this.formatearCentavos(todoSeleccionado ? '' : digitos.slice(0, -1)));
+      return;
+    }
+
+    if (event.ctrlKey || event.metaKey || event.altKey || event.key.length > 1) return;
+    if (/^\d$/.test(event.key)) return;
+    event.preventDefault();
+  }
+
+  private formatearCentavos(valor: string): string {
+    const digitos = valor.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    if (!digitos) return '';
+    const centavos = digitos.padStart(3, '0');
+    return `${centavos.slice(0, -2)}.${centavos.slice(-2)}`;
   }
 
   procesarNombre(campo: 'nombre' | 'aPaterno' | 'aMaterno', event: Event): void {

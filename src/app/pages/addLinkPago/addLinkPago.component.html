@@ -229,10 +229,11 @@
                   id="monto"
                   name="monto"
                   type="text"
-                  inputmode="decimal"
+                  inputmode="numeric"
                   class="form-control"
                   placeholder="0.00"
                   [value]="formulario.get('monto')?.value"
+                  (keydown)="restringirTeclaMonto($event)"
                   (input)="procesarMonto($event)">
                 @if (mostrarCampoObligatorio('monto')) {
                   <p class="required-error">Campo obligatorio</p>
