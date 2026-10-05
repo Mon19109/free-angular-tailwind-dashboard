@@ -318,6 +318,8 @@
             @case (1) {
             <app-step-comercio [form]="comercioForm" [datosForm]="datosForm" [niveles]="nivelesComercioVisibles" [tiposComercio]="tiposComercio"
               [nombreCaja]="nombreCajaSeleccionada"
+              [editarNombreCaja]="true"
+              (nombreCajaChange)="renombrarNodoArbol(arbolNegocioForm.controls.nodoSeleccionado.value, $event)"
               [bloquearNivel]="bloquearNivelComercio" [bloquearTipoComercio]="bloquearTipoComercio"
               [bloquearTipoPersona]="bloquearTipoPersonaSucursal"
               [mostrarTipoPersona]="camposDatosGenerales.includes('tipoPersona')"

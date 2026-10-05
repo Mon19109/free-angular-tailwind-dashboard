@@ -851,7 +851,7 @@ export class PreRegistroComponent {
   // ── Constructor ──────────────────────────────────────────────────────────────
   constructor() {
     this.afiliacionForm.controls.afiliacion.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => { this.referrerNodeId = null; });
     for (const tipo of ['Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor']) {
       this.datosGeneralesPorTipo[tipo] = this.datosGeneralesPorTipo['Entidad Agrupadora'];
@@ -1666,9 +1666,8 @@ export class PreRegistroComponent {
     return !this.obtenerNodosColapsados().includes(id);
   }
 
-  renombrarNodoArbol(id: string, evento: Event): void {
-    const input = evento.target as HTMLInputElement;
-    const nombre = input.value.trim();
+  renombrarNodoArbol(id: string, evento: Event | string): void {
+    const nombre = (typeof evento === 'string' ? evento : (evento.target as HTMLInputElement).value).trim();
     if (!nombre) return;
     const nombres = this.obtenerNombresArbol();
     nombres[id] = nombre;
@@ -1699,10 +1698,13 @@ export class PreRegistroComponent {
           this.errorAfiliacion = response.error?.message || 'No fue posible validar el número de afiliación.';
           return;
         }
-        const nodeId = Number(response?.nodeId);
-        this.referrerNodeId = Number.isSafeInteger(nodeId) && nodeId > 0 ? nodeId : null;
+        this.referrerNodeId = this.extraerNodeIdAfiliacion(response);
+        if (this.referrerNodeId === null) {
+          this.errorAfiliacion = 'La validación no devolvió el identificador de referencia. Vuelve a validar la afiliación.';
+          return;
+        }
         this.guardarBorradorSilencioso();
-        this.irAlPaso(6);
+        this.irAlPaso(this.arbolNegocioForm.controls.nodoSeleccionado.value ? this.ultimoPasoVisible() : 6);
       },
       error: error => {
         this.validandoAfiliacion = false;
@@ -1710,6 +1712,13 @@ export class PreRegistroComponent {
         this.errorAfiliacion = this.extraerMensajeErrorHttp(error) || 'No fue posible validar el número de afiliación.';
       },
     });
+  }
+
+  private extraerNodeIdAfiliacion(respuesta: unknown): number | null {
+    if (!this.esObjetoRespuesta(respuesta)) return null;
+    const cuenta = respuesta['accountResponse'];
+    const nodeId = Number(this.esObjetoRespuesta(cuenta) ? cuenta['nodeId'] : respuesta['nodeId']);
+    return Number.isSafeInteger(nodeId) && nodeId > 0 ? nodeId : null;
   }
 
   seleccionarTipoNegocio(tipo: TipoNegocio): void {
@@ -2045,6 +2054,12 @@ export class PreRegistroComponent {
         this.guardarBorradorSilencioso();
         return;
       }
+    }
+    if (this.referrerNodeId === null) {
+      this.enviandoPreRegistro = false;
+      this.errorAfiliacion = 'Vuelve a validar la afiliación para obtener la referencia antes de enviar el preregistro. Tu captura se conserva.';
+      this.irAlPaso(0);
+      return;
     }
     const payload = this.imprimirPayloadPreRegistro();
     this.enviarPreRegistroCompleto(payload);
@@ -3701,19 +3716,7 @@ export class PreRegistroComponent {
     const siguiente = nodos[actualIndex + 1];
     if (!siguiente) return false;
 
-    this.arbolNegocioForm.patchValue({
-      ubicacionSeleccionada: siguiente.ruta,
-      nivelSeleccionado: siguiente.nivel,
-      nodoSeleccionado: siguiente.id,
-    }, { emitEvent: false });
-    this.cargarDatosSucursal(siguiente.id);
-    this.cargarAccesosNodo(siguiente.id);
-    this.cargarDocumentosNodo(siguiente.id);
-    this.aplicarComercioPorNodo(siguiente);
-    this.pasosCompletados.delete(1);
-    this.pasosCompletados.delete(2);
-    this.pasosCompletados.delete(3);
-    this.pasosCompletados.delete(5);
+    this.seleccionarNodoArbol(siguiente);
     return true;
   }
 
@@ -3738,7 +3741,7 @@ export class PreRegistroComponent {
 
   private actualizarNombreSucursalDesdeDatos(sucursalId: string, datosSucursal: Record<string, string | boolean>): void {
     const nodo = this.buscarNodoArbol(sucursalId);
-    if (!nodo) return;
+    if (!nodo || nodo.nivel === 'caja') return;
 
     const municipio = `${datosSucursal['municipioComercial'] || ''}`.trim();
     const localidad = `${datosSucursal['localidadComercial'] || ''}`.trim();

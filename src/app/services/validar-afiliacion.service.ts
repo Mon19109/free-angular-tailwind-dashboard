@@ -10,6 +10,10 @@ export interface ValidarAfiliacionRequest {
 export interface ValidarAfiliacionResponse {
   success?: boolean;
   nodeId?: number | string;
+  accountResponse?: {
+    nodeId?: number | string;
+    [key: string]: unknown;
+  };
   error?: {
     name?: string | null;
     message?: string;
