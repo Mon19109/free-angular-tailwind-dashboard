@@ -127,16 +127,31 @@ export class LinkNegocioComponent implements OnInit {
 
   procesarMonto(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const soloNumerosYPuntos = input.value.replace(/[^\d.]/g, '');
-    const [entero = '', ...decimales] = soloNumerosYPuntos.split('.');
-    const tienePunto = soloNumerosYPuntos.includes('.');
-    const parteEntera = entero || (tienePunto ? '0' : '');
-    const parteDecimal = decimales.join('').slice(0, 2);
+    const monto = this.formatearCentavos(input.value);
+    input.value = monto;
+    this.formulario.controls.monto.setValue(monto);
+  }
 
-    input.value = tienePunto
-      ? `${parteEntera}.${parteDecimal}`
-      : parteEntera;
-    this.formulario.controls.monto.setValue(input.value);
+  restringirTeclaMonto(event: KeyboardEvent): void {
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      const input = event.target as HTMLInputElement;
+      const todoSeleccionado = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+      const digitos = this.formulario.controls.monto.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+      this.formulario.controls.monto.setValue(this.formatearCentavos(todoSeleccionado ? '' : digitos.slice(0, -1)));
+      return;
+    }
+
+    if (event.ctrlKey || event.metaKey || event.altKey || event.key.length > 1) return;
+    if (/^\d$/.test(event.key)) return;
+    event.preventDefault();
+  }
+
+  private formatearCentavos(valor: string): string {
+    const digitos = valor.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+    if (!digitos) return '';
+    const centavos = digitos.padStart(3, '0');
+    return `${centavos.slice(0, -2)}.${centavos.slice(-2)}`;
   }
 
   procesarTelefono(event: Event): void {
@@ -192,9 +207,7 @@ export class LinkNegocioComponent implements OnInit {
           emailComer: this.obtenerTexto(negocio, [
             'email', 'commerceEmail', 'businessEmail', 'emailCommerce', 'correo'
           ]),
-          orderingAccount: this.obtenerTexto(negocio, [
-            'orderingAccount', 'account', 'accountNumber', 'cuenta', 'clabe'
-          ]),
+          orderingAccount: this.obtenerTexto(negocio, ['virtualAccount']),
           sirio: this.obtenerTexto(negocio, ['sirioId', 'sirioID']) || sirioId
         });
         this.negocioCargado = true;
