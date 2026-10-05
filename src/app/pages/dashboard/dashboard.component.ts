@@ -1,5 +1,6 @@
-import { Component,signal,inject } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
 import { DashboardService } from '../../services/dashboard.service';
@@ -7,11 +8,12 @@ import { DashboardService } from '../../services/dashboard.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, A11yModule],
   templateUrl: './dashboard.component.html',  
   styleUrls: ['./dashboard.component.css']   
 })
 export class DashboardComponent {
+  mostrarModalImagen = true;
   balanceAlde = signal<any[]>([]);
   balanceSirio = signal<any[]>([]);
   balanceAhorro = signal<any[]>([]);
@@ -26,6 +28,10 @@ export class DashboardComponent {
   constructor(
     private fb: FormBuilder
   ){}
+
+  cerrarModalImagen(): void {
+    this.mostrarModalImagen = false;
+  }
   
   ngOnInit(): void {
     this.session = this.getSession();
