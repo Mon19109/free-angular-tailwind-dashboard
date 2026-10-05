@@ -123,7 +123,7 @@
               <tbody>
                 <tr *ngFor="let orden of ordenes">
                   <td>{{ orden.createdAt || orden.creationDate || orden.payInfo?.creation || 'ND' }}</td>
-                  <td>{{ orden.estatus.description}}</td>
+                  <td>{{ orden.status.description}}</td>
                   <td>{{ orden.customerInfo?.email || orden.payEmail || 'ND' }}</td>
                   <td>{{ orden.customerInfo?.phone1 || orden.payPhone || 'ND' }}</td>
                   <td>{{ orden.products?.[0]?.description || 'ND' }}</td>
