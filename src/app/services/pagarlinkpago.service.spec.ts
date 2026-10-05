@@ -21,7 +21,7 @@ describe('PagarLinkPagoService', () => {
   it('requests the entity balance using the order sirioID', () => {
     service.obtenerBalance('SIRIO-9').subscribe();
 
-    const balance = http.expectOne(request => request.url.endsWith('/EntitiesServices/getBalance'));
+    const balance = http.expectOne(request => request.url.includes('/EntitiesServices/') && request.url.endsWith('/getBalance'));
     expect(balance.request.method).toBe('GET');
     expect(balance.request.headers.get('SonEntity-i')).toBe('SIRIO-9');
     expect(balance.request.headers.get('Entity-i')).toBe('com.onsigna');

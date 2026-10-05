@@ -18,6 +18,7 @@ describe('PagarLinkPagoComponent', () => {
       order: { customerInfo: { clientIdentifier: 'CLIENTE-1', registerClient: true } }
     }));
     service.obtenerTarjetas.and.returnValue(of([]));
+    service.obtenerBalance.and.returnValue(of({ rows: null }));
 
     TestBed.configureTestingModule({
       providers: [
@@ -111,8 +112,52 @@ describe('PagarLinkPagoComponent', () => {
 
     const payload = service.procesarTransaccion.calls.mostRecent().args[0] as any;
     expect(payload.cardData).toEqual(jasmine.objectContaining({
-      cardToken: 'TOKEN-1', cardholderName: 'Monica Aviles', expirationMonth: '12', expirationYear: '29'
+      cardNumber: '5204166074560691', cvv: '123', cardholderName: 'Monica Aviles',
+      expirationMonth: '12', expirationYear: '29'
     }));
+    expect(payload.cardData.cardToken).toBeUndefined();
+    expect(payload.itInformation).toEqual(jasmine.objectContaining({ latitude: '19.43', longitude: '-99.13' }));
+    expect(payload.promotion).toEqual({ qtyPay: 1, planID: 0, graceNumbers: 0 });
+  });
+
+  it('sends the transaction fields from the order and payment form', () => {
+    service.obtenerOrden.and.returnValue(of({ order: {
+      id: 'ORDER-1', user: 'comercio@example.com', sirioID: 'SIRIO-9', orderingAccount: 'CUENTA-1',
+      retrievalReferenceCode: 'RETRIEVAL-1', payPhone: '5555000000', payEmail: 'pagador@example.com',
+      referenceOne: 'REF-1', referenceTwo: 'REF-2', amount: 100,
+      paymentMethod: { paymentMethodID: 6 }, typeCorrespondient: 'Tarjeta',
+      customerInfo: { firstName: 'Ana', lastName: 'Lopez', middleName: 'Maria', email: 'ana@example.com',
+        phone1: '5555111111', ip: '192.0.2.1' }
+    } }));
+    service.procesarTransaccion.and.returnValue(of({ success: true }));
+    component.ngOnInit();
+    component.formulario.patchValue({
+      nameCard: 'Ana Lopez', numCard: '4111 1111 1111 1111', vencimiento: '12/29',
+      ccv: '123', pais: 'Mexico', cp: '12345', address: 'Calle 1', ciudad: 'Mexico',
+      estado: 'CDMX', meses: 3, propina: 0, terminos: true
+    });
+
+    component.procesarPago();
+
+    const payload = service.procesarTransaccion.calls.mostRecent().args[0] as any;
+    expect(payload).toEqual(jasmine.objectContaining({
+      messagetype: 90, posEntryMode: 6, amount: 100, otherAmount: 0,
+      user: 'comercio@example.com', currency: '484', reference_payment: 'ORDER-1',
+      sirioId: 'SIRIO-9', orderingAccount: 'CUENTA-1', payment_type: 1, paymentMethod: 6,
+      typeCorrespondient: 'Tarjeta', retrievalReferenceCode: 'RETRIEVAL-1',
+      payPhone: '5555000000', payEmail: 'pagador@example.com',
+      referenceOne: 'REF-1', referenceTwo: 'REF-2', referenceThree: ''
+    }));
+    expect(payload.customerInfo).toEqual({
+      firstName: 'Ana', lastName: 'Lopez', middleName: '', email: 'ana@example.com',
+      phone1: '5555111111', city: 'Mexico', address1: 'Calle 1', postalCode: '12345',
+      state: 'CDMX', country: 'Mexico', ip: '192.0.2.1'
+    });
+    expect(payload.cardData).toEqual({
+      cardNumber: '4111111111111111', cvv: '123', cardholderName: 'Ana Lopez',
+      expirationYear: '29', expirationMonth: '12'
+    });
+    expect(payload.promotion).toEqual({ qtyPay: 3, planID: 0, graceNumbers: 0 });
   });
 
   it('shows the transaction rejection in the payment error modal', () => {

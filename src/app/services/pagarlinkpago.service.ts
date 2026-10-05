@@ -143,7 +143,7 @@ export class PagarLinkPagoService {
           }
         };
 
-        console.log('BODY PAY :: ',payloadConUbicacion);
+        console.log('*BODY* :: ',payloadConUbicacion);
 
         return this.http.post(
           `${this.transactionUrl}processTransaction`,

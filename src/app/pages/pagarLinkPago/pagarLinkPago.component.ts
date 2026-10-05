@@ -80,7 +80,6 @@ export class PagarLinkPagoComponent implements OnInit {
 
     this.pagarLinkPagoService.obtenerOrden(this.referencia).subscribe({
       next: response => {
-        console.log('response::',response);
         this.orden = response?.rows?.order ?? response?.data?.order ?? response?.order ?? response?.data ?? response;
         this.cargando = false;
         this.mostrarOpcionesPago = false;
@@ -382,43 +381,48 @@ export class PagarLinkPagoComponent implements OnInit {
       ? String(anioInstrumento || tarjetaDetalle.expirationYear || '') : (vencimiento[1] || '').trim();
     const cliente = this.orden?.customerInfo || {};
     const payInfo = this.orden?.payInfo || {};
-    const numeroTarjeta = String(this.formulario.controls.numCard.value || '').replace(/\D/g, '');
+    const numeroTarjeta = String(this.usaTarjetaGuardada
+      ? instrumento?.card ?? tarjetaDetalle?.number ?? this.formulario.controls.numCard.value
+      : this.formulario.controls.numCard.value || '').replace(/\D/g, '');
+    if (!/^\d{13,19}$/.test(numeroTarjeta)) {
+      this.errorPago = 'No fue posible obtener el número completo de la tarjeta.';
+      return;
+    }
 
     const payload = {
       messagetype: 90,
       posEntryMode: 6,
       amount: this.subtotal,
       otherAmount: this.propinaCalculada,
-      user: cliente.email || '',
+      user: this.orden?.user ?? cliente.email ?? '',
       currency: '484',
       reference_payment: this.orden?.id || '',
-      sirioId: this.orden?.sirioID || '',
+      sirioId: this.orden?.sirioID ?? this.orden?.sirioId ?? '',
       orderingAccount: this.orden?.orderingAccount || '',
       payment_type: 1,
-      paymentMethod: 3,
-      typeCorrespondient: 'Tarjeta de credito o debito',
-      retrievalReferenceCode: payInfo.reference || '',
-      payPhone: cliente.phone1 || '',
-      payEmail: cliente.email || '',
+      paymentMethod: Number(this.orden?.paymentMethod?.paymentMethodID) || 3,
+      typeCorrespondient: this.orden?.typeCorrespondient || 'Tarjeta de credito o debito',
+      retrievalReferenceCode: this.orden?.retrievalReferenceCode ?? payInfo.reference ?? '',
+      payPhone: this.orden?.payPhone ?? cliente.phone1 ?? '',
+      payEmail: this.orden?.payEmail ?? cliente.email ?? '',
       referenceOne: this.orden?.referenceOne || '',
       referenceTwo: this.orden?.referenceTwo || '',
       referenceThree: '',
       customerInfo: {
         firstName: cliente.firstName || '',
         lastName: cliente.lastName || '',
-        middleName: cliente.middleName || '',
+        middleName: '',
         email: cliente.email || '',
         phone1: cliente.phone1 || '',
-        city: this.formulario.controls.ciudad.value || cliente.city || 'Ciudad Juarez',
-        address1: this.formulario.controls.address.value || cliente.address1 || 'Calle 20 123',
+        city: this.formulario.controls.ciudad.value || cliente.city || '',
+        address1: this.formulario.controls.address.value || cliente.address1 || '',
         postalCode: this.formulario.controls.cp.value || '',
-        state: this.formulario.controls.estado.value || cliente.state || 'Estado de Mexico',
+        state: this.formulario.controls.estado.value || cliente.state || '',
         country: this.formulario.controls.pais.value || '',
-        ip: cliente.ip || 'UNKNOWN'
+        ip: cliente.ip ?? this.orden?.ip ?? ''
       },
       cardData: {
-        cardNumber: this.usaTarjetaGuardada ? '' : numeroTarjeta,
-        ...(this.usaTarjetaGuardada ? { cardToken: this.tarjetaSeleccionada } : {}),
+        cardNumber: numeroTarjeta,
         cvv: this.formulario.controls.ccv.value || '',
         cardholderName: this.formulario.controls.nameCard.value || '',
         expirationYear,
@@ -427,10 +431,12 @@ export class PagarLinkPagoComponent implements OnInit {
       itInformation: {
         so: navigator.platform || 'N/D',
         fab: navigator.vendor || 'N/D',
-        model: navigator.userAgent
+        model: navigator.userAgent,
+        latitude: this.latitud,
+        longitude: this.longitud
       },
       promotion: {
-        qtyPay: Number(this.formulario.controls.meses.value) || 0,
+        qtyPay: Number(this.formulario.controls.meses.value) || 1,
         planID: 0,
         graceNumbers: 0
       }
