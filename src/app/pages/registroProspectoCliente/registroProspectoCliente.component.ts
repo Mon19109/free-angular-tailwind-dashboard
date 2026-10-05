@@ -216,6 +216,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private opcionLiquidacionAnterior = 'otros-bancos';
   modalAccesos: string | null = null;
   errorProspecto = '';
+  avisoCierre = '';
   intentoGuardarLiquidacion = false;
   erroresArchivos: Record<'carta' | 'edc', string> = { carta: '', edc: '' };
   errorCatalogoLiquidacion = '';
@@ -730,8 +731,10 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
 
   cerrarPagina(): void {
     window.close();
-    // Las pestañas abiertas directamente pueden impedir window.close().
-    if (!window.closed) window.location.replace('about:blank');
+    // Si el navegador bloquea el cierre, conservar la página y explicar cómo salir.
+    if (!window.closed) {
+      this.avisoCierre = 'No se pudo cerrar esta pestaña automáticamente. Ciérrala con la X de la pestaña del navegador.';
+    }
   }
 
   private precargarDatosProspecto(): void {
@@ -1103,7 +1106,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   get contextoSirio(): string {
-    return this.texto(this.cuentaComercio?.['idSirio'])
+    return this.texto(this.buscarNodo(this.arbol, this.nodoSeleccionado)?.idSirio)
+      || this.texto(this.cuentaComercio?.['idSirio'])
       || this.texto(this.prospecto?.['idSirio'])
       || this.texto(this.prospecto?.id)
       || this.prospectId
@@ -1113,12 +1117,17 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   get contextoNombre(): string {
     return this.texto(this.cuentaComercio?.['nameCommerce'])
       || this.texto(this.cuentaComercio?.['businessName'])
+      || this.texto(this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nombre)
       || this.texto(this.prospecto?.nameCommerce)
       || this.texto(this.prospecto?.businessName)
       || 'Comercio';
   }
 
   get contextoNivel(): string {
+    const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    const niveles: Record<number, string> = { 3: 'Sub-afiliado', 4: 'Entidad', 5: 'Sucursal', 6: 'Caja' };
+    if (nodo?.levelType && niveles[nodo.levelType]) return niveles[nodo.levelType];
+    if (nodo?.nivel) return nodo.nivel.charAt(0).toUpperCase() + nodo.nivel.slice(1);
     return this.texto(this.cuentaComercio?.['commerceType'])
       || this.texto(this.cuentaComercio?.['entityType'])
       || this.texto(this.prospecto?.['commerceType'])
@@ -1323,10 +1332,15 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   private extraerCuenta(respuesta: unknown): Record<string, unknown> {
-    if (!respuesta || typeof respuesta !== 'object') return {};
+    if (!respuesta || typeof respuesta !== 'object' || Array.isArray(respuesta)) return {};
     const objeto = respuesta as Record<string, unknown>;
-    const candidatos = [objeto['entityInfo'], objeto['account'], objeto['data'], objeto];
-    return candidatos.find(item => item && typeof item === 'object') as Record<string, unknown> || {};
+    const contenido = [objeto['entityInfo'], objeto['account'], objeto['data']]
+      .find(item => item && typeof item === 'object' && !Array.isArray(item));
+    if (!contenido) return objeto;
+    const cuenta = this.extraerCuenta(contenido);
+    // El GET puede enviar el tipo junto a entityInfo, account o data.
+    // El valor de la cuenta tiene prioridad sobre el del contenedor.
+    return { ...cuenta, typeOfBusiness: cuenta['typeOfBusiness'] ?? objeto['typeOfBusiness'] };
   }
 
   private obtenerBearerConsulta(): string {

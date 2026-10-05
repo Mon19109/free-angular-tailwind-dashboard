@@ -5,6 +5,9 @@
       <button type="button" class="token-modal-close prospect-error-close" aria-label="Cerrar página" (click)="cerrarPagina()">&times;</button>
       <div class="token-modal-body">
         <p id="prospect-error-message">{{ errorProspecto }}</p>
+        @if (avisoCierre) {
+        <p role="status">{{ avisoCierre }}</p>
+        }
       </div>
     </div>
   </div>
@@ -84,6 +87,9 @@
             autofocus></textarea>
           @if (tokenErrorMessage) {
           <div class="token-error">{{ tokenErrorMessage }}</div>
+          }
+          @if (avisoCierre) {
+          <p role="status">{{ avisoCierre }}</p>
           }
         </div>
 

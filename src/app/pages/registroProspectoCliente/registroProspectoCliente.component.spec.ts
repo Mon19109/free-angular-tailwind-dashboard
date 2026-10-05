@@ -23,6 +23,31 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   afterEach(() => http.verify());
 
+  it('conserva el aviso del enlace y la URL si el navegador bloquea el cierre', () => {
+    const cerrar = spyOn(window, 'close');
+    const url = window.location.href;
+    component.errorProspecto = 'Enlace ya fue completado, verifique o reporte al Administrador.';
+    component.showTokenModal = false;
+
+    component.cerrarPagina();
+
+    expect(cerrar).toHaveBeenCalledTimes(1);
+    expect(window.location.href).toBe(url);
+    expect(component.errorProspecto).toContain('Enlace ya fue completado');
+    expect(component.showTokenModal).toBeFalse();
+    expect(component.avisoCierre).toContain('X de la pestaña del navegador');
+  });
+
+  it('al cancelar SMS indica cómo cerrar si el navegador mantiene abierta la pestaña', () => {
+    spyOn(window, 'close');
+    component.showTokenModal = true;
+
+    component.closeTokenModal();
+
+    expect(component.showTokenModal).toBeTrue();
+    expect(component.avisoCierre).toContain('X de la pestaña del navegador');
+  });
+
   function iniciarModoInterno() {
     component.modoInterno = true;
     component.link = '';
@@ -374,6 +399,60 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(request.request.params.get('sirioId')).toBe(sirioId);
     request.flush({ success: true, entityInfo: { idSirio: sirioId, dispersionAccount } });
   }
+
+  for (const typeOfBusiness of [5, 17]) {
+    for (const formato of ['entityInfo', 'account', 'data']) {
+      it(`conserva typeOfBusiness ${typeOfBusiness} fuera de ${formato} para los accesos de sucursal`, () => {
+        prepararAccesos('otros-bancos-en-red');
+        component['consultarLiquidacionNodo']();
+        const cuenta = { idSirio: 'SUC001', dispersionAccount: 'OTHER_BANK_AND_NETWORK' };
+        http.expectOne(req => req.url.endsWith('account/get')).flush({
+          success: true,
+          typeOfBusiness: String(typeOfBusiness),
+          [formato]: formato === 'data' ? { entityInfo: cuenta } : cuenta
+        });
+
+        const prefijo = typeOfBusiness === 5 ? 'controlador' : 'supervisor';
+        expect(component.usuariosAcceso.map(usuario => usuario.prefijo)).toEqual([prefijo]);
+        expect(component.usuarioActivo).toBe(prefijo);
+        expect(component.contextoNivel).toBe('Sucursal');
+        llenar(prefijo);
+        component.finalizar();
+        const acceso = http.expectOne(`${environment.api.antaresAuth}user/add`);
+        expect(acceso.request.body.idProfile).toBe(typeOfBusiness);
+        expect(acceso.request.body.idAffiliationLevel).toBe(5);
+        expect(acceso.request.body.sirioId).toBe('SUC001');
+        acceso.flush({ success: true });
+        completarSeguimiento().flush({ success: true });
+
+        component.seleccionarNodo('entidad');
+        consultarNodo('ENT002', 'NETWORK');
+        expect(component.contextoNivel).toBe('Entidad');
+        expect(component.usuariosAcceso.map(usuario => usuario.prefijo)).toEqual(['admin']);
+        component.seleccionarNodo('sucursal');
+        expect(component.contextoNivel).toBe('Sucursal');
+        expect(component.usuariosAcceso.map(usuario => usuario.prefijo)).toEqual([prefijo]);
+      });
+    }
+  }
+
+  it('prioriza el tipo de la cuenta sobre el tipo del contenedor', () => {
+    prepararAccesos('otros-bancos-en-red');
+    component['consultarLiquidacionNodo']();
+    http.expectOne(req => req.url.endsWith('account/get')).flush({
+      typeOfBusiness: 5,
+      entityInfo: { typeOfBusiness: 17, dispersionAccount: 'OTHER_BANK_AND_NETWORK' }
+    });
+    expect(component.usuariosAcceso.map(usuario => usuario.prefijo)).toEqual(['supervisor']);
+  });
+
+  it('identifica la sucursal seleccionada en el encabezado aunque la cuenta diga Comercio', () => {
+    prepararAccesos('en-red');
+    component.cuentaComercio = { commerceType: 'Comercio', idSirio: 'SUB0204400' };
+    expect(component.contextoNivel).toBe('Sucursal');
+    expect(component.contextoSirio).toBe('SUC001');
+    expect(component.contextoNombre).toBe('Sucursal');
+  });
 
   it('conserva liquidación, archivos y accesos por nodo sin concluir la sucursal al llenar entidad', async () => {
     prepararAccesos('otros-bancos');
