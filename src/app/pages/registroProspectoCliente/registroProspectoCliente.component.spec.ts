@@ -364,7 +364,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     [17, 'supervisor', 'Usuario Supervisor de Terminales']
   ] as const) {
     for (const dispersionAccount of ['NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK']) {
-      it(`usa el perfil ${typeOfBusiness} del GET con ${dispersionAccount} para entidad`, () => {
+      it(`envía perfil 9 para typeOfBusiness ${typeOfBusiness} con ${dispersionAccount} para entidad`, () => {
         prepararAccesos('otros-bancos');
         component.seleccionarNodo('entidad');
         http.expectOne(req => req.url.endsWith('account/get')).flush({
@@ -378,7 +378,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
         component.finalizar();
         const request = http.expectOne(`${environment.api.antaresAuth}user/add`);
         expect(request.request.body).toEqual({
-          sirioId: 'ENT002', idAffiliationLevel: 4, idProfile: typeOfBusiness,
+          sirioId: 'ENT002', idAffiliationLevel: 4, idProfile: 9,
           name: 'Ana', paternalSurname: 'Perez', maternalSurname: 'Lopez',
           email: `${prefijo}@example.com`, phoneNumber: '5512345678'
         });
@@ -419,7 +419,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
         llenar(prefijo);
         component.finalizar();
         const acceso = http.expectOne(`${environment.api.antaresAuth}user/add`);
-        expect(acceso.request.body.idProfile).toBe(typeOfBusiness);
+        expect(acceso.request.body.idProfile).toBe(9);
         expect(acceso.request.body.idAffiliationLevel).toBe(5);
         expect(acceso.request.body.sirioId).toBe('SUC001');
         acceso.flush({ success: true });

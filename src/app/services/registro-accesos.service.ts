@@ -6,7 +6,7 @@ import { environment } from '../environments/environments';
 export interface RegistroAccesoPayload {
   sirioId: string;
   idAffiliationLevel: number;
-  idProfile: 5 | 7 | 17;
+  idProfile: 5 | 7 | 9 | 17;
   name: string;
   paternalSurname: string;
   maternalSurname: string;

@@ -606,9 +606,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       && this.accesosCompletadosPorNodo.has(id);
   }
 
-  private perfilAcceso(prefijo: string): 5 | 7 | 17 {
-    if (prefijo === 'controlador') return 5;
-    if (prefijo === 'supervisor') return 17;
+  private perfilAcceso(prefijo: string): RegistroAccesoPayload['idProfile'] {
+    if (prefijo === 'controlador' || prefijo === 'supervisor') return 9;
     if (prefijo === 'fac') return 5;
     if (prefijo === 'tkt') return 7;
     return this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red' ? 5 : 7;
