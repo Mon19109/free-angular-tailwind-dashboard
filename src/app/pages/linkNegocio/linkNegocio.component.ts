@@ -20,6 +20,7 @@ export class LinkNegocioComponent implements OnInit {
   readonly formulario = this.fb.nonNullable.group({
     emailComer: [''],
     sirio: [''],
+    virtualAccount: [''],
     orderingAccount: [''],
     monto: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
     concepto: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
@@ -203,11 +204,17 @@ export class LinkNegocioComponent implements OnInit {
           'phoneNumber', 'telephoneNumber', 'phone', 'telefono', 'telephone'
         ]) || this.telefonoComercio;
 
+        const onsignaEntity = negocio['onsignaEntity'];
+        const orderingAccount = onsignaEntity && typeof onsignaEntity === 'object'
+          ? this.obtenerTexto(onsignaEntity as Record<string, unknown>, ['virtualAccount'])
+          : '';
+        const virtualAccount = this.obtenerTexto(negocio, ['virtualAccount']) || orderingAccount;
         this.formulario.patchValue({
           emailComer: this.obtenerTexto(negocio, [
             'email', 'commerceEmail', 'businessEmail', 'emailCommerce', 'correo'
           ]),
-          orderingAccount: this.obtenerTexto(negocio, ['virtualAccount']),
+          virtualAccount,
+          orderingAccount,
           sirio: this.obtenerTexto(negocio, ['sirioId', 'sirioID']) || sirioId
         });
         this.negocioCargado = true;
