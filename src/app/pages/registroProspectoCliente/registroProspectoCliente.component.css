@@ -924,6 +924,19 @@
   background: rgba(0, 0, 0, 0.62);
 }
 
+.prospect-error-close,
+.prospect-error-close:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.prospect-error-close:hover,
+.prospect-error-close:focus-visible {
+  color: #525866;
+  background: #f2f4f7;
+  border-radius: 4px;
+}
+
 #prospect-error-message {
   margin: 12px 12px 0 0;
   color: #858793;

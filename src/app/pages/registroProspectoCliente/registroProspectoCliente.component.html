@@ -2,7 +2,7 @@
   @if (errorProspecto) {
   <div class="token-modal-backdrop">
     <div class="token-modal" role="alertdialog" aria-modal="true" aria-labelledby="prospect-error-message">
-      <button type="button" class="token-modal-close" aria-label="Cerrar página" (click)="cerrarPagina()" autofocus>&times;</button>
+      <button type="button" class="token-modal-close prospect-error-close" aria-label="Cerrar página" (click)="cerrarPagina()">&times;</button>
       <div class="token-modal-body">
         <p id="prospect-error-message">{{ errorProspecto }}</p>
       </div>
