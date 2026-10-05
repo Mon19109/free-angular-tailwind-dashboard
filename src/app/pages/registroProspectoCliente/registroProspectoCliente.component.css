@@ -1004,3 +1004,11 @@
 .document-upload-field .document-upload-card { height: auto; min-height: 136px; }
 .document-upload-card.invalid { border-color: #ef4444; }
 .field-error { display: block; margin: 8px 0 0; color: #ef4444; font-size: 13px; }
+
+.registro-shell.internal-registration {
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+  display: grid;
+  gap: 20px;
+}

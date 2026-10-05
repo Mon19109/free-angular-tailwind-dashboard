@@ -40,11 +40,11 @@ export class RegistroLiquidacionService {
 
  // registrar(payload: RegistroLiquidacionPayload, bearerToken: string): Observable<{ success?: boolean; message?: string }> {
     registrar(
-  payload: RegistroLiquidacionPayload
+  payload: RegistroLiquidacionPayload, tokenSesion?: string
 ): Observable<{ success?: boolean; message?: string }> {
   const bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
     return this.http.post<{ success?: boolean; message?: string }>(`${environment.api.KashpayCoreAPI}contact`, payload, {
-      headers: new HttpHeaders({ Authorization: `Bearer ${bearerToken}`, versionApp: '3' })
+      headers: new HttpHeaders({ Authorization: `Bearer ${tokenSesion ?? bearerToken}`, versionApp: '3' })
     });
   }
 }

@@ -1,6 +1,7 @@
+import { RegistroProspectoClienteComponent } from '../registroProspectoCliente/registroProspectoCliente.component';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, ViewChild, inject } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -59,6 +60,7 @@ interface SeccionRegistro {
   selector: 'app-registro-cliente',
   standalone: true,
   imports: [
+    RegistroProspectoClienteComponent,
     ProcessingOverlayComponent,
     CommonModule,
     ReactiveFormsModule,
@@ -73,6 +75,13 @@ interface SeccionRegistro {
   styleUrls: ['./registroCliente.component.css']
 })
 export class RegistroClienteComponent {
+  @ViewChild(RegistroProspectoClienteComponent) registroFinal?: RegistroProspectoClienteComponent;
+
+  seleccionarNodoFinal(id: string): void {
+    const nodo = this.buscarNodo(this.arbol, id);
+    if (nodo) this.seleccionarNodo(nodo);
+  }
+
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -456,7 +465,11 @@ export class RegistroClienteComponent {
   }
 
   get pasosVisiblesRegistro() {
-    return this.seccionesVisibles.map((seccion, index) => ({
+    const secciones = [...this.seccionesVisibles];
+    if (this.pendienteRevisionEdicion && this.nodeIDEdicion && this.nivelSeleccionado !== 'caja') {
+      secciones.push(...this.secciones.filter(seccion => ['liquidacion', 'accesos'].includes(seccion.id)));
+    }
+    return secciones.map((seccion, index) => ({
       id: seccion.id,
       numero: index + 1,
       titulo: seccion.titulo
@@ -1302,6 +1315,7 @@ export class RegistroClienteComponent {
   }
 
   seleccionarNodo(nodo: NodoRegistro): void {
+    if (this.registroFinal?.guardando || this.registroFinal?.guardandoLiquidacion || this.registroFinal?.validandoArchivos) return;
     this.guardarCapturaNodoActual();
     this.nodoSeleccionado = nodo.id;
     const nivel = nodo.nivel === 'sub-afiliado' ? 'Sub Afiliado' : nodo.nivel === 'referenciador' ? 'Referenciador' : nodo.nivel === 'entidad' ? 'Entidad' : nodo.nivel === 'sucursal' ? 'Sucursal' : 'Caja';
@@ -1438,6 +1452,8 @@ export class RegistroClienteComponent {
   }
 
   pasoTerminado(id: SeccionRegistro['id']): boolean {
+    if (this.pendienteRevisionEdicion && id === 'liquidacion') return this.registroFinal?.liquidacionCompleta ?? false;
+    if (this.pendienteRevisionEdicion && id === 'accesos') return this.registroFinal?.accesosCompletos ?? false;
     const estado = this.estadoPaso(id);
     return estado === 'Completado' || estado === 'Terminado';
   }

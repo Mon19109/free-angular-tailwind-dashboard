@@ -23,6 +23,85 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   afterEach(() => http.verify());
 
+  function iniciarModoInterno() {
+    component.modoInterno = true;
+    component.link = '';
+    component.nodoSeleccionado = '';
+    component.arbolInterno = [{
+      id: 'entidad', nombre: 'Entidad', nivel: 'entidad', idSirio: 'ENT002', levelType: 4,
+      hijos: [{ id: 'sucursal', nombre: 'Sucursal', nivel: 'sucursal', idSirio: 'SUC001', levelType: 5 },
+        { id: 'caja', nombre: 'Caja', nivel: 'caja', idSirio: 'CAJ003', levelType: 6 }]
+    }];
+    component.nodoInterno = 'entidad';
+    spyOn(localStorage, 'getItem').and.callFake(key => key === 'token' ? 'sesion-interna' : null);
+    component.ngOnChanges();
+    component.ngOnInit();
+    const cuenta = http.expectOne(req => req.url.endsWith('account/get'));
+    expect(cuenta.request.params.get('sirioId')).toBe('ENT002');
+    expect(cuenta.request.headers.get('Authorization')).toBe('Bearer sesion-interna');
+    cuenta.flush({ entityInfo: { idSirio: 'ENT002', commerceGuid: 'guid-entidad', dispersionAccount: '' } });
+  }
+
+  it('usa la sesión interna para liquidación y avanza por nodo sin SMS ni enlace externo', () => {
+    iniciarModoInterno();
+    expect(component.showTokenModal).toBeFalse();
+    expect(component.cargando).toBeFalse();
+    component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
+    component.aceptarModalLiquidacion();
+    const dispersion = http.expectOne(`${environment.api.KashpayCoreAPI}merchant/updateData`);
+    expect(dispersion.request.headers.get('Authorization')).toBe('Bearer sesion-interna');
+    expect(dispersion.request.body.commerceGuid).toBe('guid-entidad');
+    dispersion.flush({ success: true });
+    llenar('admin');
+    component.finalizar();
+    const acceso = http.expectOne(`${environment.api.antaresAuth}user/add`);
+    expect(acceso.request.body.sirioId).toBe('ENT002');
+    acceso.flush({ success: true });
+    const avanzar = spyOn(component.nodoInternoChange, 'emit');
+    component.aceptarModalAccesos();
+    expect(avanzar).toHaveBeenCalledWith('sucursal');
+    component.nodoInterno = 'sucursal';
+    component.ngOnChanges();
+    expect(component.liquidacionCompleta).toBeFalse();
+    consultarNodo('SUC001', 'NETWORK');
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    expect(component.accesosCompletos).toBeTrue();
+    http.expectNone(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+    component.nodoInterno = 'caja';
+    component.ngOnChanges();
+    expect(component.nodoRequiereAccesos).toBeFalse();
+    component.continuarLiquidacion();
+    component.finalizar();
+    http.expectNone(() => true);
+  });
+
+  it('envía la cuenta bancaria interna y documentos con la sesión y Sirio ID del nodo', async () => {
+    iniciarModoInterno();
+    await adjuntar('carta');
+    await adjuntar('edc');
+    component.liquidacionForm.patchValue({
+      cuentaFueraRed: 'otros-bancos', tipoPersonaBeneficiario: 'fisica',
+      nombreBeneficiario: 'Ana', apellidoPaternoBeneficiario: 'Perez', apellidoMaternoBeneficiario: 'Lopez',
+      correoBeneficiario: 'ana@example.com', direccionBeneficiario: 'Calle 1', rfcBeneficiario: 'AAAA010101AAA',
+      actividadBeneficiario: 'Actividad', idActivity: 12, tipoCuenta: 'CLABE', cuentaClabe: '646180289216322143',
+      nombreBanco: 'STP', idInstitution: 90646, accountNumber: '0', direccionBanco: 'Calle 2',
+      telefonoBanco: '5512345678', emailBanco: 'banco@example.com'
+    });
+    component.continuarLiquidacion();
+    http.expectOne(`${environment.api.KashpayCoreAPI}merchant/updateData`).flush({ success: true });
+    const documentos = http.expectOne(`${environment.api.documents}uploadFiles`);
+    expect(documentos.request.headers.get('Authorization')).toBe('Bearer sesion-interna');
+    expect(documentos.request.body.get('folderName')).toBe('guid-entidad');
+    documentos.flush({ success: true });
+    const cuenta = http.expectOne(`${environment.api.KashpayCoreAPI}contact`);
+    expect(cuenta.request.headers.get('Authorization')).toBe('Bearer sesion-interna');
+    expect(cuenta.request.body.identifier).toBe('ENT002');
+    cuenta.flush({ success: true });
+    expect(component.liquidacionCompleta).toBeTrue();
+  });
+
   for (const status of [200, 400]) {
     it(`muestra el mensaje del prospecto y oculta SMS cuando el enlace falla con HTTP ${status}`, () => {
       component['cargarProspecto']();

@@ -1,4 +1,4 @@
-<div class="registro-shell">
+<div class="registro-shell" [class.internal-registration]="modoInterno">
   @if (errorProspecto) {
   <div class="token-modal-backdrop">
     <div class="token-modal" role="alertdialog" aria-modal="true" aria-labelledby="prospect-error-message">
@@ -107,6 +107,9 @@
   />
   }
 
+  @if (modoInterno) {
+    <ng-container *ngTemplateOutlet="seccionesFinales" />
+  } @else {
   <article class="registro-card" [attr.inert]="guardando || guardandoLiquidacion || errorProspecto || modalAccesos !== null ? '' : null">
     <header class="registro-card-header">
       <div class="prospect-header-toolbar">
@@ -276,6 +279,30 @@
         </article>
         }
 
+        <ng-container *ngTemplateOutlet="seccionesFinales" />
+      </section>
+    </div>
+    }
+  </article>
+  }
+</div>
+
+<ng-template #treeTemplate let-nodos="nodos" let-nivel="nivel">
+  @for (nodo of nodos; track nodo.id) {
+  <div class="tree-row" [style.--level]="nivel">
+    <button type="button" class="tree-node" [class.selected]="nodoSeleccionado === nodo.id" [class.leaf]="!(nodo.hijos?.length)" (click)="seleccionarNodo(nodo.id)" [disabled]="guardando || guardandoLiquidacion || validandoArchivos > 0">
+      <i class="fa-solid" [ngClass]="nodo.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'"></i>
+      <span>{{ nodo.nivel }} - {{ nodo.nombre }}</span>
+      @if (nodo.nivel !== 'caja') { <i class="fa-solid fa-circle-check documentos-validados-mark"></i> }
+    </button>
+  </div>
+  @if (nodo.hijos?.length) {
+  <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: nodo.hijos, nivel: nivel + 1 }"></ng-container>
+  }
+  }
+</ng-template>
+
+<ng-template #seccionesFinales>
         @if (mensaje) {
         <p class="registration-message success"><i class="fa-solid fa-circle-check"></i>{{ mensaje }}</p>
         }
@@ -430,23 +457,4 @@
           }
         </article>
         }
-      </section>
-    </div>
-    }
-  </article>
-</div>
-
-<ng-template #treeTemplate let-nodos="nodos" let-nivel="nivel">
-  @for (nodo of nodos; track nodo.id) {
-  <div class="tree-row" [style.--level]="nivel">
-    <button type="button" class="tree-node" [class.selected]="nodoSeleccionado === nodo.id" [class.leaf]="!(nodo.hijos?.length)" (click)="seleccionarNodo(nodo.id)" [disabled]="guardando || guardandoLiquidacion || validandoArchivos > 0">
-      <i class="fa-solid" [ngClass]="nodo.nivel === 'caja' ? 'fa-cash-register' : 'fa-folder'"></i>
-      <span>{{ nodo.nivel }} - {{ nodo.nombre }}</span>
-      @if (nodo.nivel !== 'caja') { <i class="fa-solid fa-circle-check documentos-validados-mark"></i> }
-    </button>
-  </div>
-  @if (nodo.hijos?.length) {
-  <ng-container *ngTemplateOutlet="treeTemplate; context: { nodos: nodo.hijos, nivel: nivel + 1 }"></ng-container>
-  }
-  }
 </ng-template>

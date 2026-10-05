@@ -173,6 +173,13 @@
           </div>
         </article>
 
+        <app-registro-prospecto-cliente
+          *ngIf="pendienteRevisionEdicion && nodeIDEdicion && arbolServicio.length"
+          [modoInterno]="true"
+          [arbolInterno]="arbol"
+          [nodoInterno]="nodoSeleccionado"
+          (nodoInternoChange)="seleccionarNodoFinal($event)" />
+
         <footer class="footer-actions">
           <p class="registration-message error" *ngIf="mensajeRegistroCliente" role="alert">
             <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>

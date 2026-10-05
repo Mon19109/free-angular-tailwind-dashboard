@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
-import { Component, HostListener, OnInit, inject } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, inject } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -67,7 +67,21 @@ interface NodoProspecto {
   templateUrl: './registroProspectoCliente.component.html',
   styleUrls: ['../login/login.component.css', '../registroCliente/registroCliente.component.css', './registroProspectoCliente.component.css']
 })
-export class RegistroProspectoClienteComponent implements OnInit {
+export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
+  @Input() modoInterno = false;
+  @Input() arbolInterno: NodoProspecto[] = [];
+  @Input() nodoInterno = '';
+  @Output() nodoInternoChange = new EventEmitter<string>();
+
+  ngOnChanges(): void {
+    if (!this.modoInterno) return;
+    this.showTokenModal = false;
+    this.cargando = false;
+    this.arbolRealCargado = true;
+    this.arbol = this.arbolInterno;
+    if (this.nodoInterno) this.seleccionarNodo(this.nodoInterno);
+  }
+
   readonly prospectoBearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
   private readonly fb = inject(FormBuilder);
   private readonly registroAccesosService = inject(RegistroAccesosService);
@@ -254,17 +268,19 @@ export class RegistroProspectoClienteComponent implements OnInit {
   private accesosPorNodo: Record<string, ReturnType<typeof this.accesosForm.getRawValue>> = {};
 
   ngOnInit(): void {
-    const params = this.route.snapshot.queryParamMap;
-    const pathLink = this.route.snapshot.paramMap.get('link') || '';
-    this.prospectId = params.get('prospectId')
-      || params.get('prospect')
-      || params.get('id')
-      || localStorage.getItem(this.prospectIdStorageKey)
-      || '';
-    this.link = params.get('link') || pathLink;
+    if (!this.modoInterno) {
+      const params = this.route.snapshot.queryParamMap;
+      const pathLink = this.route.snapshot.paramMap.get('link') || '';
+      this.prospectId = params.get('prospectId')
+        || params.get('prospect')
+        || params.get('id')
+        || localStorage.getItem(this.prospectIdStorageKey)
+        || '';
+      this.link = params.get('link') || pathLink;
 
-    if (params.get('prospectId') || params.get('prospect') || params.get('id')) {
-      localStorage.setItem(this.prospectIdStorageKey, this.prospectId);
+      if (params.get('prospectId') || params.get('prospect') || params.get('id')) {
+        localStorage.setItem(this.prospectIdStorageKey, this.prospectId);
+      }
     }
 
     this.liquidacionForm.controls.cuentaFueraRed.valueChanges
@@ -283,6 +299,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     this.actualizarValidadorCuentaLiquidacion();
     this.actualizarValidadoresAccesos();
 
+    if (this.modoInterno) return;
     if (!this.link) {
       this.cargando = false;
       this.error = 'El link no contiene token para validar el registro.';
@@ -429,7 +446,8 @@ export class RegistroProspectoClienteComponent implements OnInit {
     ], this.obtenerBearerConsulta(), { crearDirectorio: false });
     let dispersionActualizada = false;
     this.actualizarDatosComercioService.actualizarDispersion(
-      guid, datos.cuentaFueraRed === 'otros-bancos-en-red' ? 'OTHER_BANK_AND_NETWORK' : 'OTHER_BANK'
+      guid, datos.cuentaFueraRed === 'otros-bancos-en-red' ? 'OTHER_BANK_AND_NETWORK' : 'OTHER_BANK',
+      this.modoInterno ? this.obtenerBearerConsulta() : undefined
     ).pipe(
       tap(() => dispersionActualizada = true),
       switchMap(() => documentos),
@@ -437,7 +455,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
         ? throwError(() => new Error('No fue posible subir los documentos.'))
         : of(respuestas)),
       tap(() => this.documentosLiquidacionSubidos = true),
-      switchMap(() => this.registroLiquidacionService.registrar(payload)),
+      switchMap(() => this.registroLiquidacionService.registrar(payload, this.modoInterno ? this.obtenerBearerConsulta() : undefined)),
       finalize(() => this.guardandoLiquidacion = false)
     ).subscribe({
       next: respuesta => {
@@ -466,7 +484,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
       }
       this.error = '';
       this.guardandoLiquidacion = true;
-      this.actualizarDatosComercioService.actualizarDispersion(guid, 'NETWORK').pipe(
+      this.actualizarDatosComercioService.actualizarDispersion(guid, 'NETWORK', this.modoInterno ? this.obtenerBearerConsulta() : undefined).pipe(
         finalize(() => this.guardandoLiquidacion = false)
       ).subscribe({
         next: () => {
@@ -600,7 +618,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     this.error = '';
     this.mensaje = '';
     const link = this.link.trim();
-    if (!link) {
+    if (!link && !this.modoInterno) {
       this.error = 'No se encontró el enlace de seguimiento del prospecto. No se enviaron los accesos.';
       return;
     }
@@ -640,7 +658,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
       )),
       toArray(),
       tap(() => accesosEnviados = true),
-      switchMap(() => nodo.levelType === 5 ? this.seguimientoProspectoService.completar(link) : of(undefined)),
+      switchMap(() => !this.modoInterno && nodo.levelType === 5 ? this.seguimientoProspectoService.completar(link) : of(undefined)),
       tap(() => this.accesosCompletadosPorNodo.add(nodoId)),
       finalize(() => this.guardando = false)
     ).subscribe({
@@ -668,7 +686,10 @@ export class RegistroProspectoClienteComponent implements OnInit {
         : ['SUB AFILIADO', 'ENTIDAD', 'SUCURSAL'].includes(this.normalizar(nodo.nivel));
       return requiereRegistro && !this.nodoRegistroCompleto(nodo.id);
     });
-    if (siguiente) this.seleccionarNodo(siguiente.id);
+    if (siguiente) {
+      if (this.modoInterno) this.nodoInternoChange.emit(siguiente.id);
+      else this.seleccionarNodo(siguiente.id);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -827,7 +848,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     }, { emitEvent: false });
     this.comercioForm.disable({ emitEvent: false });
     this.datosForm.disable({ emitEvent: false });
-    this.consultarDocumentos(this.texto(datos['commerceID'] || datos['commerceId'] || datos['commerceGuid'] || this.prospecto?.id));
+    if (!this.modoInterno) this.consultarDocumentos(this.texto(datos['commerceID'] || datos['commerceId'] || datos['commerceGuid'] || this.prospecto?.id));
     if (this.liquidacionForm.controls.beneficiarioIgualComercio.value) {
       this.sincronizarBeneficiarioDesdeComercio();
     } else {
@@ -942,7 +963,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
     if (!commerceId) return;
     this.cargandoDocumentos = true;
     const nodoId = this.nodoSeleccionado;
-    this.documentosService.consultarDocumentos(commerceId, this.prospectoBearerToken).pipe(
+    this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta()).pipe(
       finalize(() => { if (this.nodoSeleccionado === nodoId) this.cargandoDocumentos = false; })
     ).subscribe({
       next: respuesta => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = respuesta.legalDocuments || respuesta.documents || []; },
@@ -961,7 +982,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
   verDocumentoProspecto(documento: DocumentoRequerido): void {
     if (documento.s3Key) {
-      this.documentosService.consultarUrlArchivo(documento.s3Key, this.prospectoBearerToken).subscribe(url => window.open(url, '_blank', 'noopener'));
+      this.documentosService.consultarUrlArchivo(documento.s3Key, this.obtenerBearerConsulta()).subscribe(url => window.open(url, '_blank', 'noopener'));
       return;
     }
     if (documento.archivoUrl) window.open(documento.archivoUrl, '_blank', 'noopener');
@@ -1309,7 +1330,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
   }
 
   private obtenerBearerConsulta(): string {
-    if (this.link) return this.prospectoBearerToken;
+    if (!this.modoInterno && this.link) return this.prospectoBearerToken;
 
     try {
       const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
@@ -1320,7 +1341,7 @@ export class RegistroProspectoClienteComponent implements OnInit {
 
     return localStorage.getItem('token')
       || localStorage.getItem('auth_token')
-      || this.prospectoBearerToken;
+      || (this.modoInterno ? '' : this.prospectoBearerToken);
   }
 
   private construirArbol(): NodoProspecto[] {
