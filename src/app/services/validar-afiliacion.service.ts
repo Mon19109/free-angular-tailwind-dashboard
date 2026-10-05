@@ -9,6 +9,7 @@ export interface ValidarAfiliacionRequest {
 
 export interface ValidarAfiliacionResponse {
   success?: boolean;
+  nodeId?: number | string;
   error?: {
     name?: string | null;
     message?: string;

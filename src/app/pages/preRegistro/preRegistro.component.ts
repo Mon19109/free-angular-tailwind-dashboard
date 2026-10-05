@@ -65,6 +65,7 @@ interface BorradorPreRegistro {
   pasosCompletados: number[];
   registroTerminado: boolean;
   afiliacion: { afiliacion: string };
+  referrerNodeId?: number | null;
   comercio: { nivel: string; tipoComercio: string; tipoComercioId?: number; afiliacionComisionista: string };
   arbolNegocio: { numeroEntidades: string; numeroSucursales: string; numeroCajas: string; ubicacionSeleccionada: string; nivelSeleccionado: string; sucursalesPorEntidad: string; cajasPorSucursal: string; nombresArbol: string; nodosColapsados: string; nodosCompletados: string; nodoSeleccionado: string; datosPorSucursal: string; comercioPorNodo: string };
   comisionista: Record<string, string>;
@@ -110,6 +111,7 @@ export class PreRegistroComponent {
   private readonly validarAfiliacionService = inject(ValidarAfiliacionService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
   private readonly payloadKey = 'kashpay.preregistro.payload.v1';
+  private referrerNodeId: number | null = null;
   private readonly entidadFederativaNoIdentificada = 'No es Identificada';
 
   // ── Estado UI ────────────────────────────────────────────────────────────────
@@ -848,6 +850,9 @@ export class PreRegistroComponent {
 
   // ── Constructor ──────────────────────────────────────────────────────────────
   constructor() {
+    this.afiliacionForm.controls.afiliacion.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { this.referrerNodeId = null; });
     for (const tipo of ['Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor']) {
       this.datosGeneralesPorTipo[tipo] = this.datosGeneralesPorTipo['Entidad Agrupadora'];
       this.documentosPorTipoComercio[tipo] = this.documentosPorTipoComercio['Entidad Agrupadora'];
@@ -1677,6 +1682,8 @@ export class PreRegistroComponent {
 
   // ── Continuar ─────────────────────────────────────────────────────────────────
   continuarAfiliacion(): void {
+    if (this.validandoAfiliacion) return;
+    this.referrerNodeId = null;
     this.errorAfiliacion = '';
     if (this.afiliacionForm.invalid) { this.afiliacionForm.markAllAsTouched(); return; }
 
@@ -1686,11 +1693,14 @@ export class PreRegistroComponent {
     this.validarAfiliacionService.validar(affiliationNumber).subscribe({
       next: response => {
         this.validandoAfiliacion = false;
+        if (this.afiliacionForm.controls.afiliacion.value.trim() !== affiliationNumber) return;
         if (response?.success === false) {
           this.afiliacionForm.controls.afiliacion.setErrors({ afiliacionInvalida: true });
           this.errorAfiliacion = response.error?.message || 'No fue posible validar el número de afiliación.';
           return;
         }
+        const nodeId = Number(response?.nodeId);
+        this.referrerNodeId = Number.isSafeInteger(nodeId) && nodeId > 0 ? nodeId : null;
         this.guardarBorradorSilencioso();
         this.irAlPaso(6);
       },
@@ -2320,7 +2330,10 @@ export class PreRegistroComponent {
       entitys: [
         {
           branchOficces: [
-            this.construirComercioPayload(nodoId, { omitirDatosContactoPrincipal: true }),
+            {
+              ...this.construirComercioPayload(nodoId, { omitirDatosContactoPrincipal: true }),
+              ...this.referenciaAfiliacionPayload(),
+            },
           ],
         },
       ],
@@ -2339,6 +2352,7 @@ export class PreRegistroComponent {
       entitys: [
         {
           ...payloadEntidad,
+          ...this.referenciaAfiliacionPayload(),
           branchOficces: sucursales.map(sucursal => this.construirComercioPayload(sucursal.id, {
             omitirDatosContactoPrincipal: true,
             omitirEmailTelefonoPrincipal: true,
@@ -2359,8 +2373,13 @@ export class PreRegistroComponent {
 
     return {
       ...payloadSubAfiliado,
+      ...this.referenciaAfiliacionPayload(),
       entitys: entidades,
     };
+  }
+
+  private referenciaAfiliacionPayload(): { referrerNodeId?: number } {
+    return this.referrerNodeId !== null ? { referrerNodeId: this.referrerNodeId } : {};
   }
 
   private construirEntidadConSucursalesPayload(entidad: NodoArbolNegocio): any {
@@ -2824,6 +2843,7 @@ export class PreRegistroComponent {
   cerrarAyuda(): void { this.mostrarAyuda = false; }
 
   reiniciarFlujo(): void {
+    this.referrerNodeId = null;
     this.pasoActual = 0; this.pasosCompletados.clear();
     this.registroTerminado = false; this.archivosInvalidos = false;
     this.borradorGuardado = false; this.mostrarAyuda = false;
@@ -2863,6 +2883,7 @@ export class PreRegistroComponent {
         pasosCompletados: [...this.pasosCompletados],
         registroTerminado: this.registroTerminado,
         afiliacion: this.afiliacionForm.getRawValue(),
+        referrerNodeId: this.referrerNodeId,
         comercio: this.comercioForm.getRawValue(),
         arbolNegocio: this.arbolNegocioForm.getRawValue(),
         comisionista: this.comisionistaForm.getRawValue(),
@@ -2884,6 +2905,8 @@ export class PreRegistroComponent {
       const draft = JSON.parse(raw) as Partial<BorradorPreRegistro>;
       if (!draft) return;
       if (draft.afiliacion) this.afiliacionForm.patchValue(draft.afiliacion);
+      const nodeId = Number(draft.referrerNodeId);
+      this.referrerNodeId = Number.isSafeInteger(nodeId) && nodeId > 0 ? nodeId : null;
       if (draft.comercio) {
         this.comercioForm.patchValue(draft.comercio);
         if (draft.comercio.nivel === 'Caja') {
