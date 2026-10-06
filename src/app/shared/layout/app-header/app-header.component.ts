@@ -43,6 +43,7 @@ private readonly titulosPaginas: Record<string, string> = {
   operaciones_emision: 'Operaciones Emisión',
   tarjeta: 'Tarjeta',
   pago_distancia: 'Pago a Distancia',
+  add_linkpago: 'Crear link de pago',
   orden_pago: 'Gestion de Pago',
   revision_mesa_digital: 'Revisión de Mesa Digital',
   enviar_invitacion_comercio: 'Enviar Invitación a Comercio',
