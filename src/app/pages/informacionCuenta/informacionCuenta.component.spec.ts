@@ -82,6 +82,33 @@ describe('Información de cuenta', () => {
     expect(component.cargando()).toBeFalse();
   });
 
+  it('muestra affiliationId de getEntityLevels y lo conserva al recibir el saldo', () => {
+    component.ngOnInit();
+    component.seleccionarCuenta('EMI');
+    entities.next({ entityLevels: [
+      { bundle: 'EMI.SUB55.1', affiliationId: '001234' },
+      { bundle: 'EMI.SUB55.2', affiliationId: 5678 }
+    ] });
+    component.seleccionarEntidad('EMI.SUB55.1');
+    expect(component.infoCuenta.afiliacion).toBe('001234');
+    balance.next({ onsignaEntity: { balance: 100, affiliationId: 'otro', affiliation: 'otro' } });
+    expect(component.infoCuenta.afiliacion).toBe('001234');
+    expect(component.infoCuenta.saldo).toBe(100);
+    component.seleccionarEntidad('EMI.SUB55.2');
+    expect(component.infoCuenta.afiliacion).toBe('5678');
+    balance.next({ balance: 200 });
+    expect(component.infoCuenta.afiliacion).toBe('5678');
+    component.seleccionarCuenta('ADQ');
+    expect(component.infoCuenta.afiliacion).toBe('ND');
+  });
+
+  it('muestra ND si la entidad no tiene affiliationId aunque el saldo devuelva afiliación', () => {
+    component.entidades = [{ bundle: 'EMI.1' }];
+    component.seleccionarEntidad('EMI.1');
+    balance.next({ affiliationId: 'otro' });
+    expect(component.infoCuenta.afiliacion).toBe('ND');
+  });
+
   it('vuelve a consultar adquirente al cambiar de cuenta y descarta balances anteriores', () => {
     component.ngOnInit();
     component.seleccionarCuenta('EMI');

@@ -154,6 +154,8 @@ export class InformacionCuentaComponent implements OnInit {
       item => this.obtenerValorEntidad(item) === entidad
     );
 
+    this.infoCuenta.afiliacion = String(entidadEncontrada?.affiliationId ?? '').trim() || 'ND';
+
     this.infoCuenta.titular =
       entidadEncontrada?.bussinesName ||
       entidadEncontrada?.businessName ||
@@ -178,7 +180,7 @@ export class InformacionCuentaComponent implements OnInit {
           saldo: Number(balanceData?.balance ?? balanceData?.saldo ?? 0),
           banco: 'STP',
           titular: balanceData?.name || this.infoCuenta.titular || 'ND',
-          afiliacion: balanceData?.affiliationId || balanceData?.affiliation || 'ND'
+          afiliacion: this.infoCuenta.afiliacion
         };
       },
       error: () => { this.errorCarga = 'No se pudo cargar la información de la entidad. Intenta de nuevo.'; }
