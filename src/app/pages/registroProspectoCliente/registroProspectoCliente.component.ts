@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
-import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -50,6 +50,7 @@ interface NodoProspecto {
 
 @Component({
   selector: 'app-registro-prospecto-cliente',
+  host: { '[class.internal-registration-host]': 'modoInterno' },
   standalone: true,
   imports: [
     ProcessingOverlayComponent,
@@ -69,11 +70,14 @@ interface NodoProspecto {
 })
 export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   @Input() modoInterno = false;
+  @Input() seccionInterna: 'liquidacion' | 'accesos' | null = null;
+  @Output() seccionInternaChange = new EventEmitter<'liquidacion' | 'accesos' | null>();
   @Input() arbolInterno: NodoProspecto[] = [];
   @Input() nodoInterno = '';
   @Output() nodoInternoChange = new EventEmitter<string>();
 
-  ngOnChanges(): void {
+  ngOnChanges(changes?: SimpleChanges): void {
+    if (changes && !changes['modoInterno'] && !changes['arbolInterno'] && !changes['nodoInterno']) return;
     if (!this.modoInterno) return;
     this.showTokenModal = false;
     this.cargando = false;
@@ -520,6 +524,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private abrirAccesos(): void {
     this.error = '';
     this.pasoActivo = 'accesos';
+    if (this.modoInterno) this.seccionInternaChange.emit('accesos');
     this.asegurarUsuarioActivo();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -590,7 +595,21 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     if (this.liquidacionCompleta) return;
     this.mensaje = '';
     this.pasoActivo = 'liquidacion';
+    if (this.modoInterno) this.seccionInternaChange.emit('liquidacion');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  get seccionFinalAbierta(): 'liquidacion' | 'accesos' | null {
+    return this.modoInterno ? this.seccionInterna : this.pasoActivo;
+  }
+
+  alternarSeccionFinal(seccion: 'liquidacion' | 'accesos'): void {
+    if (this.modoInterno) {
+      this.seccionInternaChange.emit(this.seccionInterna === seccion ? null : seccion);
+      return;
+    }
+    if (seccion === 'liquidacion') this.volverLiquidacion();
+    else this.continuarLiquidacion();
   }
 
   get accesosCompletos(): boolean {

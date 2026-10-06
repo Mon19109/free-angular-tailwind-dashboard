@@ -176,6 +176,8 @@
         <app-registro-prospecto-cliente
           *ngIf="pendienteRevisionEdicion && nodeIDEdicion && arbolServicio.length"
           [modoInterno]="true"
+          [seccionInterna]="seccionAbierta === 'liquidacion' || seccionAbierta === 'accesos' ? seccionAbierta : null"
+          (seccionInternaChange)="actualizarSeccionFinal($event)"
           [arbolInterno]="arbol"
           [nodoInterno]="nodoSeleccionado"
           (nodoInternoChange)="seleccionarNodoFinal($event)" />

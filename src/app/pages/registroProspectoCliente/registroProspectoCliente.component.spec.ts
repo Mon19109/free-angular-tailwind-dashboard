@@ -23,6 +23,32 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   afterEach(() => http.verify());
 
+  it('abre y cierra secciones internas sin enviar ni validar formularios', () => {
+    component.modoInterno = true;
+    component.seccionInternaChange.subscribe(seccion => component.seccionInterna = seccion);
+    const guardar = spyOn(component, 'continuarLiquidacion');
+    component.alternarSeccionFinal('liquidacion');
+    expect(component.seccionFinalAbierta).toBe('liquidacion');
+    component.alternarSeccionFinal('liquidacion');
+    expect(component.seccionFinalAbierta).toBeNull();
+    component.alternarSeccionFinal('accesos');
+    expect(component.seccionFinalAbierta).toBe('accesos');
+    component.alternarSeccionFinal('accesos');
+    expect(component.seccionFinalAbierta).toBeNull();
+    expect(guardar).not.toHaveBeenCalled();
+    http.expectNone(() => true);
+  });
+
+  it('no reinicia la carga del nodo al cambiar únicamente la sección interna', () => {
+    component.modoInterno = true;
+    component.cargando = true;
+    component.ngOnChanges({ seccionInterna: {
+      previousValue: null, currentValue: 'accesos', firstChange: false, isFirstChange: () => false
+    } });
+    expect(component.cargando).toBeTrue();
+    http.expectNone(() => true);
+  });
+
   it('reutiliza el GET inicial de entidad y consulta y registra la sucursal con el Sirio de su nodo', () => {
     component.prospecto = { idSirio: 'SUB0204400', nodeId: 4602 } as any;
     component.consultarCuentaComercio();

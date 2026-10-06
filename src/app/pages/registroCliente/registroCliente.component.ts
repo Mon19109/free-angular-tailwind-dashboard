@@ -1381,6 +1381,11 @@ export class RegistroClienteComponent {
     this.seccionAbierta = this.seccionAbierta === id ? null : id;
     if (this.seccionAbierta) this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
   }
+
+  actualizarSeccionFinal(id: 'liquidacion' | 'accesos' | null): void {
+    this.seccionAbierta = id;
+    if (id) this.pasoActual = this.numeroPasoPorSeccion(id);
+  }
   continuarSeccion(siguiente: SeccionRegistro['id']): void {
     this.seccionAbierta = this.resolverSeccionVisible(siguiente);
     this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta ?? 'comercio');

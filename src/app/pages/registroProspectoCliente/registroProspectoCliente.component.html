@@ -325,18 +325,21 @@
         }
 
         @if (nodoRequiereAccesos) {
-        <article class="section-card" [class.open]="pasoActivo === 'liquidacion' && liquidacionConsultada && !liquidacionCompleta" [class.done]="liquidacionCompleta">
-          <button type="button" class="section-trigger" (click)="volverLiquidacion()" [disabled]="!liquidacionConsultada || liquidacionCompleta">
+        <article class="section-card" [class.open]="seccionFinalAbierta === 'liquidacion'" [class.done]="liquidacionCompleta">
+          <button type="button" class="section-trigger" (click)="alternarSeccionFinal('liquidacion')" [attr.aria-expanded]="seccionFinalAbierta === 'liquidacion'" [disabled]="!modoInterno && (!liquidacionConsultada || liquidacionCompleta)">
             <span class="section-icon"><i class="fa-solid fa-building-columns"></i></span>
             <span class="section-copy">
               <strong>4. Cuenta de Liquidación</strong>
               <small>Datos de la cuenta donde se recibirán las liquidaciones</small>
             </span>
             <span class="step-status">{{ cargandoCuenta ? 'Consultando' : errorLiquidacion ? 'Sin verificar' : liquidacionCompleta ? 'Concluida' : 'Pendiente' }}</span>
-            <i class="fa-solid" [ngClass]="pasoActivo === 'liquidacion' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            <i class="fa-solid" [ngClass]="seccionFinalAbierta === 'liquidacion' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
-          @if (pasoActivo === 'liquidacion' && liquidacionConsultada && !liquidacionCompleta) {
+          @if (modoInterno && seccionFinalAbierta === 'liquidacion' && liquidacionCompleta) {
+          <div class="section-body"><p role="status">La cuenta de liquidación de este nodo está concluida.</p></div>
+          }
+          @if (seccionFinalAbierta === 'liquidacion' && liquidacionConsultada && !liquidacionCompleta) {
           <div class="section-body prospect-liquidacion-body">
             @if (errorCatalogoLiquidacion) {
             <p class="field-error" role="alert">{{ errorCatalogoLiquidacion }}</p>
@@ -440,18 +443,21 @@
           }
         </article>
 
-        <article class="section-card" [class.open]="pasoActivo === 'accesos'" [class.done]="accesosCompletos">
-          <button type="button" class="section-trigger" (click)="continuarLiquidacion()" [disabled]="!liquidacionConsultada">
+        <article class="section-card" [class.open]="seccionFinalAbierta === 'accesos'" [class.done]="accesosCompletos">
+          <button type="button" class="section-trigger" (click)="alternarSeccionFinal('accesos')" [attr.aria-expanded]="seccionFinalAbierta === 'accesos'" [disabled]="!modoInterno && !liquidacionConsultada">
             <span class="section-icon"><i class="fa-solid fa-lock"></i></span>
             <span class="section-copy">
               <strong>5. Accesos a Plataforma</strong>
               <small>Credenciales requeridas según la cuenta de liquidación y tipo de comercio</small>
             </span>
             <span class="step-status">{{ accesosCompletos ? 'Concluida' : 'Pendiente' }}</span>
-            <i class="fa-solid" [ngClass]="pasoActivo === 'accesos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            <i class="fa-solid" [ngClass]="seccionFinalAbierta === 'accesos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
-          @if (pasoActivo === 'accesos' && liquidacionConsultada && !accesosCompletos) {
+          @if (modoInterno && seccionFinalAbierta === 'accesos' && (accesosCompletos || !liquidacionCompleta)) {
+          <div class="section-body"><p role="status">{{ accesosCompletos ? 'Los accesos a plataforma de este nodo están concluidos.' : 'Completa la cuenta de liquidación para capturar los accesos a plataforma.' }}</p></div>
+          }
+          @if (seccionFinalAbierta === 'accesos' && liquidacionConsultada && !accesosCompletos && (!modoInterno || liquidacionCompleta)) {
           <div class="section-body">
             <app-step-accesos
               [form]="accesosForm"
