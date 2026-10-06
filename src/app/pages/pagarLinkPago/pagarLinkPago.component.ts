@@ -60,13 +60,21 @@ export class PagarLinkPagoComponent implements OnInit {
   mensajeTarjetas = '';
   latitud = '';
   longitud = '';
+  ip = '';
+  errorIp = false;
   private merchantId = '';
   private detalleTarjeta: any = null;
   private detalleTarjetaSubscription?: Subscription;
+  private validacionBinSubscription?: Subscription;
   private ultimoBinValidado = '';
   private temporizadorMonto?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
+    this.pagarLinkPagoService.obtenerIp().subscribe({
+      next: response => { this.ip = response.ip; },
+      error: () => { this.errorIp = true; }
+    });
+
     this.pagarLinkPagoService.precargarUbicacion().subscribe(ubicacion => {
       this.latitud = ubicacion.latitud;
       this.longitud = ubicacion.longitud;
@@ -140,9 +148,8 @@ export class PagarLinkPagoComponent implements OnInit {
   get esPagoMixto(): boolean { return Number(this.orden?.paymentMethod?.paymentMethodID) === 6; }
 
   get permiteTarjetasGuardadas(): boolean {
-    const cliente = this.orden?.customerInfo;
-    return cliente != null && Object.prototype.hasOwnProperty.call(cliente, 'clientIdentifier')
-      && Object.prototype.hasOwnProperty.call(cliente, 'registerClient');
+    const registrar = this.orden?.customerInfo?.registerClient;
+    return registrar === true || registrar === 1 || registrar === '1' || registrar === 'true';
   }
 
   get usaTarjetaGuardada(): boolean {
@@ -151,6 +158,7 @@ export class PagarLinkPagoComponent implements OnInit {
 
   seleccionarTarjeta(event: Event): void {
     this.detalleTarjetaSubscription?.unsubscribe();
+    this.validacionBinSubscription?.unsubscribe();
     this.tarjetaSeleccionada = (event.target as HTMLSelectElement).value;
     this.detalleTarjeta = null;
     this.cargandoDetalleTarjeta = false;
@@ -170,6 +178,8 @@ export class PagarLinkPagoComponent implements OnInit {
     this.formulario.controls.ccv.reset('');
     this.msiDisponibles = [];
     this.ultimoBinValidado = '';
+    this.validandoBin = false;
+    this.mensajeBin = '';
     if (this.usaTarjetaGuardada) {
       this.cargandoDetalleTarjeta = true;
       this.detalleTarjetaSubscription = this.pagarLinkPagoService.obtenerDetalleTarjeta(this.merchantId, this.tarjetaSeleccionada).subscribe({
@@ -380,6 +390,9 @@ export class PagarLinkPagoComponent implements OnInit {
     const expirationYear = this.usaTarjetaGuardada
       ? String(anioInstrumento || tarjetaDetalle.expirationYear || '') : (vencimiento[1] || '').trim();
     const cliente = this.orden?.customerInfo || {};
+    const address = this.formulario.controls.address.value?.trim() || 'Generico';
+    const ciudad = this.formulario.controls.ciudad.value?.trim() || 'Generico';
+    const estado = this.formulario.controls.estado.value?.trim() || 'Generico';
     const payInfo = this.orden?.payInfo || {};
     const numeroTarjeta = String(this.usaTarjetaGuardada
       ? instrumento?.card ?? tarjetaDetalle?.number ?? this.formulario.controls.numCard.value
@@ -414,12 +427,12 @@ export class PagarLinkPagoComponent implements OnInit {
         middleName: '',
         email: cliente.email || '',
         phone1: cliente.phone1 || '',
-        city: this.formulario.controls.ciudad.value || cliente.city || '',
-        address1: this.formulario.controls.address.value || cliente.address1 || '',
+        city: ciudad,
+        address1: address,
         postalCode: this.formulario.controls.cp.value || '',
-        state: this.formulario.controls.estado.value || cliente.state || '',
+        state: estado,
         country: this.formulario.controls.pais.value || '',
-        ip: cliente.ip ?? this.orden?.ip ?? ''
+        ip: this.ip || cliente.ip || this.orden?.ip || ''
       },
       cardData: {
         cardNumber: numeroTarjeta,
@@ -459,8 +472,8 @@ export class PagarLinkPagoComponent implements OnInit {
           this.pagarLinkPagoService.agregarTarjeta({
             firstName: cliente.firstName || '', lastName: cliente.lastName || '', email: cliente.email || '',
             postalCode: this.formulario.controls.cp.value || '',
-            address: this.formulario.controls.address.value || cliente.address1 || '',
-            locality: this.formulario.controls.estado.value || cliente.state || '',
+            address,
+            locality: estado,
             country: this.formulario.controls.pais.value || '', number: numeroTarjeta,
             expirationMonth, expirationYear,
             merchantCustomerID: this.merchantId || String(cliente.clientIdentifier)
@@ -503,6 +516,7 @@ export class PagarLinkPagoComponent implements OnInit {
     const numeroFormateado = digitos.replace(/(\d{4})(?=\d)/g, '$1 ');
     this.formulario.controls.numCard.setValue(numeroFormateado, { emitEvent: false });
     this.actualizarValidacionCvv();
+    this.validarBinActual();
   }
 
   formatearCvv(event: Event): void {
@@ -567,7 +581,9 @@ export class PagarLinkPagoComponent implements OnInit {
   private validarBinActual(): void {
     const digitos = (this.formulario.controls.numCard.value || '').replace(/\D/g, '');
     if (digitos.length < 4) {
+      this.validacionBinSubscription?.unsubscribe();
       this.ultimoBinValidado = '';
+      this.validandoBin = false;
       this.msiDisponibles = [];
       this.mensajeBin = '';
       return;
@@ -576,13 +592,14 @@ export class PagarLinkPagoComponent implements OnInit {
     const bin = digitos.slice(0, 4);
     if (bin === this.ultimoBinValidado) return;
 
+    this.validacionBinSubscription?.unsubscribe();
     this.ultimoBinValidado = bin;
     this.validandoBin = true;
     this.mensajeBin = '';
     this.msiDisponibles = [];
     this.formulario.controls.meses.setValue(0);
 
-    this.pagarLinkPagoService.validarBin(bin, this.subtotal).subscribe({
+    this.validacionBinSubscription = this.pagarLinkPagoService.validarBin(bin, this.subtotal).subscribe({
       next: response => {
         const catalogo = response?.rows?.msi
           ?? response?.rows

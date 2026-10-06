@@ -11,14 +11,16 @@ describe('PagarLinkPagoComponent', () => {
 
   beforeEach(() => {
     service = jasmine.createSpyObj<PagarLinkPagoService>('PagarLinkPagoService', [
-      'obtenerOrden', 'obtenerCliente', 'obtenerTarjetas', 'obtenerDetalleTarjeta', 'procesarTransaccion', 'precargarUbicacion', 'obtenerBalance'
+      'obtenerOrden', 'obtenerCliente', 'obtenerTarjetas', 'obtenerDetalleTarjeta', 'procesarTransaccion', 'precargarUbicacion', 'obtenerBalance', 'validarBin', 'obtenerIp'
     ]);
+    service.obtenerIp.and.returnValue(of({ ip: '' }));
     service.precargarUbicacion.and.returnValue(of({ latitud: '19.43', longitud: '-99.13' }));
     service.obtenerOrden.and.returnValue(of({
       order: { customerInfo: { clientIdentifier: 'CLIENTE-1', registerClient: true } }
     }));
     service.obtenerTarjetas.and.returnValue(of([]));
     service.obtenerBalance.and.returnValue(of({ rows: null }));
+    service.validarBin.and.returnValue(of({ rows: [] }));
 
     TestBed.configureTestingModule({
       providers: [
@@ -40,6 +42,40 @@ describe('PagarLinkPagoComponent', () => {
     expect(component.longitud).toBe('-99.13');
     expect(service.obtenerCliente).toHaveBeenCalledWith('CLIENTE-1');
     expect(service.obtenerTarjetas).toHaveBeenCalledOnceWith('MERCHANT-9');
+  });
+
+  it('hides the saved card selector when registerClient is false', () => {
+    service.obtenerOrden.and.returnValue(of({ order: {
+      customerInfo: { clientIdentifier: 'CLIENTE-1', registerClient: false }
+    } }));
+
+    component.ngOnInit();
+
+    expect(component.permiteTarjetasGuardadas).toBeFalse();
+    expect(service.obtenerCliente).not.toHaveBeenCalled();
+    expect(service.obtenerTarjetas).not.toHaveBeenCalled();
+  });
+
+  it('validates the BIN when the fourth card digit is entered', () => {
+    component.orden = { amount: 100 };
+
+    component.formatearNumeroTarjeta({ target: { value: '123' } } as unknown as Event);
+    expect(service.validarBin).not.toHaveBeenCalled();
+
+    component.formatearNumeroTarjeta({ target: { value: '1234' } } as unknown as Event);
+    expect(service.validarBin).toHaveBeenCalledOnceWith('1234', 100);
+
+    component.formatearNumeroTarjeta({ target: { value: '12345' } } as unknown as Event);
+    expect(service.validarBin).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates the BIN when a full card number is pasted', () => {
+    component.orden = { amount: 250 };
+
+    component.formatearNumeroTarjeta({ target: { value: '4111111111111111' } } as unknown as Event);
+
+    expect(component.formulario.controls.numCard.value).toBe('4111 1111 1111 1111');
+    expect(service.validarBin).toHaveBeenCalledOnceWith('4111', 250);
   });
 
   it('loads the balance with the order sirioID when the page loads', () => {

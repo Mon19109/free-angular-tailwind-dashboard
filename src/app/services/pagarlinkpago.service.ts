@@ -83,6 +83,10 @@ export class PagarLinkPagoService {
     return this.http.get(`${this.cardsUrl}tokenization/getTokens`, { headers: this.cardsHeaders, params });
   }
 
+  obtenerIp(): Observable<{ ip: string }> {
+    return this.http.get<{ ip: string }>('https://api.ipify.org?format=json');
+  }
+
   obtenerOrden(referencia: string): Observable<any> {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.bearerToken}`,
@@ -100,7 +104,7 @@ export class PagarLinkPagoService {
       'versionApp': '3',
       'SonEntity-i': sirioId
     });
-    return this.http.get(`${environment.api.entities}getBalance`, { headers });
+    return this.http.get(`${environment.api.saldos}getBalance/${sirioId}`, { headers });
   }
 
   validarBin(bin: string, amount: number): Observable<any> {

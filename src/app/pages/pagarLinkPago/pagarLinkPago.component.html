@@ -35,7 +35,7 @@
       <button type="button" [class.active]="tabActiva === 'tarjeta'" (click)="seleccionarTab('tarjeta')">
         <span aria-hidden="true">▣</span> Tarjeta
       </button>
-      <button type="button" [class.active]="tabActiva === 'transferencia'" (click)="seleccionarTab('transferencia')">
+      <button *ngIf="orden?.customerInfo?.registerClient === false" type="button" [class.active]="tabActiva === 'transferencia'" (click)="seleccionarTab('transferencia')">
         <span aria-hidden="true">⇄</span> Transferencia
       </button>
     </nav>
