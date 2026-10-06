@@ -309,6 +309,9 @@
 </ng-template>
 
 <ng-template #seccionesFinales>
+        @if (avisoCierre && !errorProspecto && !showTokenModal) {
+        <p class="registration-message" role="status">{{ avisoCierre }}</p>
+        }
         @if (mensaje) {
         <p class="registration-message success"><i class="fa-solid fa-circle-check"></i>{{ mensaje }}</p>
         }

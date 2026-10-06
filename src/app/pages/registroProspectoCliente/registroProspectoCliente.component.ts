@@ -609,10 +609,11 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   private perfilAcceso(prefijo: string): RegistroAccesoPayload['idProfile'] {
-    if (prefijo === 'controlador' || prefijo === 'supervisor') return 9;
-    if (prefijo === 'fac') return 5;
-    if (prefijo === 'tkt') return 7;
-    return this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red' ? 5 : 7;
+    if (prefijo === 'controlador') return 9;
+    if (prefijo === 'supervisor') return 8;
+    if (prefijo === 'fac') return 7;
+    if (prefijo === 'tkt') return 5;
+    return 1;
   }
 
   finalizar(): void {
@@ -691,6 +692,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     if (siguiente) {
       if (this.modoInterno) this.nodoInternoChange.emit(siguiente.id);
       else this.seleccionarNodo(siguiente.id);
+    } else if (!this.modoInterno && this.nodoRegistroCompleto(this.nodoSeleccionado)) {
+      this.cerrarPagina();
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

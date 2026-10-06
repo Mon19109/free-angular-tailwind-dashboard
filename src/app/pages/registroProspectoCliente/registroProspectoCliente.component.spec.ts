@@ -465,7 +465,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     [17, 'supervisor', 'Usuario Supervisor de Terminales']
   ] as const) {
     for (const dispersionAccount of ['NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK']) {
-      it(`envía perfil 9 para typeOfBusiness ${typeOfBusiness} con ${dispersionAccount} para entidad`, () => {
+      it(`envía el perfil correspondiente a typeOfBusiness ${typeOfBusiness} con ${dispersionAccount} para entidad`, () => {
         prepararAccesos('otros-bancos');
         component.seleccionarNodo('entidad');
         http.expectOne(req => req.url.endsWith('account/get')).flush({
@@ -479,7 +479,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
         component.finalizar();
         const request = http.expectOne(`${environment.api.antaresAuth}user/add`);
         expect(request.request.body).toEqual({
-          sirioId: 'ENT002', idAffiliationLevel: 4, idProfile: 9,
+          sirioId: 'ENT002', idAffiliationLevel: 4, idProfile: typeOfBusiness === 5 ? 9 : 8,
           name: 'Ana', paternalSurname: 'Perez', maternalSurname: 'Lopez',
           email: `${prefijo}@example.com`, phoneNumber: '5512345678'
         });
@@ -520,7 +520,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
         llenar(prefijo);
         component.finalizar();
         const acceso = http.expectOne(`${environment.api.antaresAuth}user/add`);
-        expect(acceso.request.body.idProfile).toBe(9);
+        expect(acceso.request.body.idProfile).toBe(typeOfBusiness === 5 ? 9 : 8);
         expect(acceso.request.body.idAffiliationLevel).toBe(5);
         expect(acceso.request.body.sirioId).toBe('SUC001');
         acceso.flush({ success: true });
@@ -610,7 +610,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component.nodoRegistroCompleto('entidad')).toBeTrue();
   });
 
-  it('al aceptar el último nodo permanece en la página con el registro completo', () => {
+  it('al aceptar la última sucursal cierra la página y no considera cajas pendientes', () => {
     prepararAccesos('otros-bancos');
     component.arbol = [component.arbol[0], component.arbol[2]];
     llenar('admin');
@@ -619,7 +619,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     completarSeguimiento().flush({ success: true });
     const cerrar = spyOn(component, 'cerrarPagina');
     component.aceptarModalAccesos();
-    expect(cerrar).not.toHaveBeenCalled();
+    expect(cerrar).toHaveBeenCalledTimes(1);
     expect(component.modalAccesos).toBeNull();
     expect(component.nodoSeleccionado).toBe('sucursal');
     expect(component.accesosCompletos).toBeTrue();
@@ -638,6 +638,19 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component.modalLiquidacion).toBeNull();
     expect(cerrar).not.toHaveBeenCalled();
     http.expectNone(() => true);
+  });
+
+  it('mantiene abierta la página al completar el último nodo en modo interno', () => {
+    prepararAccesos('en-red');
+    component.modoInterno = true;
+    component.arbol = [component.arbol[0], component.arbol[2]];
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    const cerrar = spyOn(component, 'cerrarPagina');
+    component.aceptarModalAccesos();
+    expect(cerrar).not.toHaveBeenCalled();
+    expect(component.accesosCompletos).toBeTrue();
   });
 
   it('actualiza la dispersión con el commerceGuid de la cuenta del nodo consultado', () => {
@@ -684,16 +697,16 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     llenar('tkt');
     component.finalizar();
     const fac = http.expectOne(`${environment.api.antaresAuth}user/add`);
-    expect(fac.request.body).toEqual({ sirioId: 'SUC001', idAffiliationLevel: 5, idProfile: 5, name: 'Ana', paternalSurname: 'Perez', maternalSurname: 'Lopez', email: 'fac@example.com', phoneNumber: '5512345678' });
+    expect(fac.request.body).toEqual({ sirioId: 'SUC001', idAffiliationLevel: 5, idProfile: 7, name: 'Ana', paternalSurname: 'Perez', maternalSurname: 'Lopez', email: 'fac@example.com', phoneNumber: '5512345678' });
     fac.flush({ success: true });
     const tkt = http.expectOne(`${environment.api.antaresAuth}user/add`);
-    expect(tkt.request.body.idProfile).toBe(7);
+    expect(tkt.request.body.idProfile).toBe(5);
     tkt.flush({ success: false });
     expect(component.accesosCompletos).toBeFalse();
     expect(component.modalAccesos).toBeNull();
     component.finalizar();
     const reintento = http.expectOne(`${environment.api.antaresAuth}user/add`);
-    expect(reintento.request.body.idProfile).toBe(7);
+    expect(reintento.request.body.idProfile).toBe(5);
     reintento.flush({ success: true });
     expect(component.accesosCompletos).toBeFalse();
     completarSeguimiento().flush({ success: true });
@@ -709,7 +722,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component.accesosCompletos).toBeTrue();
   });
 
-  for (const [modo, perfil] of [['otros-bancos', 7], ['en-red', 5]] as const) {
+  for (const [modo, perfil] of [['otros-bancos', 1], ['en-red', 1]] as const) {
     it(`envía un administrador con perfil ${perfil} para el nodo seleccionado`, () => {
       prepararAccesos(modo);
       component.seleccionarNodo('entidad');
