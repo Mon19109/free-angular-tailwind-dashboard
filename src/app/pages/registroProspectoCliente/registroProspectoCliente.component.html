@@ -5,9 +5,6 @@
       <button type="button" class="token-modal-close prospect-error-close" aria-label="Cerrar página" (click)="cerrarPagina()">&times;</button>
       <div class="token-modal-body">
         <p id="prospect-error-message">{{ errorProspecto }}</p>
-        @if (avisoCierre) {
-        <p role="status">{{ avisoCierre }}</p>
-        }
       </div>
     </div>
   </div>
@@ -87,9 +84,6 @@
             autofocus></textarea>
           @if (tokenErrorMessage) {
           <div class="token-error">{{ tokenErrorMessage }}</div>
-          }
-          @if (avisoCierre) {
-          <p role="status">{{ avisoCierre }}</p>
           }
         </div>
 
@@ -309,12 +303,6 @@
 </ng-template>
 
 <ng-template #seccionesFinales>
-        @if (avisoCierre && !errorProspecto && !showTokenModal) {
-        <p class="registration-message" role="status">{{ avisoCierre }}</p>
-        }
-        @if (mensaje) {
-        <p class="registration-message success"><i class="fa-solid fa-circle-check"></i>{{ mensaje }}</p>
-        }
         @if (error) {
         <p class="registration-message error"><i class="fa-solid fa-circle-exclamation"></i>{{ error }}</p>
         }

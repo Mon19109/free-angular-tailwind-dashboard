@@ -157,7 +157,7 @@
               [emailNotificacion]="emailNotificacionMesaDigital"
               [enviandoNotificacion]="enviandoNotificacionMesaDigital"
               [guardandoBorrador]="guardandoRevisionDocumentos"
-              [deshabilitarFinalizar]="registrandoCliente"
+              [deshabilitarFinalizar]="registrandoCliente || guardandoRevisionDocumentos"
               [mensajeNotificacion]="mensajeObservacionesCliente"
               [textoFinalizar]="textoFinalizarDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
@@ -168,7 +168,7 @@
               (emailNotificacionChange)="emailNotificacionMesaDigital = $event"
               (enviarNotificacion)="enviarNotificacionMesaDigital()"
               (guardarBorrador)="guardarRevisionDocumentos()"
-              (finalizar)="completarPaso('documentos'); finalizar()"
+              (finalizar)="continuarDesdeDocumentos()"
               (volver)="continuarSeccion('accesos')" />
           </div>
         </article>

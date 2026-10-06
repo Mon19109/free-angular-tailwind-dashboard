@@ -1391,6 +1391,26 @@ export class RegistroClienteComponent {
     this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta ?? 'comercio');
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
+  continuarDesdeDocumentos(): void {
+    if (this.registrandoCliente || this.guardandoRevisionDocumentos) return;
+
+    if (this.nodeIDEdicion && this.pendienteRevisionEdicion && this.nivelSeleccionado !== 'caja') {
+      if (!this.documentosValidadosParaRegistro(this.documentosProspecto)) {
+        this.mostrarModalRegistro('error', 'Documentos pendientes', 'Todos los documentos deben estar marcados como válidos para continuar a Cuenta de Liquidación.');
+        return;
+      }
+
+      this.guardarRevisionDocumentos(false, () => {
+        this.completarPaso('documentos');
+        this.actualizarSeccionFinal('liquidacion');
+      });
+      return;
+    }
+
+    this.completarPaso('documentos');
+    this.finalizar();
+  }
+
   finalizar(): void {
     if (this.nodeIDEdicion) {
       if (this.mostrarRegistrarClienteDocumentos) {
@@ -1754,7 +1774,7 @@ export class RegistroClienteComponent {
     });
   }
 
-  guardarRevisionDocumentos(finalizarDespues = false): void {
+  guardarRevisionDocumentos(finalizarDespues = false, alGuardar?: () => void): void {
     const legalDocuments = this.documentosProspecto
       .map(documento => ({
         id: this.idDocumentoCargado(documento),
@@ -1775,6 +1795,10 @@ export class RegistroClienteComponent {
     }).subscribe({
       next: () => {
         this.guardandoRevisionDocumentos = false;
+        if (alGuardar) {
+          alGuardar();
+          return;
+        }
         if (!finalizarDespues) {
           this.mostrarModalRegistro('success', 'Operación exitosa', 'Borrador guardado correctamente.');
           return;

@@ -200,7 +200,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   cargando = true;
   guardando = false;
   error = '';
-  mensaje = '';
   pasoActivo: 'liquidacion' | 'accesos' = 'liquidacion';
   prospecto: ProspectoCliente | null = null;
   cuentaComercio: Record<string, unknown> | null = null;
@@ -220,7 +219,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private opcionLiquidacionAnterior = 'otros-bancos';
   modalAccesos: string | null = null;
   errorProspecto = '';
-  avisoCierre = '';
   intentoGuardarLiquidacion = false;
   erroresArchivos: Record<'carta' | 'edc', string> = { carta: '', edc: '' };
   errorCatalogoLiquidacion = '';
@@ -381,7 +379,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       this.modalLiquidacion = 'en-red';
       return;
     }
-    this.mensaje = '';
     this.intentoGuardarLiquidacion = true;
     this.liquidacionForm.markAllAsTouched();
     if (this.liquidacionForm.invalid) {
@@ -593,7 +590,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
 
   volverLiquidacion(): void {
     if (this.liquidacionCompleta) return;
-    this.mensaje = '';
     this.pasoActivo = 'liquidacion';
     if (this.modoInterno) this.seccionInternaChange.emit('liquidacion');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -638,7 +634,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   finalizar(): void {
     if (this.errorProspecto || this.guardandoLiquidacion || !this.nodoRequiereAccesos || this.guardando || this.accesosCompletos) return;
     this.error = '';
-    this.mensaje = '';
     const link = this.link.trim();
     if (!link && !this.modoInterno) {
       this.error = 'No se encontró el enlace de seguimiento del prospecto. No se enviaron los accesos.';
@@ -680,12 +675,16 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       )),
       toArray(),
       tap(() => accesosEnviados = true),
-      switchMap(() => !this.modoInterno && nodo.levelType === 5 ? this.seguimientoProspectoService.completar(link) : of(undefined)),
+      switchMap(() => !this.modoInterno && (nodo.levelType === 5 || !this.siguienteNodoPendiente())
+        ? this.seguimientoProspectoService.completar(link) : of(undefined)),
       tap(() => this.accesosCompletadosPorNodo.add(nodoId)),
       finalize(() => this.guardando = false)
     ).subscribe({
       complete: () => {
-        this.mensaje = `Accesos enviados correctamente para ${nodo.nombre}.`;
+        if (!this.modoInterno && !this.siguienteNodoPendiente() && this.nodoRegistroCompleto(nodoId)) {
+          this.cerrarPagina();
+          return;
+        }
         this.modalAccesos = nodo.nombre;
       },
       error: () => this.error = accesosEnviados
@@ -697,17 +696,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   aceptarModalAccesos(): void {
     if (this.modalAccesos === null) return;
     this.modalAccesos = null;
-    const aplanar = (nodos: NodoProspecto[]): NodoProspecto[] =>
-      nodos.flatMap(nodo => [nodo, ...aplanar(nodo.hijos ?? [])]);
-    const nodos = aplanar(this.arbol);
-    const indice = nodos.findIndex(nodo => nodo.id === this.nodoSeleccionado);
-    const siguientes = [...nodos.slice(indice + 1), ...nodos.slice(0, indice)];
-    const siguiente = siguientes.find(nodo => {
-      const requiereRegistro = nodo.levelType
-        ? [3, 4, 5].includes(nodo.levelType)
-        : ['SUB AFILIADO', 'ENTIDAD', 'SUCURSAL'].includes(this.normalizar(nodo.nivel));
-      return requiereRegistro && !this.nodoRegistroCompleto(nodo.id);
-    });
+    const siguiente = this.siguienteNodoPendiente();
     if (siguiente) {
       if (this.modoInterno) this.nodoInternoChange.emit(siguiente.id);
       else this.seleccionarNodo(siguiente.id);
@@ -715,6 +704,20 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       this.cerrarPagina();
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private siguienteNodoPendiente(): NodoProspecto | undefined {
+    const aplanar = (nodos: NodoProspecto[]): NodoProspecto[] =>
+      nodos.flatMap(nodo => [nodo, ...aplanar(nodo.hijos ?? [])]);
+    const nodos = aplanar(this.arbol);
+    const indice = nodos.findIndex(nodo => nodo.id === this.nodoSeleccionado);
+    const siguientes = [...nodos.slice(indice + 1), ...nodos.slice(0, indice)];
+    return siguientes.find(nodo => {
+      const requiereRegistro = nodo.levelType
+        ? [3, 4, 5].includes(nodo.levelType)
+        : ['SUB AFILIADO', 'ENTIDAD', 'SUCURSAL'].includes(this.normalizar(nodo.nivel));
+      return requiereRegistro && !this.nodoRegistroCompleto(nodo.id);
+    });
   }
 
   private bloquearAccesoEnviado(prefijo: string): void {
@@ -754,10 +757,14 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
 
   cerrarPagina(): void {
     window.close();
-    // Si el navegador bloquea el cierre, conservar la página y explicar cómo salir.
-    if (!window.closed) {
-      this.avisoCierre = 'No se pudo cerrar esta pestaña automáticamente. Ciérrala con la X de la pestaña del navegador.';
-    }
+    // Dar tiempo al cierre antes de salir del registro si el navegador lo bloquea.
+    window.setTimeout(() => {
+      if (!window.closed) this.salirPaginaEnBlanco();
+    }, 100);
+  }
+
+  private salirPaginaEnBlanco(): void {
+    window.location.replace('about:blank');
   }
 
   private precargarDatosProspecto(): void {
@@ -1017,7 +1024,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   seleccionarNodo(id: string): void {
     if (this.guardando || this.guardandoLiquidacion || this.validandoArchivos) return;
     this.error = '';
-    this.mensaje = '';
     if (id === this.nodoSeleccionado) return;
     this.guardarAccesosNodoActual();
     if (this.nodoSeleccionado && this.nodoRequiereAccesos && this.liquidacionConsultada) {

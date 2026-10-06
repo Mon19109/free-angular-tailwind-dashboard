@@ -37,4 +37,52 @@ describe('RegistroCliente: pasos finales internos', () => {
     component.seleccionarNodo({ id: 'sucursal', nombre: 'Sucursal', nivel: 'sucursal' });
     expect(component.nodoSeleccionado).toBe('entidad');
   });
+
+  for (const estados of [[], ['IN_REVIEW'], ['APPROVED', 'REJECTED'], ['APPROVED', '']]) {
+    it(`impide continuar con documentos incompletos o sin aprobar: ${JSON.stringify(estados)}`, () => {
+      const component = pantalla(true);
+      component.documentosProspecto = estados.map(status => ({ status }));
+      const modal = spyOn<any>(component, 'mostrarModalRegistro');
+      const guardar = spyOn(component, 'guardarRevisionDocumentos');
+      const completar = spyOn(component, 'completarPaso');
+
+      component.continuarDesdeDocumentos();
+
+      expect(modal).toHaveBeenCalled();
+      expect(guardar).not.toHaveBeenCalled();
+      expect(completar).not.toHaveBeenCalled();
+    });
+  }
+
+  it('abre liquidación del mismo nodo solo después de guardar todos los documentos válidos', () => {
+    const component = pantalla(true);
+    component.nodoSeleccionado = 'entidad';
+    component.seccionAbierta = 'documentos';
+    component.documentosProspecto = [{ status: 'APPROVED' }, { documentStatus: 'APPROVED' }];
+    let alGuardar: (() => void) | undefined;
+    spyOn(component, 'guardarRevisionDocumentos').and.callFake((_finalizar, callback) => {
+      alGuardar = callback;
+    });
+    const completar = spyOn(component, 'completarPaso');
+    const siguienteNodo = spyOn(component, 'seleccionarSiguienteNodoArbol');
+
+    component.continuarDesdeDocumentos();
+
+    expect(component.seccionAbierta).toBe('documentos');
+    expect(completar).not.toHaveBeenCalled();
+    expect(alGuardar).toBeDefined();
+    alGuardar!();
+    expect(completar).toHaveBeenCalledWith('documentos');
+    expect(component.seccionAbierta).toBe('liquidacion');
+    expect(component.nodoSeleccionado).toBe('entidad');
+    expect(siguienteNodo).not.toHaveBeenCalled();
+  });
+
+  it('ignora clics mientras se guarda la revisión', () => {
+    const component = pantalla(true);
+    component.guardandoRevisionDocumentos = true;
+    const guardar = spyOn(component, 'guardarRevisionDocumentos');
+    component.continuarDesdeDocumentos();
+    expect(guardar).not.toHaveBeenCalled();
+  });
 });

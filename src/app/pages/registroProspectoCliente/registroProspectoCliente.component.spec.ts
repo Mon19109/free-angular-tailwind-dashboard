@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { environment } from '../../environments/environments';
 import { RegistroProspectoClienteComponent } from './registroProspectoCliente.component';
@@ -14,6 +14,8 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ActivatedRoute, useValue: {} }]
     });
     component = TestBed.runInInjectionContext(() => new RegistroProspectoClienteComponent());
+    spyOn(window, 'close');
+    spyOn<any>(component, 'salirPaginaEnBlanco');
     component.cuentaComercio = { commerceGuid: 'commerce-del-get' };
     component.link = 'link-prospecto';
     component.arbol = [{ id: 'inicial', nombre: 'Sucursal', nivel: 'sucursal', idSirio: 'SUC000', levelType: 5 }];
@@ -99,30 +101,22 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     http.expectNone(req => req.url.endsWith('account/get'));
   });
 
-  it('conserva el aviso del enlace y la URL si el navegador bloquea el cierre', () => {
-    const cerrar = spyOn(window, 'close');
-    const url = window.location.href;
-    component.errorProspecto = 'Enlace ya fue completado, verifique o reporte al Administrador.';
-    component.showTokenModal = false;
-
+  it('sale a una página en blanco sin aviso si el navegador bloquea el cierre', fakeAsync(() => {
+    component.errorProspecto = 'Enlace ya fue completado.';
     component.cerrarPagina();
+    expect(window.close).toHaveBeenCalledTimes(1);
+    expect(component['salirPaginaEnBlanco']).not.toHaveBeenCalled();
+    tick(100);
+    expect(component['salirPaginaEnBlanco']).toHaveBeenCalledTimes(1);
+  }));
 
-    expect(cerrar).toHaveBeenCalledTimes(1);
-    expect(window.location.href).toBe(url);
-    expect(component.errorProspecto).toContain('Enlace ya fue completado');
-    expect(component.showTokenModal).toBeFalse();
-    expect(component.avisoCierre).toContain('X de la pestaña del navegador');
-  });
-
-  it('al cancelar SMS indica cómo cerrar si el navegador mantiene abierta la pestaña', () => {
-    spyOn(window, 'close');
+  it('la X y Cancelar del token intentan cerrar y salen del registro si el navegador lo impide', fakeAsync(() => {
     component.showTokenModal = true;
-
     component.closeTokenModal();
-
-    expect(component.showTokenModal).toBeTrue();
-    expect(component.avisoCierre).toContain('X de la pestaña del navegador');
-  });
+    expect(window.close).toHaveBeenCalledTimes(1);
+    tick(100);
+    expect(component['salirPaginaEnBlanco']).toHaveBeenCalledTimes(1);
+  }));
 
   function iniciarModoInterno() {
     component.modoInterno = true;
@@ -636,20 +630,51 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component.nodoRegistroCompleto('entidad')).toBeTrue();
   });
 
-  it('al aceptar la última sucursal cierra la página y no considera cajas pendientes', () => {
+  it('cierra automáticamente la última sucursal tras confirmar el seguimiento y omite cajas', () => {
     prepararAccesos('otros-bancos');
     component.arbol = [component.arbol[0], component.arbol[2]];
+    const cerrar = spyOn(component, 'cerrarPagina');
     llenar('admin');
     component.finalizar();
     http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    expect(cerrar).not.toHaveBeenCalled();
     completarSeguimiento().flush({ success: true });
-    const cerrar = spyOn(component, 'cerrarPagina');
-    component.aceptarModalAccesos();
     expect(cerrar).toHaveBeenCalledTimes(1);
     expect(component.modalAccesos).toBeNull();
     expect(component.nodoSeleccionado).toBe('sucursal');
     expect(component.accesosCompletos).toBeTrue();
     http.expectNone(() => true);
+  });
+
+  it('conserva la página si falla el seguimiento final y cierra al reintentarlo con éxito', () => {
+    prepararAccesos('otros-bancos');
+    component.arbol = [component.arbol[0]];
+    const cerrar = spyOn(component, 'cerrarPagina');
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    completarSeguimiento().flush({ success: false });
+    expect(cerrar).not.toHaveBeenCalled();
+    expect(component.accesosCompletos).toBeFalse();
+    component.finalizar();
+    http.expectNone(`${environment.api.antaresAuth}user/add`);
+    completarSeguimiento().flush({ success: true });
+    expect(cerrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('actualiza el enlace y cierra cuando el último nodo es una entidad', () => {
+    prepararAccesos('otros-bancos');
+    component.seleccionarNodo('entidad');
+    consultarNodo('ENT002');
+    component.arbol = [component.arbol[1]];
+    const cerrar = spyOn(component, 'cerrarPagina');
+    llenar('admin');
+    component.finalizar();
+    http.expectOne(`${environment.api.antaresAuth}user/add`).flush({ success: true });
+    expect(cerrar).not.toHaveBeenCalled();
+    completarSeguimiento().flush({ success: true });
+    expect(cerrar).toHaveBeenCalledTimes(1);
+    expect(component.modalAccesos).toBeNull();
   });
 
   it('al aceptar liquidación abre accesos del mismo nodo sin cerrar la página', () => {
