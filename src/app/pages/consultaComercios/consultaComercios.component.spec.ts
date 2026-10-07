@@ -45,7 +45,8 @@ describe('Filtro de pendientes de revisión', () => {
     expect(component.soloPendientesRevision).toBeFalse();
     expect(component.resultados.length).toBe(2);
   });
-  it('abre edición con documentos de Mesa Digital para pendientes, sin convertirlos en prospectos', () => {
+  it('abre edición con documentos de Mesa Digital para el rol 2, sin convertirlos en prospectos', () => {
+    spyOn(localStorage, 'getItem').and.callFake(key => key === 'auth_session' ? JSON.stringify({ idRol: 2 }) : null);
     const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     const component = crear([27], router);
     component.ejecutarAccion('editarInformacion', component.resultados[0]);
@@ -59,4 +60,13 @@ describe('Filtro de pendientes de revisión', () => {
     });
   });
 
+  it('no habilita Mesa Digital para el rol 3 aunque el comercio esté pendiente', () => {
+    spyOn(localStorage, 'getItem').and.callFake(key => key === 'auth_session' ? JSON.stringify({ idRol: 3 }) : null);
+    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    const component = crear([27], router);
+    component.ejecutarAccion('editarInformacion', component.resultados[0]);
+    expect(router.navigate).toHaveBeenCalledWith(['/registro_cliente'], {
+      queryParams: jasmine.objectContaining({ pendienteRevision: 'true', habilitarMesaDigital: 'false' })
+    });
+  });
 });

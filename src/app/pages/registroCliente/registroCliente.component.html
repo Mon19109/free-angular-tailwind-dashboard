@@ -64,20 +64,40 @@
           <small>{{ contextoSeleccionado.nivel }} · {{ contextoSeleccionado.rfc || 'RFC pendiente' }}</small>
         </div>
 
+        <ng-container *ngIf="mostrarCapturaFinalPendiente && !capturaFinalHabilitada">
+          <p role="status">Cuenta de liquidación y Acceso a plataforma se habilitarán cuando Mesa Digital valide toda la documentación.</p>
+          <article class="section-card" *ngFor="let titulo of ['Cuenta de liquidación', 'Acceso a plataforma']">
+            <button type="button" class="section-trigger" disabled>
+              <span class="section-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
+              <span class="section-copy"><strong>{{ titulo }}</strong></span>
+              <span class="step-status">Bloqueado</span>
+            </button>
+          </article>
+        </ng-container>
+
+        <app-registro-prospecto-cliente
+          *ngIf="capturaFinalHabilitada && arbolServicio.length"
+          [modoInterno]="true"
+          [seccionInterna]="seccionAbierta === 'liquidacion' || seccionAbierta === 'accesos' ? seccionAbierta : null"
+          (seccionInternaChange)="actualizarSeccionFinal($event)"
+          [arbolInterno]="arbol"
+          [nodoInterno]="nodoSeleccionado"
+          (nodoInternoChange)="seleccionarNodoFinal($event)" />
+
         <article
           class="section-card"
           *ngFor="let seccion of seccionesCardsVisibles"
           [class.open]="seccionAbierta === seccion.id"
           [class.done]="pasoTerminado(seccion.id)"
           [class.readonly-existing]="esNodoExistente && seccion.id !== 'liquidacion' && seccion.id !== 'documentos'">
-          <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)">
+          <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)" [disabled]="seccion.id === 'documentos' && documentacionSoloConsulta">
             <span class="section-icon"><i class="fa-solid" [ngClass]="seccion.icono"></i></span>
             <span class="section-copy">
               <strong>{{ numeroPasoRegistro(seccion.id) }}. {{ seccion.titulo }}</strong>
               <small>{{ seccion.descripcion }}</small>
             </span>
             <span class="step-status">{{ estadoPaso(seccion.id) }}</span>
-            <i class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            <i *ngIf="!documentacionSoloConsulta" class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
           <div class="section-body" *ngIf="seccionAbierta === seccion.id">
@@ -144,7 +164,7 @@
               (volver)="continuarSeccion('datos')" />
 
             <app-step-documentos
-              *ngIf="seccion.id === 'documentos'"
+              *ngIf="seccion.id === 'documentos' && !documentacionSoloConsulta"
               [documentos]="documentosVisibles"
               [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes"
@@ -172,15 +192,6 @@
               (volver)="continuarSeccion('accesos')" />
           </div>
         </article>
-
-        <app-registro-prospecto-cliente
-          *ngIf="pendienteRevisionEdicion && nodeIDEdicion && arbolServicio.length"
-          [modoInterno]="true"
-          [seccionInterna]="seccionAbierta === 'liquidacion' || seccionAbierta === 'accesos' ? seccionAbierta : null"
-          (seccionInternaChange)="actualizarSeccionFinal($event)"
-          [arbolInterno]="arbol"
-          [nodoInterno]="nodoSeleccionado"
-          (nodoInternoChange)="seleccionarNodoFinal($event)" />
 
         <footer class="footer-actions">
           <p class="registration-message error" *ngIf="mensajeRegistroCliente" role="alert">

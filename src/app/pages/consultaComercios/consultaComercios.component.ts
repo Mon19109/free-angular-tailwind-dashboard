@@ -531,7 +531,7 @@ export class ConsultaComerciosComponent {
           entitySonID: comercio.entitySonID || comercio.idComercio,
           nivel: comercio.nivel,
           esProspecto: this.esProspectoAdmin(comercio) ? 'true' : 'false',
-          habilitarMesaDigital: (this.esAdministradorSesion() || this.esPendienteRevision(comercio.statusOriginal)) ? 'true' : 'false',
+          habilitarMesaDigital: this.esAdministradorSesion() ? 'true' : 'false',
           pendienteRevision: this.esPendienteRevision(comercio.statusOriginal) ? 'true' : 'false',
           nombre: comercio.nombreComercial,
           rfc: comercio.rfc,

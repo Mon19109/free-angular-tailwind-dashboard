@@ -354,7 +354,8 @@ export class RegistroClienteComponent {
     const params = this.route.snapshot.queryParamMap;
     this.mostrarMesaDigitalProspecto = params.get('esProspecto') === 'true';
     this.pendienteRevisionEdicion = params.get('pendienteRevision') === 'true';
-    this.habilitarMesaDigitalEdicion = params.get('habilitarMesaDigital') === 'true';
+    this.habilitarMesaDigitalEdicion = this.esMesaDigitalSesion
+      && (this.pendienteRevisionEdicion || params.get('habilitarMesaDigital') === 'true');
     const emailComercioServicio = this.correoParametro(params.get('email')) || this.correoParametro(params.get('correo'));
     this.comercioSeleccionado = {
       idComercio: params.get('entitySonID') || params.get('id') || '',
@@ -464,10 +465,38 @@ export class RegistroClienteComponent {
     return this.datosGeneralesPorTipo[['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo] ?? [];
   }
 
+  get esMesaDigitalSesion(): boolean {
+    try {
+      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
+      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 2;
+    } catch {
+      return Number(localStorage.getItem('idRol') || 0) === 2;
+    }
+  }
+
+  get esEdicionPendiente(): boolean {
+    return this.pendienteRevisionEdicion && !!this.nodeIDEdicion;
+  }
+
+  get mostrarCapturaFinalPendiente(): boolean {
+    return this.esEdicionPendiente && !this.esMesaDigitalSesion && this.nivelSeleccionado !== 'caja';
+  }
+
+  get capturaFinalHabilitada(): boolean {
+    return this.mostrarCapturaFinalPendiente
+      && !this.cargandoDocumentosProspecto
+      && !this.errorDocumentosProspecto
+      && this.documentosNodoValidados(this.nodoSeleccionado);
+  }
+
+  get documentacionSoloConsulta(): boolean {
+    return this.esEdicionPendiente && !this.esMesaDigitalSesion;
+  }
+
   get pasosVisiblesRegistro() {
     const secciones = [...this.seccionesVisibles];
-    if (this.pendienteRevisionEdicion && this.nodeIDEdicion && this.nivelSeleccionado !== 'caja') {
-      secciones.push(...this.secciones.filter(seccion => ['liquidacion', 'accesos'].includes(seccion.id)));
+    if (this.mostrarCapturaFinalPendiente) {
+      secciones.unshift(...this.secciones.filter(seccion => ['liquidacion', 'accesos'].includes(seccion.id)));
     }
     return secciones.map((seccion, index) => ({
       id: seccion.id,
@@ -477,6 +506,7 @@ export class RegistroClienteComponent {
   }
 
   get seccionesVisibles(): SeccionRegistro[] {
+    if (this.esEdicionPendiente) return this.secciones.filter(seccion => seccion.id === 'documentos');
     return this.secciones.filter(seccion => {
       if (seccion.id === 'documentos' && this.pendienteRevisionEdicion && this.habilitarMesaDigitalEdicion) return true;
       if (this.nivelSeleccionado === 'caja') return seccion.id === 'comercio';
@@ -498,7 +528,7 @@ export class RegistroClienteComponent {
   }
 
   numeroPasoRegistro(id: SeccionRegistro['id']): number {
-    const indexVisible = this.seccionesVisibles.findIndex(seccion => seccion.id === id);
+    const indexVisible = this.pasosVisiblesRegistro.findIndex(seccion => seccion.id === id);
     return indexVisible >= 0 ? indexVisible + 1 : this.secciones.findIndex(seccion => seccion.id === id) + 1;
   }
 
@@ -1394,15 +1424,16 @@ export class RegistroClienteComponent {
   continuarDesdeDocumentos(): void {
     if (this.registrandoCliente || this.guardandoRevisionDocumentos) return;
 
-    if (this.nodeIDEdicion && this.pendienteRevisionEdicion && this.nivelSeleccionado !== 'caja') {
+    if (this.esEdicionPendiente) {
+      if (!this.esMesaDigitalSesion) return;
       if (!this.documentosValidadosParaRegistro(this.documentosProspecto)) {
-        this.mostrarModalRegistro('error', 'Documentos pendientes', 'Todos los documentos deben estar marcados como válidos para continuar a Cuenta de Liquidación.');
+        this.mostrarModalRegistro('error', 'Documentos pendientes', 'Todos los documentos deben estar marcados como válidos para concluir la revisión.');
         return;
       }
 
       this.guardarRevisionDocumentos(false, () => {
         this.completarPaso('documentos');
-        this.actualizarSeccionFinal('liquidacion');
+        this.mostrarModalRegistro('success', 'Revisión concluida', 'La validación de documentos se guardó correctamente.');
       });
       return;
     }
@@ -1465,6 +1496,9 @@ export class RegistroClienteComponent {
   }
 
   estadoPaso(id: SeccionRegistro['id']): string {
+    if (this.esEdicionPendiente && id === 'documentos') {
+      return this.documentosNodoValidados(this.nodoSeleccionado) ? 'Concluida' : 'Pendiente de revisión';
+    }
     if (this.mostrarSoloPasosTresCincoRegistroTemporal && ['comercio', 'datos'].includes(id)) return 'Completado';
     if (this.esNodoExistente && id !== 'liquidacion' && id !== 'accesos' && id !== 'documentos') return 'Completado';
     if (id === 'liquidacion' && this.tieneLiquidacion(this.nodoSeleccionado)) return 'Completado';
@@ -1480,7 +1514,7 @@ export class RegistroClienteComponent {
     if (this.pendienteRevisionEdicion && id === 'liquidacion') return this.registroFinal?.liquidacionCompleta ?? false;
     if (this.pendienteRevisionEdicion && id === 'accesos') return this.registroFinal?.accesosCompletos ?? false;
     const estado = this.estadoPaso(id);
-    return estado === 'Completado' || estado === 'Terminado';
+    return estado === 'Completado' || estado === 'Terminado' || estado === 'Concluida';
   }
 
   rutaSeleccionada(): string {
@@ -1518,6 +1552,7 @@ export class RegistroClienteComponent {
 
   get textoFinalizarDocumentos(): string {
     if (this.registrandoCliente) return 'Registrando...';
+    if (this.esEdicionPendiente) return 'Concluir revisión';
     return this.mostrarRegistrarClienteDocumentos ? 'Registrar Cliente' : 'Siguiente';
   }
 
@@ -1693,6 +1728,7 @@ export class RegistroClienteComponent {
   }
 
   actualizarEstatusDocumento(documento: DocumentoRequerido, estado: EstatusDocumentoProspecto): void {
+    if (this.nodeIDEdicion && !this.habilitarMesaDigitalEdicion) return;
     documento.estatusRevision = estado;
     documento.estado = this.traducirEstatusDocumento(estado);
 
@@ -1775,6 +1811,7 @@ export class RegistroClienteComponent {
   }
 
   guardarRevisionDocumentos(finalizarDespues = false, alGuardar?: () => void): void {
+    if (this.nodeIDEdicion && !this.habilitarMesaDigitalEdicion) return;
     const legalDocuments = this.documentosProspecto
       .map(documento => ({
         id: this.idDocumentoCargado(documento),
@@ -1871,6 +1908,9 @@ export class RegistroClienteComponent {
   }
 
   private resolverSeccionVisible(preferida: SeccionRegistro['id'], actual?: SeccionRegistro['id']): SeccionRegistro['id'] {
+    if (this.mostrarCapturaFinalPendiente) {
+      return preferida === 'accesos' ? 'accesos' : 'liquidacion';
+    }
     if (this.seccionesVisibles.some(seccion => seccion.id === preferida)) return preferida;
 
     const inicio = actual
