@@ -64,26 +64,6 @@
           <small>{{ contextoSeleccionado.nivel }} · {{ contextoSeleccionado.rfc || 'RFC pendiente' }}</small>
         </div>
 
-        <ng-container *ngIf="mostrarCapturaFinalPendiente && !capturaFinalHabilitada">
-          <p role="status">Cuenta de liquidación y Acceso a plataforma se habilitarán cuando Mesa Digital valide toda la documentación.</p>
-          <article class="section-card" *ngFor="let titulo of ['Cuenta de liquidación', 'Acceso a plataforma']">
-            <button type="button" class="section-trigger" disabled>
-              <span class="section-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
-              <span class="section-copy"><strong>{{ titulo }}</strong></span>
-              <span class="step-status">Bloqueado</span>
-            </button>
-          </article>
-        </ng-container>
-
-        <app-registro-prospecto-cliente
-          *ngIf="capturaFinalHabilitada && arbolServicio.length"
-          [modoInterno]="true"
-          [seccionInterna]="seccionAbierta === 'liquidacion' || seccionAbierta === 'accesos' ? seccionAbierta : null"
-          (seccionInternaChange)="actualizarSeccionFinal($event)"
-          [arbolInterno]="arbol"
-          [nodoInterno]="nodoSeleccionado"
-          (nodoInternoChange)="seleccionarNodoFinal($event)" />
-
         <article
           class="section-card"
           *ngFor="let seccion of seccionesCardsVisibles"
@@ -97,10 +77,10 @@
               <small>{{ seccion.descripcion }}</small>
             </span>
             <span class="step-status">{{ estadoPaso(seccion.id) }}</span>
-            <i *ngIf="!documentacionSoloConsulta" class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            <i *ngIf="seccion.id !== 'documentos' || !documentacionSoloConsulta" class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
-          <div class="section-body" *ngIf="seccionAbierta === seccion.id">
+          <div class="section-body" *ngIf="seccionAbierta === seccion.id && (seccion.id !== 'documentos' || !documentacionSoloConsulta)">
             <app-step-comercio
               *ngIf="seccion.id === 'comercio'"
               [form]="comercioForm"
@@ -192,6 +172,26 @@
               (volver)="continuarSeccion('accesos')" />
           </div>
         </article>
+
+        <ng-container *ngIf="mostrarCapturaFinalPendiente && !capturaFinalHabilitada">
+          <p role="status">Cuenta de liquidación y Acceso a plataforma se habilitarán cuando Mesa Digital valide toda la documentación.</p>
+          <article class="section-card" *ngFor="let titulo of ['4. Cuenta de liquidación', '5. Acceso a plataforma']">
+            <button type="button" class="section-trigger" disabled>
+              <span class="section-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
+              <span class="section-copy"><strong>{{ titulo }}</strong></span>
+              <span class="step-status">Bloqueado</span>
+            </button>
+          </article>
+        </ng-container>
+
+        <app-registro-prospecto-cliente
+          *ngIf="capturaFinalHabilitada && arbolServicio.length"
+          [modoInterno]="true"
+          [seccionInterna]="seccionAbierta === 'liquidacion' || seccionAbierta === 'accesos' ? seccionAbierta : null"
+          (seccionInternaChange)="actualizarSeccionFinal($event)"
+          [arbolInterno]="arbol"
+          [nodoInterno]="nodoSeleccionado"
+          (nodoInternoChange)="seleccionarNodoFinal($event)" />
 
         <footer class="footer-actions">
           <p class="registration-message error" *ngIf="mensajeRegistroCliente" role="alert">

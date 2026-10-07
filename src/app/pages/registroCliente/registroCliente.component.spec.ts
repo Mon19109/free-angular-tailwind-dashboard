@@ -23,7 +23,7 @@ describe('RegistroCliente: pasos finales internos', () => {
 
   it('añade los pasos finales solamente en pendientes de revisión', () => {
     expect(pantalla(true).pasosVisiblesRegistro.map(paso => paso.id))
-      .toEqual(['liquidacion', 'accesos', 'comercio']);
+      .toEqual(['comercio', 'liquidacion', 'accesos']);
     expect(pantalla(false).pasosVisiblesRegistro.map(paso => paso.id)).toEqual(['comercio']);
     expect(pantalla(true, 'caja').pasosVisiblesRegistro.map(paso => paso.id)).toEqual(['comercio']);
   });
@@ -80,7 +80,7 @@ describe('RegistroCliente: pasos finales internos', () => {
     expect(siguienteNodo).not.toHaveBeenCalled();
   });
 
-  it('muestra únicamente documentación al revisor y captura final a los otros roles', () => {
+  it('conserva los pasos 1 a 3 para Mesa Digital y añade 4 y 5 solamente a los otros roles', () => {
     for (const mesaDigital of [true, false]) {
       const component = Object.create(RegistroClienteComponent.prototype) as RegistroClienteComponent;
       Object.assign(component, {
@@ -89,12 +89,23 @@ describe('RegistroCliente: pasos finales internos', () => {
       });
       Object.defineProperty(component, 'esMesaDigitalSesion', { value: mesaDigital });
       Object.defineProperty(component, 'nivelSeleccionado', { value: 'sucursal' });
-      expect(component.seccionesVisibles.map(item => item.id)).toEqual(['documentos']);
+      expect(component.seccionesVisibles.map(item => item.id)).toEqual(
+        ['comercio', 'datos', 'documentos']);
       expect(component.pasosVisiblesRegistro.map(item => item.id)).toEqual(
-        mesaDigital ? ['documentos'] : ['liquidacion', 'accesos', 'documentos']);
+        mesaDigital ? ['comercio', 'datos', 'documentos'] : ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']);
+      expect(component.numeroPasoRegistro('documentos')).toBe(3);
+      expect(component.numeroPasoRegistro('liquidacion')).toBe(4);
+      expect(component.numeroPasoRegistro('accesos')).toBe(5);
       expect(component.documentacionSoloConsulta).toBe(!mesaDigital);
       expect(component.mostrarCapturaFinalPendiente).toBe(!mesaDigital);
     }
+  });
+
+  it('no despliega documentación para el rol de captura', () => {
+    const component = pantalla(true);
+    component.seccionAbierta = null;
+    component.alternarSeccion('documentos');
+    expect(component.seccionAbierta).toBeNull();
   });
 
   it('no marca documentación concluida con avances locales sin aprobación', () => {

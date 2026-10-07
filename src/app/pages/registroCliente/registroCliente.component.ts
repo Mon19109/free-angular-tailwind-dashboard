@@ -496,7 +496,7 @@ export class RegistroClienteComponent {
   get pasosVisiblesRegistro() {
     const secciones = [...this.seccionesVisibles];
     if (this.mostrarCapturaFinalPendiente) {
-      secciones.unshift(...this.secciones.filter(seccion => ['liquidacion', 'accesos'].includes(seccion.id)));
+      secciones.push(...this.secciones.filter(seccion => ['liquidacion', 'accesos'].includes(seccion.id)));
     }
     return secciones.map((seccion, index) => ({
       id: seccion.id,
@@ -506,7 +506,9 @@ export class RegistroClienteComponent {
   }
 
   get seccionesVisibles(): SeccionRegistro[] {
-    if (this.esEdicionPendiente) return this.secciones.filter(seccion => seccion.id === 'documentos');
+    if (this.esEdicionPendiente) {
+      return this.secciones.filter(seccion => ['comercio', 'datos', 'documentos'].includes(seccion.id));
+    }
     return this.secciones.filter(seccion => {
       if (seccion.id === 'documentos' && this.pendienteRevisionEdicion && this.habilitarMesaDigitalEdicion) return true;
       if (this.nivelSeleccionado === 'caja') return seccion.id === 'comercio';
@@ -528,6 +530,7 @@ export class RegistroClienteComponent {
   }
 
   numeroPasoRegistro(id: SeccionRegistro['id']): number {
+    if (this.esEdicionPendiente) return ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos'].indexOf(id) + 1;
     const indexVisible = this.pasosVisiblesRegistro.findIndex(seccion => seccion.id === id);
     return indexVisible >= 0 ? indexVisible + 1 : this.secciones.findIndex(seccion => seccion.id === id) + 1;
   }
@@ -1408,6 +1411,7 @@ export class RegistroClienteComponent {
     return 'fa-folder';
   }
   alternarSeccion(id: SeccionRegistro['id']): void {
+    if (id === 'documentos' && this.documentacionSoloConsulta) return;
     this.seccionAbierta = this.seccionAbierta === id ? null : id;
     if (this.seccionAbierta) this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
   }
@@ -1909,7 +1913,8 @@ export class RegistroClienteComponent {
 
   private resolverSeccionVisible(preferida: SeccionRegistro['id'], actual?: SeccionRegistro['id']): SeccionRegistro['id'] {
     if (this.mostrarCapturaFinalPendiente) {
-      return preferida === 'accesos' ? 'accesos' : 'liquidacion';
+      if (preferida === 'comercio' || preferida === 'datos') return preferida;
+      return this.capturaFinalHabilitada ? (preferida === 'accesos' ? 'accesos' : 'liquidacion') : 'comercio';
     }
     if (this.seccionesVisibles.some(seccion => seccion.id === preferida)) return preferida;
 
