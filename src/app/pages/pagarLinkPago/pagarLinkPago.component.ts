@@ -442,9 +442,9 @@ export class PagarLinkPagoComponent implements OnInit {
         expirationMonth
       },
       itInformation: {
-        so: navigator.platform || 'N/D',
-        fab: navigator.vendor || 'N/D',
-        model: navigator.userAgent,
+        so: 'Android||Edge||IOS||Chrome',
+        fab: 'Xiaomi',
+        model: 'MI 8 Lite||VersionNavegador',
         latitude: this.latitud,
         longitude: this.longitud
       },
