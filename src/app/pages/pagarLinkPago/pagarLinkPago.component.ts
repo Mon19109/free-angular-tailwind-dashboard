@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Component, OnInit, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PagarLinkPagoService } from '../../services/pagarlinkpago.service';
 import { PaymentHeaderComponent } from '../../shared/layout/payment-header/payment-header.component';
@@ -17,6 +17,7 @@ import { PaymentHeaderComponent } from '../../shared/layout/payment-header/payme
 export class PagarLinkPagoComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly pagarLinkPagoService = inject(PagarLinkPagoService);
 
   readonly referencia = this.route.snapshot.queryParamMap.get('reference')
@@ -90,6 +91,10 @@ export class PagarLinkPagoComponent implements OnInit {
       next: response => {
         this.orden = response?.rows?.order ?? response?.data?.order ?? response?.order ?? response?.data ?? response;
         this.cargando = false;
+        if (String(this.orden?.status?.description || '').toUpperCase() === 'PAGADA') {
+          this.abrirVoucher();
+          return;
+        }
         this.mostrarOpcionesPago = false;
         this.mostrarResumen = false;
         this.formulario.controls.terminos.setValue(false);
@@ -461,8 +466,8 @@ export class PagarLinkPagoComponent implements OnInit {
     this.pagarLinkPagoService.procesarTransaccion(payload).subscribe({
       next: response => {
         this.enviandoPago = false;
-        if (response?.success === false) {
-          this.errorPago = response?.message || response?.mensaje || 'No fue posible procesar el pago.';
+        if (response?.success !== true) {
+          this.errorPago = response?.error?.message || response?.message || response?.mensaje || 'No fue posible procesar el pago.';
           return;
         }
         this.mensajePago = response?.message || response?.mensaje || 'Pago procesado correctamente.';
@@ -481,6 +486,7 @@ export class PagarLinkPagoComponent implements OnInit {
             error: () => { this.mensajeTarjetas = 'El pago se procesó, pero no se pudo guardar la tarjeta.'; }
           });
         }
+        this.abrirVoucher();
       },
       error: error => {
         this.enviandoPago = false;
@@ -491,6 +497,13 @@ export class PagarLinkPagoComponent implements OnInit {
 
   cerrarErrorPago(): void {
     this.errorPago = '';
+  }
+
+  private abrirVoucher(): void {
+    void this.router.navigate(['/voucher'], {
+      queryParams: { reference: this.orden?.id || this.referencia },
+      replaceUrl: true
+    });
   }
 
   volverAlFormulario(): void { this.mostrarResumen = false; }

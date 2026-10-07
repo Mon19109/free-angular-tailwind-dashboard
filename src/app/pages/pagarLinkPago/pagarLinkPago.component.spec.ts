@@ -1,5 +1,5 @@
 import { FormBuilder } from '@angular/forms';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { PagarLinkPagoService } from '../../services/pagarlinkpago.service';
@@ -8,8 +8,11 @@ import { PagarLinkPagoComponent } from './pagarLinkPago.component';
 describe('PagarLinkPagoComponent', () => {
   let service: jasmine.SpyObj<PagarLinkPagoService>;
   let component: PagarLinkPagoComponent;
+  let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
+    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    router.navigate.and.returnValue(Promise.resolve(true));
     service = jasmine.createSpyObj<PagarLinkPagoService>('PagarLinkPagoService', [
       'obtenerOrden', 'obtenerCliente', 'obtenerTarjetas', 'obtenerDetalleTarjeta', 'procesarTransaccion', 'precargarUbicacion', 'obtenerBalance', 'validarBin', 'obtenerIp'
     ]);
@@ -25,11 +28,21 @@ describe('PagarLinkPagoComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         FormBuilder,
+        { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({ reference: 'REF-1' }) } } },
         { provide: PagarLinkPagoService, useValue: service }
       ]
     });
     component = TestBed.runInInjectionContext(() => new PagarLinkPagoComponent());
+  });
+
+  it('opens the voucher for an already paid order without submitting another payment', () => {
+    service.obtenerOrden.and.returnValue(of({ order: { id: 'PAID-2', status: { description: 'PAGADA' } } }));
+    component.ngOnInit();
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/voucher'], {
+      queryParams: { reference: 'PAID-2' }, replaceUrl: true
+    });
+    expect(service.procesarTransaccion).not.toHaveBeenCalled();
   });
 
   it('uses the merchanID returned by the customer service to load tokens', () => {
@@ -194,6 +207,9 @@ describe('PagarLinkPagoComponent', () => {
       expirationYear: '29', expirationMonth: '12'
     });
     expect(payload.promotion).toEqual({ qtyPay: 3, planID: 0, graceNumbers: 0 });
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/voucher'], {
+      queryParams: { reference: 'ORDER-1' }, replaceUrl: true
+    });
   });
 
   it('shows the transaction rejection in the payment error modal', () => {
@@ -209,7 +225,20 @@ describe('PagarLinkPagoComponent', () => {
 
     expect(component.errorPago).toBe('Pago rechazado');
     expect(component.mensajePago).toBe('');
+    expect(router.navigate).not.toHaveBeenCalled();
     component.cerrarErrorPago();
     expect(component.errorPago).toBe('');
+  });
+
+  it('does not open a voucher when the response does not confirm success', () => {
+    component.orden = { id: 'ORDER-3', amount: 2 };
+    service.procesarTransaccion.and.returnValue(of({ error: { message: 'Operación fuera de línea' } }));
+    component.formulario.patchValue({
+      nameCard: 'Ana Lopez', numCard: '4111 1111 1111 1111', vencimiento: '12/29',
+      ccv: '123', pais: 'Mexico', cp: '12345', terminos: true
+    });
+    component.procesarPago();
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(component.errorPago).toBe('Operación fuera de línea');
   });
 });
