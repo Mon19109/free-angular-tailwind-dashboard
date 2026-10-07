@@ -17,18 +17,30 @@ describe('Filtro de pendientes de revisión', () => {
     const component = crear(['PENDIENTE_REVISIÓN', 'PENDIENTE_REVISION', 27, '27', 'ACTIVO', 'INACTIVO']);
     expect(component.hayPendientesRevision).toBeTrue();
     component.paginaActual = 3;
-    component.alternarPendientesRevision();
+    component.seleccionarNivel('pendientes');
     expect(component.resultados.length).toBe(4);
     expect(component.resultados.every(item => item.estatus === 'Pendiente de revisión')).toBeTrue();
     expect(component.paginaActual).toBe(1);
-    component.alternarPendientesRevision();
+    component.seleccionarNivel('todos');
     expect(component.resultados.length).toBe(6);
+  });
+
+  it('desactiva pendientes al seleccionar otro nivel y viceversa', () => {
+    const component = crear([27, 'ACTIVO']);
+    component.seleccionarNivel('entidad');
+    component.seleccionarNivel('pendientes');
+    expect(component.filtros.nivel).toBe('pendientes');
+    expect(component.resultados.length).toBe(1);
+    component.seleccionarNivel('entidad');
+    expect(component.soloPendientesRevision).toBeFalse();
+    expect(component.filtros.nivel).toBe('entidad');
+    expect(component.resultados.length).toBe(2);
   });
 
   it('no ofrece el botón si no hay pendientes y restablece el filtro al limpiar', () => {
     expect(crear(['ACTIVO', 'INACTIVO']).hayPendientesRevision).toBeFalse();
     const component = crear([27, 'ACTIVO']);
-    component.alternarPendientesRevision();
+    component.seleccionarNivel('pendientes');
     component.limpiar();
     expect(component.soloPendientesRevision).toBeFalse();
     expect(component.resultados.length).toBe(2);

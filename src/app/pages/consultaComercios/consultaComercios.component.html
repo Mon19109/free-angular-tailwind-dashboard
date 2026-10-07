@@ -25,15 +25,13 @@
           <i class="fa-solid" [ngClass]="nivel.icon"></i>
           <span>{{ nivel.label }}</span>
         </label>
-        <button *ngIf="hayPendientesRevision || soloPendientesRevision"
-          type="button" class="level-option review-level-option"
-          [class.active]="soloPendientesRevision"
-          [attr.aria-pressed]="soloPendientesRevision"
-          (click)="alternarPendientesRevision()">
-          <span class="review-selection-indicator" aria-hidden="true"></span>
+        <label *ngIf="hayPendientesRevision || soloPendientesRevision"
+          class="level-option review-level-option"
+          [class.active]="soloPendientesRevision">
+          <input type="radio" name="nivel" value="pendientes" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
           <i class="fa-solid fa-user-clock" aria-hidden="true"></i>
           <span class="review-level-label">Pendientes de revisión</span>
-        </button>
+        </label>
       </fieldset>
 
       <div class="info-grid" *ngIf="filtros.nivel !== 'caja'">

@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable';
 import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/consulta-comercios.service';
 import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
 
-type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos';
+type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos' | 'pendientes';
 type EstatusComercio = 'Pendiente de revisión' | 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
 type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; valor: '...' };
 type FiltroJerarquia = 'entidad' | 'sucursal' | 'caja';
@@ -88,15 +88,12 @@ export class ConsultaComerciosComponent {
 
   comercios: Comercio[] = [];
   resultados = [...this.comercios];
-  soloPendientesRevision = false;
+  get soloPendientesRevision(): boolean {
+    return this.filtros.nivel === 'pendientes';
+  }
 
   get hayPendientesRevision(): boolean {
     return this.comercios.some(comercio => this.esPendienteRevision(comercio.statusOriginal));
-  }
-
-  alternarPendientesRevision(): void {
-    this.soloPendientesRevision = !this.soloPendientesRevision;
-    this.aplicarFiltroNivel();
   }
 
   private esPendienteRevision(status: unknown): boolean {
@@ -212,7 +209,7 @@ export class ConsultaComerciosComponent {
         }
 
         this.comercios = this.ordenarComoArbol(this.normalizarComerciosApi(respuesta.commerces ?? []));
-        if (this.filtros.nivel !== 'todos' && !this.tieneComerciosPorNivel(this.filtros.nivel)) {
+        if (this.filtros.nivel !== 'todos' && !this.soloPendientesRevision && !this.tieneComerciosPorNivel(this.filtros.nivel)) {
           this.filtros.nivel = 'todos';
         }
         this.aplicarFiltroNivel();
@@ -228,7 +225,6 @@ export class ConsultaComerciosComponent {
   }
 
   limpiar(): void {
-    this.soloPendientesRevision = false;
     this.filtros = { nivel: 'todos', entidad: '', sucursal: '', caja: '', nombre: '', rfc: '', correo: '' };
     this.busquedaTabla = '';
     this.buscar();
@@ -242,7 +238,8 @@ export class ConsultaComerciosComponent {
       entidad: ['sucursal', 'caja', 'nombre', 'rfc', 'correo'],
       sucursal: ['nombre', 'rfc', 'correo'],
       caja: [],
-      prospectos: ['nombre', 'rfc', 'correo']
+      prospectos: ['nombre', 'rfc', 'correo'],
+      pendientes: ['entidad', 'sucursal', 'caja', 'nombre', 'rfc', 'correo']
     };
 
     if (!visiblesPorNivel[this.filtros.nivel].includes(filtro)) {
@@ -260,7 +257,7 @@ export class ConsultaComerciosComponent {
     const nivel = this.filtros.nivel;
     this.limpiarFiltrosNoAplicables();
     this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
-      const coincideNivel = nivel === 'todos'
+      const coincideNivel = nivel === 'todos' || nivel === 'pendientes'
         || (nivel === 'prospectos' ? this.esProspectoAdmin(comercio) : this.normalizarNivel(comercio.nivel) === nivel);
 
       return coincideNivel && this.coincideFiltrosJerarquia(comercio)
