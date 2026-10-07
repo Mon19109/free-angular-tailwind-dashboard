@@ -330,7 +330,7 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   get clabe(): string {
-    return this.orden?.speiInfo?.clabe ?? this.orden?.transferInfo?.clabe ?? this.orden?.clabe ?? 'Pendiente de asignar';
+    return this.orden?.speiInfo?.orderingAccount ?? this.orden?.transferInfo?.orderingAccount ?? this.orden?.orderingAccount ?? 'Pendiente de asignar';
   }
 
   get telefonoTransferencia(): string {
