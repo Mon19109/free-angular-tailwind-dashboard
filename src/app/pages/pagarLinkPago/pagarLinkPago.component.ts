@@ -53,6 +53,8 @@ export class PagarLinkPagoComponent implements OnInit {
   msiDisponibles: Array<{ meses: number; descripcion: string }> = [];
   enviandoPago = false;
   mensajePago = '';
+  pagoConfirmado = false;
+  mensajeVoucher = '';
   errorPago = '';
   tarjetasGuardadas: Array<{ token: string; etiqueta: string }> = [];
   tarjetaSeleccionada = 'nueva';
@@ -384,7 +386,7 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   procesarPago(): void {
-    if (this.formulario.invalid || this.enviandoPago || (this.usaTarjetaGuardada && !this.detalleTarjeta)) return;
+    if (this.pagoConfirmado || this.formulario.invalid || this.enviandoPago || (this.usaTarjetaGuardada && !this.detalleTarjeta)) return;
 
     const vencimiento = String(this.formulario.controls.vencimiento.value || '').split('/');
     const instrumento = this.detalleTarjeta?.paymentInstrument;
@@ -471,6 +473,8 @@ export class PagarLinkPagoComponent implements OnInit {
           return;
         }
         this.mensajePago = response?.message || response?.mensaje || 'Pago procesado correctamente.';
+        this.pagoConfirmado = true;
+        this.abrirVoucher();
         const registrar = this.orden?.customerInfo?.registerClient;
         if (this.permiteTarjetasGuardadas && !this.usaTarjetaGuardada
           && (registrar === true || registrar === 1 || registrar === '1' || registrar === 'true')) {
@@ -486,7 +490,6 @@ export class PagarLinkPagoComponent implements OnInit {
             error: () => { this.mensajeTarjetas = 'El pago se procesó, pero no se pudo guardar la tarjeta.'; }
           });
         }
-        this.abrirVoucher();
       },
       error: error => {
         this.enviandoPago = false;
@@ -499,11 +502,22 @@ export class PagarLinkPagoComponent implements OnInit {
     this.errorPago = '';
   }
 
-  private abrirVoucher(): void {
-    void this.router.navigate(['/voucher'], {
-      queryParams: { reference: this.orden?.id || this.referencia },
-      replaceUrl: true
-    });
+  get voucherUrl(): string {
+    return `/voucher?reference=${encodeURIComponent(this.orden?.id || this.referencia)}`;
+  }
+
+  private async abrirVoucher(): Promise<void> {
+    this.mensajeVoucher = '';
+    try {
+      const navegado = await this.router.navigate(['/voucher'], {
+        queryParams: { reference: this.orden?.id || this.referencia },
+        replaceUrl: true
+      });
+      if (navegado) return;
+    } catch {
+      // El pago ya fue confirmado; un fallo de navegación no debe permitir otro cobro.
+    }
+    this.mensajeVoucher = 'No se pudo abrir el comprobante automáticamente. Usa el enlace para ver y descargar tu ticket.';
   }
 
   volverAlFormulario(): void { this.mostrarResumen = false; }

@@ -1,7 +1,7 @@
 import { FormBuilder } from '@angular/forms';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, flushMicrotasks, TestBed } from '@angular/core/testing';
 import { PagarLinkPagoService } from '../../services/pagarlinkpago.service';
 import { PagarLinkPagoComponent } from './pagarLinkPago.component';
 
@@ -241,4 +241,26 @@ describe('PagarLinkPagoComponent', () => {
     expect(router.navigate).not.toHaveBeenCalled();
     expect(component.errorPago).toBe('Operación fuera de línea');
   });
+
+  for (const navigationFailure of ['cancelled', 'rejected']) {
+    it(`keeps the ticket accessible and prevents a second charge when navigation is ${navigationFailure}`, fakeAsync(() => {
+      router.navigate.and.callFake(() => navigationFailure === 'cancelled'
+        ? Promise.resolve(false) : Promise.reject(new Error('Navigation failed')));
+      component.orden = { id: 'PAID-ORDER', amount: 2 };
+      service.procesarTransaccion.and.returnValue(of({ success: true }));
+      component.formulario.patchValue({
+        nameCard: 'Ana Lopez', numCard: '4111 1111 1111 1111', vencimiento: '12/29',
+        ccv: '123', pais: 'Mexico', cp: '12345', terminos: true
+      });
+
+      component.procesarPago();
+      flushMicrotasks();
+      component.procesarPago();
+
+      expect(service.procesarTransaccion).toHaveBeenCalledTimes(1);
+      expect(component.pagoConfirmado).toBeTrue();
+      expect(component.voucherUrl).toBe('/voucher?reference=PAID-ORDER');
+      expect(component.mensajeVoucher).toContain('No se pudo abrir');
+    }));
+  }
 });

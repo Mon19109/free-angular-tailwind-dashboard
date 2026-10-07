@@ -221,12 +221,14 @@
         <div class="total"><dt>Pagar</dt><dd>{{ total | currency:'MXN':'symbol-narrow':'1.2-2' }}</dd></div>
       </dl>
       <div class="acciones-resumen">
-        <button type="button" class="btn-secundario" (click)="volverAlFormulario()">Regresar</button>
-        <button type="button" class="btn-principal" [disabled]="enviandoPago" (click)="procesarPago()">
-          {{ enviandoPago ? 'Procesando...' : 'Aceptar' }}
+        <button type="button" class="btn-secundario" [disabled]="pagoConfirmado" (click)="volverAlFormulario()">Regresar</button>
+        <button type="button" class="btn-principal" [disabled]="enviandoPago || pagoConfirmado" (click)="procesarPago()">
+          {{ pagoConfirmado ? 'Pago confirmado' : enviandoPago ? 'Procesando...' : 'Aceptar' }}
         </button>
       </div>
       <p class="resultado-pago exito" *ngIf="mensajePago">{{ mensajePago }}</p>
+      <p *ngIf="mensajeVoucher" role="alert">{{ mensajeVoucher }}</p>
+      <a *ngIf="pagoConfirmado" class="btn-principal" [href]="voucherUrl">Ver y descargar ticket</a>
       <p class="resultado-pago fallo" *ngIf="mensajePago && mensajeTarjetas">{{ mensajeTarjetas }}</p>
     </section>
   </main>
