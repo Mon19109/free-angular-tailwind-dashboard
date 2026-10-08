@@ -17,6 +17,7 @@ export class SessionTimeoutService {
   private readonly expiresAtKey = SESSION_EXPIRES_AT_KEY;
   private timerId: ReturnType<typeof setTimeout> | null = null;
   private started = false;
+  private cierrePendiente = false;
   readonly mostrarModal = signal(false);
   readonly tokenVencido = signal<string | null>(null);
 
@@ -28,17 +29,24 @@ export class SessionTimeoutService {
     this.started = true;
     this.authService.authStatus$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(isAuthenticated => {
       if (isAuthenticated) {
+        this.cierrePendiente = false;
         this.tokenVencido.set(null);
         this.obtenerOcrearExpiracion();
         this.validarOProgramarSesion();
       } else {
         this.limpiarTimer();
-        this.mostrarModal.set(false);
+        if (!this.cierrePendiente) this.mostrarModal.set(false);
       }
     });
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.validarOProgramarSesion());
+      .subscribe(() => {
+        if (!this.esRutaDelPortal()) {
+          this.cierrePendiente = false;
+          this.mostrarModal.set(false);
+        }
+        this.validarOProgramarSesion();
+      });
     this.zone.runOutsideAngular(() => {
       window.addEventListener('focus', this.validarExpiracion);
       window.addEventListener('storage', this.sincronizarSesion);
@@ -92,20 +100,17 @@ export class SessionTimeoutService {
     }
   };
 
-  validarVencimiento(): void {
+  validarVencimiento(entradaAlPortal = false): void {
     const expiresAt = Number(localStorage.getItem(this.expiresAtKey) || 0);
     if (!this.authService.hasValidSession() || !expiresAt || Date.now() < expiresAt) {
       return;
     }
 
-    this.zone.run(() => this.cerrarSesionPorTiempo());
+    this.zone.run(() => this.cerrarSesionPorTiempo(entradaAlPortal));
   }
 
   private validarOProgramarSesion(): void {
-    if (!this.esRutaDelPortal()) {
-      // La sesión vence también aquí, pero el aviso es exclusivo del portal.
-      this.mostrarModal.set(false);
-    }
+    if (this.cierrePendiente) return;
 
     if (!this.authService.hasValidSession()) {
       this.limpiarTimer();
@@ -117,8 +122,11 @@ export class SessionTimeoutService {
 
   private esRutaDelPortal(): boolean {
     let route = this.router.routerState.snapshot.root;
-    while (route.firstChild) route = route.firstChild;
-    return route.data['sessionTimeout'] === true;
+    while (route.firstChild) {
+      route = route.firstChild;
+      if (route.data['sessionTimeout'] === true) return true;
+    }
+    return false;
   }
 
   private obtenerOcrearExpiracion(): number {
@@ -130,25 +138,25 @@ export class SessionTimeoutService {
     return nuevaExpiracion;
   }
 
-  private cerrarSesionPorTiempo(): void {
+  private cerrarSesionPorTiempo(entradaAlPortal = false): void {
     this.limpiarTimer(false);
     if (!this.authService.hasValidSession()) {
       localStorage.removeItem(this.expiresAtKey);
       return;
     }
 
+    // Mantener el aviso mientras se invalida la sesión; los guards no deben
+    // redirigir al login hasta que el usuario lo confirme.
+    this.cierrePendiente = entradaAlPortal || this.esRutaDelPortal();
+    this.mostrarModal.set(this.cierrePendiente);
     this.tokenVencido.set(this.authService.getToken());
-    localStorage.removeItem(this.expiresAtKey);
     this.authService.logout().subscribe({
-      next: () => this.mostrarModal.set(this.esRutaDelPortal()),
-      error: () => {
-        this.authService.clearSession();
-        this.mostrarModal.set(this.esRutaDelPortal());
-      },
+      error: () => this.authService.clearSession(),
     });
   }
 
   aceptarCierreSesion(): void {
+    this.cierrePendiente = false;
     this.mostrarModal.set(false);
     this.router.navigate(['/']);
   }

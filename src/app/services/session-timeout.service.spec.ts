@@ -1,3 +1,4 @@
+import { AuthGuard } from '../guards/auth.guard';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { authTokenInterceptor } from './auth-token.interceptor';
 import { sessionExpirationInterceptor } from './session-expiration.interceptor';
@@ -169,5 +170,52 @@ describe('SessionTimeoutService', () => {
     tick(duration / 2);
     expect(service.mostrarModal()).toBeTrue();
   }));
+
+
+  it('mantiene el popup al vencer y navega al login solo al aceptar', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    tick(duration);
+    const router = TestBed.inject(Router);
+    expect(service.mostrarModal()).toBeTrue();
+    expect(auth.hasValidSession()).toBeFalse();
+    expect(TestBed.inject(AuthGuard).canActivate()).toBeFalse();
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(service.mostrarModal()).toBeTrue();
+    window.dispatchEvent(new Event('focus'));
+    expect(service.mostrarModal()).toBeTrue();
+    service.aceptarCierreSesion();
+    expect(service.mostrarModal()).toBeFalse();
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/']);
+  }));
+
+  it('interrumpe la navegación y muestra el aviso si el tiempo venció con la pestaña suspendida', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    spyOn(Date, 'now').and.returnValue(Number(localStorage.getItem(expiryKey)) + 1);
+    expect(TestBed.inject(AuthGuard).canActivate()).toBeFalse();
+    expect(service.mostrarModal()).toBeTrue();
+    expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
+  }));
+
+  it('mantiene el aviso cuando el guard encuentra una sesión vencida antes de iniciar el servicio', fakeAsync(() => {
+    session(false);
+    auth.completeSmsValidation();
+    spyOn(Date, 'now').and.returnValue(Number(localStorage.getItem(expiryKey)) + 1);
+    expect(TestBed.inject(AuthGuard).canActivate()).toBeFalse();
+    service.iniciar();
+    expect(service.mostrarModal()).toBeTrue();
+    expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
+  }));
+
+  it('redirige normalmente al login cuando nunca hubo sesión', () => {
+    expect(TestBed.inject(AuthGuard).canActivate()).toBeFalse();
+    expect(service.mostrarModal()).toBeFalse();
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledOnceWith(['/']);
+  });
 
 });
