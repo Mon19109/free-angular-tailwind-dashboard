@@ -347,10 +347,9 @@ export class OrdenPagoComponent implements OnInit {
 
         if (this.pasoActual === 2) {
 
-            const importe =
-                this.formulario.get('importe')?.value;
+            const importe = Number(String(this.formulario.get('importe')?.value ?? '').replace(/,/g, ''));
 
-            if (!importe || Number(importe) <= 0) {
+            if (!Number.isFinite(importe) || importe <= 0) {
 
                 this.mostrarErrorImporte = true;
 
@@ -396,6 +395,7 @@ export class OrdenPagoComponent implements OnInit {
         const payload = {
 
             ...this.formulario.value,
+            importe: importe.toFixed(2),
             concepto: this.formulario.value.concepto?.trim()
                 ? this.formulario.value.concepto
                 : 'ORDEN DE PAGO',
@@ -498,7 +498,10 @@ export class OrdenPagoComponent implements OnInit {
 
         const numero = Number(valor) / 100;
 
-        const formateado = numero.toFixed(2);
+        const formateado = numero.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
 
         this.formulario.patchValue(
             { importe: formateado },
