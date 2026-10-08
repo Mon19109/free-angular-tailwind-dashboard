@@ -154,7 +154,7 @@ export class OrdenPagoService {
 
         const body = {
             type: Number(data.idIns) === 40903 ? 4 : 1,
-            amount: Number(data.importe),
+            amount: Number(String(data.importe ?? '').replace(/,/g, '')),
             currency: {
                 id: 484
             },
