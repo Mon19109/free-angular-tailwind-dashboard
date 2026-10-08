@@ -537,6 +537,15 @@ export class PagarLinkPagoComponent implements OnInit {
     return this.formulario.controls.propina.enabled;
   }
 
+  formatearMontoPendiente(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digitos = input.value.replace(/\D/g, '');
+    const centavos = digitos.replace(/^0+/, '').padStart(3, '0');
+    const monto = digitos ? `${centavos.slice(0, -2)}.${centavos.slice(-2)}` : '';
+    input.value = monto;
+    this.formulario.controls.amountPending.setValue(monto);
+  }
+
   formatearNumeroTarjeta(event: Event): void {
     const input = event.target as HTMLInputElement;
     const digitos = input.value.replace(/\D/g, '').slice(0, 16);
