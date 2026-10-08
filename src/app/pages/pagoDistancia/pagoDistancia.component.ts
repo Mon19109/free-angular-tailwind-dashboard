@@ -56,8 +56,31 @@ export class PagoDistanciaComponent {
 
   handleSelectChangeFil(event: Event) {
     const value = (event.target as HTMLSelectElement).value;
+    if ((value === 'Fecha de expiración') !== (this.selectedOptionFil === 'Fecha de expiración')) {
+      this.formulario.get('busqueda')?.reset('');
+    }
     this.selectedOptionFil = value;
     this.formulario.patchValue({ filtro: value });
+    this.validarBusquedaNumerica();
+  }
+
+  validarBusquedaNumerica(event?: Event): void {
+    const filtro = this.formulario.get('filtro')?.value;
+    if (filtro !== 'Teléfono' && filtro !== 'Monto') return;
+
+    const input = event?.target as HTMLInputElement | undefined;
+    const control = this.formulario.get('busqueda');
+    const captura = String(input?.value ?? control?.value ?? '');
+    let valor: string;
+    if (filtro === 'Teléfono') {
+      valor = captura.replace(/\D/g, '').slice(0, 10);
+    } else {
+      const digitos = captura.replace(/\D/g, '');
+      const centavos = digitos.replace(/^0+/, '').padStart(3, '0');
+      valor = digitos ? `${centavos.slice(0, -2)}.${centavos.slice(-2)}` : '';
+    }
+    if (input) input.value = valor;
+    control?.setValue(valor);
   }
   onSubmit(): void {
     if (this.formulario.valid) {

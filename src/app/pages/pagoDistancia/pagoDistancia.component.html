@@ -83,7 +83,10 @@
 
             <div class="transaction-field">
               <app-label>Ingresar busqueda</app-label>
-              <input id="concepto" type="text" class="form-control" formControlName="busqueda" />
+              <input id="concepto" [type]="formulario.get('filtro')?.value === 'Fecha de expiración' ? 'date' : 'text'"
+                [attr.inputmode]="formulario.get('filtro')?.value === 'Teléfono' ? 'numeric' : formulario.get('filtro')?.value === 'Monto' ? 'decimal' : null"
+                [attr.maxlength]="formulario.get('filtro')?.value === 'Teléfono' ? 10 : null"
+                (input)="validarBusquedaNumerica($event)" class="form-control" formControlName="busqueda" />
             </div>
 
             <div class="transaction-actions">
@@ -114,6 +117,7 @@
                   <th>Estatus</th>
                   <th>Correo Electrónico</th>
                   <th>Teléfono</th>
+                  <th>Concepto</th>
                   <th>Producto</th>
                   <th>Monto</th>
                   <th>Ver Detalle</th>
@@ -126,6 +130,7 @@
                   <td>{{ orden.status.description}}</td>
                   <td>{{ orden.customerInfo?.email || orden.payEmail || 'ND' }}</td>
                   <td>{{ orden.customerInfo?.phone1 || orden.payPhone || 'ND' }}</td>
+                  <td>{{ orden.payInfo?.concepto || orden.payInfo?.description || 'ND' }}</td>
                   <td>{{ orden.products?.[0]?.description || 'ND' }}</td>
                   <td>{{ formatearMonto(orden.amount) }}</td>
                   <td>
