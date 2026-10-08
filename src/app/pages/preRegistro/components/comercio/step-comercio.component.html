@@ -51,7 +51,7 @@
 
     <div class="field">
       <label for="correoPersonaFisica">Correo electrónico <b>*</b></label>
-      <input maxlength="254" id="correoPersonaFisica" type="email" [formControl]="$any(datosForm.get('correo'))"
+      <input maxlength="100" id="correoPersonaFisica" type="email" [formControl]="$any(datosForm.get('correo'))"
         [class.invalid]="esContactoInvalido('correo')" />
       @if (esContactoInvalido('correo')) { <small>{{ mensajeContacto('correo') }}</small> }
     </div>

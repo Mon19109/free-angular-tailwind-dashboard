@@ -11,7 +11,7 @@
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
         <label for="email">Correo Electrónico</label>
-        <input maxlength="254" type="email" formControlName="userLogin"
+        <input maxlength="100" type="email" formControlName="userLogin"
           [class.is-invalid]="loginForm.get('userLogin')?.invalid && loginForm.get('userLogin')?.touched"
           placeholder="usuario@ejemplo.com" />
         <div class="invalid-feedback"
@@ -106,7 +106,7 @@
         </p>
 
         <label for="recovery-email">Correo electrónico</label>
-        <input maxlength="254"
+        <input maxlength="100"
           id="recovery-email"
           class="recovery-input"
           type="email"

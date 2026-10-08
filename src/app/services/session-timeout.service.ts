@@ -2,7 +2,8 @@ import { DestroyRef, Injectable, NgZone, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from './auth.service';
-import { filter } from 'rxjs';
+import { Subscription, filter } from 'rxjs';
+import { SessionRefreshService } from './session-refresh.service';
 import { SESSION_EXPIRES_AT_KEY, SESSION_TIMEOUT_MS } from './session-expiration';
 
 @Injectable({
@@ -10,13 +11,20 @@ import { SESSION_EXPIRES_AT_KEY, SESSION_TIMEOUT_MS } from './session-expiration
 })
 export class SessionTimeoutService {
   private readonly authService = inject(AuthService);
+  private readonly refreshService = inject(SessionRefreshService);
   private readonly router = inject(Router);
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
   private readonly timeoutMs = SESSION_TIMEOUT_MS;
   private readonly expiresAtKey = SESSION_EXPIRES_AT_KEY;
   private timerId: ReturnType<typeof setTimeout> | null = null;
+  private refreshSubscription?: Subscription;
+  private readonly avisoMs = 10 * 1000;
   private started = false;
+  readonly mostrarAviso = signal(false);
+  readonly segundosRestantes = signal(10);
+  readonly renovando = signal(false);
+  readonly errorRenovacion = signal('');
   private cierrePendiente = false;
   readonly mostrarModal = signal(false);
   readonly tokenVencido = signal<string | null>(null);
@@ -30,10 +38,13 @@ export class SessionTimeoutService {
     this.authService.authStatus$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(isAuthenticated => {
       if (isAuthenticated) {
         this.cierrePendiente = false;
+        this.errorRenovacion.set('');
         this.tokenVencido.set(null);
         this.obtenerOcrearExpiracion();
         this.validarOProgramarSesion();
       } else {
+        this.cancelarRenovacion();
+        this.mostrarAviso.set(false);
         this.limpiarTimer();
         if (!this.cierrePendiente) this.mostrarModal.set(false);
       }
@@ -54,6 +65,7 @@ export class SessionTimeoutService {
     });
     this.destroyRef.onDestroy(() => {
       this.limpiarTimer(false);
+      this.cancelarRenovacion();
       window.removeEventListener('focus', this.validarExpiracion);
       window.removeEventListener('storage', this.sincronizarSesion);
       document.removeEventListener('visibilitychange', this.validarExpiracion);
@@ -75,10 +87,13 @@ export class SessionTimeoutService {
       return;
     }
 
+    const enAviso = tiempoRestante <= this.avisoMs;
+    this.segundosRestantes.set(Math.ceil(tiempoRestante / 1000));
+    this.mostrarAviso.set(enAviso && this.esRutaDelPortal());
     this.zone.runOutsideAngular(() => {
       this.timerId = setTimeout(() => {
         this.zone.run(() => this.validarOProgramarSesion());
-      }, tiempoRestante);
+      }, enAviso ? Math.min(1000, tiempoRestante) : tiempoRestante - this.avisoMs);
     });
   }
 
@@ -92,7 +107,9 @@ export class SessionTimeoutService {
     }
   }
 
-  private readonly validarExpiracion = (): void => this.validarVencimiento();
+  private readonly validarExpiracion = (): void => {
+    this.zone.run(() => this.validarOProgramarSesion());
+  };
 
   private readonly sincronizarSesion = (event: StorageEvent): void => {
     if (event.key === this.expiresAtKey || event.key === 'auth_session' || event.key === null) {
@@ -113,6 +130,8 @@ export class SessionTimeoutService {
     if (this.cierrePendiente) return;
 
     if (!this.authService.hasValidSession()) {
+      this.cancelarRenovacion();
+      this.mostrarAviso.set(false);
       this.limpiarTimer();
       return;
     }
@@ -140,6 +159,8 @@ export class SessionTimeoutService {
 
   private cerrarSesionPorTiempo(entradaAlPortal = false): void {
     this.limpiarTimer(false);
+    this.cancelarRenovacion();
+    this.mostrarAviso.set(false);
     if (!this.authService.hasValidSession()) {
       localStorage.removeItem(this.expiresAtKey);
       return;
@@ -153,6 +174,42 @@ export class SessionTimeoutService {
     this.authService.logout().subscribe({
       error: () => this.authService.clearSession(),
     });
+  }
+
+  mantenerSesion(): void {
+    this.validarVencimiento();
+    if (!this.mostrarAviso() || this.renovando() || !this.authService.hasValidSession()) return;
+    const refreshToken = this.authService.getRefreshToken();
+    if (!refreshToken) {
+      this.errorRenovacion.set('No fue posible renovar esta sesión. Vuelve a iniciar sesión cuando termine el contador.');
+      return;
+    }
+
+    this.renovando.set(true);
+    this.errorRenovacion.set('');
+    this.refreshSubscription = this.refreshService.renovar(refreshToken).subscribe({
+      next: respuesta => {
+        this.renovando.set(false);
+        const accessToken = respuesta.authResponse?.accessToken;
+        if (respuesta.success === false || typeof accessToken !== 'string' || !accessToken.trim()) {
+          this.errorRenovacion.set(respuesta.error?.message || respuesta.message || 'No fue posible renovar la sesión.');
+          return;
+        }
+        const actualizada = this.authService.actualizarSesionRenovada(accessToken, respuesta.authResponse?.refreshToken, refreshToken);
+        if (actualizada) this.validarOProgramarSesion();
+        else this.validarVencimiento();
+      },
+      error: error => {
+        this.renovando.set(false);
+        this.errorRenovacion.set(error?.error?.error?.message || error?.error?.message || 'No fue posible renovar la sesión.');
+      },
+    });
+  }
+
+  private cancelarRenovacion(): void {
+    this.refreshSubscription?.unsubscribe();
+    this.refreshSubscription = undefined;
+    this.renovando.set(false);
   }
 
   aceptarCierreSesion(): void {

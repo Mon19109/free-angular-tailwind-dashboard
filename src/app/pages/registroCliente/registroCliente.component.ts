@@ -1200,7 +1200,7 @@ export class RegistroClienteComponent {
   private consultarLocalidadesCuenta(addressType: 'DF' | 'DC', direccion: Record<string, unknown> | null): void {
     const codigoPostal = this.valorDireccionCuenta(direccion, ['postalCode']);
     const locationID = this.valorDireccionCuenta(direccion, ['locationID']);
-    if (!/^\d{5}$/.test(codigoPostal)) return;
+    if (!codigoPostal || codigoPostal.length > 10) return;
 
     if (addressType === 'DF') this.cargandoLocalidadesFiscal = true;
     if (addressType === 'DC') this.cargandoLocalidadesComercial = true;
@@ -1219,7 +1219,13 @@ export class RegistroClienteComponent {
         this.cargandoLocalidadesComercial = false;
         this.pintarLocalidadComercial(localidad, direccion);
       },
-      error: () => {
+      error: error => {
+        const mensaje = error?.error?.error?.message || error?.error?.message;
+        const control = this.datosForm.controls[addressType === 'DF' ? 'codigoPostal' : 'codigoPostalComercial'];
+        if (typeof mensaje === 'string' && control.value.trim() === codigoPostal) {
+          control.setErrors({ ...control.errors, codigoPostalServicio: mensaje });
+          control.markAsTouched();
+        }
         if (addressType === 'DF') {
           this.localidadesFiscal = [];
           this.cargandoLocalidadesFiscal = false;

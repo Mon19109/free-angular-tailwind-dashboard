@@ -152,7 +152,7 @@
       @if (tiene('correo')) {
       <div class="field">
         <label for="correo">Correo electrónico <b>*</b></label>
-        <input maxlength="254" id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('correo')" />
+        <input maxlength="100" id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('correo')" />
         @if (esInvalido('correo')) { <small>{{ mensajeCampo('correo') }}</small> }
       </div>
       }
@@ -356,7 +356,7 @@
     </div>
     <div class="form-grid cols-3">
       <div class="field"><label for="correoRepresentante">Correo Electrónico <b>*</b></label>
-        <input maxlength="254" id="correoRepresentante" type="email" formControlName="correoRepresentante"
+        <input maxlength="100" id="correoRepresentante" type="email" formControlName="correoRepresentante"
           [class.invalid]="esInvalido('correoRepresentante')" />
         @if (esInvalido('correoRepresentante')) { <small>{{ mensajeCampo('correoRepresentante') }}</small> }
       </div>
@@ -494,7 +494,7 @@
     </p>
     <div class="form-grid cols-3">
       <div class="field"><label for="correoComercial">Correo Electrónico <b>*</b></label>
-        <input maxlength="254" id="correoComercial" type="email" formControlName="correoComercial"
+        <input maxlength="100" id="correoComercial" type="email" formControlName="correoComercial"
           [class.invalid]="esInvalido('correoComercial')">
         @if (esInvalido('correoComercial')) { <small>{{ mensajeCampo('correoComercial') }}</small> }
       </div>

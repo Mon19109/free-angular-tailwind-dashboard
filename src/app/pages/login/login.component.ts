@@ -52,7 +52,7 @@ export class LoginComponent implements OnInit {
     private geolocationService: GeolocationService
   ) {
     this.loginForm = this.fb.group({
-      userLogin: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
+      userLogin: ['', [Validators.required, Validators.email, Validators.maxLength(100)]],
       passwordLogin: ['', [Validators.required, Validators.maxLength(20)]]
     });
     this.recoveryForm = this.fb.group({

@@ -1,6 +1,29 @@
 <router-outlet></router-outlet>
 <app-global-loader />
 
+@if (sessionTimeoutService.mostrarAviso() && !sessionTimeoutService.mostrarModal()) {
+  <div class="session-timeout-backdrop">
+    <div class="session-timeout-modal" role="dialog" aria-modal="true" aria-labelledby="session-warning-title" aria-describedby="session-warning-description">
+      <div class="session-timeout-body session-warning-body">
+        <p id="session-warning-title">Tu sesión está por vencer.</p>
+        <span id="session-warning-description">¿Deseas mantener la sesión activa?</span>
+        <strong class="session-warning-countdown" role="timer" [attr.aria-label]="sessionTimeoutService.segundosRestantes() + ' segundos restantes'">
+          {{ sessionTimeoutService.segundosRestantes() }}
+        </strong>
+        <span>segundos para el cierre por seguridad</span>
+        @if (sessionTimeoutService.errorRenovacion()) {
+          <span class="session-warning-error" role="alert">{{ sessionTimeoutService.errorRenovacion() }}</span>
+        }
+      </div>
+      <div class="session-timeout-actions">
+        <button type="button" class="session-timeout-button" [disabled]="sessionTimeoutService.renovando()" (click)="sessionTimeoutService.mantenerSesion()">
+          {{ sessionTimeoutService.renovando() ? 'Renovando…' : 'Confirmar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
 @if (sessionTimeoutService.mostrarModal()) {
   <div class="session-timeout-backdrop">
     <div class="session-timeout-modal" role="dialog" aria-modal="true" aria-labelledby="session-timeout-title">

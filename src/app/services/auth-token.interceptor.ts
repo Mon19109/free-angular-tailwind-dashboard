@@ -26,6 +26,15 @@ export const authTokenInterceptor: HttpInterceptorFn = (request, next) => {
 
   const currentAuthorization = request.headers.get('Authorization');
   if (currentAuthorization) {
+    // Algunos servicios conservan sus headers desde antes de renovar la sesión.
+    // Sustituir únicamente tokens previos de esta sesión; respetar bearers públicos.
+    try {
+      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
+      if (session.smsValidated === true && session.token && Array.isArray(session.tokensAnteriores)
+        && session.tokensAnteriores.some((token: string) => currentAuthorization === `Bearer ${token}`)) {
+        return next(request.clone({ setHeaders: { Authorization: `Bearer ${session.token}` } }));
+      }
+    } catch { /* Continúa con el header original si no hay una sesión legible. */ }
     return next(request);
   }
 

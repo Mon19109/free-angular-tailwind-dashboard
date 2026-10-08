@@ -64,14 +64,14 @@
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'Correo')">Correo electrónico <b>*</b></label>
-            <input maxlength="254" [id]="campo(usuario.prefijo, 'Correo')" type="email" [formControlName]="campo(usuario.prefijo, 'Correo')" placeholder="ejemplo@correo.com"
+            <input maxlength="100" [id]="campo(usuario.prefijo, 'Correo')" type="email" [formControlName]="campo(usuario.prefijo, 'Correo')" placeholder="ejemplo@correo.com"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'Correo'))" />
             @if (esInvalido(campo(usuario.prefijo, 'Correo'))) { <small>Debes llenar este campo.</small> }
           </div>
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'ConfirmarCorreo')">Confirmar correo electrónico <b>*</b></label>
-            <input maxlength="254" [id]="campo(usuario.prefijo, 'ConfirmarCorreo')" type="email" [formControlName]="campo(usuario.prefijo, 'ConfirmarCorreo')"
+            <input maxlength="100" [id]="campo(usuario.prefijo, 'ConfirmarCorreo')" type="email" [formControlName]="campo(usuario.prefijo, 'ConfirmarCorreo')"
               placeholder="Confirma tu correo"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo')) || correosDistintos(usuario.prefijo)" />
             @if (esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo'))) {

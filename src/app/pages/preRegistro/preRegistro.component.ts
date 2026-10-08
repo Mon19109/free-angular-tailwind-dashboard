@@ -563,7 +563,7 @@ export class PreRegistroComponent {
 
 
 
-    codigoPostalComercial: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(10), Validators.pattern(/^\d{5}$/)]],
+    codigoPostalComercial: ['', [Validators.required, Validators.maxLength(10)]],
     tipoVialidadComercial: ['', Validators.required],
     nombreVialidadComercial: ['', Validators.required],
     numeroExteriorComercial: ['', Validators.required],
@@ -1138,7 +1138,9 @@ export class PreRegistroComponent {
 
   private consultarLocalidadesPorCodigoPostal(codigoPostal: string, addressType: 'DF' | 'DC' | 'REP'): void {
     const cp = codigoPostal.trim();
-    if (!/^\d{5}$/.test(cp)) {
+    const campo = addressType === 'DF' ? 'codigoPostal' : addressType === 'DC' ? 'codigoPostalComercial' : 'codigoPostalRepresentante';
+    const control = this.datosForm.controls[campo];
+    if (!cp || cp.length > 10) {
       if (addressType === 'DF') this.localidadesFiscal = [];
       if (addressType === 'DC') this.localidadesComercial = [];
       if (addressType === 'REP') this.localidadesRepresentante = [];
@@ -1154,6 +1156,7 @@ export class PreRegistroComponent {
 
     this.localidadesService.obtenerPorCodigoPostal(cp).subscribe({
       next: response => {
+        if (control.value.trim() !== cp) return;
         const localidades = [...response];
         if (addressType === 'DF') {
           this.localidadesFiscal = localidades;
@@ -1173,7 +1176,12 @@ export class PreRegistroComponent {
         this.cdr.detectChanges();
       },
       error: error => {
-        void error;
+        if (control.value.trim() !== cp) return;
+        const mensaje = this.extraerMensajeErrorHttp(error);
+        if (mensaje) {
+          control.setErrors({ ...control.errors, codigoPostalServicio: mensaje });
+          control.markAsTouched();
+        }
         if (addressType === 'DF') this.localidadesFiscal = [];
         if (addressType === 'DC') this.localidadesComercial = [];
         if (addressType === 'REP') this.localidadesRepresentante = [];
@@ -3987,7 +3995,6 @@ export class PreRegistroComponent {
   private validadoresDatosPorCampo(nombre: string, requerido: boolean): ValidatorFn[] {
     const validadores: ValidatorFn[] = requerido ? [Validators.required] : [];
     const telefonoPattern = /^\d{10}$/;
-    const codigoPostalPattern = /^\d{5}$/;
 
     if (['rfc'].includes(nombre)) validadores.push(Validators.maxLength(13), this.rfcValidator());
     if (['curp'].includes(nombre)) validadores.push(Validators.minLength(18), Validators.maxLength(18), this.curpValidator());
@@ -3996,7 +4003,7 @@ export class PreRegistroComponent {
       validadores.push(Validators.minLength(10), Validators.maxLength(10), Validators.pattern(telefonoPattern));
     }
     if (['codigoPostal', 'codigoPostalComercial', 'codigoPostalRepresentante'].includes(nombre)) {
-      validadores.push(Validators.minLength(5), Validators.maxLength(10), Validators.pattern(codigoPostalPattern));
+      validadores.push(Validators.maxLength(10));
     }
 
     return validadores;

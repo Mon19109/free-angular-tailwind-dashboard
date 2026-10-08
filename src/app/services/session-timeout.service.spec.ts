@@ -5,7 +5,7 @@ import { sessionExpirationInterceptor } from './session-expiration.interceptor';
 import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { NavigationEnd, Router } from '@angular/router';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { AuthService } from './auth.service';
 import { SessionTimeoutService } from './session-timeout.service';
 
@@ -19,7 +19,7 @@ describe('SessionTimeoutService', () => {
 
   function session(smsValidated: boolean): void {
     localStorage.setItem('auth_session', JSON.stringify({
-      success: true, inSession: true, token: 'portal-token', validate: 'guid', smsValidated,
+      success: true, inSession: true, token: 'portal-token', refreshToken: 'refresh-original', validate: 'guid', smsValidated,
     }));
   }
 
@@ -216,6 +216,122 @@ describe('SessionTimeoutService', () => {
     expect(TestBed.inject(AuthGuard).canActivate()).toBeFalse();
     expect(service.mostrarModal()).toBeFalse();
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledOnceWith(['/']);
+  });
+
+
+  it('muestra la cuenta regresiva en los últimos diez segundos y luego el cierre', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    tick(duration - 10001);
+    expect(service.mostrarAviso()).toBeFalse();
+    tick(1);
+    expect(service.mostrarAviso()).toBeTrue();
+    expect(service.segundosRestantes()).toBe(10);
+    tick(9000);
+    expect(service.segundosRestantes()).toBe(1);
+    expect(service.mostrarModal()).toBeFalse();
+    tick(1000);
+    expect(service.mostrarAviso()).toBeFalse();
+    expect(service.mostrarModal()).toBeTrue();
+  }));
+
+  it('renueva solo al confirmar, guarda los tokens y repite el ciclo', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    tick(duration - 10000);
+    const http = TestBed.inject(HttpTestingController);
+    http.expectNone('/OAuthServices/v2/oauth/refresh');
+    service.mantenerSesion();
+    service.mantenerSesion();
+    const request = http.expectOne('/OAuthServices/v2/oauth/refresh');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toBeNull();
+    expect(request.request.headers.get('Authorization')).toBe('Bearer refresh-original');
+    request.flush({ success: true, authResponse: { accessToken: 'token-nuevo', refreshToken: 'refresh-nuevo' } });
+    expect(auth.getToken()).toBe('token-nuevo');
+    expect(auth.getRefreshToken()).toBe('refresh-nuevo');
+    expect(localStorage.getItem('token')).toBe('token-nuevo');
+    expect(localStorage.getItem('auth_token')).toBe('token-nuevo');
+    expect(service.mostrarAviso()).toBeFalse();
+    expect(Number(localStorage.getItem(expiryKey))).toBe(Date.now() + duration);
+
+    tick(duration - 10000);
+    expect(service.mostrarAviso()).toBeTrue();
+    expect(service.segundosRestantes()).toBe(10);
+    service.mantenerSesion();
+    const segunda = http.expectOne('/OAuthServices/v2/oauth/refresh');
+    expect(segunda.request.headers.get('Authorization')).toBe('Bearer refresh-nuevo');
+    segunda.flush({ success: true, authResponse: { accessToken: 'token-tercero', refreshToken: 'refresh-tercero' } });
+    TestBed.inject(HttpClient).get('/api/privada', { headers: { Authorization: 'Bearer portal-token' } }).subscribe();
+    const privada = http.expectOne('/api/privada');
+    expect(privada.request.headers.get('Authorization')).toBe('Bearer token-tercero');
+    privada.flush({});
+    TestBed.inject(HttpClient).get('/api/publica', { headers: { Authorization: 'Bearer fijo' } }).subscribe();
+    const publica = http.expectOne('/api/publica');
+    expect(publica.request.headers.get('Authorization')).toBe('Bearer fijo');
+    publica.flush({});
+    tick(duration);
+    expect(service.mostrarModal()).toBeTrue();
+    http.verify();
+  }));
+
+  it('no extiende el plazo cuando falla la renovación', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    const expiresAt = localStorage.getItem(expiryKey);
+    tick(duration - 10000);
+    service.mantenerSesion();
+    TestBed.inject(HttpTestingController).expectOne('/OAuthServices/v2/oauth/refresh')
+      .flush({ success: false, error: { message: 'Refresh inválido' } });
+    expect(service.errorRenovacion()).toBe('Refresh inválido');
+    expect(localStorage.getItem(expiryKey)).toBe(expiresAt);
+    tick(10000);
+    expect(service.mostrarModal()).toBeTrue();
+    expect(auth.hasValidSession()).toBeFalse();
+  }));
+
+  it('cancela una renovación pendiente al vencer para no reactivar la sesión', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    tick(duration - 1000);
+    service.mantenerSesion();
+    const request = TestBed.inject(HttpTestingController).expectOne('/OAuthServices/v2/oauth/refresh');
+    tick(1000);
+    expect(request.cancelled).toBeTrue();
+    expect(service.mostrarModal()).toBeTrue();
+    expect(auth.hasValidSession()).toBeFalse();
+  }));
+
+  it('no muestra la advertencia ni renueva en vistas públicas', fakeAsync(() => {
+    session(false);
+    service.iniciar();
+    auth.completeSmsValidation();
+    tick(duration - 10000);
+    expect(service.mostrarAviso()).toBeFalse();
+    service.mantenerSesion();
+    TestBed.inject(HttpTestingController).expectNone('/OAuthServices/v2/oauth/refresh');
+    tick(10000);
+    expect(service.mostrarModal()).toBeFalse();
+    expect(auth.hasValidSession()).toBeFalse();
+  }));
+
+  it('guarda el refreshToken de authenticate antes de completar el SMS', () => {
+    spyOn(auth, 'getBalance').and.returnValue(of({}));
+    auth['processLoginResponse']({ terminalInfo: { phoneNumber: '5512345678', guid: 'guid' } },
+      { authResponse: { accessToken: 'access-login', refreshToken: 'refresh-login' } },
+      'usuario@example.com', '0', '0').subscribe();
+    expect(auth.getUserData().refreshToken).toBe('refresh-login');
+    expect(auth.getRefreshToken()).toBeNull();
+    auth.completeSmsValidation();
+    expect(auth.getRefreshToken()).toBe('refresh-login');
   });
 
 });

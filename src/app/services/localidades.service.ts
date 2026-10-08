@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../environments/environments';
 
@@ -32,10 +32,15 @@ export class LocalidadesService {
     });
 
     return this.http.get<unknown>(
-      `${this.apiUrl}api/v1/localidades/${codigoPostal}`,
+      `${this.apiUrl}api/v1/localidades/${encodeURIComponent(codigoPostal)}`,
       { headers }
     ).pipe(
-      map(response => this.extraerLocalidades(response))
+      map(response => {
+        if (response && typeof response === 'object' && 'success' in response && response.success === false) {
+          throw new HttpErrorResponse({ error: response, status: 200, statusText: 'Error al consultar código postal' });
+        }
+        return this.extraerLocalidades(response);
+      })
     );
   }
 

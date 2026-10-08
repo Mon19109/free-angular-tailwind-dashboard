@@ -166,6 +166,30 @@ export class AuthService {
     this.saveSession(session, true);
   }
 
+  getRefreshToken(): string | null {
+    const refreshToken = this.getSession()?.refreshToken;
+    return this.hasValidSession() && typeof refreshToken === 'string' && refreshToken.trim()
+      ? refreshToken : null;
+  }
+
+  actualizarSesionRenovada(accessToken: string, refreshToken: string | undefined, refreshTokenAnterior: string): boolean {
+    const session = this.getSession();
+    const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_AT_KEY));
+    if (!this.hasValidSession() || session.refreshToken !== refreshTokenAnterior || expiresAt <= Date.now()) return false;
+
+    const tokensAnteriores = new Set<string>(session.tokensAnteriores ?? []);
+    if (session.token !== accessToken) tokensAnteriores.add(session.token);
+    tokensAnteriores.delete(accessToken);
+    localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(Date.now() + SESSION_TIMEOUT_MS));
+    this.saveSession({
+      ...session,
+      token: accessToken,
+      refreshToken: refreshToken?.trim() || session.refreshToken,
+      tokensAnteriores: [...tokensAnteriores],
+    }, true);
+    return true;
+  }
+
   getToken(): string | null {
     return this.hasValidSession() ? this.getSessionValue('token') : null;
   }
@@ -554,6 +578,7 @@ export class AuthService {
           idTypeAffiliation: terminalInfo.idTypeAffiliation,
           idStatus: terminalInfo.statusID,
           token: accessToken,
+          refreshToken: authResult.authResponse?.refreshToken,
           latitud: latitud,
           longitud: longitud,
           commerceDetailID: terminalInfo.commerceDetailID,

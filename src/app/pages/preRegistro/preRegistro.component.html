@@ -487,11 +487,11 @@
       @if (comisionistaForm.value.tipo === 'nuevo') {
       <div class="form-grid cols-2 modal-fields">
         <div class="field"><label for="comisionistaCorreo">Correo</label>
-          <input maxlength="254" id="comisionistaCorreo" type="email" formControlName="correo"
+          <input maxlength="100" id="comisionistaCorreo" type="email" formControlName="correo"
             [class.invalid]="esInvalido('comisionista', 'correo')" />
         </div>
         <div class="field"><label for="comisionistaConfirmar">Confirmar correo</label>
-          <input maxlength="254" id="comisionistaConfirmar" type="email" formControlName="confirmarCorreo"
+          <input maxlength="100" id="comisionistaConfirmar" type="email" formControlName="confirmarCorreo"
             [class.invalid]="comisionistaForm.hasError('comisionistaCorreosDistintos') && comisionistaForm.get('confirmarCorreo')?.touched" />
           @if (comisionistaForm.hasError('comisionistaCorreosDistintos') &&
           comisionistaForm.get('confirmarCorreo')?.touched) {

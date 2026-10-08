@@ -358,6 +358,7 @@ export class StepDatosComponent implements OnInit {
 
   mensajeCampo(campo: string): string {
     const control = this.form.get(campo);
+    if (control?.hasError('codigoPostalServicio')) return control.getError('codigoPostalServicio');
     if (control?.hasError('required')) return 'Debes llenar este campo.';
     if (control?.hasError('emailDuplicado')) return 'Este correo ya existe. Verifica el campo o reporta al Administrador.';
     if (control?.hasError('email')) return 'Ingresa un correo válido.';
@@ -368,11 +369,9 @@ export class StepDatosComponent implements OnInit {
       if (campo === 'rfc') return 'Ingresa un RFC de 12 o 13 caracteres.';
       if (campo === 'curp') return 'Ingresa una CURP de 18 caracteres.';
       if (campo.toLowerCase().includes('telefono')) return 'Ingresa un teléfono de 10 dígitos.';
-      if (campo.toLowerCase().includes('codigopostal')) return 'Ingresa un código postal de 5 dígitos.';
     }
     if (control?.hasError('pattern')) {
       if (campo.toLowerCase().includes('telefono')) return 'Ingresa un teléfono de 10 dígitos.';
-      if (campo.toLowerCase().includes('codigopostal')) return 'Ingresa un código postal de 5 dígitos.';
       return 'El formato no es válido.';
     }
     return 'Debes llenar este campo.';
