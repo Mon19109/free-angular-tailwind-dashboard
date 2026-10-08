@@ -2,6 +2,10 @@ export function canSendCommerceInvitation(role: number = getSessionRole()): bool
   return [3, 4, 5].includes(role);
 }
 
+export function canAddCommerceLevel(role: number = getSessionRole()): boolean {
+  return role !== 2 && role !== 6;
+}
+
 export function getSessionRole(): number {
   const storedRole = localStorage.getItem('idRol') ?? localStorage.getItem('IdRol');
   if (storedRole !== null) return Number(storedRole) || 0;

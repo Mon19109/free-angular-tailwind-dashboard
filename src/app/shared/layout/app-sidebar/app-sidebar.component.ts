@@ -1,4 +1,4 @@
-import { canSendCommerceInvitation, getSessionRole } from '../../services/session-role';
+import { canAddCommerceLevel, canSendCommerceInvitation, getSessionRole } from '../../services/session-role';
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, QueryList, ViewChildren, ChangeDetectorRef } from '@angular/core';
 import { SidebarService } from '../../services/sidebar.service';
@@ -345,7 +345,7 @@ export class AppSidebarComponent {
   private hasMenuAccess(access?: MenuAccess): boolean {
     if (!access) return true;
     if (access === 'enviarInvitacionComercio') return canSendCommerceInvitation(this.idRol);
-    if (access === 'agregarNivelComercio') return this.idRol !== 6;
+    if (access === 'agregarNivelComercio') return canAddCommerceLevel(this.idRol);
 
     if (access === 'gestionPagos' && this.idRol === 6) {
       return false;

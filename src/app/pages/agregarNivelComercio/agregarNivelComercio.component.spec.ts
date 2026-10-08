@@ -36,8 +36,13 @@ describe('Alta de Sub Afiliado por administrador', () => {
 
   const nodo = { id: '83', llave: '83', nombre: 'Sub afiliado', nivel: 'Sub Afiliado' as const, hijos: [] };
 
-  it('permite crear Sub Afiliado solamente al administrador', () => {
-    expect(crearComponente(2).nivelesDisponiblesPara(nodo)).toContain('Sub Afiliado');
+  it('bloquea temporalmente todos los niveles para administrador y conserva el bloqueo de Caja', () => {
+    for (const rol of [2, 6]) {
+      for (const nivel of ['Sub Afiliado', 'Entidad', 'Sucursal', 'Caja'] as const) {
+        expect(crearComponente(rol).nivelesDisponiblesPara({ ...nodo, nivel })).toEqual([]);
+      }
+    }
+    expect(crearComponente(3).nivelesDisponiblesPara(nodo)).toEqual(['Entidad', 'Sucursal', 'Caja']);
     for (const rol of [0, 1, 3, 4, 5, 6]) {
       expect(crearComponente(rol).nivelesDisponiblesPara(nodo)).not.toContain('Sub Afiliado');
     }

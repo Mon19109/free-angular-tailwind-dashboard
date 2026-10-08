@@ -1,4 +1,4 @@
-import { getSessionRole } from '../../shared/services/session-role';
+import { canAddCommerceLevel, getSessionRole } from '../../shared/services/session-role';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
@@ -1041,7 +1041,7 @@ export class AgregarNivelComercioComponent implements OnInit {
   }
 
   nivelesDisponiblesPara(nodo: NodoComercio): NivelNuevo[] {
-    if (this.idRol === 6) return [];
+    if (!canAddCommerceLevel(this.idRol)) return [];
     if (nodo.nivel === 'Sub Afiliado') {
       return this.idRol === 2
         ? ['Sub Afiliado', 'Entidad', 'Sucursal', 'Caja', 'Referenciador']
