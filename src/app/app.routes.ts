@@ -159,6 +159,7 @@ export const routes: Routes = [
   {
     path:'',
     component:AppLayoutComponent,
+    data: { sessionTimeout: true },
     children:[
       {
         path: 'ecommerce',

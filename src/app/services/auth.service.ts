@@ -146,7 +146,8 @@ export class AuthService {
 
   hasValidSession(): boolean {
     const session = this.getSession();
-    return session !== null && session.smsValidated === true && session.token !== undefined && session.token !== '';
+    return session?.success === true && session?.inSession === true &&
+      session?.smsValidated === true && typeof session?.token === 'string' && session.token.trim().length > 0;
   }
 
   completeSmsValidation(): void {
