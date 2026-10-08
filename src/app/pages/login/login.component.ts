@@ -6,7 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { GeolocationService } from '../../services/geolocation.service';
 import { NgxTailwindModalService } from '@dotted-labs/ngx-tailwind-modal';
 import { FormularioModalComponent } from '../../pages/modals/modals.component';
-import { finalize } from 'rxjs/operators';
+import { finalize, switchMap, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-login',
@@ -25,6 +25,8 @@ export class LoginComponent implements OnInit {
   errorMessage = '';
   lat = '';
   lon = '';
+  ip = '';
+  errorIp = false;
   showPassword = false;
   loading = false;
   userLocation: any;
@@ -76,6 +78,10 @@ export class LoginComponent implements OnInit {
     if (this.authService.hasValidSession()) {
       this.router.navigate(['/dashboard']);
     }
+    this.authService.obtenerIp().subscribe({
+      next: ip => { this.ip = ip; this.errorIp = false; },
+      error: () => { this.errorIp = true; }
+    });
     try {
       this.userLocation = await this.geolocationService.getCurrentLocation();
 
@@ -180,7 +186,12 @@ export class LoginComponent implements OnInit {
     const latitud = this.lat || '0';
     const longitud = this.lon || '0';
 
-    this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud).pipe(
+    this.authService.obtenerIp().pipe(
+      tap({
+        next: ip => { this.ip = ip; this.errorIp = false; },
+        error: () => { this.errorIp = true; }
+      }),
+      switchMap(() => this.authService.searchAccount(userLogin, passwordLogin, latitud, longitud)),
       finalize(() => {
         this.isLoading = false;
         this.loading = false;

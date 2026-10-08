@@ -1,9 +1,10 @@
 // src/app/services/auth.service.ts
 
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { map, catchError, switchMap } from 'rxjs/operators';
+import { map, catchError, switchMap, shareReplay, tap, timeout } from 'rxjs/operators';
+import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
 import { environment } from '../environments/environments';
 
 @Injectable({
@@ -50,6 +51,30 @@ export class AuthService {
     'affiliationNumber'
   ];
   private isProcessing = false;
+  private ip = '';
+  private ipRequest?: Observable<string>;
+
+  obtenerIp(): Observable<string> {
+    if (!this.ipRequest) {
+      this.ipRequest = this.http.get<{ ip: string }>('https://api.ipify.org?format=json', {
+        context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
+      }).pipe(
+        timeout(10000),
+        map(response => {
+          const ip = response.ip?.trim();
+          if (!ip) throw new Error('No fue posible obtener la IP. Intenta nuevamente.');
+          return ip;
+        }),
+        tap(ip => { this.ip = ip; }),
+        catchError(() => {
+          this.ipRequest = undefined;
+          return throwError(() => new Error('No fue posible obtener la IP. Intenta nuevamente.'));
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.ipRequest;
+  }
   
   private authStatusSubject = new BehaviorSubject<boolean>(this.hasValidSession());
   authStatus$ = this.authStatusSubject.asObservable();
@@ -231,7 +256,7 @@ export class AuthService {
       }
     };
 
-    return this.http.post(url, body, { headers: this.getHeaders() });
+    return this.http.post(url, body, { headers: this.getHeaders({ ip: this.ip }) });
   }
 
   // ============================================
@@ -291,7 +316,7 @@ export class AuthService {
       'versionApp': `3`,
     };
 
-    return this.http.post(url, body, { headers: this.getHeadersLo(headers) });
+    return this.http.post(url, body, { headers: this.getHeadersLo({ ...headers, ip: this.ip }) });
   }
 
   // ============================================
@@ -310,7 +335,7 @@ export class AuthService {
 
     //return this.http.get<any>(url, { headers: finalHeaders });
 
-    return this.http.get(url, { headers: this.getHeadersB(headers) });
+    return this.http.get(url, { headers: this.getHeadersB({ ...headers, ip: this.ip }) });
   }
 
   // ============================================
