@@ -59,6 +59,9 @@
         <label for="amountPending">Ingrese el monto a pagar</label>
         <input id="amountPending" type="number" min="0.01" step="0.01" inputmode="decimal"
           formControlName="amountPending" (input)="formatearMontoPendiente($event)">
+        <small *ngIf="formulario.controls.amountPending.hasError('max')">
+          El monto a pagar no debe ser mayor al monto de la orden ({{ orden?.amount | currency:'MXN':'symbol-narrow':'1.2-2' }}).
+        </small>
       </div>
 
       <div class="campo">

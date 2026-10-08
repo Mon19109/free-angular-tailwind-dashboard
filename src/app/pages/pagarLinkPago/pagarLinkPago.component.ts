@@ -24,7 +24,9 @@ export class PagarLinkPagoComponent implements OnInit {
     || this.route.snapshot.queryParamMap.get('referencia')
     || '';
   readonly formulario = this.fb.group({
-    amountPending: [''],
+    amountPending: ['', [(control: AbstractControl): ValidationErrors | null =>
+      this.esPagoMixto ? Validators.max(Number(this.orden?.amount))(control) : null
+    ]],
     nameCard: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
     numCard: ['', [Validators.required, Validators.pattern(/^\d{4} \d{4} \d{4} \d{4}$/)]],
     vencimiento: ['', [Validators.required, validarVencimientoTarjeta]],
@@ -350,6 +352,10 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   continuar(): void {
+    if (this.esPagoMixto && this.formulario.controls.amountPending.invalid) {
+      this.formulario.controls.amountPending.markAsTouched();
+      return;
+    }
     if (!this.mostrarOpcionesPago) {
       if (this.usaTarjetaGuardada && !this.detalleTarjeta) {
         this.mensajeTarjetas = 'Espera a que se carguen los datos de la tarjeta.';
