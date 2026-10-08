@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 import { filter } from 'rxjs';
+import { SESSION_EXPIRES_AT_KEY, SESSION_TIMEOUT_MS } from './session-expiration';
 
 @Injectable({
   providedIn: 'root',
@@ -12,11 +13,12 @@ export class SessionTimeoutService {
   private readonly router = inject(Router);
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly timeoutMs = 10 * 60 * 1000;
-  private readonly expiresAtKey = 'kashpay.session.expiresAt';
+  private readonly timeoutMs = SESSION_TIMEOUT_MS;
+  private readonly expiresAtKey = SESSION_EXPIRES_AT_KEY;
   private timerId: ReturnType<typeof setTimeout> | null = null;
   private started = false;
   readonly mostrarModal = signal(false);
+  readonly tokenVencido = signal<string | null>(null);
 
   iniciar(): void {
     if (this.started) {
@@ -26,6 +28,7 @@ export class SessionTimeoutService {
     this.started = true;
     this.authService.authStatus$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(isAuthenticated => {
       if (isAuthenticated) {
+        this.tokenVencido.set(null);
         this.obtenerOcrearExpiracion();
         this.validarOProgramarSesion();
       } else {
@@ -38,11 +41,13 @@ export class SessionTimeoutService {
       .subscribe(() => this.validarOProgramarSesion());
     this.zone.runOutsideAngular(() => {
       window.addEventListener('focus', this.validarExpiracion);
+      window.addEventListener('storage', this.sincronizarSesion);
       document.addEventListener('visibilitychange', this.validarExpiracion);
     });
     this.destroyRef.onDestroy(() => {
       this.limpiarTimer(false);
       window.removeEventListener('focus', this.validarExpiracion);
+      window.removeEventListener('storage', this.sincronizarSesion);
       document.removeEventListener('visibilitychange', this.validarExpiracion);
     });
     this.validarOProgramarSesion();
@@ -64,7 +69,7 @@ export class SessionTimeoutService {
 
     this.zone.runOutsideAngular(() => {
       this.timerId = setTimeout(() => {
-        this.zone.run(() => this.cerrarSesionPorTiempo());
+        this.zone.run(() => this.validarOProgramarSesion());
       }, tiempoRestante);
     });
   }
@@ -79,21 +84,27 @@ export class SessionTimeoutService {
     }
   }
 
-  private readonly validarExpiracion = (): void => {
+  private readonly validarExpiracion = (): void => this.validarVencimiento();
+
+  private readonly sincronizarSesion = (event: StorageEvent): void => {
+    if (event.key === this.expiresAtKey || event.key === 'auth_session' || event.key === null) {
+      this.zone.run(() => this.validarOProgramarSesion());
+    }
+  };
+
+  validarVencimiento(): void {
     const expiresAt = Number(localStorage.getItem(this.expiresAtKey) || 0);
-    if (!this.esRutaDelPortal() || !this.authService.hasValidSession() || !expiresAt || Date.now() < expiresAt) {
+    if (!this.authService.hasValidSession() || !expiresAt || Date.now() < expiresAt) {
       return;
     }
 
     this.zone.run(() => this.cerrarSesionPorTiempo());
-  };
+  }
 
   private validarOProgramarSesion(): void {
     if (!this.esRutaDelPortal()) {
-      // Los enlaces públicos no participan en el cierre de sesión del portal.
-      this.limpiarTimer(!this.authService.hasValidSession());
+      // La sesión vence también aquí, pero el aviso es exclusivo del portal.
       this.mostrarModal.set(false);
-      return;
     }
 
     if (!this.authService.hasValidSession()) {
@@ -121,15 +132,12 @@ export class SessionTimeoutService {
 
   private cerrarSesionPorTiempo(): void {
     this.limpiarTimer(false);
-    if (!this.esRutaDelPortal()) {
-      this.mostrarModal.set(false);
-      return;
-    }
     if (!this.authService.hasValidSession()) {
       localStorage.removeItem(this.expiresAtKey);
       return;
     }
 
+    this.tokenVencido.set(this.authService.getToken());
     localStorage.removeItem(this.expiresAtKey);
     this.authService.logout().subscribe({
       next: () => this.mostrarModal.set(this.esRutaDelPortal()),

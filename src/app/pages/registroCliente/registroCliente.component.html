@@ -87,7 +87,9 @@
               [niveles]="nivelesNodoActual"
               [tiposComercio]="tiposComercio"
               [bloquearNivel]="true"
-              [bloquearTipoComercio]="false"
+              [bloquearTipoComercio]="esNodoExistente"
+              [soloInformativo]="esNodoExistente"
+              [cargandoInformacion]="cargandoCuentaComercio"
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 

@@ -13,25 +13,34 @@
   <div class="form-grid cols-2">
     <div class="field">
       <label for="nivel">Nivel del cliente <b>*</b></label>
+      @if (soloInformativo) {
+        <input id="nivel" type="text" readonly [value]="form.getRawValue().nivel || 'No disponible'" />
+      } @else {
       <select id="nivel" formControlName="nivel" [class.invalid]="esInvalido('nivel')" [attr.disabled]="bloquearNivel ? true : null">
         <option value="">Selecciona una opción</option>
         @for (nivel of niveles; track nivel) {
           <option [value]="nivel">{{ nivel }}</option>
         }
       </select>
-      @if (esInvalido('nivel')) { <small>Selecciona un nivel.</small> }
+      }
+      @if (!soloInformativo && esInvalido('nivel')) { <small>Selecciona un nivel.</small> }
     </div>
 
    @if (!esSinTipo) {
   <div class="field">
     <label for="tipoComercio">Tipo de comercio <b>*</b></label>
+    @if (soloInformativo) {
+      <input id="tipoComercio" type="text" readonly
+        [value]="cargandoInformacion ? 'Cargando…' : (form.getRawValue().tipoComercio || 'No disponible')" />
+    } @else {
     <select id="tipoComercio" formControlName="tipoComercio" [class.invalid]="esInvalido('tipoComercio')" [attr.disabled]="bloquearTipoComercio ? true : null">
       <option value="">Selecciona una opción</option>
       @for (tipo of tiposComercio; track tipo) {
         <option [value]="tipo">{{ tipo }}</option>
       }
     </select>
-    @if (esInvalido('tipoComercio')) { <small>Selecciona el tipo de comercio.</small> }
+    }
+    @if (!soloInformativo && esInvalido('tipoComercio')) { <small>Selecciona el tipo de comercio.</small> }
   </div>
 }
 

@@ -16,6 +16,8 @@ export class StepComercioComponent {
   @Input() datosForm!: FormGroup;
   @Input() niveles: string[] = [];
   @Input() tiposComercio: string[] = [];
+  @Input() soloInformativo = false;
+  @Input() cargandoInformacion = false;
   @Input() bloquearNivel = false;
   @Input() bloquearTipoComercio = false;
   @Input() mostrarTipoComercio = false;

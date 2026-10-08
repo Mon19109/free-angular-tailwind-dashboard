@@ -6,6 +6,7 @@ import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { map, catchError, switchMap, shareReplay, tap, timeout } from 'rxjs/operators';
 import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
 import { environment } from '../environments/environments';
+import { SESSION_EXPIRES_AT_KEY, SESSION_TIMEOUT_MS } from './session-expiration';
 
 @Injectable({
   providedIn: 'root'
@@ -100,6 +101,7 @@ export class AuthService {
     localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionData));
 
     if (!isAuthenticated) {
+      localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
       localStorage.removeItem('token');
       localStorage.removeItem('auth_token');
       this.LEGACY_SESSION_KEYS.forEach(key => localStorage.removeItem(key));
@@ -137,6 +139,7 @@ export class AuthService {
   }
 
   clearSession(): void {
+    localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
     localStorage.removeItem(this.SESSION_KEY);
     localStorage.removeItem('token');
     localStorage.removeItem('auth_token');
@@ -157,6 +160,9 @@ export class AuthService {
       return;
     }
 
+    if (session.smsValidated !== true) {
+      localStorage.setItem(SESSION_EXPIRES_AT_KEY, String(Date.now() + SESSION_TIMEOUT_MS));
+    }
     this.saveSession(session, true);
   }
 

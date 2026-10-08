@@ -11,7 +11,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Observable, catchError, forkJoin, map, of } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -28,7 +28,7 @@ import {
 import { CuentaComercioService } from '../../services/cuenta-comercio.service';
 import { Actividad, ActividadesService } from '../../services/actividades.service';
 import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/localidades.service';
-import { GiroComercial, PreRegistroService } from '../../services/preregistro.service';
+import { GiroComercial, PreRegistroService, TipoComercioCatalogo } from '../../services/preregistro.service';
 import { ArbolNodoApi, ArbolNodosService } from '../../services/arbol-nodos.service';
 import { ActivarProspectoService } from '../../services/activar-prospecto.service';
 
@@ -116,6 +116,7 @@ export class RegistroClienteComponent {
   documentosProspecto: DocumentoProspectoApi[] = [];
   cargandoDocumentosProspecto = false;
   cargandoCuentaComercio = false;
+  private consultaCuentaActual = 0;
   cargandoArbol = false;
   errorCuentaComercio = '';
   errorArbol = '';
@@ -388,7 +389,7 @@ export class RegistroClienteComponent {
     const nivel = this.comercioSeleccionado.nivel || 'Sucursal';
     const tipo = nivel === 'Caja' ? 'Cuenta Terminal' : nivel === 'Entidad' ? 'Empresa Grupo' : nivel === 'Sub Afiliado' ? 'Empresa Holding' : 'Sucursales de Grupo';
     this.tiposComercio = this.tiposComercioPorNivel[nivel] ?? [];
-    this.comercioForm.patchValue({ nivel, tipoComercio: tipo }, { emitEvent: false });
+    this.comercioForm.patchValue({ nivel, tipoComercio: this.nodeIDEdicion ? '' : tipo }, { emitEvent: false });
     this.datosForm.patchValue({
       nombreComercial: this.comercioSeleccionado.nombreComercial,
       razonSocial: this.comercioSeleccionado.nombreComercial,
@@ -655,22 +656,57 @@ export class RegistroClienteComponent {
     const sirioId = (sirioIdNodo || this.comercioSeleccionado.idComercio).trim();
     if (!sirioId) return;
 
+    const consulta = ++this.consultaCuentaActual;
     this.cargandoCuentaComercio = true;
     this.errorCuentaComercio = '';
-    this.cuentaComercioService.consultarCuenta(sirioId).subscribe({
-      next: respuesta => {
+    this.comercioForm.patchValue({ tipoComercio: '' }, { emitEvent: false });
+    this.cuentaComercioService.consultarCuenta(sirioId).pipe(
+      switchMap(respuesta => {
         const cuenta = this.registroCuentaDesdeRespuesta(respuesta);
+        return this.consultarTipoComercioCuenta(cuenta).pipe(
+          map(tipoComercio => ({ cuenta, tipoComercio }))
+        );
+      })
+    ).subscribe({
+      next: ({ cuenta, tipoComercio }) => {
+        if (consulta !== this.consultaCuentaActual) return;
         this.actualizarIdentificadoresDesdeCuenta(cuenta);
-        this.pintarCuentaComercio(cuenta);
+        this.pintarCuentaComercio(cuenta, tipoComercio);
         this.consultarResultadoSiprelad();
         this.consultarDocumentosProspecto();
         this.cargandoCuentaComercio = false;
       },
       error: () => {
+        if (consulta !== this.consultaCuentaActual) return;
         this.errorCuentaComercio = 'No fue posible consultar los datos del comercio.';
         this.cargandoCuentaComercio = false;
       }
     });
+  }
+
+  private consultarTipoComercioCuenta(cuenta: Record<string, unknown>): Observable<string> {
+    const nivel = Number(cuenta['idAffiliationLevel']);
+    const tipo = Number(cuenta['typeOfBusiness']);
+    if (!Number.isInteger(nivel) || nivel <= 0 || !Number.isInteger(tipo) || tipo <= 0) return of('');
+
+    return this.preRegistroService.getTiposComercio(nivel).pipe(
+      map(respuesta => {
+        const seleccionado = this.listaTiposComercio(respuesta).find(item => Number(item.id) === tipo);
+        return seleccionado?.name?.trim() || '';
+      }),
+      catchError(() => of(''))
+    );
+  }
+
+  private listaTiposComercio(respuesta: unknown): TipoComercioCatalogo[] {
+    if (Array.isArray(respuesta)) return respuesta.filter(item => item && typeof item === 'object');
+    if (!respuesta || typeof respuesta !== 'object') return [];
+    const body = respuesta as Record<string, unknown>;
+    for (const key of ['data', 'response', 'result', 'items', 'object', 'payload', 'content', 'typeOfBusinesses', 'catTypeOfBusinesses']) {
+      const lista = this.listaTiposComercio(body[key]);
+      if (lista.length) return lista;
+    }
+    return [];
   }
 
   private consultarArbolEdicion(): void {
@@ -849,7 +885,7 @@ export class RegistroClienteComponent {
     return false;
   }
 
-  private pintarCuentaComercio(cuenta: Record<string, unknown>): void {
+  private pintarCuentaComercio(cuenta: Record<string, unknown>, tipoComercio: string): void {
     if (!Object.keys(cuenta).length) return;
 
     const direccionFiscal = this.direccionCuenta(cuenta, 'DF');
@@ -867,12 +903,10 @@ export class RegistroClienteComponent {
     const email = this.valorCuenta(cuenta, ['email', 'correo', 'mail']);
     const phone = this.valorCuenta(cuenta, ['phoneNumber', 'phone', 'telefono']);
     const tipoPersona = this.tipoPersonaDesdeCuenta(cuenta, rfc);
-    const tipoComercio = this.valorCuenta(cuenta, ['commerceType', 'typeCommerce', 'businessModelName', 'typeOfBusinessName']);
-    const tipoComercioPorPersona = tipoPersona === 'PF' && this.tiposComercio.includes('Persona Física') ? 'Persona Física' : '';
-
-    if (tipoComercioPorPersona || (tipoComercio && this.tiposComercio.includes(tipoComercio))) {
-      this.comercioForm.patchValue({ tipoComercio: tipoComercioPorPersona || tipoComercio }, { emitEvent: false });
-    }
+    const niveles: Record<number, string> = { 3: 'Sub Afiliado', 4: 'Entidad', 5: 'Sucursal', 6: 'Caja' };
+    const nivel = niveles[Number(cuenta['idAffiliationLevel'])] || this.comercioForm.getRawValue().nivel;
+    this.tiposComercio = tipoComercio ? [tipoComercio] : [];
+    this.comercioForm.patchValue({ nivel, tipoComercio }, { emitEvent: false });
 
     this.datosForm.patchValue(this.valoresConContenido({
       tipoPersona,
@@ -1360,7 +1394,7 @@ export class RegistroClienteComponent {
       this.comercioForm.controls.tipoComercio.setValidators([Validators.required]);
     }
     this.comercioForm.controls.tipoComercio.updateValueAndValidity({ emitEvent: false });
-    this.comercioForm.patchValue({ nivel, tipoComercio: tipo }, { emitEvent: false });
+    this.comercioForm.patchValue({ nivel, tipoComercio: this.nodeIDEdicion ? '' : tipo }, { emitEvent: false });
     const registro = this.registroFakePorNodo(nodo.id);
     const esNodoEditado = !!this.nodeIDEdicion && nodo.id === this.nodeIDEdicion;
     const idComercio = nodo.idSirio || (esNodoEditado ? this.comercioSeleccionado.idComercio : nodo.id);

@@ -3,12 +3,13 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { navigationLoaderInterceptor } from './services/navigation-loader.interceptor';
+import { sessionExpirationInterceptor } from './services/session-expiration.interceptor';
 import { authTokenInterceptor } from './services/auth-token.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([navigationLoaderInterceptor, authTokenInterceptor]))
+    provideHttpClient(withInterceptors([navigationLoaderInterceptor, authTokenInterceptor, sessionExpirationInterceptor]))
   ]
 };

@@ -1,4 +1,7 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { authTokenInterceptor } from './auth-token.interceptor';
+import { sessionExpirationInterceptor } from './session-expiration.interceptor';
+import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -29,7 +32,7 @@ describe('SessionTimeoutService', () => {
     events = new Subject();
     leaf = { data: {} };
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), {
+      providers: [provideHttpClient(withInterceptors([authTokenInterceptor, sessionExpirationInterceptor])), provideHttpClientTesting(), {
         provide: Router,
         useValue: { events, routerState: { snapshot: { root: { firstChild: leaf } } }, navigate: jasmine.createSpy() },
       }],
@@ -76,12 +79,12 @@ describe('SessionTimeoutService', () => {
     document.dispatchEvent(new Event('visibilitychange'));
     tick(duration);
     expect(service.mostrarModal()).toBeFalse();
-    expect(auth.hasValidSession()).toBeTrue();
+    expect(auth.hasValidSession()).toBeFalse();
     navigate(true);
-    expect(service.mostrarModal()).toBeTrue();
+    expect(service.mostrarModal()).toBeFalse();
   }));
 
-  it('cancela el temporizador al salir del portal sin reiniciar el vencimiento', fakeAsync(() => {
+  it('vence también fuera del portal sin mostrar el aviso', fakeAsync(() => {
     session(false);
     navigate(true);
     service.iniciar();
@@ -89,11 +92,13 @@ describe('SessionTimeoutService', () => {
     const expiresAt = localStorage.getItem(expiryKey);
     tick(duration / 2);
     navigate(false);
+    expect(localStorage.getItem(expiryKey)).toBe(expiresAt);
     tick(duration / 2);
     expect(service.mostrarModal()).toBeFalse();
-    expect(localStorage.getItem(expiryKey)).toBe(expiresAt);
+    expect(auth.hasValidSession()).toBeFalse();
+    expect(localStorage.getItem(expiryKey)).toBeNull();
     navigate(true);
-    expect(service.mostrarModal()).toBeTrue();
+    expect(service.mostrarModal()).toBeFalse();
     navigate(false);
     expect(service.mostrarModal()).toBeFalse();
   }));
@@ -108,4 +113,61 @@ describe('SessionTimeoutService', () => {
     tick(duration / 2);
     expect(service.mostrarModal()).toBeTrue();
   }));
+
+  it('cierra al recuperar foco aunque el navegador haya pospuesto el temporizador', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    const expiresAt = Number(localStorage.getItem(expiryKey));
+    spyOn(Date, 'now').and.returnValue(expiresAt + 1);
+    window.dispatchEvent(new Event('focus'));
+    expect(auth.hasValidSession()).toBeFalse();
+    expect(service.mostrarModal()).toBeTrue();
+  }));
+
+  for (const authorization of [undefined, 'Bearer portal-token']) {
+    it(`bloquea peticiones vencidas antes de enviarlas con bearer ${authorization ? 'explícito' : 'automático'}`, fakeAsync(() => {
+      session(false);
+      navigate(true);
+      service.iniciar();
+      auth.completeSmsValidation();
+      spyOn(Date, 'now').and.returnValue(Number(localStorage.getItem(expiryKey)));
+      let error: HttpErrorResponse | undefined;
+      TestBed.inject(HttpClient).get('/api/privada', {
+        headers: authorization ? { Authorization: authorization } : {},
+      }).subscribe({ error: value => error = value });
+      TestBed.inject(HttpTestingController).expectNone('/api/privada');
+      expect(error?.error.code).toBe('SESSION_EXPIRED');
+      expect(auth.hasValidSession()).toBeFalse();
+      expect(service.mostrarModal()).toBeTrue();
+    }));
+  }
+
+  it('conserva las peticiones públicas con bearer fijo al vencer la sesión', fakeAsync(() => {
+    session(false);
+    service.iniciar();
+    auth.completeSmsValidation();
+    spyOn(Date, 'now').and.returnValue(Number(localStorage.getItem(expiryKey)));
+    TestBed.inject(HttpClient).get('/api/publica', {
+      headers: { Authorization: 'Bearer public-token' },
+    }).subscribe();
+    TestBed.inject(HttpTestingController).expectOne('/api/publica').flush({ success: true });
+    expect(auth.hasValidSession()).toBeFalse();
+    expect(service.mostrarModal()).toBeFalse();
+  }));
+
+  it('conserva la fecha al restaurar una sesión y al repetir la confirmación SMS', fakeAsync(() => {
+    session(false);
+    auth.completeSmsValidation();
+    const expiresAt = localStorage.getItem(expiryKey);
+    tick(duration / 2);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    expect(localStorage.getItem(expiryKey)).toBe(expiresAt);
+    tick(duration / 2);
+    expect(service.mostrarModal()).toBeTrue();
+  }));
+
 });

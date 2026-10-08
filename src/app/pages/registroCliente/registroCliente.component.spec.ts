@@ -1,3 +1,7 @@
+import { of, throwError } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
+import { FormControl, FormGroup } from '@angular/forms';
+import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { RegistroClienteComponent } from './registroCliente.component';
 import { RegistroProspectoClienteComponent } from '../registroProspectoCliente/registroProspectoCliente.component';
 
@@ -149,5 +153,60 @@ describe('RegistroCliente: pasos finales internos', () => {
     const guardar = spyOn(component, 'guardarRevisionDocumentos');
     component.continuarDesdeDocumentos();
     expect(guardar).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('RegistroCliente: tipo de comercio del catálogo', () => {
+  function pantalla(respuesta: unknown) {
+    const component = Object.create(RegistroClienteComponent.prototype);
+    const getTiposComercio = jasmine.createSpy().and.returnValue(of(respuesta));
+    Object.assign(component, { preRegistroService: { getTiposComercio } });
+    return { component, getTiposComercio };
+  }
+
+  it('consulta el nivel recibido y resuelve el ID 8 como Sucursales Únicas', () => {
+    const { component, getTiposComercio } = pantalla({ data: [
+      { id: 7, name: 'Sucursales de Grupo', idAffiliationType: 5 },
+      { id: 8, name: 'Sucursales Únicas', idAffiliationType: 5 },
+    ] });
+    let nombre: string | undefined;
+    component.consultarTipoComercioCuenta({ idAffiliationLevel: 5, typeOfBusiness: 8 })
+      .subscribe((valor: string) => nombre = valor);
+    expect(getTiposComercio).toHaveBeenCalledOnceWith(5);
+    expect(nombre).toBe('Sucursales Únicas');
+  });
+
+  it('usa cada nivel recibido y admite identificadores numéricos en texto', () => {
+    const { component, getTiposComercio } = pantalla([{ id: '2', name: 'Empresa Grupo' }]);
+    let nombre: string | undefined;
+    component.consultarTipoComercioCuenta({ idAffiliationLevel: '4', typeOfBusiness: '2' })
+      .subscribe((valor: string) => nombre = valor);
+    expect(getTiposComercio).toHaveBeenCalledOnceWith(4);
+    expect(nombre).toBe('Empresa Grupo');
+  });
+
+  it('no supone un tipo si el catálogo falla o no contiene el ID', () => {
+    const { component, getTiposComercio } = pantalla([{ id: 7, name: 'Sucursales de Grupo' }]);
+    const cuenta = { idAffiliationLevel: 5, typeOfBusiness: 8 };
+    component.consultarTipoComercioCuenta(cuenta).subscribe((valor: string) => expect(valor).toBe(''));
+    getTiposComercio.and.returnValue(throwError(() => new Error('Catálogo no disponible')));
+    component.consultarTipoComercioCuenta(cuenta).subscribe((valor: string) => expect(valor).toBe(''));
+  });
+
+  it('presenta los campos informativos sin selectores', async () => {
+    await TestBed.configureTestingModule({ imports: [StepComercioComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(StepComercioComponent);
+    fixture.componentRef.setInput('soloInformativo', true);
+    fixture.componentRef.setInput('form', new FormGroup({
+      nivel: new FormControl('Sucursal'), tipoComercio: new FormControl('Sucursales Únicas'),
+    }));
+    fixture.detectChanges();
+    const elemento: HTMLElement = fixture.nativeElement;
+    expect(elemento.querySelector('select')).toBeNull();
+    const tipo = elemento.querySelector<HTMLInputElement>('#tipoComercio')!;
+    expect(tipo.readOnly).toBeTrue();
+    expect(tipo.value).toBe('Sucursales Únicas');
+    expect(elemento.querySelector<HTMLInputElement>('#nivel')!.readOnly).toBeTrue();
   });
 });
