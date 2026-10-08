@@ -3,7 +3,7 @@
   <div class="field span-2 caja-name-context">
     @if (editarNombreCaja) {
     <label for="nombre-caja">Nombre de la caja <b>*</b></label>
-    <input id="nombre-caja" type="text" [value]="nombreCaja" required
+    <input maxlength="100" id="nombre-caja" type="text" [value]="nombreCaja" required
       (change)="nombreCajaChange.emit($any($event.target).value)" />
     } @else {
     <strong>{{ nombreCaja }}</strong>
@@ -51,7 +51,7 @@
 
     <div class="field">
       <label for="correoPersonaFisica">Correo electrónico <b>*</b></label>
-      <input id="correoPersonaFisica" type="email" [formControl]="$any(datosForm.get('correo'))"
+      <input maxlength="254" id="correoPersonaFisica" type="email" [formControl]="$any(datosForm.get('correo'))"
         [class.invalid]="esContactoInvalido('correo')" />
       @if (esContactoInvalido('correo')) { <small>{{ mensajeContacto('correo') }}</small> }
     </div>

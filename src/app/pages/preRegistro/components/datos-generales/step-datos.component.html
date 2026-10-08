@@ -45,28 +45,28 @@
       @if (tiene('razonSocial') && esPersonaMoral) {
       <div class="field">
         <label for="razonSocial">Razón social <b>*</b></label>
-        <input id="razonSocial" formControlName="razonSocial" [class.invalid]="esInvalido('razonSocial')" />
+        <input maxlength="150" id="razonSocial" formControlName="razonSocial" [class.invalid]="esInvalido('razonSocial')" />
         @if (esInvalido('razonSocial')) { <small>{{ mensajeCampo('razonSocial') }}</small> }
       </div>
       }
       @if (tiene('nombre') && esPersonaFisica) {
       <div class="field">
         <label for="nombre">Nombre(s) <b>*</b></label>
-        <input id="nombre" formControlName="nombre" [class.invalid]="esInvalido('nombre')" />
+        <input maxlength="80" id="nombre" formControlName="nombre" [class.invalid]="esInvalido('nombre')" />
         @if (esInvalido('nombre')) { <small>{{ mensajeCampo('nombre') }}</small> }
       </div>
       }
       @if (tiene('apellidoPaterno') && esPersonaFisica) {
       <div class="field">
         <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
-        <input id="apellidoPaterno" formControlName="apellidoPaterno" [class.invalid]="esInvalido('apellidoPaterno')" />
+        <input maxlength="80" id="apellidoPaterno" formControlName="apellidoPaterno" [class.invalid]="esInvalido('apellidoPaterno')" />
         @if (esInvalido('apellidoPaterno')) { <small>{{ mensajeCampo('apellidoPaterno') }}</small> }
       </div>
       }
       @if (tiene('apellidoMaterno') && esPersonaFisica) {
       <div class="field">
         <label for="apellidoMaterno">Apellido materno <b>*</b></label>
-        <input id="apellidoMaterno" formControlName="apellidoMaterno" [class.invalid]="esInvalido('apellidoMaterno')" />
+        <input maxlength="80" id="apellidoMaterno" formControlName="apellidoMaterno" [class.invalid]="esInvalido('apellidoMaterno')" />
         @if (esInvalido('apellidoMaterno')) { <small>{{ mensajeCampo('apellidoMaterno') }}</small> }
       </div>
       }
@@ -80,7 +80,7 @@
       @if (tiene('nombreComercial') && !esPersonaFisica) {
       <div class="field">
         <label for="nombreComercial">Nombre comercial <b>*</b></label>
-        <input id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
+        <input maxlength="80" id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
         @if (esInvalido('nombreComercial')) { <small>{{ mensajeCampo('nombreComercial') }}</small> }
       </div>
       }
@@ -110,7 +110,7 @@
       @if (tiene('nombreComercial') && esPersonaFisica) {
       <div class="field">
         <label for="nombreComercial">Nombre comercial <b>*</b></label>
-        <input id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
+        <input maxlength="80" id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
         @if (esInvalido('nombreComercial')) { <small>{{ mensajeCampo('nombreComercial') }}</small> }
       </div>
       }
@@ -152,7 +152,7 @@
       @if (tiene('correo')) {
       <div class="field">
         <label for="correo">Correo electrónico <b>*</b></label>
-        <input id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('correo')" />
+        <input maxlength="254" id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('correo')" />
         @if (esInvalido('correo')) { <small>{{ mensajeCampo('correo') }}</small> }
       </div>
       }
@@ -178,7 +178,7 @@
     <div class="form-grid cols-2">
       @if (tiene('codigoPostal')) {
       <div class="field"><label for="codigoPostal">Código Postal <b>*</b></label>
-        <input id="codigoPostal" maxlength="5" inputmode="numeric" formControlName="codigoPostal" [class.invalid]="esInvalido('codigoPostal')" />
+        <input maxlength="10" id="codigoPostal" inputmode="numeric" formControlName="codigoPostal" [class.invalid]="esInvalido('codigoPostal')" />
         @if (esInvalido('codigoPostal')) { <small>{{ mensajeCampo('codigoPostal') }}</small> }
       </div>
       }
@@ -195,19 +195,19 @@
       }
       @if (tiene('nombreVialidad')) {
       <div class="field"><label for="nombreVialidad">Nombre de la Vialidad <b>*</b></label>
-        <input id="nombreVialidad" formControlName="nombreVialidad" [class.invalid]="esInvalido('nombreVialidad')" />
+        <input maxlength="100" id="nombreVialidad" formControlName="nombreVialidad" [class.invalid]="esInvalido('nombreVialidad')" />
         @if (esInvalido('nombreVialidad')) { <small>{{ mensajeCampo('nombreVialidad') }}</small> }
       </div>
       }
       @if (tiene('numeroExterior')) {
       <div class="field"><label for="numeroExterior">Número Exterior <b>*</b></label>
-        <input id="numeroExterior" formControlName="numeroExterior" [class.invalid]="esInvalido('numeroExterior')" />
+        <input maxlength="20" id="numeroExterior" formControlName="numeroExterior" [class.invalid]="esInvalido('numeroExterior')" />
         @if (esInvalido('numeroExterior')) { <small>{{ mensajeCampo('numeroExterior') }}</small> }
       </div>
       }
       @if (tiene('numeroInterior')) {
       <div class="field"><label for="numeroInterior">Número Interior</label>
-        <input id="numeroInterior" formControlName="numeroInterior" [class.invalid]="esInvalido('numeroInterior')" />
+        <input maxlength="20" id="numeroInterior" formControlName="numeroInterior" [class.invalid]="esInvalido('numeroInterior')" />
         @if (esInvalido('numeroInterior')) { <small>{{ mensajeCampo('numeroInterior') }}</small> }
       </div>
       }
@@ -250,13 +250,13 @@
       }
       @if (tiene('entreCalle')) {
       <div class="field"><label for="entreCalle">Entre Calle</label>
-        <input id="entreCalle" formControlName="entreCalle" [class.invalid]="esInvalido('entreCalle')" />
+        <input maxlength="100" id="entreCalle" formControlName="entreCalle" [class.invalid]="esInvalido('entreCalle')" />
         @if (esInvalido('entreCalle')) { <small>{{ mensajeCampo('entreCalle') }}</small> }
       </div>
       }
       @if (tiene('yCalle')) {
       <div class="field"><label for="yCalle">Y Calle</label>
-        <input id="yCalle" formControlName="yCalle" [class.invalid]="esInvalido('yCalle')" />
+        <input maxlength="100" id="yCalle" formControlName="yCalle" [class.invalid]="esInvalido('yCalle')" />
         @if (esInvalido('yCalle')) { <small>{{ mensajeCampo('yCalle') }}</small> }
       </div>
       }
@@ -273,17 +273,17 @@
     </div>
     <div class="form-grid cols-3">
       <div class="field"><label for="nombreRepresentante">Nombre <b>*</b></label>
-        <input id="nombreRepresentante" formControlName="nombreRepresentante"
+        <input maxlength="80" id="nombreRepresentante" formControlName="nombreRepresentante"
           [class.invalid]="esInvalido('nombreRepresentante')" />
         @if (esInvalido('nombreRepresentante')) { <small>{{ mensajeCampo('nombreRepresentante') }}</small> }
       </div>
       <div class="field"><label for="apellidoPaternoRepresentante">Apellido Paterno <b>*</b></label>
-        <input id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante"
+        <input maxlength="80" id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante"
           [class.invalid]="esInvalido('apellidoPaternoRepresentante')" />
         @if (esInvalido('apellidoPaternoRepresentante')) { <small>{{ mensajeCampo('apellidoPaternoRepresentante') }}</small> }
       </div>
       <div class="field"><label for="apellidoMaternoRepresentante">Apellido Materno <b>*</b></label>
-        <input id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante"
+        <input maxlength="80" id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante"
           [class.invalid]="esInvalido('apellidoMaternoRepresentante')" />
         @if (esInvalido('apellidoMaternoRepresentante')) { <small>{{ mensajeCampo('apellidoMaternoRepresentante') }}</small> }
       </div>
@@ -299,22 +299,22 @@
     </div>
     <div class="form-grid cols-2">
       <div class="field"><label for="calleRepresentante">Calle <b>*</b></label>
-        <input id="calleRepresentante" formControlName="calleRepresentante"
+        <input maxlength="100" id="calleRepresentante" formControlName="calleRepresentante"
           [class.invalid]="esInvalido('calleRepresentante')" />
         @if (esInvalido('calleRepresentante')) { <small>{{ mensajeCampo('calleRepresentante') }}</small> }
       </div>
       <div class="field"><label for="numeroExteriorRepresentante">Número Exterior <b>*</b></label>
-        <input id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante"
+        <input maxlength="20" id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante"
           [class.invalid]="esInvalido('numeroExteriorRepresentante')" />
         @if (esInvalido('numeroExteriorRepresentante')) { <small>{{ mensajeCampo('numeroExteriorRepresentante') }}</small> }
       </div>
       <div class="field"><label for="numeroInteriorRepresentante">Número Interior</label>
-        <input id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante"
+        <input maxlength="20" id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante"
           [class.invalid]="esInvalido('numeroInteriorRepresentante')" />
         @if (esInvalido('numeroInteriorRepresentante')) { <small>{{ mensajeCampo('numeroInteriorRepresentante') }}</small> }
       </div>
       <div class="field"><label for="codigoPostalRepresentante">Código Postal <b>*</b></label>
-        <input id="codigoPostalRepresentante" maxlength="5" inputmode="numeric" formControlName="codigoPostalRepresentante"
+        <input maxlength="10" id="codigoPostalRepresentante" inputmode="numeric" formControlName="codigoPostalRepresentante"
           [class.invalid]="esInvalido('codigoPostalRepresentante')" />
         @if (esInvalido('codigoPostalRepresentante')) { <small>{{ mensajeCampo('codigoPostalRepresentante') }}</small> }
       </div>
@@ -356,7 +356,7 @@
     </div>
     <div class="form-grid cols-3">
       <div class="field"><label for="correoRepresentante">Correo Electrónico <b>*</b></label>
-        <input id="correoRepresentante" type="email" formControlName="correoRepresentante"
+        <input maxlength="254" id="correoRepresentante" type="email" formControlName="correoRepresentante"
           [class.invalid]="esInvalido('correoRepresentante')" />
         @if (esInvalido('correoRepresentante')) { <small>{{ mensajeCampo('correoRepresentante') }}</small> }
       </div>
@@ -392,7 +392,7 @@
 
       <div class="field">
         <label for="codigoPostalComercial">Código Postal <b>*</b></label>
-        <input id="codigoPostalComercial" maxlength="5" inputmode="numeric" formControlName="codigoPostalComercial"
+        <input maxlength="10" id="codigoPostalComercial" inputmode="numeric" formControlName="codigoPostalComercial"
           [class.invalid]="esInvalido('codigoPostalComercial')">
         @if (esInvalido('codigoPostalComercial')) { <small>{{ mensajeCampo('codigoPostalComercial') }}</small> }
       </div>
@@ -410,21 +410,21 @@
 
       <div class="field">
         <label for="nombreVialidadComercial">Nombre de la Vialidad <b>*</b></label>
-        <input id="nombreVialidadComercial" formControlName="nombreVialidadComercial"
+        <input maxlength="100" id="nombreVialidadComercial" formControlName="nombreVialidadComercial"
           [class.invalid]="esInvalido('nombreVialidadComercial')">
         @if (esInvalido('nombreVialidadComercial')) { <small>{{ mensajeCampo('nombreVialidadComercial') }}</small> }
       </div>
 
       <div class="field">
         <label for="numeroExteriorComercial">Número Exterior <b>*</b></label>
-        <input id="numeroExteriorComercial" formControlName="numeroExteriorComercial"
+        <input maxlength="20" id="numeroExteriorComercial" formControlName="numeroExteriorComercial"
           [class.invalid]="esInvalido('numeroExteriorComercial')">
         @if (esInvalido('numeroExteriorComercial')) { <small>{{ mensajeCampo('numeroExteriorComercial') }}</small> }
       </div>
 
       <div class="field">
         <label for="numeroInteriorComercial">Número Interior</label>
-        <input id="numeroInteriorComercial" formControlName="numeroInteriorComercial">
+        <input maxlength="20" id="numeroInteriorComercial" formControlName="numeroInteriorComercial">
       </div>
 
       <div class="field">
@@ -468,14 +468,14 @@
 
       <div class="field">
         <label for="entreCalleComercial">Entre Calle <b>*</b></label>
-        <input id="entreCalleComercial" formControlName="entreCalleComercial"
+        <input maxlength="100" id="entreCalleComercial" formControlName="entreCalleComercial"
           [class.invalid]="esInvalido('entreCalleComercial')">
         @if (esInvalido('entreCalleComercial')) { <small>{{ mensajeCampo('entreCalleComercial') }}</small> }
       </div>
 
       <div class="field">
         <label for="yCalleComercial">Y Calle <b>*</b></label>
-        <input id="yCalleComercial" formControlName="yCalleComercial"
+        <input maxlength="100" id="yCalleComercial" formControlName="yCalleComercial"
           [class.invalid]="esInvalido('yCalleComercial')">
         @if (esInvalido('yCalleComercial')) { <small>{{ mensajeCampo('yCalleComercial') }}</small> }
       </div>
@@ -494,7 +494,7 @@
     </p>
     <div class="form-grid cols-3">
       <div class="field"><label for="correoComercial">Correo Electrónico <b>*</b></label>
-        <input id="correoComercial" type="email" formControlName="correoComercial"
+        <input maxlength="254" id="correoComercial" type="email" formControlName="correoComercial"
           [class.invalid]="esInvalido('correoComercial')">
         @if (esInvalido('correoComercial')) { <small>{{ mensajeCampo('correoComercial') }}</small> }
       </div>

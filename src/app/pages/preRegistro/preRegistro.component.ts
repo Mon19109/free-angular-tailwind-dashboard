@@ -504,7 +504,7 @@ export class PreRegistroComponent {
 
   // ── Formularios ──────────────────────────────────────────────────────────────
   readonly afiliacionForm = this.fb.nonNullable.group({
-    afiliacion: ['', [Validators.required, Validators.pattern(/^\d+$/)]],
+    afiliacion: ['', [Validators.required, Validators.maxLength(20)]],
   });
 
   readonly comercioForm = this.fb.nonNullable.group({
@@ -563,7 +563,7 @@ export class PreRegistroComponent {
 
 
 
-    codigoPostalComercial: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(5), Validators.pattern(/^\d{5}$/)]],
+    codigoPostalComercial: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(10), Validators.pattern(/^\d{5}$/)]],
     tipoVialidadComercial: ['', Validators.required],
     nombreVialidadComercial: ['', Validators.required],
     numeroExteriorComercial: ['', Validators.required],
@@ -1550,7 +1550,39 @@ export class PreRegistroComponent {
   }
 
   volver(paso: PasoWizard): void { this.irAlPaso(paso); }
-  esPasoCompletado(paso: number): boolean { return this.pasosCompletados.has(paso); }
+  esPasoCompletado(paso: number): boolean {
+    return this.pasosCompletados.has(paso) && this.pasoTieneDatosValidos(paso);
+  }
+
+  private formularioCompleto(form: typeof this.datosForm | typeof this.comercioForm | typeof this.accesosForm | typeof this.liquidacionForm): boolean {
+    return form.valid && Object.values(form.controls).every(control =>
+      !control.hasValidator(Validators.required)
+      || typeof control.value !== 'string'
+      || control.value.trim().length > 0
+    );
+  }
+
+  private pasoTieneDatosValidos(paso: number): boolean {
+    const descripcionCompleta = this.formularioCompleto(this.comercioForm)
+      && (!this.mostrarContactoAccesoDescripcion
+        || ['correo', 'telefono'].every(campo => this.datosForm.get(campo)?.valid
+          && String(this.datosForm.get(campo)?.value || '').trim().length > 0));
+    if (!descripcionCompleta) return false;
+    switch (paso) {
+      case 1: return true;
+      case 2: return this.pasoGeneralesDebeSaltarse || this.formularioCompleto(this.datosForm);
+      case 3: return !this.mostrarPasoAccesos || this.formularioCompleto(this.accesosForm);
+      case 4: return !this.mostrarCuentaLiquidacion || this.formularioCompleto(this.liquidacionForm);
+      case 5: return !this.mostrarPasoDocumentos || this.documentosVisibles
+        .filter(documento => documento.obligatorio)
+        .every(documento => !!documento.archivo || !!documento.archivoNombre?.trim());
+      default: return this.pasosCompletados.has(paso);
+    }
+  }
+
+  private nodoActualTieneDatosCompletos(): boolean {
+    return this.pasosVisibles.every(paso => this.pasoTieneDatosValidos(paso.numero));
+  }
   puedeAbrirPaso(paso: number): boolean {
     if (paso === this.pasoActual || this.esPasoCompletado(paso)) return true;
     const actual = this.pasosVisibles.findIndex(p => p.numero === this.pasoActual);
@@ -1611,20 +1643,15 @@ export class PreRegistroComponent {
   }
 
   private restaurarAvanceNodo(nodo: NodoArbolNegocio): void {
-    const tipoComercio = this.obtenerComercioPorNodo()[nodo.id]?.tipoComercio || this.tipoComercioAutomaticoPorNodo(nodo);
-    const descripcionCompleta = this.esDescripcionComercioAutomatica(nodo) || !!tipoComercio;
-    const datosCompletos = this.pasoGeneralesDebeSaltarse || this.datosNodoCompletos(nodo.id, tipoComercio);
-    const accesosCompletos = !this.mostrarPasoAccesos || this.accesosNodoCompletos(nodo.id);
-    const documentosCompletos = !this.mostrarPasoDocumentos || this.documentosNodoCompletos(nodo.id, tipoComercio);
+    // Los formularios ya contienen la captura y validadores del nodo seleccionado.
+    // No reutilizar marcas de otro nodo ni inferir validez por la existencia de un borrador.
+    for (const paso of [1, 2, 3, 4, 5]) {
+      if (this.pasoTieneDatosValidos(paso)) this.pasosCompletados.add(paso);
+      else this.pasosCompletados.delete(paso);
+    }
 
-    if (descripcionCompleta) this.pasosCompletados.add(1);
-    if (datosCompletos) this.pasosCompletados.add(2);
-    if (accesosCompletos) this.pasosCompletados.add(3);
-    if (!this.mostrarCuentaLiquidacion) this.pasosCompletados.add(4);
-    if (documentosCompletos) this.pasosCompletados.add(5);
-
-    if (descripcionCompleta && datosCompletos && accesosCompletos && documentosCompletos) {
-      this.marcarNodoCompletado(nodo.id);
+    this.actualizarNodoCompletado(nodo.id, this.nodoActualTieneDatosCompletos());
+    if (this.nodoActualTieneDatosCompletos()) {
       this.irAlPaso(this.ultimoPasoVisible());
       return;
     }
@@ -3104,6 +3131,9 @@ export class PreRegistroComponent {
   }
 
   nodoArbolCompletado(id: string): boolean {
+    if (id === this.arbolNegocioForm.controls.nodoSeleccionado.value) {
+      return this.nodoActualTieneDatosCompletos();
+    }
     return this.obtenerNodosCompletados().includes(id);
   }
 
@@ -3148,11 +3178,8 @@ export class PreRegistroComponent {
   private unidadesCompletadasFlujoActual(pasosPorNodo: number): number {
     let unidades = 0;
     this.pasosVisibles.forEach(paso => {
-      if (this.pasosCompletados.has(paso.numero)) unidades += 1;
+      if (this.esPasoCompletado(paso.numero)) unidades += 1;
     });
-
-    const indicePasoActual = this.pasosVisibles.findIndex(paso => paso.numero === this.pasoActual);
-    if (indicePasoActual > 0) unidades = Math.max(unidades, indicePasoActual);
 
     return Math.min(unidades, pasosPorNodo);
   }
@@ -3252,8 +3279,13 @@ export class PreRegistroComponent {
   }
 
   private marcarNodoCompletado(nodoId: string): void {
+    this.actualizarNodoCompletado(nodoId, this.nodoActualTieneDatosCompletos());
+  }
+
+  private actualizarNodoCompletado(nodoId: string, completo: boolean): void {
     const completados = new Set(this.obtenerNodosCompletados());
-    completados.add(nodoId);
+    if (completo) completados.add(nodoId);
+    else completados.delete(nodoId);
     this.arbolNegocioForm.controls.nodosCompletados.setValue(JSON.stringify([...completados]), { emitEvent: false });
   }
 
@@ -3284,6 +3316,8 @@ export class PreRegistroComponent {
     this.guardarDatosSucursalActual();
     if (this.pasoActual === 3) this.guardarAccesosNodoActual();
     if (this.pasoActual === 5) this.guardarDocumentosNodoActual();
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value;
+    if (nodoId) this.actualizarNodoCompletado(nodoId, this.nodoActualTieneDatosCompletos());
   }
 
   private cargarCapturaNodo(nodoId: string): void {
@@ -3962,7 +3996,7 @@ export class PreRegistroComponent {
       validadores.push(Validators.minLength(10), Validators.maxLength(10), Validators.pattern(telefonoPattern));
     }
     if (['codigoPostal', 'codigoPostalComercial', 'codigoPostalRepresentante'].includes(nombre)) {
-      validadores.push(Validators.minLength(5), Validators.maxLength(5), Validators.pattern(codigoPostalPattern));
+      validadores.push(Validators.minLength(5), Validators.maxLength(10), Validators.pattern(codigoPostalPattern));
     }
 
     return validadores;

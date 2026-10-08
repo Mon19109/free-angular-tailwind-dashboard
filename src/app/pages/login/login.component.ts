@@ -52,8 +52,8 @@ export class LoginComponent implements OnInit {
     private geolocationService: GeolocationService
   ) {
     this.loginForm = this.fb.group({
-      userLogin: ['', [Validators.required, Validators.email]],
-      passwordLogin: ['', [Validators.required]]
+      userLogin: ['', [Validators.required, Validators.email, Validators.maxLength(254)]],
+      passwordLogin: ['', [Validators.required, Validators.maxLength(20)]]
     });
     this.recoveryForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
@@ -127,7 +127,7 @@ export class LoginComponent implements OnInit {
   }
 
   validateToken(): void {
-    if (!this.tokenValue.trim()) {
+    if (!this.tokenValue.trim() || this.tokenValue.length > 8) {
       this.tokenErrorMessage = 'Código incorrecto';
       return;
     }

@@ -1,3 +1,4 @@
+import { Validators } from '@angular/forms';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ChangeDetectorRef } from '@angular/core';
@@ -26,6 +27,66 @@ describe('PreRegistro: referencia de afiliación', () => {
   });
 
   afterEach(() => http.verify());
+
+  it('no arrastra pasos completados al pasar de una entidad incompleta a una sucursal', () => {
+    component.tipoNegocioSeleccionado = { id: 'sucursales-multiples' } as any;
+    spyOn<any>(component, 'cargarTiposComercioCatalogo');
+    const entidad = component.arbolNegocioWizard[0];
+    const sucursal = entidad.hijos![0];
+    component.seleccionarNodoArbol(entidad);
+    component.pasosCompletados = new Set([1, 2, 3, 4, 5]);
+    component.seleccionarNodoArbol(sucursal);
+    component.comercioForm.patchValue({ nivel: 'Sucursal', tipoComercio: 'Sucursales Únicas' }, { emitEvent: false });
+    component['actualizarValidadoresDatos']();
+    expect(component.esPasoCompletado(2)).toBeFalse();
+    expect(component.esPasoCompletado(5)).toBeFalse();
+    expect(component.nodoArbolCompletado(sucursal.id)).toBeFalse();
+    expect(component.nodoArbolCompletado(entidad.id)).toBeFalse();
+    component.seleccionarNodoArbol(entidad);
+    expect(component.esPasoCompletado(2)).toBeFalse();
+    expect(component.esPasoCompletado(5)).toBeFalse();
+  });
+
+  it('marca datos completos solo con los obligatorios válidos y lo revoca al borrar uno', () => {
+    component.comercioForm.patchValue({ nivel: 'Sucursal', tipoComercio: 'Sucursales Únicas' }, { emitEvent: false });
+    component.datosForm.controls.tipoPersona.setValue('PM', { emitEvent: false });
+    component['actualizarValidadoresDatos']();
+    component.pasosCompletados.add(2);
+    expect(component.esPasoCompletado(2)).toBeFalse();
+    for (const [nombre, control] of Object.entries(component.datosForm.controls)) {
+      if (!control.hasValidator(Validators.required)) continue;
+      const valor = nombre === 'tipoPersona' ? 'PM'
+        : nombre === 'rfc' ? 'JUG160730I9A'
+        : nombre.toLowerCase().includes('correo') ? 'comercio@example.com'
+        : nombre.toLowerCase().includes('telefono') ? '5512345678'
+        : nombre.toLowerCase().includes('codigopostal') ? '01000' : 'Dato';
+      control.setValue(valor as never, { emitEvent: false });
+    }
+    expect(component.datosForm.valid).toBeTrue();
+    expect(component.datosForm.controls.telefonoAdicionalComercial.value).toBe('');
+    expect(component.esPasoCompletado(2)).toBeTrue();
+    component.datosForm.controls.correoComercial.setValue('', { emitEvent: false });
+    expect(component.esPasoCompletado(2)).toBeFalse();
+    component.datosForm.controls.correoComercial.setValue('correo-invalido', { emitEvent: false });
+    expect(component.esPasoCompletado(2)).toBeFalse();
+  });
+
+  it('exige solo documentos obligatorios y respeta los adicionales para persona moral', () => {
+    component.comercioForm.patchValue({ nivel: 'Sucursal', tipoComercio: 'Sucursales Únicas' }, { emitEvent: false });
+    component.datosForm.controls.tipoPersona.setValue('PM', { emitEvent: false });
+    component.datosForm.patchValue({ correo: 'comercio@example.com', telefono: '5512345678' }, { emitEvent: false });
+    component.pasosCompletados.add(5);
+    expect(component.esPasoCompletado(5)).toBeFalse();
+    const documentos = component.documentosVisibles;
+    expect(documentos.filter(documento => documento.obligatorio).length).toBeGreaterThan(0);
+    for (const documento of documentos.filter(documento => documento.obligatorio)) {
+      component['guardarDocumentoNodoActual']({ ...documento, archivoNombre: 'documento.pdf' });
+    }
+    expect(component.documentosVisibles.some(documento => !documento.obligatorio && !documento.archivoNombre)).toBeTrue();
+    expect(component.esPasoCompletado(5)).toBeTrue();
+    component['guardarDocumentoNodoActual']({ ...documentos.find(documento => documento.obligatorio)!, archivoNombre: undefined });
+    expect(component.esPasoCompletado(5)).toBeFalse();
+  });
 
   for (const tipo of ['Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor']) {
     it(`muestra los campos de representante que exige el formulario de ${tipo}`, () => {

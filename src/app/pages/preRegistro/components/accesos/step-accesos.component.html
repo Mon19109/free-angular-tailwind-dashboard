@@ -43,35 +43,35 @@
         <div class="form-grid cols-3">
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'Nombre')">Nombre <b>*</b></label>
-            <input [id]="campo(usuario.prefijo, 'Nombre')" [formControlName]="campo(usuario.prefijo, 'Nombre')" placeholder="Ingresa tu nombre"
+            <input maxlength="80" [id]="campo(usuario.prefijo, 'Nombre')" [formControlName]="campo(usuario.prefijo, 'Nombre')" placeholder="Ingresa tu nombre"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'Nombre'))" />
             @if (esInvalido(campo(usuario.prefijo, 'Nombre'))) { <small>Debes llenar este campo.</small> }
           </div>
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'Paterno')">Apellido paterno <b>*</b></label>
-            <input [id]="campo(usuario.prefijo, 'Paterno')" [formControlName]="campo(usuario.prefijo, 'Paterno')" placeholder="Ingresa tu apellido paterno"
+            <input maxlength="80" [id]="campo(usuario.prefijo, 'Paterno')" [formControlName]="campo(usuario.prefijo, 'Paterno')" placeholder="Ingresa tu apellido paterno"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'Paterno'))" />
             @if (esInvalido(campo(usuario.prefijo, 'Paterno'))) { <small>Debes llenar este campo.</small> }
           </div>
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'Materno')">Apellido materno <b>*</b></label>
-            <input [id]="campo(usuario.prefijo, 'Materno')" [formControlName]="campo(usuario.prefijo, 'Materno')" placeholder="Ingresa tu apellido materno"
+            <input maxlength="80" [id]="campo(usuario.prefijo, 'Materno')" [formControlName]="campo(usuario.prefijo, 'Materno')" placeholder="Ingresa tu apellido materno"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'Materno'))" />
             @if (esInvalido(campo(usuario.prefijo, 'Materno'))) { <small>Debes llenar este campo.</small> }
           </div>
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'Correo')">Correo electrónico <b>*</b></label>
-            <input [id]="campo(usuario.prefijo, 'Correo')" type="email" [formControlName]="campo(usuario.prefijo, 'Correo')" placeholder="ejemplo@correo.com"
+            <input maxlength="254" [id]="campo(usuario.prefijo, 'Correo')" type="email" [formControlName]="campo(usuario.prefijo, 'Correo')" placeholder="ejemplo@correo.com"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'Correo'))" />
             @if (esInvalido(campo(usuario.prefijo, 'Correo'))) { <small>Debes llenar este campo.</small> }
           </div>
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'ConfirmarCorreo')">Confirmar correo electrónico <b>*</b></label>
-            <input [id]="campo(usuario.prefijo, 'ConfirmarCorreo')" type="email" [formControlName]="campo(usuario.prefijo, 'ConfirmarCorreo')"
+            <input maxlength="254" [id]="campo(usuario.prefijo, 'ConfirmarCorreo')" type="email" [formControlName]="campo(usuario.prefijo, 'ConfirmarCorreo')"
               placeholder="Confirma tu correo"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo')) || correosDistintos(usuario.prefijo)" />
             @if (esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo'))) {

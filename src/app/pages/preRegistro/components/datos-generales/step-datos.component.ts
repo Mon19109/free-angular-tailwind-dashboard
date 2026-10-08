@@ -363,7 +363,8 @@ export class StepDatosComponent implements OnInit {
     if (control?.hasError('email')) return 'Ingresa un correo válido.';
     if (control?.hasError('rfcInvalido')) return 'Ingresa un RFC válido.';
     if (control?.hasError('curpInvalida')) return 'Ingresa una CURP válida.';
-    if (control?.hasError('minlength') || control?.hasError('maxlength')) {
+    if (control?.hasError('maxlength')) return `Máximo ${control.getError('maxlength').requiredLength} caracteres.`;
+    if (control?.hasError('minlength')) {
       if (campo === 'rfc') return 'Ingresa un RFC de 12 o 13 caracteres.';
       if (campo === 'curp') return 'Ingresa una CURP de 18 caracteres.';
       if (campo.toLowerCase().includes('telefono')) return 'Ingresa un teléfono de 10 dígitos.';
