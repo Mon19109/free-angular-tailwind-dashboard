@@ -136,7 +136,7 @@ onFechaFinChange(event: any) {
 
   this.estatusMultiOptions = this.estatusOptions.map(item => ({
     value: item.value,
-    text: item.label
+    text: item.label.toLocaleUpperCase('es-MX')
   }));
 
   this.cargarDatosIniciales();
@@ -167,7 +167,7 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
 
     this.tipoOperacionOptions = this.tiposOperacion.map((tipo: any) => ({
       value: String(tipo.idOperationType),
-      text: tipo.descriptionApp || tipo.description || String(tipo.idOperationType)
+      text: String(tipo.descriptionApp || tipo.description || tipo.idOperationType).toLocaleUpperCase('es-MX')
     }));
     this.defaultTipoOperacion = [...new Set([
       ...this.tipoOperacionOptions.slice(0, 3).map(tipo => tipo.value),

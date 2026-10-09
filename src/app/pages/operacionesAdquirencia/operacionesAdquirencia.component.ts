@@ -303,7 +303,7 @@ estatus: [this.defaultEstatus, Validators.required],
   this.estatusMultiOptions =
   this.estatusOptions.map(item => ({
     value: item.value,
-    text: item.label
+    text: item.label.toLocaleUpperCase('es-MX')
   }));
 
   this.aplicarBloqueosSesion();
@@ -526,7 +526,7 @@ mostrarResultados = false;
 
         value: String(tipo.idOperationType),
 
-        text: tipo.descriptionApp || tipo.description || String(tipo.idOperationType)
+        text: String(tipo.descriptionApp || tipo.description || tipo.idOperationType).toLocaleUpperCase('es-MX')
 
       }));
 
