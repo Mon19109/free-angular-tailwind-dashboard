@@ -89,7 +89,7 @@ export class AddLinkPagoComponent {
       monto: ['', [
         Validators.required,
         Validators.min(0.01),
-        Validators.pattern(/^\d+(\.\d{1,2})?$/)
+        Validators.pattern(/^(?:\d+|\d{1,3}(?:,\d{3})+)(\.\d{1,2})?$/)
       ]],
       refCom: ['', Validators.required],
       concepto: ['', Validators.required],
@@ -153,7 +153,8 @@ export class AddLinkPagoComponent {
     const digitos = valor.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
     if (!digitos) return '';
     const centavos = digitos.padStart(3, '0');
-    return `${centavos.slice(0, -2)}.${centavos.slice(-2)}`;
+    const enteros = centavos.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${enteros}.${centavos.slice(-2)}`;
   }
 
   procesarNombre(campo: 'nombre' | 'aPaterno' | 'aMaterno', event: Event): void {
@@ -519,7 +520,7 @@ export class AddLinkPagoComponent {
       orderingName: `${formValues.nombre} ${formValues.aPaterno} ${formValues.aMaterno}`.trim(),
       description: formValues.concepto,
       nameCommerce: localStorage.getItem('userName') || '',
-      amount: String(formValues.monto),
+      amount: String(formValues.monto).replace(/,/g, ''),
       alphanumericReference: formValues.refCom,
       ticketMessage: formUrl,
       orderingAcount,

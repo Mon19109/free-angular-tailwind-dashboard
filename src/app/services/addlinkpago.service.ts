@@ -181,7 +181,7 @@ export class AddLinkPagoService {
 
       const datosTransformados = {
         user: localStorage.getItem('mail') || '',
-        amount: Number(formData.monto),
+        amount: Number(String(formData.monto ?? '').replace(/,/g, '')),
         sirioID: localStorage.getItem('entitySonID') || '',
         paymentType: 1,
         retrievalReferenceCode: String(Math.floor(Date.now() / 1000)),
