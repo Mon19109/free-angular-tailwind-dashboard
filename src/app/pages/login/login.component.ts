@@ -56,7 +56,7 @@ export class LoginComponent implements OnInit {
       passwordLogin: ['', [Validators.required, Validators.maxLength(20)]]
     });
     this.recoveryForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]]
+      email: ['', [Validators.required, Validators.email, Validators.maxLength(100)]]
     });
   }
 

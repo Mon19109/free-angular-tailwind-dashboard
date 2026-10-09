@@ -62,7 +62,7 @@
 
       
         <div class="auth-divider" aria-hidden="true">
-          <span>O se parte de Kashpay</span>
+          <span>¿Aún no tienes cuenta?</span>
         </div>
 
         <!-- Botones Sociales -->
@@ -77,7 +77,7 @@
         <div class="text-center mt-4">
           <p class="mb-0">
             ¿Olvidaste tu contraseña?
-            <a href="#" class="text-decoration-none fw-bold" (click)="openRecoveryModal(); $event.preventDefault()">
+            <a href="#" class="text-decoration-none fw-bold text-dorado" (click)="openRecoveryModal(); $event.preventDefault()">
               Recuperar cuenta
             </a>
           </p>
@@ -113,12 +113,12 @@
           formControlName="email"
           placeholder="usuario@ejemplo.com"
           autocomplete="email"
-          [class.is-invalid]="recoveryForm.controls['email'].invalid && recoveryForm.controls['email'].touched"
+          [class.is-invalid]="recoveryForm.controls['email'].invalid && (recoveryForm.controls['email'].dirty || recoveryForm.controls['email'].touched)"
           [disabled]="recovering"
           autofocus
         >
-        <div class="token-error" *ngIf="recoveryForm.controls['email'].invalid && recoveryForm.controls['email'].touched">
-          Captura un correo electrónico válido.
+        <div class="token-error" *ngIf="recoveryForm.controls['email'].invalid && (recoveryForm.controls['email'].dirty || recoveryForm.controls['email'].touched)">
+          {{ recoveryForm.controls['email'].hasError('maxlength') ? 'El correo debe tener máximo 100 caracteres.' : 'Captura un correo electrónico válido.' }}
         </div>
         <div
           *ngIf="recoveryMessage"
