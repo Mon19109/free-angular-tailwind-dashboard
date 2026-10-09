@@ -3046,6 +3046,11 @@ small {
   font-weight: 500;
 }
 
+.activity-description,
+.activity-input:not(:placeholder-shown) {
+  text-transform: uppercase;
+}
+
 .giro-item-mcc {
   font-size: 12px;
   color: var(--pre-muted);

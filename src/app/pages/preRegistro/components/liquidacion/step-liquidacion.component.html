@@ -130,7 +130,7 @@
       <div class="field span-2 lookup-field">
         <label for="actividadBeneficiario">Actividad <b>*</b></label>
         <div class="lookup-control">
-          <input id="actividadBeneficiario" formControlName="actividadBeneficiario" placeholder="Seleccione actividad"
+          <input id="actividadBeneficiario" class="activity-input" formControlName="actividadBeneficiario" placeholder="Seleccione actividad"
             [readonly]="habilitarBusquedasCatalogo" [class.invalid]="esInvalido('actividadBeneficiario')" />
           @if (habilitarBusquedasCatalogo && tipoPersonaBeneficiario === 'fisica') {
           <button type="button" class="button primary small lookup-button" (click)="abrirModalActividad()">
@@ -298,7 +298,7 @@
         @if (errorActividades) { <div class="giro-item giro-item--empty">{{ errorActividades }}</div> }
         @for (actividad of actividadesFiltradas; track actividad.id || actividad.descripcion) {
         <div class="giro-item" [class.selected]="actividadSeleccionada === actividad" (click)="seleccionarActividadModal(actividad)">
-          <span class="giro-item-desc">{{ actividad.descripcion }}</span>
+          <span class="giro-item-desc activity-description">{{ actividad.descripcion }}</span>
           @if (actividad.id) { <span class="giro-item-mcc">ID: {{ actividad.id }}</span> }
         </div>
         }

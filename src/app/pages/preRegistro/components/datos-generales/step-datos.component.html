@@ -100,7 +100,7 @@
       @if (tiene('actividad') && esPersonaFisica) {
       <div class="field">
         <label for="actividad">Actividad <b>*</b></label>
-        <input id="actividad" formControlName="actividad" readonly placeholder="Selecciona una actividad"
+        <input id="actividad" class="activity-input" formControlName="actividad" readonly placeholder="Selecciona una actividad"
           [class.readonly-locked]="bloquearActividad"
           (click)="abrirModalActividad()" (focus)="abrirModalActividad()" [class.invalid]="esInvalido('actividad')" />
         @if (esInvalido('actividad')) { <small>{{ mensajeCampo('actividad') }}</small> }
@@ -597,7 +597,7 @@
         @for (actividad of actividadesFiltradas; track actividad.id || actividad.descripcion) {
         <div class="giro-item" [class.selected]="actividadSeleccionada?.id === actividad.id && actividadSeleccionada?.descripcion === actividad.descripcion"
           (click)="seleccionarActividadModal(actividad)">
-          <span class="giro-item-desc">{{ actividad.descripcion }}</span>
+          <span class="giro-item-desc activity-description">{{ actividad.descripcion }}</span>
           @if (actividad.id) { <span class="giro-item-mcc">ID: {{ actividad.id }}</span> }
         </div>
         }
