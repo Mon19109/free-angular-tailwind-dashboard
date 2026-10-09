@@ -25,7 +25,9 @@ export class OrdenPagoComponent implements OnInit {
 
     pasoActual = 1;
     saldo = 0;
-    readonly comisionEnvio = 5;
+    get comisionEnvio(): number {
+        return String(this.formulario?.get('idInstitution')?.value ?? '').trim() === '40903' ? 0 : 5;
+    }
 
     get saldoRestante(): number {
         const importe = Number(String(this.formulario?.get('importe')?.value ?? '').replace(/[$,\s]/g, ''));
