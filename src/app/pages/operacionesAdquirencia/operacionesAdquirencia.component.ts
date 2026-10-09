@@ -884,7 +884,12 @@ mostrarResultados = false;
     const filas = operaciones.map(operacion => columnas.map(([, campo]) => {
       if (campo === 'status') return nombreEstatusOperacion(operacion[campo]);
       if (campo === 'createdAt') return fechaOperacion(operacion[campo]);
-      if (campo === 'amount' || campo === 'processingCode') {
+      if (campo === 'amount') {
+        return '$ ' + Number(operacion[campo] || 0).toLocaleString('en-US', {
+          minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+      }
+      if (campo === 'processingCode') {
         return '$ ' + Number(operacion[campo] || 0).toLocaleString('en-US', {
           minimumFractionDigits: 2, maximumFractionDigits: 2
         });
