@@ -34,7 +34,7 @@
       <span class="eyebrow">Solicitud recibida</span>
       <h1>Tu preregistro quedó enviado</h1>
       <p>Guardamos la información del comercio
-        <b>{{ datosForm.value.nombreComercial || 'sin nombre comercial' }}</b>.
+        <b>{{ nombreComercioRegistrado || datosForm.value.nombreComercial || datosForm.value.razonSocial || 'sin nombre comercial' }}</b>.
         Mesa Digital revisará la documentación en aproximadamente 72 horas hábiles.
       </p>
       <div class="actions center">

@@ -120,6 +120,7 @@ export class PreRegistroComponent {
   mostrarAyuda = false;
   mostrarComisionista = false;
   registroTerminado = false;
+  nombreComercioRegistrado = '';
   enviandoPreRegistro = false;
   archivosInvalidos = false;
   borradorGuardado = false;
@@ -2115,6 +2116,7 @@ export class PreRegistroComponent {
   }
 
   private enviarPreRegistroCompleto(payload: PayloadPreRegistro): void {
+    this.nombreComercioRegistrado = this.nombreComercioDelNodoPadre(payload);
     this.preregistroCompletoService.enviarPreRegistro(payload).subscribe({
       next: (response) => {
         const documentos = this.prepararDocumentosParaSubida(response);
@@ -2152,6 +2154,25 @@ export class PreRegistroComponent {
     this.errorEnvioPreRegistro = '';
     this.guardarBorradorSilencioso();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private nombreComercioDelNodoPadre(payload: unknown): string {
+    const nodos: ObjetoRespuestaPreregistro[] = [];
+    const raiz = this.extraerObjetoRespuesta(payload);
+    nodos.push(raiz);
+
+    const entidad = this.extraerEntitysRespuesta(raiz)[0];
+    if (entidad) {
+      nodos.push(entidad);
+      const sucursal = this.extraerBranchOficcesRespuesta(entidad)[0];
+      if (sucursal) nodos.push(sucursal);
+    }
+
+    for (const nodo of nodos) {
+      const nombre = this.valorTexto(nodo['nameCommerce']) || this.valorTexto(nodo['businessName']);
+      if (nombre) return nombre;
+    }
+    return '';
   }
 
   cerrarModalResultadoPreRegistro(): void {
@@ -2984,6 +3005,9 @@ export class PreRegistroComponent {
       }
       this.pasosCompletados = new Set(draft.pasosCompletados ?? []);
       this.registroTerminado = draft.registroTerminado ?? false;
+      this.nombreComercioRegistrado = draft.registroTerminado && draft.payload
+        ? this.nombreComercioDelNodoPadre(draft.payload)
+        : '';
       if (this.registroTerminado) { this.pasoActual = 5; this.pasosCompletados.add(5); }
       this.actualizarValidadoresAccesos(this.accesosForm.controls.modoReserva.value as ModoReserva);
       this.actualizarEstadoLiquidacion(this.liquidacionForm.controls.beneficiarioIgualComercio.value);

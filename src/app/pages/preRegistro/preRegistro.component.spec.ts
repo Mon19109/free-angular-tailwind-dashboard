@@ -119,6 +119,20 @@ describe('PreRegistro: referencia de afiliación', () => {
     expect(payload.name).toBe('Caja juguetería');
   });
 
+  it('usa el nombre comercial del nodo padre y recurre a businessName si falta', () => {
+    expect(component['nombreComercioDelNodoPadre']({
+      entitys: [{
+        nameCommerce: 'Comercio principal',
+        businessName: 'Razón social principal',
+        branchOficces: [{ nameCommerce: 'Sucursal' }]
+      }]
+    })).toBe('Comercio principal');
+
+    expect(component['nombreComercioDelNodoPadre']({
+      entitys: [{ businessName: 'Razón social principal' }]
+    })).toBe('Razón social principal');
+  });
+
   it('avanza de datos a documentos de agrupadora y después selecciona la sucursal', () => {
     component.tipoNegocioSeleccionado = { id: 'auditor-unico' } as any;
     const entidad = component.arbolNegocioWizard[0];
