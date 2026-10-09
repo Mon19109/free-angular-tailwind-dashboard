@@ -66,7 +66,8 @@ describe('PreRegistro: referencia de afiliación', () => {
     expect(component.datosForm.controls.telefonoAdicionalComercial.value).toBe('');
     expect(component.esPasoCompletado(2)).toBeTrue();
     component.datosForm.controls.correoComercial.setValue('', { emitEvent: false });
-    expect(component.esPasoCompletado(2)).toBeFalse();
+    component.datosForm.controls.telefonoComercial.setValue('', { emitEvent: false });
+    expect(component.esPasoCompletado(2)).toBeTrue();
     component.datosForm.controls.correoComercial.setValue('correo-invalido', { emitEvent: false });
     expect(component.esPasoCompletado(2)).toBeFalse();
   });

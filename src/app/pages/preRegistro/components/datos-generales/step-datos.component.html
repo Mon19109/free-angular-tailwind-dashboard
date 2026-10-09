@@ -493,12 +493,12 @@
       El contacto comercial es el que se mostrará en el ticket.
     </p>
     <div class="form-grid cols-3">
-      <div class="field"><label for="correoComercial">Correo Electrónico <b>*</b></label>
+      <div class="field"><label for="correoComercial">Correo Electrónico</label>
         <input maxlength="100" id="correoComercial" type="email" formControlName="correoComercial"
           [class.invalid]="esInvalido('correoComercial')">
         @if (esInvalido('correoComercial')) { <small>{{ mensajeCampo('correoComercial') }}</small> }
       </div>
-      <div class="field"><label for="telefonoComercial">Teléfono <b>*</b></label>
+      <div class="field"><label for="telefonoComercial">Teléfono</label>
         <input id="telefonoComercial" maxlength="10" inputmode="numeric" formControlName="telefonoComercial"
           [class.invalid]="esInvalido('telefonoComercial')">
         @if (esInvalido('telefonoComercial')) { <small>{{ mensajeCampo('telefonoComercial') }}</small> }

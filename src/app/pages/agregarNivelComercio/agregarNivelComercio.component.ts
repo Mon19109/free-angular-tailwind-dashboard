@@ -510,7 +510,8 @@ export class AgregarNivelComercioComponent implements OnInit {
         'numeroInterior', 'entreCalle', 'yCalle',
         'numeroInteriorComercial', 'entreCalleComercial', 'yCalleComercial',
         'numeroInteriorRepresentante', 'entreCalleRepresentante', 'yCalleRepresentante',
-        'telefonoAdicionalComercial', 'telefonoAdicionalRepresentante'
+        'correoComercial', 'telefonoComercial', 'telefonoAdicionalComercial',
+        'telefonoAdicionalRepresentante'
       ];
       const mostrarRepresentante = this.mostrarDireccionRepresentante();
       const camposRepresentanteObligatorios = [

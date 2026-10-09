@@ -576,18 +576,21 @@ export class PreRegistroComponent {
     entreCalleComercial: ['', Validators.required],
     yCalleComercial: ['', Validators.required],
 
-    correoComercial: ['', [Validators.required, Validators.email]],
+    correoComercial: ['', [Validators.email]],
     nombreContactoComercial: [''],
     apellidoPaternoContactoComercial: [''],
     apellidoMaternoContactoComercial: [''],
-    telefonoComercial: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
+    telefonoComercial: ['', [Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
     telefonoAdicionalComercial: ['', [Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
 
 
 
   });
 
-  private readonly camposDinamicosOpcionales = ['numeroInterior', 'entreCalle', 'yCalle'];
+  private readonly camposDinamicosOpcionales = [
+    'numeroInterior', 'entreCalle', 'yCalle',
+    'correoComercial', 'telefonoComercial', 'telefonoAdicionalComercial'
+  ];
   private readonly camposInfoFiscalEntidad = [
     'razonSocial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
     'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'actividadId', 'nombreComercial',
@@ -740,8 +743,6 @@ export class PreRegistroComponent {
       'entidadFederativaComercial',
       'entreCalleComercial',
       'yCalleComercial',
-      'correoComercial',
-      'telefonoComercial',
     ].forEach(nombre => {
       const control = this.datosForm.get(nombre);
       if (!control) return;
@@ -3219,8 +3220,6 @@ export class PreRegistroComponent {
       'entidadFederativaComercial',
       'entreCalleComercial',
       'yCalleComercial',
-      'correoComercial',
-      'telefonoComercial',
     ];
 
     const camposRequeridosFinales = tipoPersona === 'PF'
