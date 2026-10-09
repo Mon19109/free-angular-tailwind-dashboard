@@ -348,6 +348,14 @@ export class OrdenPagoComponent implements OnInit {
         return cuentaOr.valid && cuentaD.valid;
     }
 
+    private validarSaldoDisponible(): boolean {
+        if (this.saldoRestante < 0) {
+            this.abrirModalValidacionOrden('El importe más la comisión no puede superar el saldo de la cuenta ordenante.');
+            return false;
+        }
+        return true;
+    }
+
     siguiente(): void {
         this.limpiarMensajeEnvio();
 
@@ -368,6 +376,7 @@ export class OrdenPagoComponent implements OnInit {
             }
 
             this.mostrarErrorImporte = false;
+            if (!this.validarSaldoDisponible()) return;
         }
 
         this.pasoActual++;
@@ -385,6 +394,11 @@ export class OrdenPagoComponent implements OnInit {
 
         if (!this.validarCuentas()) {
             this.pasoActual = 1;
+            return;
+        }
+
+        if (!this.validarSaldoDisponible()) {
+            this.pasoActual = 2;
             return;
         }
 
