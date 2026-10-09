@@ -163,7 +163,7 @@
         </div>
         <div class="campo medio">
           <label for="propina">Propina en $</label>
-          <input id="propina" type="number" min="0" step="0.01" formControlName="propina"
+          <input id="propina" type="text" inputmode="numeric" formControlName="propina" (input)="formatearPropina($event)"
             placeholder="0.00" [attr.aria-disabled]="!propinaPersonalizadaActiva">
         </div>
       </section>

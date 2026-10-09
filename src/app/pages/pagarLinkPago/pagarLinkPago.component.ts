@@ -38,7 +38,7 @@ export class PagarLinkPagoComponent implements OnInit {
     estado: [''],
     meses: [0],
     propinaPorcentaje: [0],
-    propina: [{ value: 0, disabled: true }],
+    propina: this.fb.control<string | number>({ value: 0, disabled: true }),
     terminos: [false, Validators.requiredTrue]
   });
 
@@ -310,7 +310,7 @@ export class PagarLinkPagoComponent implements OnInit {
 
   get propinaCalculada(): number {
     const porcentaje = Number(this.formulario.controls.propinaPorcentaje.value) || 0;
-    const personalizada = Number(this.formulario.controls.propina.value) || 0;
+    const personalizada = Number(String(this.formulario.controls.propina.value ?? '').replace(/,/g, '')) || 0;
     return personalizada > 0 ? personalizada : this.subtotal * porcentaje / 100;
   }
 
@@ -550,6 +550,17 @@ export class PagarLinkPagoComponent implements OnInit {
     const monto = digitos ? `${centavos.slice(0, -2)}.${centavos.slice(-2)}` : '';
     input.value = monto;
     this.formulario.controls.amountPending.setValue(monto);
+  }
+
+  formatearPropina(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digitos = input.value.replace(/\D/g, '');
+    const monto = digitos ? (Number(digitos) / 100).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) : '';
+    input.value = monto;
+    this.formulario.controls.propina.setValue(monto);
   }
 
   formatearNumeroTarjeta(event: Event): void {
