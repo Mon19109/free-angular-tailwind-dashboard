@@ -212,7 +212,10 @@ export class LoginComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        if (error.status == 401) {
+        if (error.status === 0) {
+          this.errorMessage = 'No se ha podido establecer conexión con el servidor.';
+          console.error('Login error:', error);
+        } else if (error.status == 401) {
           this.errorMessage = 'Correo o contraseña incorrectos.';
           console.error('Login error:', error);
         } else {
