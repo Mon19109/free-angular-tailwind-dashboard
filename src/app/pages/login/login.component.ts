@@ -275,7 +275,7 @@ export class LoginComponent implements OnInit {
         if (error.status === 0) {
           this.errorMessage = 'No se ha podido establecer conexión con el servidor.';
           console.error('Login error:', error);
-        } else if (error.status === 500) {
+        } else if (error.status === 500 || error.status === 503) {
           this.errorMessage = 'Estamos teniendo complicaciones para atender tu solicitud. Intenta más tarde.';
           console.error('Login error:', error);
         } else if (error.status == 401) {

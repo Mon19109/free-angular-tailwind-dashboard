@@ -717,7 +717,13 @@ export class ConsultaComerciosComponent {
   }
 
   puedeConsultarPassword(comercio: Comercio): boolean {
-    return comercio.nivel === 'Caja' && comercio.typeOfBusiness === 13;
+    return comercio.nivel === 'Caja';
+  }
+
+  etiquetaInformacion(comercio: Comercio): string {
+    return this.esAdministradorSesion() || this.puedeEditar(comercio)
+      ? 'Editar Información'
+      : 'Consultar Información';
   }
 
   get puedeEditarInformacion(): boolean {
