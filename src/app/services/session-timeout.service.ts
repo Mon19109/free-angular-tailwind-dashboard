@@ -19,10 +19,10 @@ export class SessionTimeoutService {
   private readonly expiresAtKey = SESSION_EXPIRES_AT_KEY;
   private timerId: ReturnType<typeof setTimeout> | null = null;
   private refreshSubscription?: Subscription;
-  private readonly avisoMs = 10 * 1000;
+  private readonly avisoMs = 20 * 1000;
   private started = false;
   readonly mostrarAviso = signal(false);
-  readonly segundosRestantes = signal(10);
+  readonly segundosRestantes = signal(this.avisoMs / 1000);
   readonly renovando = signal(false);
   readonly errorRenovacion = signal('');
   private cierrePendiente = false;
@@ -210,6 +210,17 @@ export class SessionTimeoutService {
     this.refreshSubscription?.unsubscribe();
     this.refreshSubscription = undefined;
     this.renovando.set(false);
+  }
+
+  cerrarSesion(): void {
+    this.cancelarRenovacion();
+    this.limpiarTimer();
+    this.mostrarAviso.set(false);
+    this.errorRenovacion.set('');
+    this.authService.logout().subscribe({
+      error: () => this.authService.clearSession(),
+    });
+    this.aceptarCierreSesion();
   }
 
   aceptarCierreSesion(): void {

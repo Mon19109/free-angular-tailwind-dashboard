@@ -219,17 +219,17 @@ describe('SessionTimeoutService', () => {
   });
 
 
-  it('muestra la cuenta regresiva en los últimos diez segundos y luego el cierre', fakeAsync(() => {
+  it('muestra la cuenta regresiva en los últimos veinte segundos y luego el cierre', fakeAsync(() => {
     session(false);
     navigate(true);
     service.iniciar();
     auth.completeSmsValidation();
-    tick(duration - 10001);
+    tick(duration - 20001);
     expect(service.mostrarAviso()).toBeFalse();
     tick(1);
     expect(service.mostrarAviso()).toBeTrue();
-    expect(service.segundosRestantes()).toBe(10);
-    tick(9000);
+    expect(service.segundosRestantes()).toBe(20);
+    tick(19000);
     expect(service.segundosRestantes()).toBe(1);
     expect(service.mostrarModal()).toBeFalse();
     tick(1000);
@@ -242,7 +242,7 @@ describe('SessionTimeoutService', () => {
     navigate(true);
     service.iniciar();
     auth.completeSmsValidation();
-    tick(duration - 10000);
+    tick(duration - 20000);
     const http = TestBed.inject(HttpTestingController);
     http.expectNone('/OAuthServices/v2/oauth/refresh');
     service.mantenerSesion();
@@ -259,9 +259,9 @@ describe('SessionTimeoutService', () => {
     expect(service.mostrarAviso()).toBeFalse();
     expect(Number(localStorage.getItem(expiryKey))).toBe(Date.now() + duration);
 
-    tick(duration - 10000);
+    tick(duration - 20000);
     expect(service.mostrarAviso()).toBeTrue();
-    expect(service.segundosRestantes()).toBe(10);
+    expect(service.segundosRestantes()).toBe(20);
     service.mantenerSesion();
     const segunda = http.expectOne('/OAuthServices/v2/oauth/refresh');
     expect(segunda.request.headers.get('Authorization')).toBe('Bearer refresh-nuevo');
@@ -279,19 +279,38 @@ describe('SessionTimeoutService', () => {
     http.verify();
   }));
 
+  it('permite cerrar desde el aviso y cancela una renovación pendiente', fakeAsync(() => {
+    session(false);
+    navigate(true);
+    service.iniciar();
+    auth.completeSmsValidation();
+    tick(duration - 20000);
+    service.mantenerSesion();
+    const request = TestBed.inject(HttpTestingController).expectOne('/OAuthServices/v2/oauth/refresh');
+    service.cerrarSesion();
+    expect(request.cancelled).toBeTrue();
+    expect(auth.hasValidSession()).toBeFalse();
+    expect(localStorage.getItem(expiryKey)).toBeNull();
+    expect(service.mostrarAviso()).toBeFalse();
+    expect(service.mostrarModal()).toBeFalse();
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledOnceWith(['/']);
+    tick(20000);
+    expect(service.mostrarModal()).toBeFalse();
+  }));
+
   it('no extiende el plazo cuando falla la renovación', fakeAsync(() => {
     session(false);
     navigate(true);
     service.iniciar();
     auth.completeSmsValidation();
     const expiresAt = localStorage.getItem(expiryKey);
-    tick(duration - 10000);
+    tick(duration - 20000);
     service.mantenerSesion();
     TestBed.inject(HttpTestingController).expectOne('/OAuthServices/v2/oauth/refresh')
       .flush({ success: false, error: { message: 'Refresh inválido' } });
     expect(service.errorRenovacion()).toBe('Refresh inválido');
     expect(localStorage.getItem(expiryKey)).toBe(expiresAt);
-    tick(10000);
+    tick(20000);
     expect(service.mostrarModal()).toBeTrue();
     expect(auth.hasValidSession()).toBeFalse();
   }));
@@ -314,11 +333,11 @@ describe('SessionTimeoutService', () => {
     session(false);
     service.iniciar();
     auth.completeSmsValidation();
-    tick(duration - 10000);
+    tick(duration - 20000);
     expect(service.mostrarAviso()).toBeFalse();
     service.mantenerSesion();
     TestBed.inject(HttpTestingController).expectNone('/OAuthServices/v2/oauth/refresh');
-    tick(10000);
+    tick(20000);
     expect(service.mostrarModal()).toBeFalse();
     expect(auth.hasValidSession()).toBeFalse();
   }));

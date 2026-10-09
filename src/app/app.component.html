@@ -19,6 +19,9 @@
         <button type="button" class="session-timeout-button" [disabled]="sessionTimeoutService.renovando()" (click)="sessionTimeoutService.mantenerSesion()">
           {{ sessionTimeoutService.renovando() ? 'Renovando…' : 'Confirmar' }}
         </button>
+        <button type="button" class="session-timeout-button" (click)="sessionTimeoutService.cerrarSesion()">
+          Cerrar sesión
+        </button>
       </div>
     </div>
   </div>
