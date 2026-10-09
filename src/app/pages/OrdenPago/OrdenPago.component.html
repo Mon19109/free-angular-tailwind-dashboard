@@ -129,7 +129,10 @@
                 Campo requerido.
               </div>
               <input type="text" formControlName="importe" (input)="formatearImporte($event)">
-              <span class="aviso-comision">Recuerda contemplar la comisión por envío</span>
+              <div class="resumen-saldo">
+                <span class="aviso-comision">Recuerda contemplar la comisión por envío de {{ comisionEnvio | currency:'MXN':'$':'1.2-2':'en-US' }}</span>
+                <span class="saldo-restante">Saldo restante: {{ saldoRestante | currency:'MXN':'$':'1.2-2':'en-US' }}</span>
+              </div>
             </div>
 
             <div class="form-field">
@@ -183,7 +186,10 @@
             <div class="confirm-item">
               <span class="confirm-label">Importe del envío</span>
               <strong class="confirm-value">${{ formulario.value.importe }}</strong>
-              <span class="aviso-comision">Recuerda contemplar la comisión por envío</span>
+              <div class="resumen-saldo">
+                <span class="aviso-comision">Recuerda contemplar la comisión por envío de {{ comisionEnvio | currency:'MXN':'$':'1.2-2':'en-US' }}</span>
+                <span class="saldo-restante">Saldo restante: {{ saldoRestante | currency:'MXN':'$':'1.2-2':'en-US' }}</span>
+              </div>
             </div>
             <div class="confirm-item">
               <span class="confirm-label">Concepto del envío</span>

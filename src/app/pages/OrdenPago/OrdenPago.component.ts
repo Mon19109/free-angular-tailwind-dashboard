@@ -25,6 +25,13 @@ export class OrdenPagoComponent implements OnInit {
 
     pasoActual = 1;
     saldo = 0;
+    readonly comisionEnvio = 5;
+
+    get saldoRestante(): number {
+        const importe = Number(String(this.formulario?.get('importe')?.value ?? '').replace(/[$,\s]/g, ''));
+        const cargo = Number.isFinite(importe) && importe > 0 ? importe + this.comisionEnvio : 0;
+        return Math.round((this.saldo - cargo) * 100) / 100;
+    }
     tipoEnvio = 'INDIVIDUAL';
     mostrarErrorImporte = false;
 
@@ -279,6 +286,8 @@ export class OrdenPagoComponent implements OnInit {
         const cuentaSeleccionada =
             this.formulario.get('cuentaOr')?.value;
 
+        this.saldo = 0;
+
         if (!cuentaSeleccionada) {
             return;
         }
@@ -295,9 +304,9 @@ export class OrdenPagoComponent implements OnInit {
 
                     // console.log('SALDO RESP', resp);
 
-                    this.saldo =
-                        resp?.balance ??
-                        0;
+                    if (this.formulario.get('cuentaOr')?.value !== cuentaSeleccionada) return;
+                    const saldo = Number(resp?.balance ?? 0);
+                    this.saldo = Number.isFinite(saldo) ? saldo : 0;
 
                 },
                 error: (err) => {

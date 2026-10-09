@@ -310,9 +310,22 @@ html.dark select option {
   font-weight: 700;
 }
 
+.resumen-saldo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.saldo-restante {
+  color: var(--ops-gold);
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .aviso-comision {
   display: inline-block;
-  margin-top: 8px;
   padding: 5px 10px;
   border-radius: 999px;
   color: #140e02;

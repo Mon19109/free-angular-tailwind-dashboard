@@ -22,8 +22,10 @@
   z-index: 1;
 }
 
-.text-dorado{
+.text-dorado-rec{
   font-weight: 800;
+  color: #c7924b;
+  font-size: 15px;
 }
 
 .token-modal-backdrop {
