@@ -89,7 +89,7 @@ export class LoginComponent implements OnInit {
     await this.obtenerUbicacionParaLogin();
   }
 
-  private obtenerUbicacionParaLogin(): Promise<boolean> {
+  private obtenerUbicacionParaLogin(esReintento = false): Promise<boolean> {
     if (this.ubicacionPendiente) return this.ubicacionPendiente;
     this.solicitandoUbicacion = true;
     this.ubicacionPendiente = this.geolocationService.getCurrentLocation()
@@ -105,13 +105,21 @@ export class LoginComponent implements OnInit {
         this.errorUbicacion = false;
         return true;
       })
-      .catch(() => {
+      .catch(error => {
         this.userLocation = undefined;
         this.lat = '';
         this.lon = '';
         localStorage.removeItem('location');
         this.errorUbicacion = true;
-        this.errorMessage = 'Para iniciar sesión necesitas permitir el acceso a tu ubicación. Si bloqueaste el permiso, abre los permisos de este sitio en tu navegador, cambia Ubicación a Permitir y pulsa Reintentar ubicación. Si ya está permitido, verifica que la ubicación del dispositivo esté activada.';
+        if (error === 'El usuario denegó el permiso de ubicación.') {
+          this.errorMessage = esReintento
+            ? 'Se volvió a solicitar tu ubicación, pero el navegador denegó el acceso. Si no apareció el aviso de Permitir, el permiso sigue bloqueado y la página no puede volver a abrirlo. Habilita Ubicación en los permisos de este sitio para continuar.'
+            : 'No se concedió el permiso de ubicación. Pulsa Reintentar ubicación y selecciona Permitir si el navegador muestra el aviso.';
+        } else if (error === 'Tiempo de espera agotado.') {
+          this.errorMessage = 'Se agotó el tiempo para obtener tu ubicación. Verifica que la ubicación del dispositivo esté activada y pulsa Reintentar ubicación.';
+        } else {
+          this.errorMessage = 'No se pudo obtener tu ubicación. Verifica que el navegador tenga permiso y que la ubicación del dispositivo esté activada; después pulsa Reintentar ubicación.';
+        }
         return false;
       })
       .finally(() => {
@@ -123,7 +131,8 @@ export class LoginComponent implements OnInit {
 
   async reintentarUbicacion(): Promise<void> {
     if (this.loading || this.solicitandoUbicacion) return;
-    await this.obtenerUbicacionParaLogin();
+    this.errorMessage = 'Solicitando ubicación… Si aparece el aviso del navegador, selecciona Permitir.';
+    await this.obtenerUbicacionParaLogin(true);
   }
 
   onSubmit(): void {
