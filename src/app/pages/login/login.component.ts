@@ -286,7 +286,9 @@ export class LoginComponent implements OnInit {
           || 'Se enviaron las instrucciones de recuperación a tu correo.';
       },
       error: (error: any) => {
-        this.recoveryMessage = error?.error?.message
+        this.recoveryMessage = error?.status === 409
+          ? 'El correo ingresado no existe en el ambiente de Kashpay.'
+          : error?.error?.message
           || error?.message
           || 'No fue posible recuperar la cuenta.';
         this.recoveryMessageIsError = true;
