@@ -30,6 +30,8 @@ export class LoginComponent implements OnInit {
   showPassword = false;
   loading = false;
   userLocation: any;
+  errorUbicacion = false;
+  solicitandoUbicacion = false;
   private ubicacionPendiente?: Promise<boolean>;
   showTokenModal = false;
   tokenValue = '';
@@ -89,6 +91,7 @@ export class LoginComponent implements OnInit {
 
   private obtenerUbicacionParaLogin(): Promise<boolean> {
     if (this.ubicacionPendiente) return this.ubicacionPendiente;
+    this.solicitandoUbicacion = true;
     this.ubicacionPendiente = this.geolocationService.getCurrentLocation()
       .then(location => {
         if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
@@ -98,6 +101,8 @@ export class LoginComponent implements OnInit {
         this.lat = String(location.latitude);
         this.lon = String(location.longitude);
         localStorage.setItem('location', JSON.stringify(location));
+        if (this.errorUbicacion) this.errorMessage = '';
+        this.errorUbicacion = false;
         return true;
       })
       .catch(() => {
@@ -105,11 +110,20 @@ export class LoginComponent implements OnInit {
         this.lat = '';
         this.lon = '';
         localStorage.removeItem('location');
-        this.errorMessage = 'Para iniciar sesión, permite el acceso a tu ubicación en el navegador. Si ya lo permitiste, verifica que la ubicación esté disponible e intenta de nuevo.';
+        this.errorUbicacion = true;
+        this.errorMessage = 'Para iniciar sesión necesitas permitir el acceso a tu ubicación. Si bloqueaste el permiso, abre los permisos de este sitio en tu navegador, cambia Ubicación a Permitir y pulsa Reintentar ubicación. Si ya está permitido, verifica que la ubicación del dispositivo esté activada.';
         return false;
       })
-      .finally(() => { this.ubicacionPendiente = undefined; });
+      .finally(() => {
+        this.ubicacionPendiente = undefined;
+        this.solicitandoUbicacion = false;
+      });
     return this.ubicacionPendiente;
+  }
+
+  async reintentarUbicacion(): Promise<void> {
+    if (this.loading || this.solicitandoUbicacion) return;
+    await this.obtenerUbicacionParaLogin();
   }
 
   onSubmit(): void {

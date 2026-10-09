@@ -378,6 +378,23 @@
   }
 }
 
+.location-retry {
+  display: block;
+  margin-top: 12px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 5px;
+  background: #333f50;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.location-retry:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 .btn-login {
   width: 100%;
   padding: 12px;
