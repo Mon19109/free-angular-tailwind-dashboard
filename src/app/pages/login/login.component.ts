@@ -30,9 +30,11 @@ export class LoginComponent implements OnInit {
   showPassword = false;
   loading = false;
   userLocation: any;
+  private ubicacionPendiente?: Promise<boolean>;
   showTokenModal = false;
   tokenValue = '';
   tokenErrorMessage = '';
+  mostrarReenvioToken = false;
   telModal = '';
   showRecoveryModal = false;
   recovering = false;
@@ -82,21 +84,32 @@ export class LoginComponent implements OnInit {
       next: ip => { this.ip = ip; this.errorIp = false; },
       error: () => { this.errorIp = true; }
     });
-    try {
-      this.userLocation = await this.geolocationService.getCurrentLocation();
+    await this.obtenerUbicacionParaLogin();
+  }
 
-      this.lat = this.userLocation.latitude;
-      this.lon = this.userLocation.longitude;
-
-      // Guardar en localStorage si lo necesitas
-      localStorage.setItem(
-        'location',
-        JSON.stringify(this.userLocation)
-      );
-
-    } catch (error) {
-      console.error(error);
-    }
+  private obtenerUbicacionParaLogin(): Promise<boolean> {
+    if (this.ubicacionPendiente) return this.ubicacionPendiente;
+    this.ubicacionPendiente = this.geolocationService.getCurrentLocation()
+      .then(location => {
+        if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+          throw new Error('Ubicación inválida');
+        }
+        this.userLocation = location;
+        this.lat = String(location.latitude);
+        this.lon = String(location.longitude);
+        localStorage.setItem('location', JSON.stringify(location));
+        return true;
+      })
+      .catch(() => {
+        this.userLocation = undefined;
+        this.lat = '';
+        this.lon = '';
+        localStorage.removeItem('location');
+        this.errorMessage = 'Para iniciar sesión, permite el acceso a tu ubicación en el navegador. Si ya lo permitiste, verifica que la ubicación esté disponible e intenta de nuevo.';
+        return false;
+      })
+      .finally(() => { this.ubicacionPendiente = undefined; });
+    return this.ubicacionPendiente;
   }
 
   onSubmit(): void {
@@ -124,11 +137,22 @@ export class LoginComponent implements OnInit {
     this.showTokenModal = false;
     this.tokenValue = '';
     this.tokenErrorMessage = '';
+    this.mostrarReenvioToken = false;
   }
 
   validateToken(): void {
-    if (!this.tokenValue.trim() || this.tokenValue.length > 8) {
+    if (this.loading) return;
+    if (this.mostrarReenvioToken) {
+      this.executeLogin(true);
+      return;
+    }
+    if (!this.tokenValue.trim()) {
+      this.tokenErrorMessage = 'Ingrese código';
+      return;
+    }
+    if (this.tokenValue.length > 8) {
       this.tokenErrorMessage = 'Código incorrecto';
+      this.mostrarReenvioToken = true;
       return;
     }
 
@@ -137,6 +161,7 @@ export class LoginComponent implements OnInit {
 
   clearTokenError(): void {
     this.tokenErrorMessage = '';
+    this.mostrarReenvioToken = false;
   }
 
   private executeToken(): void {
@@ -157,34 +182,43 @@ export class LoginComponent implements OnInit {
           this.errorMessage = '';
           this.tokenValue = '';
           this.tokenErrorMessage = '';
+          this.mostrarReenvioToken = false;
           this.showTokenModal = false;
         } else {
-          this.tokenValue = '';
           this.showTokenModal = true;
           this.tokenErrorMessage = 'Código incorrecto';
+          this.mostrarReenvioToken = true;
           console.error('Token error3:', this.getErrorMessage(result.idUser, result.message));
 
         }
       },
       error: (error: any) => {
-        this.tokenValue = '';
         this.showTokenModal = true;
         this.tokenErrorMessage = 'Código incorrecto';
+        this.mostrarReenvioToken = true;
         console.error('Token error:', error);
         
       }
     });
 
   }
-  private executeLogin(): void {
+  private async executeLogin(esReenvio = false): Promise<void> {
+    if (this.loading) return;
     this.isLoading = true;
     this.loading = true;
     this.errorMessage = '';
+    if (esReenvio) this.tokenErrorMessage = '';
 
 
     const { userLogin, passwordLogin } = this.loginForm.value;
-    const latitud = this.lat || '0';
-    const longitud = this.lon || '0';
+    if (!await this.obtenerUbicacionParaLogin()) {
+      if (esReenvio) this.tokenErrorMessage = this.errorMessage;
+      this.isLoading = false;
+      this.loading = false;
+      return;
+    }
+    const latitud = this.lat;
+    const longitud = this.lon;
 
     this.authService.obtenerIp().pipe(
       tap({
@@ -203,10 +237,12 @@ export class LoginComponent implements OnInit {
           this.errorMessage = '';
           this.tokenValue = '';
           this.tokenErrorMessage = '';
+          this.mostrarReenvioToken = false;
           this.telModal = result.oft ?? '??';
           this.showTokenModal = true;
         } else {
           this.errorMessage = this.getErrorMessage(result.idUser, result.message);
+          if (esReenvio) this.tokenErrorMessage = this.errorMessage;
           console.error('Login error3:', this.errorMessage);
 
         }
@@ -224,7 +260,7 @@ export class LoginComponent implements OnInit {
           console.error('Login error2:', error.message);
 
         }
-        
+        if (esReenvio) this.tokenErrorMessage = this.errorMessage;
       }
     });
   }

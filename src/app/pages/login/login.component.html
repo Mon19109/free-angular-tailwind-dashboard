@@ -185,7 +185,7 @@
 
       <div class="token-modal-actions">
         <button type="submit" class="token-btn token-btn-primary" [disabled]="loading">
-          VALIDAR
+          {{ mostrarReenvioToken ? (loading ? 'REENVIANDO…' : 'REENVIAR TOKEN') : 'VALIDAR' }}
         </button>
         <button type="button" class="token-btn token-btn-secondary" [disabled]="loading" (click)="closeTokenModal()">
           CANCELAR
