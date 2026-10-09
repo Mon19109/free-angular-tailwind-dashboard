@@ -239,7 +239,7 @@
 
       <!-- MONTO / processingCode en PHP -->
       <td>
-        {{ operacion.processingCode }}
+        {{ operacion.processingCode | currency:'MXN':'$':'1.2-2':'en-US' }}
       </td>
 
       <!-- ESTATUS -->
