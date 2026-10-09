@@ -46,7 +46,9 @@ export class OperacionesAdquirenciaComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly columnasOperaciones = COLUMNAS_OPERACIONES;
+  readonly columnasOperaciones = COLUMNAS_OPERACIONES.map(columna =>
+    columna.campo === 'processingCode' ? { ...columna, moneda: true } : columna
+  );
   readonly valorColumnaOperacion = valorColumnaOperacion;
 
   formulario: FormGroup;
@@ -772,6 +774,10 @@ mostrarResultados = false;
     const fechaCompleta = this.obtenerPrimerValor(operacion.createdAt, operacion.posDate, operacion.timestamp);
     const [fecha, hora] = fechaOperacion(fechaCompleta).split(' ');
     const monto = Number(operacion.amount || 0).toLocaleString('es-MX', {
+      style: 'currency',
+      currency: operacion.currency?.alphabeticCode || 'MXN'
+    });
+    const processingCode = Number(operacion.processingCode || 0).toLocaleString('es-MX', {
       style: 'currency',
       currency: operacion.currency?.alphabeticCode || 'MXN'
     });
