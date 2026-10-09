@@ -473,8 +473,8 @@
 }
 
 :host-context(html:not(.dark)) .spinner {
-  border-color: rgba(51, 63, 80, 0.2);
-  border-top-color: var(--brand-primary);
+  border-color: color-mix(in srgb, var(--brand-contrast) 30%, transparent);
+  border-top-color: var(--brand-contrast);
 }
 .auth-divider {
   display: flex;
