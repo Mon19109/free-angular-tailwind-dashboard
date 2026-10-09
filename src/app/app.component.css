@@ -124,6 +124,20 @@
   box-shadow: 0 18px 34px rgba(32, 52, 79, 0.18);
 }
 
+.session-timeout-button.session-warning-confirm,
+:host-context(html:not(.dark)) .session-timeout-button.session-warning-confirm {
+  background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
+  color: #140e02;
+  box-shadow: 0 18px 34px rgba(241, 178, 61, 0.24);
+}
+
+.session-timeout-button.session-warning-logout,
+:host-context(html:not(.dark)) .session-timeout-button.session-warning-logout {
+  background: #27313e;
+  color: #ffffff;
+  box-shadow: 0 18px 34px rgba(32, 52, 79, 0.18);
+}
+
 @media (max-width: 640px) {
   .session-timeout-body {
     padding: 46px 44px 28px;
