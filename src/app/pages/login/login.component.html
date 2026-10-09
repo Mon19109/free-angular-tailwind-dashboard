@@ -51,8 +51,8 @@
       <div class="form-group" *ngIf="errorMessage">
         <div class="alert alert-danger" role="status" aria-live="polite">
           {{ errorMessage }}
-          <button *ngIf="errorUbicacion" type="button" class="location-retry" [disabled]="loading || solicitandoUbicacion" (click)="reintentarUbicacion()">
-            {{ solicitandoUbicacion ? 'Solicitando ubicación…' : 'Reintentar ubicación' }}
+          <button *ngIf="errorUbicacion && !recargaUbicacionIntentada" type="button" class="location-retry" [disabled]="loading || solicitandoUbicacion" (click)="recargarParaUbicacion()">
+            Recargar página
           </button>
         </div>
       </div>

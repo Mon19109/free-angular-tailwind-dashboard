@@ -31,6 +31,8 @@ export class LoginComponent implements OnInit {
   loading = false;
   userLocation: any;
   errorUbicacion = false;
+  private readonly recargaUbicacionKey = 'login.ubicacion.recargaIntentada';
+  recargaUbicacionIntentada = sessionStorage.getItem(this.recargaUbicacionKey) === 'true';
   solicitandoUbicacion = false;
   private ubicacionPendiente?: Promise<boolean>;
   showTokenModal = false;
@@ -89,7 +91,7 @@ export class LoginComponent implements OnInit {
     await this.obtenerUbicacionParaLogin();
   }
 
-  private obtenerUbicacionParaLogin(esReintento = false): Promise<boolean> {
+  private obtenerUbicacionParaLogin(): Promise<boolean> {
     if (this.ubicacionPendiente) return this.ubicacionPendiente;
     this.solicitandoUbicacion = true;
     this.ubicacionPendiente = this.geolocationService.getCurrentLocation()
@@ -103,22 +105,20 @@ export class LoginComponent implements OnInit {
         localStorage.setItem('location', JSON.stringify(location));
         if (this.errorUbicacion) this.errorMessage = '';
         this.errorUbicacion = false;
+        this.recargaUbicacionIntentada = false;
+        sessionStorage.removeItem(this.recargaUbicacionKey);
         return true;
       })
-      .catch(error => {
+      .catch(() => {
         this.userLocation = undefined;
         this.lat = '';
         this.lon = '';
         localStorage.removeItem('location');
         this.errorUbicacion = true;
-        if (error === 'El usuario denegó el permiso de ubicación.') {
-          this.errorMessage = esReintento
-            ? 'Se volvió a solicitar tu ubicación, pero el navegador denegó el acceso. Si no apareció el aviso de Permitir, el permiso sigue bloqueado y la página no puede volver a abrirlo. Habilita Ubicación en los permisos de este sitio para continuar.'
-            : 'No se concedió el permiso de ubicación. Pulsa Reintentar ubicación y selecciona Permitir si el navegador muestra el aviso.';
-        } else if (error === 'Tiempo de espera agotado.') {
-          this.errorMessage = 'Se agotó el tiempo para obtener tu ubicación. Verifica que la ubicación del dispositivo esté activada y pulsa Reintentar ubicación.';
+        if (this.recargaUbicacionIntentada) {
+          this.errorMessage = 'No se pudo obtener tu ubicación después de recargar. Si no apareció el aviso, activa el permiso de Ubicación en la configuración de este sitio y recarga la página. Verifica también que la ubicación del dispositivo esté activada.';
         } else {
-          this.errorMessage = 'No se pudo obtener tu ubicación. Verifica que el navegador tenga permiso y que la ubicación del dispositivo esté activada; después pulsa Reintentar ubicación.';
+          this.errorMessage = 'Para iniciar sesión necesitas permitir tu ubicación. Pulsa Recargar página y selecciona Permitir si aparece el aviso. Si no aparece, activa Ubicación en la configuración de este sitio y recarga nuevamente.';
         }
         return false;
       })
@@ -129,10 +129,11 @@ export class LoginComponent implements OnInit {
     return this.ubicacionPendiente;
   }
 
-  async reintentarUbicacion(): Promise<void> {
-    if (this.loading || this.solicitandoUbicacion) return;
-    this.errorMessage = 'Solicitando ubicación… Si aparece el aviso del navegador, selecciona Permitir.';
-    await this.obtenerUbicacionParaLogin(true);
+  recargarParaUbicacion(): void {
+    if (this.loading || this.solicitandoUbicacion || this.recargaUbicacionIntentada) return;
+    sessionStorage.setItem(this.recargaUbicacionKey, 'true');
+    this.recargaUbicacionIntentada = true;
+    window.location.reload();
   }
 
   onSubmit(): void {
