@@ -168,10 +168,10 @@
       <div class="document-row" [class.uploaded]="documento.archivo || documento.archivoNombre">
         <div class="document-number">{{ i + 1 }}</div>
         <div class="document-copy">
-          <strong>{{ documento.nombre }}@if (documento.obligatorio) { <b>*</b> }</strong>
+          <strong>{{ documento.nombre }} ({{ documento.nombre.toLowerCase().startsWith('imagen') ? 'PNG/JPG' : 'PDF' }})@if (documento.obligatorio) { <b>*</b> }</strong>
         </div>
         <label class="file-picker">
-          <input type="file" [accept]="documento.nombre.startsWith('Imagen') ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.pdf,application/pdf'"
+          <input type="file" [accept]="documento.nombre.toLowerCase().startsWith('imagen') ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.pdf,application/pdf'"
             [disabled]="mismaDocumentacionEntidad"
             (change)="seleccionarArchivo.emit({ event: $event, documento })" />
           <span>{{ documento.archivo ? 'Cambiar archivo' : 'Seleccionar archivo' }}</span>

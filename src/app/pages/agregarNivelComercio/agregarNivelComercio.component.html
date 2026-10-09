@@ -194,6 +194,7 @@
               [documentos]="documentosVisibles"
       [documentosCargados]="documentosCargados"
       [documentosPendientes]="documentosPendientes"
+      [archivosInvalidos]="archivosInvalidos"
       [textoFinalizar]="enviando ? 'Enviando…' : 'Enviar solicitud'"
       [deshabilitarFinalizar]="enviando || enviado"
       (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"

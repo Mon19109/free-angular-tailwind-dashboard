@@ -54,6 +54,7 @@ export class AgregarNivelComercioComponent implements OnInit {
   readonly idRol = getSessionRole();
   cargando = false;
   enviando = false;
+  archivosInvalidos = false;
   mensaje = '';
   modalRegistro = { visible: false, tipo: 'success' as 'success' | 'error', titulo: '', mensaje: '' };
   arbol: NodoComercio[] = [];
@@ -786,7 +787,24 @@ export class AgregarNivelComercioComponent implements OnInit {
   seleccionarArchivo(event: Event, documento: DocumentoRequerido): void {
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
-    this.documentosCapturados[this.llaveDocumento(documento)] = {
+    const esImagen = documento.nombre.trim().toLowerCase().startsWith('imagen');
+    const tiposPermitidos = esImagen ? ['image/png', 'image/jpeg'] : ['application/pdf'];
+    const valido = !!archivo && archivo.size <= 10 * 1024 * 1024 && tiposPermitidos.includes(archivo.type);
+    const llaveDocumento = this.llaveDocumento(documento);
+
+    if (!valido) {
+      documento.archivo = undefined;
+      documento.archivoNombre = undefined;
+      delete this.documentosCapturados[llaveDocumento];
+      input.value = '';
+      this.archivosInvalidos = true;
+      return;
+    }
+
+    this.archivosInvalidos = false;
+    documento.archivo = archivo;
+    documento.archivoNombre = archivo.name;
+    this.documentosCapturados[llaveDocumento] = {
       archivo,
       archivoNombre: archivo?.name,
     };
