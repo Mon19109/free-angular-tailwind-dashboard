@@ -68,7 +68,7 @@
 .dashboard-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 900000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,7 +79,7 @@
 .dashboard-image-modal {
   display: flex;
   flex-direction: column;
-  width: min(100%, 820px);
+  width: min(100%, 600px);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   border: 1px solid var(--dashboard-border-strong);
