@@ -17,7 +17,7 @@
           <p>Define los criterios para consultar operaciones de adquirencia.</p>
         </div>
 
-    <p *ngFor="let aviso of mensajesNiveles" role="status" class="form-alert">{{ aviso }}</p>
+    <p *ngIf="mensajeNiveles" role="status" class="form-alert">{{ mensajeNiveles }}</p>
     <form [formGroup]="formulario" (ngSubmit)="onSubmit()">
 
       <div class="admin-form-grid operations-form-grid row">

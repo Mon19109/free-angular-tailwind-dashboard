@@ -1,3 +1,4 @@
+import { obtenerNodoSesion } from '../shared/utils/nodo-sesion';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -197,9 +198,9 @@ getOperaciones(): Observable<any> {
 
   getSubafiliados(): Observable<any> {
     const headers = this.getBearerHeaders();
-    console.log('url = '+this.apiV1Url+'subAffiliation/getAll');
+    const nodeID = obtenerNodoSesion();
     return this.http.get<any>(
-      `${this.apiV1Url}subAffiliation/getAll`, { 
+      nodeID ? `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3` : `${this.apiV1Url}subAffiliation/getAll`, {
           headers: headers
         }
     );
@@ -207,7 +208,7 @@ getOperaciones(): Observable<any> {
 
   getSubafiliadoById(): Observable<any> {
     const headers = this.getBearerHeaders();
-    const nodeID = localStorage.getItem('nodeID') || '';
+    const nodeID = obtenerNodoSesion();
 
     return this.http.get<any>(
       `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`, {

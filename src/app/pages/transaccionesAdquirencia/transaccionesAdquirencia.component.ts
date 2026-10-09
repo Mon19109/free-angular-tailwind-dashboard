@@ -1,4 +1,8 @@
-import { Component, OnInit, inject, signal, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
+import { nodosDelNivelEstricto } from '../../shared/utils/niveles-operaciones';
+import { obtenerNodoSesion } from '../../shared/utils/nodo-sesion';
+import { Component, DestroyRef, OnInit, inject, signal, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -22,6 +26,8 @@ declare var moment: any;
   styleUrls: ['./transaccionesAdquirencia.component.css']
 })
 export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private solicitudesNiveles: Partial<Record<4 | 5 | 6, Subscription>> = {};
   private transaccionesAdquirenciaService = inject(TransaccionesAdquirenciaService);
   
   // Variables de sesión (deben venir de AuthService)
@@ -223,7 +229,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   cargarDependenciasIniciales() {
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     this.cargarSubafiliados();
 
     if (!nodeIDSesion) return;
@@ -234,171 +240,94 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   onSubafiliadoChange() {
-    this.cargarEntidades(this.getSelectedNodeID(this.filtros.subafiliado));
+    this.limpiarNiveles(4);
+    const nodeID = this.getSelectedNodeID(this.filtros.subafiliado);
+    this.cargarEntidades(nodeID);
+    this.cargarSucursales(nodeID);
+    this.cargarCajas(nodeID);
   }
 
   cargarSubafiliados() {
     const idContextSesion = localStorage.getItem('idContext') || this.contId;
-
     if (this.rolId !== '2' || (idContextSesion && idContextSesion !== '0')) {
       this.cargarSubafiliadoSesion();
       return;
     }
-
-    this.transaccionesAdquirenciaService.getSubafiliados().subscribe({
-      next: (res) => {
-        if (res.contextResponse) {
-          const subafiliadoList = res.contextResponse || res.contextResponse;
-          this.subafiliados.set(subafiliadoList);
-        } else {
-          /*bootbox.alert({
-            message: "El subafiliado.",
-            locale: 'mx'
-          });*/
-        }
+    this.subafiliados.set([]);
+    this.transaccionesAdquirenciaService.getSubafiliados().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        const lista = nodosDelNivelEstricto(res, 3);
+        this.subafiliados.set(lista);
+        this.seleccionarSubafiliadoSesion(lista);
       },
-      error: () => {
-        this.cargarSubafiliadoSesion();
-        /*bootbox.alert({
-          message: "Error al cargar entidades.",
-          locale: 'mx'
-        });*/
-      }
+      error: () => this.cargarSubafiliadoSesion(),
     });
   }
 
   private cargarSubafiliadoSesion() {
-    const nodeID = localStorage.getItem('nodeID');
-    if (!nodeID) {
-      this.subafiliados.set([]);
-      return;
+    this.subafiliados.set([]);
+    if (!obtenerNodoSesion()) return;
+    this.transaccionesAdquirenciaService.getSubafiliadoById().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        const lista = nodosDelNivelEstricto(res, 3);
+        this.subafiliados.set(lista);
+        this.seleccionarSubafiliadoSesion(lista);
+      },
+      error: () => this.seleccionarSubafiliadoSesion([]),
+    });
+  }
+
+  private limpiarNiveles(desde: 4 | 5 | 6): void {
+    for (const nivel of [4, 5, 6] as const) {
+      if (nivel >= desde) this.solicitudesNiveles[nivel]?.unsubscribe();
     }
-
-    this.transaccionesAdquirenciaService.getSubafiliadoById().subscribe({
-      next: (res) => {
-        const contextResponse = res.contextResponse
-          ?? res.rows?.contextResponse
-          ?? res.rows
-          ?? res.data
-          ?? res;
-        const subafiliadoList = Array.isArray(contextResponse)
-          ? contextResponse
-          : contextResponse
-            ? [contextResponse]
-            : [];
-
-        this.subafiliados.set(subafiliadoList);
-        this.seleccionarSubafiliadoSesion(subafiliadoList);
-
-      },
-      error: (err) => {
-        this.seleccionarSubafiliadoSesion([]);
-        console.error('Error al cargar subafiliado por sesión:', err);
-      }
-    });
+    if (desde <= 4) { this.entidades.set([]); this.filtros.entidad = ''; }
+    if (desde <= 5) { this.sucursales.set([]); this.filtros.sucursal = ''; }
+    this.cajas.set([]);
+    this.filtros.caja = '';
   }
-  
-  cargarEntidades(nodeID: string) {
-    this.transaccionesAdquirenciaService.getEntidades(nodeID).subscribe({
-      next: (res) => {
-        const entidadesResponse = res
-          ?? res.rows
-          ?? res.rows
-          ?? res.data
-          ?? res;
-        const entidadesList = Array.isArray(entidadesResponse)
-          ? entidadesResponse
-          : entidadesResponse
-            ? [entidadesResponse]
-            : [];
-        if (Array.isArray(entidadesList) && entidadesList.length > 0) {
-          this.entidades.set(entidadesList);
-          this.seleccionarEntidadSesion(entidadesList);
-        } else {
-          this.seleccionarEntidadSesion([]);
-          /*bootbox.alert({
-            message: "El subafiliado seleccionado no tiene entidades relacionadas.",
-            locale: 'mx'
-          });*/
-        }
+
+  private cargarNivel(nivel: 4 | 5 | 6, nodeID: string): void {
+    this.solicitudesNiveles[nivel]?.unsubscribe();
+    const opciones = nivel === 4 ? this.entidades : nivel === 5 ? this.sucursales : this.cajas;
+    opciones.set([]);
+    if (!nodeID) return;
+    const request = nivel === 4 ? this.transaccionesAdquirenciaService.getEntidades(nodeID)
+      : nivel === 5 ? this.transaccionesAdquirenciaService.getSucursales(nodeID)
+      : this.transaccionesAdquirenciaService.getCajas(nodeID);
+    this.solicitudesNiveles[nivel] = request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: response => {
+        const lista = nodosDelNivelEstricto(response, nivel);
+        opciones.set(lista);
+        const campo = nivel === 4 ? 'entidad' : nivel === 5 ? 'sucursal' : 'caja';
+        if (!lista.some(item => this.obtenerNodeId(item) === this.filtros[campo])) this.filtros[campo] = '';
+        if (nivel === 4) this.seleccionarEntidadSesion(lista);
+        if (nivel === 5) this.seleccionarSucursalSesion(lista);
+        if (nivel === 6) this.seleccionarCajaSesion(lista);
       },
       error: () => {
-        this.seleccionarEntidadSesion([]);
-        /*bootbox.alert({
-          message: "Error al cargar entidades.",
-          locale: 'mx'
-        });*/
-      }
+        const campo = nivel === 4 ? 'entidad' : nivel === 5 ? 'sucursal' : 'caja';
+        this.filtros[campo] = '';
+      },
     });
   }
-  
+
+  cargarEntidades(nodeID: string) { this.cargarNivel(4, nodeID); }
+  cargarSucursales(nodeID: string) { this.cargarNivel(5, nodeID); }
+  cargarCajas(nodeID: string) { this.cargarNivel(6, nodeID); }
+
   onEntidadChange() {
-    this.cargarSucursales(this.getSelectedNodeID(this.filtros.entidad));
+    this.limpiarNiveles(5);
+    const nodeID = this.getSelectedNodeID(this.filtros.entidad || this.filtros.subafiliado);
+    this.cargarSucursales(nodeID);
+    this.cargarCajas(nodeID);
   }
-  
-  cargarSucursales(nodeID: string) {
-    this.transaccionesAdquirenciaService.getSucursales(nodeID).subscribe({
-      next: (res) => {
-        const sucursalesList = res || res.rows || res.rows || [];
-        if (Array.isArray(sucursalesList) && sucursalesList.length > 0) {
-          this.sucursales.set(sucursalesList);
-          this.seleccionarSucursalSesion(sucursalesList);
-        } else {
-          this.seleccionarSucursalSesion([]);
-          /*bootbox.alert({
-            message: "La entidad seleccionada no tiene sucursales relacionadas.",
-            locale: 'mx'
-          });*/
-        }
-      },
-      error: () => {
-        this.seleccionarSucursalSesion([]);
-        /*bootbox.alert({
-          message: "Error al cargar sucursales.",
-          locale: 'mx'
-        });*/
-      }
-    });
-  }
-  
+
   onSucursalChange() {
-    this.cargarCajas(this.getSelectedNodeID(this.filtros.sucursal));
+    this.limpiarNiveles(6);
+    this.cargarCajas(this.getSelectedNodeID(this.filtros.sucursal || this.filtros.entidad || this.filtros.subafiliado));
   }
-  
-  cargarCajas(nodeID: string) {
-    this.transaccionesAdquirenciaService.getCajas(nodeID).subscribe({
-      next: (res) => {
-        const cajasResponse = res
-          ?? res.rows
-          ?? res.rows
-          ?? res.data
-          ?? res;
-        const cajasList = Array.isArray(cajasResponse)
-          ? cajasResponse
-          : cajasResponse
-            ? [cajasResponse]
-            : [];
-        if (Array.isArray(cajasList) && cajasList.length > 0) {
-          this.cajas.set(cajasList);
-          this.seleccionarCajaSesion(cajasList);
-        } else {
-          this.seleccionarCajaSesion([]);
-          /*bootbox.alert({
-            message: "La sucursal seleccionada no tiene cajas relacionadas.",
-            locale: 'mx'
-          });*/
-        }
-      },
-      error: () => {
-        this.seleccionarCajaSesion([]);
-        /*bootbox.alert({
-          message: "Error al cargar cajas.",
-          locale: 'mx'
-        });*/
-      }
-    });
-  }
-  
+
   validarFechas(): boolean {
     if (!this.filtros.fechaInicio || !this.filtros.fechaFin) {
       this.errorMessage.set('Selecciona fecha inicio y fecha fin para buscar.');
@@ -626,14 +555,14 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   private getSelectedNodeID(value?: string): string {
-    return value || localStorage.getItem('nodeID') || '';
+    return value || obtenerNodoSesion();
   }
 
   private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
     if (!['3', '4', '5', '6'].includes(this.rolId)) return;
 
     this.filtros.subafiliado = '';
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     const subafiliadoSesion = subafiliados.find(
       subafiliado => this.obtenerNodeId(subafiliado) === nodeIDSesion
     ) || (subafiliados.length === 1 ? subafiliados[0] : null);
@@ -647,7 +576,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (!['4', '5', '6'].includes(this.rolId)) return;
 
     this.filtros.entidad = '';
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     const entidadSesion = entidades.find(
       entidad => this.obtenerNodeId(entidad) === nodeIDSesion
     ) || (entidades.length === 1 ? entidades[0] : null);
@@ -661,7 +590,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (!['5', '6'].includes(this.rolId)) return;
 
     this.filtros.sucursal = '';
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     const sucursalSesion = sucursales.find(
       sucursal => this.obtenerNodeId(sucursal) === nodeIDSesion
     ) || (sucursales.length === 1 ? sucursales[0] : null);
@@ -675,7 +604,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (this.rolId !== '6') return;
 
     this.filtros.caja = '';
-    const nodeIDSesion = localStorage.getItem('nodeID') || '';
+    const nodeIDSesion = obtenerNodoSesion();
     const cajaSesion = cajas.find(
       caja => this.obtenerNodeId(caja) === nodeIDSesion
     ) || (cajas.length === 1 ? cajas[0] : null);
@@ -693,7 +622,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   private obtenerNodeId(item: any): string {
-    return String(item?.idNode ?? item?.nodeID ?? item?.id ?? '');
+    return String(item?.idNode ?? item?.nodeID ?? item?.nodeId ?? item?.id ?? '');
   }
   
   limpiarFiltros() {
@@ -716,6 +645,9 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       fechaInicio: '',
       fechaFin: ''
     };
+    this.cargarEntidades(this.getSelectedNodeID(this.filtros.subafiliado));
+    this.cargarSucursales(this.getSelectedNodeID(this.filtros.entidad || this.filtros.subafiliado));
+    this.cargarCajas(this.getSelectedNodeID(this.filtros.sucursal || this.filtros.entidad || this.filtros.subafiliado));
     this.fechaInicioPicker?.clear();
     this.fechaFinPicker?.clear();
     this.busquedaTabla = '';

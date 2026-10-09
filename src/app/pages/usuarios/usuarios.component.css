@@ -474,6 +474,13 @@ input[type="checkbox"] {
   box-shadow: 0 16px 34px rgba(127, 29, 29, 0.16);
 }
 
+:host-context(html:not(.dark)) .empty-message.error-message {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fca5a5;
+  font-weight: 700;
+}
+
 .users-pagination {
   display: flex;
   align-items: center;

@@ -30,8 +30,8 @@
               <span>SubAfiliado</span>
               <select name="subafiliado" [(ngModel)]="filtros.subafiliado" (change)="onSubafiliadoChange()" [disabled]="subafiliadoSesionBloqueado">
                 <option value="">Todos los subafiliados</option>
-                @for (item of subafiliados(); track item.idNode || item.nodeID) {
-                  <option [value]="item.idNode || item.nodeID">{{ item.name || item.contextDescription }}</option>
+                @for (item of subafiliados(); track item.idNode || item.nodeID || item.nodeId || item.id) {
+                  <option [value]="item.idNode || item.nodeID || item.nodeId || item.id">{{ item.name || item.contextDescription }}</option>
                 }
               </select>
             </label>
@@ -42,8 +42,8 @@
               <span>Entidad</span>
               <select name="entidad" [(ngModel)]="filtros.entidad" (change)="onEntidadChange()" [disabled]="entidadSesionBloqueada">
                 <option value="">Todas las entidades</option>
-                @for (item of entidades(); track item.idNode || item.nodeID) {
-                  <option [value]="item.idNode || item.nodeID">{{ item.name }}</option>
+                @for (item of entidades(); track item.idNode || item.nodeID || item.nodeId || item.id) {
+                  <option [value]="item.idNode || item.nodeID || item.nodeId || item.id">{{ item.name }}</option>
                 }
               </select>
             </label>
@@ -54,8 +54,8 @@
               <span>Sucursal</span>
               <select name="sucursal" [(ngModel)]="filtros.sucursal" (change)="onSucursalChange()" [disabled]="sucursalSesionBloqueada">
                 <option value="">Todas las sucursales</option>
-                @for (item of sucursales(); track item.idNode || item.nodeID) {
-                  <option [value]="item.idNode || item.nodeID">{{ item.name }}</option>
+                @for (item of sucursales(); track item.idNode || item.nodeID || item.nodeId || item.id) {
+                  <option [value]="item.idNode || item.nodeID || item.nodeId || item.id">{{ item.name }}</option>
                 }
               </select>
             </label>
@@ -66,8 +66,8 @@
               <span>Caja</span>
               <select name="caja" [(ngModel)]="filtros.caja" [disabled]="cajaSesionBloqueada">
                 <option value="">Todas las cajas</option>
-                @for (item of cajas(); track item.idNode || item.nodeID) {
-                  <option [value]="item.idNode || item.nodeID">{{ item.name || item.tuName }}</option>
+                @for (item of cajas(); track item.idNode || item.nodeID || item.nodeId || item.id) {
+                  <option [value]="item.idNode || item.nodeID || item.nodeId || item.id">{{ item.name || item.tuName }}</option>
                 }
               </select>
             </label>

@@ -33,7 +33,16 @@ export class OperacionesAdquirenciaComponent implements OnInit {
   readonly accionOperacion = accionOperacion;
   liquidacionSeleccionada: { referencia: string; filtros: any } | null = null;
   avisosNiveles: Partial<Record<4 | 5 | 6, string>> = {};
-  get mensajesNiveles(): string[] { return Object.values(this.avisosNiveles); }
+  get mensajeNiveles(): string {
+    const niveles = ([4, 5, 6] as const).filter(nivel => !!this.avisosNiveles[nivel]);
+    if (!niveles.length) return '';
+    if (niveles.some(nivel => this.avisosNiveles[nivel]?.startsWith('No fue posible'))) {
+      return 'No fue posible cargar los niveles solicitados. Vuelve a seleccionar el nivel superior.';
+    }
+    const nombres = niveles.map(nivel => ({ 4: 'entidades', 5: 'sucursales', 6: 'cajas' }[nivel]));
+    const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(', ')} ni ${nombres.at(-1)}`;
+    return `No se encontraron ${lista} para el nodo seleccionado.`;
+  }
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -324,6 +333,9 @@ estatus: [this.defaultEstatus, Validators.required],
   private cargarNivel(nivel: 4 | 5 | 6, nodeID: string): void {
     this.solicitudesNiveles[nivel]?.unsubscribe();
     delete this.avisosNiveles[nivel];
+    if (nivel === 4) this.entidades = [];
+    if (nivel === 5) this.sucursales = [];
+    if (nivel === 6) this.cajas = [];
     if (!nodeID) return;
     const request = nivel === 4 ? this.opeAdquiService.getEntidades(nodeID)
       : nivel === 5 ? this.opeAdquiService.getSucursales(nodeID)

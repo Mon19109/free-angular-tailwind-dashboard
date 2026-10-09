@@ -40,6 +40,27 @@ describe('Niveles de Operaciones adquirencia', () => {
   });
   });
 
+  it('concentra los tres avisos vacíos en un único mensaje', () => {
+    service.getEntidades.and.returnValue(of([]));
+    service.getSucursales.and.returnValue(of([]));
+    service.getCajas.and.returnValue(of([]));
+    component.formulario.patchValue({ cuenta: '83' });
+    expect(component.mensajeNiveles).toBe('No se encontraron entidades, sucursales ni cajas para el nodo seleccionado.');
+    service.getEntidades.and.returnValue(of([{ idNode: 84, levelType: 4 }]));
+    component.formulario.patchValue({ cuenta: '83' });
+    expect(component.mensajeNiveles).toBe('No se encontraron sucursales ni cajas para el nodo seleccionado.');
+  });
+
+  it('admite únicamente subafiliados con levelType 3, sin inferir niveles ausentes', () => {
+    service.getSubafiliadoById.and.returnValue(of([
+      { idNode: 83, levelType: 3 }, { idNode: 84, levelType: 4 },
+      { idNode: 85, levelType: 5 }, { idNode: 86, levelType: 6 },
+      { idNode: 87 }, { idNode: 88, level: 3 },
+    ]));
+    component.cargarSubafiliados();
+    expect(component.cuentas.map(nodo => nodo.idNode)).toEqual([83]);
+  });
+
   it('consulta los cuatro niveles al iniciar desde el subafiliado', () => {
     expect(service.getSubafiliadoById).toHaveBeenCalledTimes(1);
     expect(service.getEntidades).toHaveBeenCalledOnceWith('83');
