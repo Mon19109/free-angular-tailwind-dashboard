@@ -24,9 +24,12 @@ export class PagarLinkPagoComponent implements OnInit {
     || this.route.snapshot.queryParamMap.get('referencia')
     || '';
   readonly formulario = this.fb.group({
-    amountPending: ['', [(control: AbstractControl): ValidationErrors | null =>
-      this.esPagoMixto ? Validators.max(Number(this.orden?.amount))(control) : null
-    ]],
+    amountPending: ['', [(control: AbstractControl): ValidationErrors | null => {
+      if (!this.esPagoMixto) return null;
+      const actual = Number(String(control.value ?? '').replace(/,/g, ''));
+      const max = Number(this.orden?.amount);
+      return actual > max ? { max: { max, actual } } : null;
+    }]],
     nameCard: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
     numCard: ['', [Validators.required, Validators.pattern(/^\d{4} \d{4} \d{4} \d{4}$/)]],
     vencimiento: ['', [Validators.required, validarVencimientoTarjeta]],
@@ -38,7 +41,7 @@ export class PagarLinkPagoComponent implements OnInit {
     estado: [''],
     meses: [0],
     propinaPorcentaje: [0],
-    propina: this.fb.control<string | number>({ value: 0, disabled: true }),
+    propina: this.fb.control<string | number>({ value: '', disabled: true }),
     terminos: [false, Validators.requiredTrue]
   });
 
@@ -102,7 +105,6 @@ export class PagarLinkPagoComponent implements OnInit {
         this.mostrarOpcionesPago = false;
         this.mostrarResumen = false;
         this.formulario.controls.terminos.setValue(false);
-        this.formulario.patchValue({ amountPending: this.orden?.amountPending ?? this.orden?.amount ?? '' });
         const sirioId = String(this.orden?.sirioID ?? this.orden?.sirioId ?? '').trim();
         if (sirioId) {
           this.pagarLinkPagoService.obtenerBalance(sirioId).subscribe({
@@ -120,7 +122,7 @@ export class PagarLinkPagoComponent implements OnInit {
     });
 
     this.formulario.controls.propinaPorcentaje.valueChanges.subscribe(valor => {
-      if (Number(valor) > 0) this.formulario.controls.propina.setValue(0, { emitEvent: false });
+      if (Number(valor) > 0) this.formulario.controls.propina.setValue('', { emitEvent: false });
     });
 
     this.formulario.controls.amountPending.valueChanges.subscribe(() => {
@@ -305,7 +307,8 @@ export class PagarLinkPagoComponent implements OnInit {
   }
 
   get subtotal(): number {
-    return Number(this.esPagoMixto ? this.formulario.controls.amountPending.value : this.orden?.amount) || 0;
+    const monto = this.esPagoMixto ? this.formulario.controls.amountPending.value : this.orden?.amount;
+    return Number(String(monto ?? '').replace(/,/g, '')) || 0;
   }
 
   get propinaCalculada(): number {
@@ -528,14 +531,14 @@ export class PagarLinkPagoComponent implements OnInit {
 
   volverAlFormulario(): void { this.mostrarResumen = false; }
   seleccionarPropina(porcentaje: number): void {
-    this.formulario.controls.propina.setValue(0, { emitEvent: false });
+    this.formulario.controls.propina.setValue('', { emitEvent: false });
     this.formulario.controls.propina.disable({ emitEvent: false });
     this.formulario.controls.propinaPorcentaje.setValue(porcentaje);
   }
 
   seleccionarOtraPropina(): void {
     this.formulario.controls.propinaPorcentaje.setValue(0);
-    this.formulario.controls.propina.setValue(0, { emitEvent: false });
+    this.formulario.controls.propina.setValue('', { emitEvent: false });
     this.formulario.controls.propina.enable({ emitEvent: false });
   }
 
@@ -546,8 +549,10 @@ export class PagarLinkPagoComponent implements OnInit {
   formatearMontoPendiente(event: Event): void {
     const input = event.target as HTMLInputElement;
     const digitos = input.value.replace(/\D/g, '');
-    const centavos = digitos.replace(/^0+/, '').padStart(3, '0');
-    const monto = digitos ? `${centavos.slice(0, -2)}.${centavos.slice(-2)}` : '';
+    const monto = digitos ? (Number(digitos) / 100).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }) : '';
     input.value = monto;
     this.formulario.controls.amountPending.setValue(monto);
   }
