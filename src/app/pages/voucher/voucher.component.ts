@@ -29,6 +29,10 @@ export class VoucherComponent implements OnInit, OnDestroy {
     return Number(this.orden?.status?.statusID) === 7;
   }
 
+  get puedeSeguirPagando(): boolean {
+    return Number(this.orden?.status?.statusID) === 17 && !!this.orden?.formUrl;
+  }
+
   ngOnInit(): void {
     const reference = this.route.snapshot.queryParamMap.get('reference') || '';
 

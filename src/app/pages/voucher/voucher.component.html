@@ -20,6 +20,10 @@
           El pago se encuentra en estado: {{ orden?.status?.description || 'pendiente' }}.
         </h2>
 
+        <a class="continue-payment" *ngIf="!cargando && puedeSeguirPagando" [href]="orden.formUrl">
+          Seguir pagando
+        </a>
+
         <p class="download-message" *ngIf="descargandoVoucher">
           Preparando la descarga del voucher...
         </p>
