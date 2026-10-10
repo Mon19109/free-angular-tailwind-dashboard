@@ -235,7 +235,7 @@ getOperaciones(): Observable<any> {
     const headers = this.getBearerHeaders();
 
     return this.http.get(
-      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5`,
+      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5&idStatus=0`,
       { headers }
     );
   }

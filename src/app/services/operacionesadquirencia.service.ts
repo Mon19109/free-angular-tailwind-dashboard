@@ -243,7 +243,7 @@ export class OperacionesAdquirenciaService {
   
     getSucursales(nodeID: string): Observable<any> {
       return this.http.get(
-        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5`,
+        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5&idStatus=0`,
         { headers: this.getBearerHeaders() }
       );
     }
