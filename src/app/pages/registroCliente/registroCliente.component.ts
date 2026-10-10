@@ -301,7 +301,7 @@ export class RegistroClienteComponent {
     codigoPostal: [''], tipoVialidad: [''], nombreVialidad: [''], numeroExterior: [''], numeroInterior: [''], colonia: [''], localidad: [''], municipio: [''], entidadFederativa: [''], locationID: [''], entreCalle: [''], yCalle: [''],
     nombreRepresentante: [''], apellidoPaternoRepresentante: [''], apellidoMaternoRepresentante: [''], calleRepresentante: [''], numeroExteriorRepresentante: [''], numeroInteriorRepresentante: [''], codigoPostalRepresentante: [''], coloniaRepresentante: [''], municipioRepresentante: [''], estadoRepresentante: [''], locationIDRepresentante: [''], correoRepresentante: [''], telefonoRepresentante: [''], telefonoAdicionalRepresentante: [''],
     mismoDomicilio: [false], codigoPostalComercial: ['', Validators.required], tipoVialidadComercial: ['', Validators.required], nombreVialidadComercial: ['', Validators.required], numeroExteriorComercial: [''], numeroInteriorComercial: [''], coloniaComercial: ['', Validators.required], localidadComercial: ['', Validators.required], municipioComercial: ['', Validators.required], entidadFederativaComercial: ['', Validators.required], locationIDComercial: [''], entreCalleComercial: [''], yCalleComercial: [''],
-    correoComercial: ['', [Validators.required, Validators.email]], telefonoComercial: ['', Validators.required], telefonoAdicionalComercial: ['']
+    correoComercial: ['', Validators.email], telefonoComercial: [''], telefonoAdicionalComercial: ['']
   });
 
   readonly accesosForm = this.fb.nonNullable.group({
@@ -2776,8 +2776,8 @@ export class RegistroClienteComponent {
       if (control && !['numeroExterior', 'numeroInterior', 'entreCalle', 'yCalle'].includes(campo)) control.setValidators([Validators.required]);
     });
     ['codigoPostalComercial', 'tipoVialidadComercial', 'nombreVialidadComercial', 'coloniaComercial', 'localidadComercial', 'municipioComercial', 'entidadFederativaComercial'].forEach(campo => this.datosForm.get(campo)?.setValidators([Validators.required]));
-    this.datosForm.controls.correoComercial.setValidators([Validators.required, Validators.email]);
-    this.datosForm.controls.telefonoComercial.setValidators([Validators.required]);
+    this.datosForm.controls.correoComercial.setValidators([Validators.email]);
+    this.datosForm.controls.telefonoComercial.clearValidators();
     Object.entries(this.datosForm.controls).forEach(([nombre, control]) => {
       if (!activos.has(nombre) && nombre === 'correo') control.setValidators([Validators.email]);
       control.updateValueAndValidity({ emitEvent: false });

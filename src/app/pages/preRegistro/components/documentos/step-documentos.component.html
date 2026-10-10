@@ -1,19 +1,4 @@
-@if (soloConsulta) {
-  <section class="step-section documents-panel">
-    <div class="section-title"><h3>Documentos del comercio</h3><span>Consulta de archivos cargados</span></div>
-    @for (documento of documentos; track documento.numero) {
-      <div class="document-row">
-        <span>{{ documento.numero }}</span>
-        <strong>{{ documento.nombre }}</strong>
-        <span>{{ documento.estado || 'Subido' }}</span>
-        <button type="button" class="button ghost" [disabled]="!documento.archivoUrl && !documento.s3Key" (click)="verDocumento(documento)">Ver archivo</button>
-      </div>
-    } @empty {
-      <p>No hay documentos cargados para este comercio.</p>
-    }
-  </section>
-} @else {
-@if (mostrarMesaDigital) {
+@if (mostrarMesaDigital || soloConsulta) {
   <section class="mesa-review">
     <h3>Revisión de Mesa Digital</h3>
 
@@ -73,6 +58,7 @@
           <div class="mesa-switch" role="group" aria-label="Validación de documento">
             <button
               type="button"
+              [disabled]="soloConsulta"
               [class.active]="estadoDocumento(documento) === 'cumple'"
               (click)="validarDocumento(documento, 'cumple')">
               Válido
@@ -80,15 +66,19 @@
             <button
               type="button"
               class="off"
+              [disabled]="soloConsulta"
               [class.active]="estadoDocumento(documento) === 'no-cumple'"
               (click)="validarDocumento(documento, 'no-cumple')">
               No válido
             </button>
           </div>
         </div>
+      } @empty {
+        <p>No hay documentos cargados para este comercio.</p>
       }
     </div>
 
+    @if (!soloConsulta) {
     <div class="mesa-observations">
       <label>
         <span>Observaciones al Cliente</span>
@@ -137,6 +127,7 @@
     </div>
     @if (mensajeNotificacion) {
       <p class="mesa-notification-message">{{ mensajeNotificacion }}</p>
+    }
     }
   </section>
 } @else {
@@ -206,9 +197,7 @@
   </div>
 }
 
-<div class="step-actions" *ngIf="!mostrarMesaDigital">
+<div class="step-actions" *ngIf="!mostrarMesaDigital && !soloConsulta">
   <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
   <button type="button" class="button primary" [disabled]="deshabilitarFinalizar" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
 </div>
-
-}

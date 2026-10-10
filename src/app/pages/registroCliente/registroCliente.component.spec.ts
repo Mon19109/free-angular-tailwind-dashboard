@@ -256,7 +256,7 @@ describe('RegistroCliente: tipo de comercio del catálogo', () => {
 
 
 describe('Documentos: consulta sin edición', () => {
-  it('muestra el archivo y su estado sin carga, validación, notificación ni guardado', async () => {
+  it('conserva la tabla de Mesa Digital y permite ver, con la validación deshabilitada', async () => {
     await TestBed.configureTestingModule({ imports: [StepDocumentosComponent] }).compileComponents();
     const fixture = TestBed.createComponent(StepDocumentosComponent);
     fixture.componentRef.setInput('soloConsulta', true);
@@ -269,7 +269,12 @@ describe('Documentos: consulta sin edición', () => {
     expect(elemento.textContent).toContain('Aprobado');
     expect(elemento.querySelectorAll('input').length).toBe(0);
     const botones = elemento.querySelectorAll('button');
-    expect(botones.length).toBe(1);
+    expect(elemento.querySelector('.mesa-table')).not.toBeNull();
+    expect(elemento.querySelector('.mesa-results')).not.toBeNull();
+    expect(elemento.querySelector('.mesa-register-action')).toBeNull();
+    expect(botones.length).toBe(3);
+    expect(botones[1].disabled).toBeTrue();
+    expect(botones[2].disabled).toBeTrue();
     botones[0].click();
     expect(ver).toHaveBeenCalled();
     fixture.componentInstance.validarDocumento(fixture.componentInstance.documentos[0], 'cumple');
