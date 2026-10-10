@@ -200,7 +200,7 @@ getOperaciones(): Observable<any> {
     const headers = this.getBearerHeaders();
     const nodeID = obtenerNodoSesion();
     return this.http.get<any>(
-      nodeID ? `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3` : `${this.apiV1Url}subAffiliation/getAll`, {
+      nodeID ? `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&idStatus=0` : `${this.apiV1Url}subAffiliation/getAll`, {
           headers: headers
         }
     );
@@ -211,7 +211,7 @@ getOperaciones(): Observable<any> {
     const nodeID = obtenerNodoSesion();
 
     return this.http.get<any>(
-      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`, {
+      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&idStatus=0`, {
           headers: headers,
           withCredentials: true
         }
@@ -226,7 +226,7 @@ getOperaciones(): Observable<any> {
   const headers = this.getBearerHeaders();
 
   return this.http.get(
-    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4`,
+    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4&idStatus=0`,
     { headers }
   );
 }
@@ -244,7 +244,7 @@ getOperaciones(): Observable<any> {
     const headers = this.getBearerHeaders();
 
     return this.http.get(
-      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6`,
+      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6&idStatus=0`,
       { headers }
     );
   }

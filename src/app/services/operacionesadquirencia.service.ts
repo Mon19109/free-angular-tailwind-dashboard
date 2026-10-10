@@ -203,7 +203,7 @@ export class OperacionesAdquirenciaService {
 
       if (nodeID) {
         return this.http.get<{ contextResponse: Subafiliado[] }>(
-          `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`,
+          `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&idStatus=0`,
           { headers: this.getBearerHeaders() }
         );
       }
@@ -218,7 +218,7 @@ export class OperacionesAdquirenciaService {
       const nodeID = obtenerNodoSesion();
 
       return this.http.get<any>(
-        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3`,
+        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&idStatus=0`,
         { headers: this.getBearerHeaders() }
       );
     }
@@ -233,7 +233,7 @@ export class OperacionesAdquirenciaService {
   getEntidades(nodeID: string): Observable<any> {
 
   return this.http.get(
-    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4`,
+    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4&idStatus=0`,
     {
       headers: this.getBearerHeaders()
     }
@@ -250,7 +250,7 @@ export class OperacionesAdquirenciaService {
   
     getCajas(nodeID: string): Observable<any> {
       return this.http.get(
-        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6`,
+        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6&idStatus=0`,
         { headers: this.getBearerHeaders() }
       );
     }
