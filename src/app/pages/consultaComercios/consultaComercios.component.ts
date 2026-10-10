@@ -337,7 +337,7 @@ export class ConsultaComerciosComponent {
   }
 
   private nivelDesdeComercioApi(comercio: ConsultaComercioApi): Comercio['nivel'] {
-    const nivelServicio = this.nivelDesdeAffilationLevel(comercio.idAffilationLevel);
+    const nivelServicio = this.nivelDesdeAffilationLevel(comercio.idAffilationLevel ?? comercio['idAffiliationLevel']);
     if (nivelServicio) return nivelServicio;
 
     if (this.esProspectoCliente(comercio)) return 'Prospecto';
@@ -348,8 +348,15 @@ export class ConsultaComerciosComponent {
     return 'Sub Afiliado';
   }
 
-  private nivelDesdeAffilationLevel(nivel?: string): Comercio['nivel'] | null {
-    const normalizado = this.normalizarTexto(nivel);
+  private nivelDesdeAffilationLevel(nivel: unknown): Comercio['nivel'] | null {
+    const normalizado = this.normalizarTexto(String(nivel ?? ''));
+    const niveles: Record<string, Comercio['nivel']> = {
+      '3': 'Sub Afiliado',
+      '4': 'Entidad',
+      '5': 'Sucursal',
+      '6': 'Caja',
+    };
+    if (niveles[normalizado]) return niveles[normalizado];
 
     if (normalizado === 'SUBAFILIADO' || normalizado === 'SUB_AFILIADO' || normalizado === 'SUB AFILIADO') {
       return 'Sub Afiliado';
@@ -357,7 +364,7 @@ export class ConsultaComerciosComponent {
 
     if (normalizado === 'ENTIDAD') return 'Entidad';
     if (normalizado === 'SUCURSAL') return 'Sucursal';
-    if (normalizado === 'TERMINAL' || normalizado === 'CAJA') return 'Caja';
+    if (normalizado === 'TERMINAL' || normalizado === 'TERMINALES' || normalizado === 'CAJA') return 'Caja';
     if (normalizado === 'REFERENCIADOR' || normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospecto';
 
     return null;
@@ -717,7 +724,7 @@ export class ConsultaComerciosComponent {
   }
 
   puedeConsultarPassword(comercio: Comercio): boolean {
-    return comercio.nivel === 'Caja';
+    return this.obtenerIdRolSesion() !== 6 && comercio.nivel === 'Caja';
   }
 
   etiquetaInformacion(comercio: Comercio): string {

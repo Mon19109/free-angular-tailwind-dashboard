@@ -16,6 +16,7 @@ export class StepDocumentosComponent {
   @Input() archivosInvalidos = false;
   @Input() textoFinalizar = 'Enviar preregistro';
   @Input() mostrarMesaDigital = false;
+  @Input() soloConsulta = false;
   @Input() mostrarMismaDocumentacionEntidad = false;
   @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
@@ -63,6 +64,7 @@ export class StepDocumentosComponent {
   }
 
   validarDocumento(documento: DocumentoRequerido, estado: 'cumple' | 'no-cumple'): void {
+    if (this.soloConsulta) return;
     this.validacionesMesaDigital[documento.numero] = estado;
     this.validarArchivo.emit({
       documento,

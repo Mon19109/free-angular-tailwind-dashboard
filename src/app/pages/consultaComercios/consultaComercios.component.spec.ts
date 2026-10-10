@@ -69,4 +69,26 @@ describe('Filtro de pendientes de revisión', () => {
       queryParams: jasmine.objectContaining({ pendienteRevision: 'true', habilitarMesaDigital: 'false' })
     });
   });
+
+  it('reconoce TERMINALES con typeOfBusiness 0 y consulta la contraseña con el flujo existente', () => {
+    spyOn(localStorage, 'getItem').and.callFake(key => key === 'auth_session' ? JSON.stringify({ idRol: 3 }) : null);
+    const consultarPasswordCaja = jasmine.createSpy().and.returnValue(of({ password: 'clave-prueba' }));
+    const service = {
+      buscarComercios: () => of({ commerces: [{
+        idAffilationLevel: 'TERMINALES', typeOfBusiness: 0, terminalUserID: 0,
+        terminalID: 10, entitySonID: 'CAJA-1', commerceID: 'guid-caja', status: 'ACTIVO'
+      }] }),
+      consultarPasswordCaja
+    };
+    const component = new ConsultaComerciosComponent({} as Router,
+      service as unknown as ConsultaComerciosService, {} as RecuperarCuentaService);
+    const caja = component.resultados[0];
+
+    expect(caja.nivel).toBe('Caja');
+    expect(component.puedeConsultarPassword(caja)).toBeTrue();
+    component.ejecutarAccion('password', caja);
+    expect(consultarPasswordCaja).toHaveBeenCalledOnceWith('guid-caja');
+    expect(component.modalPassword).toBe(caja);
+    expect(caja.password).toBe('clave-prueba');
+  });
 });

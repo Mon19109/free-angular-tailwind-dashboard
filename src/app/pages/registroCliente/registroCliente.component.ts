@@ -107,6 +107,7 @@ export class RegistroClienteComponent {
   datosBeneficiarioIgualComercio = false;
   modoReservaActual: ModoReserva = 'NINGUNO';
   archivosInvalidos = false;
+  accesosRegistrados = false;
   pldID = '';
   cargandoSiprelad = false;
   resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
@@ -440,6 +441,7 @@ export class RegistroClienteComponent {
     if (!this.nodeIDEdicion) {
       this.seleccionarNodoPorId(this.nodoSeleccionado);
     }
+    this.actualizarModoEdicionNodo(this.nodoSeleccionado);
     this.consultarArbolEdicion();
     if (!this.nodeIDEdicion || this.habilitarMesaDigitalEdicion) {
       this.consultarResultadoSiprelad();
@@ -463,7 +465,9 @@ export class RegistroClienteComponent {
   get camposDatosGenerales(): string[] {
     const nivel = this.comercioForm.getRawValue().nivel;
     const tipo = this.comercioForm.getRawValue().tipoComercio;
-    return this.datosGeneralesPorTipo[['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo] ?? [];
+    const campos = this.datosGeneralesPorTipo[['Referenciador', 'Comisionista'].includes(nivel) ? nivel : tipo];
+    // La falta de catálogo no debe ocultar los datos recibidos de la cuenta.
+    return campos?.length ? campos : this.datosGeneralesPorTipo['Empresa Grupo'];
   }
 
   get esMesaDigitalSesion(): boolean {
@@ -475,12 +479,23 @@ export class RegistroClienteComponent {
     }
   }
 
+  get esCajaSesion(): boolean {
+    try {
+      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
+      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 6;
+    } catch {
+      return Number(localStorage.getItem('idRol') || 0) === 6;
+    }
+  }
+
+  get soloConsulta(): boolean { return !this.esMesaDigitalSesion; }
+
   get esEdicionPendiente(): boolean {
     return this.pendienteRevisionEdicion && !!this.nodeIDEdicion;
   }
 
   get mostrarCapturaFinalPendiente(): boolean {
-    return this.esEdicionPendiente && !this.esMesaDigitalSesion && this.nivelSeleccionado !== 'caja';
+    return this.esEdicionPendiente && !this.esMesaDigitalSesion && !this.esCajaSesion && this.nivelSeleccionado !== 'caja';
   }
 
   get capturaFinalHabilitada(): boolean {
@@ -491,34 +506,26 @@ export class RegistroClienteComponent {
   }
 
   get documentacionSoloConsulta(): boolean {
-    return this.esEdicionPendiente && !this.esMesaDigitalSesion;
+    return !this.esMesaDigitalSesion;
   }
 
   get pasosVisiblesRegistro() {
-    const secciones = [...this.seccionesVisibles];
-    if (this.mostrarCapturaFinalPendiente) {
-      secciones.push(...this.secciones.filter(seccion => ['liquidacion', 'accesos'].includes(seccion.id)));
-    }
-    return secciones.map((seccion, index) => ({
-      id: seccion.id,
-      numero: index + 1,
-      titulo: seccion.titulo
+    return this.seccionesOrdenadas.map((seccion, index) => ({
+      id: seccion.id, numero: index + 1, titulo: seccion.titulo
     }));
   }
 
+  get seccionesOrdenadas(): SeccionRegistro[] {
+    return ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']
+      .flatMap(id => this.secciones.filter(seccion => seccion.id === id));
+  }
+
   get seccionesVisibles(): SeccionRegistro[] {
-    if (this.esEdicionPendiente) {
-      return this.secciones.filter(seccion => ['comercio', 'datos', 'documentos'].includes(seccion.id));
-    }
-    return this.secciones.filter(seccion => {
-      if (seccion.id === 'documentos' && this.pendienteRevisionEdicion && this.habilitarMesaDigitalEdicion) return true;
-      if (this.nivelSeleccionado === 'caja') return seccion.id === 'comercio';
-      if (['liquidacion', 'accesos'].includes(seccion.id)) return false;
-      if (seccion.id === 'datos') return this.camposDatosGenerales.length > 0;
-      if (seccion.id === 'documentos' && this.nodeIDEdicion && !this.habilitarMesaDigitalEdicion) return false;
-      if (seccion.id === 'documentos') return this.mostrarSoloPasosTresCincoRegistroTemporal || this.documentosVisibles.length > 0;
-      return true;
-    });
+    // La captura pendiente usa los componentes que envían liquidación y accesos.
+    // En consulta los cinco módulos siempre están disponibles.
+    return this.capturaFinalHabilitada
+      ? this.seccionesOrdenadas.filter(seccion => !['liquidacion', 'accesos'].includes(seccion.id))
+      : this.seccionesOrdenadas;
   }
 
   get seccionesCardsVisibles(): SeccionRegistro[] {
@@ -531,9 +538,7 @@ export class RegistroClienteComponent {
   }
 
   numeroPasoRegistro(id: SeccionRegistro['id']): number {
-    if (this.esEdicionPendiente) return ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos'].indexOf(id) + 1;
-    const indexVisible = this.pasosVisiblesRegistro.findIndex(seccion => seccion.id === id);
-    return indexVisible >= 0 ? indexVisible + 1 : this.secciones.findIndex(seccion => seccion.id === id) + 1;
+    return ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos'].indexOf(id) + 1;
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
@@ -542,6 +547,8 @@ export class RegistroClienteComponent {
         .map((documentoProspecto, index) => this.documentoRequeridoDesdeProspecto(documentoProspecto, index))
         .sort((a, b) => a.numero - b.numero);
     }
+
+    if (this.nodeIDEdicion) return [];
 
     const nivel = this.comercioForm.getRawValue().nivel;
     const tipo = this.comercioForm.getRawValue().tipoComercio;
@@ -588,7 +595,7 @@ export class RegistroClienteComponent {
       return [this.usuariosAccesoBase.admin];
     }
 
-    return [];
+    return [this.usuariosAccesoBase.admin];
   }
   get nivelesNodoActual(): string[] {
     const nivel = this.comercioForm.getRawValue().nivel;
@@ -625,13 +632,17 @@ export class RegistroClienteComponent {
   private consultarDocumentosProspecto(): void {
     if (!this.commerceID || this.commerceID === 'ND') {
       this.documentosProspecto = [];
+      this.cargandoDocumentosProspecto = false;
       return;
     }
 
+    const nodoId = this.nodoSeleccionado;
+    const commerceID = this.commerceID;
     this.cargandoDocumentosProspecto = true;
     this.errorDocumentosProspecto = '';
-    this.documentosProspectoService.consultarDocumentos(this.commerceID).subscribe({
+    this.documentosProspectoService.consultarDocumentos(commerceID).subscribe({
       next: respuesta => {
+        if (nodoId !== this.nodoSeleccionado || commerceID !== this.commerceID) return;
         if (respuesta.success === false) {
           this.documentosProspecto = [];
           this.errorDocumentosProspecto = respuesta.error?.message || 'No fue posible consultar los documentos del comercio.';
@@ -645,6 +656,7 @@ export class RegistroClienteComponent {
         this.cargandoDocumentosProspecto = false;
       },
       error: () => {
+        if (nodoId !== this.nodoSeleccionado || commerceID !== this.commerceID) return;
         this.documentosProspecto = [];
         this.errorDocumentosProspecto = 'No fue posible consultar los documentos del comercio.';
         this.cargandoDocumentosProspecto = false;
@@ -905,7 +917,7 @@ export class RegistroClienteComponent {
     const tipoPersona = this.tipoPersonaDesdeCuenta(cuenta, rfc);
     const niveles: Record<number, string> = { 3: 'Sub Afiliado', 4: 'Entidad', 5: 'Sucursal', 6: 'Caja' };
     const nivel = niveles[Number(cuenta['idAffiliationLevel'])] || this.comercioForm.getRawValue().nivel;
-    this.tiposComercio = tipoComercio ? [tipoComercio] : [];
+    this.tiposComercio = [...new Set([...(this.tiposComercioPorNivel[nivel] ?? []), ...(tipoComercio ? [tipoComercio] : [])])];
     this.comercioForm.patchValue({ nivel, tipoComercio }, { emitEvent: false });
 
     this.datosForm.patchValue(this.valoresConContenido({
@@ -970,6 +982,15 @@ export class RegistroClienteComponent {
       telefonoAdicionalComercial: tieneContactoComercial ? this.valorCuenta(contactoComercial, ['additionaPhoneNumber', 'additionalPhoneNumber', 'telefonoAdicional']) : ''
     }, { emitEvent: false });
 
+    const opcionesDispersion: Record<string, string> = {
+      NETWORK: 'en-red', OTHER_BANK: 'otros-bancos', OTHER_BANK_AND_NETWORK: 'otros-bancos-en-red'
+    };
+    this.liquidacionForm.controls.cuentaFueraRed.setValue(
+      opcionesDispersion[this.valorCuenta(cuenta, ['dispersionAccount'])] || '', { emitEvent: false }
+    );
+    this.accesosRegistrados = cuenta['hasPlatformAccess'] === true;
+    this.asegurarUsuarioAccesoActivo();
+    this.actualizarModoEdicionNodo(this.nodoSeleccionado);
     this.resolverActividadCuenta(cuenta);
     this.resolverGiroCuenta(cuenta);
     this.consultarLocalidadesCuenta('DF', direccionFiscal);
@@ -1029,7 +1050,8 @@ export class RegistroClienteComponent {
 
   private registroCuentaDesdeRespuesta(respuesta: unknown): Record<string, unknown> {
     const registros = this.registrosCuentaDesdeRespuesta(respuesta);
-    return registros[0] ?? {};
+    const registro = registros[0] ?? {};
+    return this.esRegistroCuenta(respuesta) ? { ...respuesta, ...registro } : registro;
   }
 
   private registrosCuentaDesdeRespuesta(respuesta: unknown): Array<Record<string, unknown>> {
@@ -1416,6 +1438,9 @@ export class RegistroClienteComponent {
       this.commerceID = nodo.commerceID || '';
       this.pldID = nodo.pldID || '';
       this.documentosProspecto = [];
+      this.cargandoDocumentosProspecto = false;
+      this.errorDocumentosProspecto = '';
+      this.accesosRegistrados = false;
       this.resultadosSiprelad = [];
       this.resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
     }
@@ -1451,7 +1476,6 @@ export class RegistroClienteComponent {
     return 'fa-folder';
   }
   alternarSeccion(id: SeccionRegistro['id']): void {
-    if (id === 'documentos' && this.documentacionSoloConsulta) return;
     this.seccionAbierta = this.seccionAbierta === id ? null : id;
     if (this.seccionAbierta) this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
   }
@@ -1487,6 +1511,7 @@ export class RegistroClienteComponent {
   }
 
   finalizar(): void {
+    if (!this.esMesaDigitalSesion) return;
     if (this.nodeIDEdicion) {
       if (this.mostrarRegistrarClienteDocumentos) {
         this.registrarClienteProspecto();
@@ -1518,7 +1543,12 @@ export class RegistroClienteComponent {
   }
 
   completarPaso(id: SeccionRegistro['id'], siguiente?: SeccionRegistro['id']): void {
+    if (this.soloConsulta) {
+      if (siguiente) this.continuarSeccion(siguiente);
+      return;
+    }
     this.guardarCapturaNodoActual();
+    this.guardarEstadoRegistroLocal();
     this.pasosCompletados.add(this.clavePasoNodo(id));
     if (siguiente) {
       this.seccionAbierta = this.resolverSeccionVisible(siguiente, id);
@@ -1527,6 +1557,7 @@ export class RegistroClienteComponent {
   }
 
   guardarLiquidacion(): void {
+    if (!this.esMesaDigitalSesion) return;
     this.guardarCapturaNodoActual();
     this.guardarLiquidacionActual();
     this.pasosCompletados.add(this.clavePasoNodo('liquidacion'));
@@ -1605,6 +1636,7 @@ export class RegistroClienteComponent {
   }
 
   registrarClienteProspecto(): void {
+    if (!this.esMesaDigitalSesion) return;
     this.mensajeRegistroCliente = '';
     if (this.registrandoCliente) return;
     if (!this.mostrarMesaDigitalProspecto) {
@@ -1764,6 +1796,7 @@ export class RegistroClienteComponent {
   }
 
   seleccionarArchivo(event: Event, documento: DocumentoRequerido): void {
+    if (!this.esMesaDigitalSesion) return;
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0];
     if (!archivo) return;
@@ -1772,7 +1805,7 @@ export class RegistroClienteComponent {
   }
 
   actualizarEstatusDocumento(documento: DocumentoRequerido, estado: EstatusDocumentoProspecto): void {
-    if (this.nodeIDEdicion && !this.habilitarMesaDigitalEdicion) return;
+    if (!this.esMesaDigitalSesion || !this.habilitarMesaDigitalEdicion) return;
     documento.estatusRevision = estado;
     documento.estado = this.traducirEstatusDocumento(estado);
 
@@ -1819,6 +1852,7 @@ export class RegistroClienteComponent {
   }
 
   enviarNotificacionMesaDigital(): void {
+    if (!this.esMesaDigitalSesion) return;
     const email = this.emailNotificacionMesaDigital.trim();
     const observations = this.observacionesClienteMesaDigital.trim();
 
@@ -1855,7 +1889,7 @@ export class RegistroClienteComponent {
   }
 
   guardarRevisionDocumentos(finalizarDespues = false, alGuardar?: () => void): void {
-    if (this.nodeIDEdicion && !this.habilitarMesaDigitalEdicion) return;
+    if (!this.esMesaDigitalSesion || !this.habilitarMesaDigitalEdicion) return;
     const legalDocuments = this.documentosProspecto
       .map(documento => ({
         id: this.idDocumentoCargado(documento),
@@ -1947,15 +1981,11 @@ export class RegistroClienteComponent {
   }
 
   private numeroPasoPorSeccion(id: SeccionRegistro['id']): number {
-    const index = this.secciones.findIndex(seccion => seccion.id === id);
-    return index >= 0 ? index + 1 : 1;
+    return this.numeroPasoRegistro(id);
   }
 
   private resolverSeccionVisible(preferida: SeccionRegistro['id'], actual?: SeccionRegistro['id']): SeccionRegistro['id'] {
-    if (this.mostrarCapturaFinalPendiente) {
-      if (preferida === 'comercio' || preferida === 'datos') return preferida;
-      return this.capturaFinalHabilitada ? (preferida === 'accesos' ? 'accesos' : 'liquidacion') : 'comercio';
-    }
+    if (this.mostrarCapturaFinalPendiente) return preferida;
     if (this.seccionesVisibles.some(seccion => seccion.id === preferida)) return preferida;
 
     const inicio = actual
@@ -1969,6 +1999,7 @@ export class RegistroClienteComponent {
   }
 
   private guardarCapturaNodoActual(): void {
+    if (this.soloConsulta) return;
     this.comercioPorNodo[this.nodoSeleccionado] = this.comercioForm.getRawValue();
     this.datosPorNodo[this.nodoSeleccionado] = this.datosForm.getRawValue();
     const accesos = this.accesosForm.getRawValue();
@@ -2200,7 +2231,7 @@ export class RegistroClienteComponent {
   }
 
   private actualizarModoEdicionNodo(nodoId: string): void {
-    const puedeEditarTodo = this.nodosNuevos.has(nodoId);
+    const puedeEditarTodo = this.esMesaDigitalSesion;
     const opciones = { emitEvent: false };
 
     if (puedeEditarTodo) {
@@ -2211,10 +2242,11 @@ export class RegistroClienteComponent {
     } else {
       this.comercioForm.disable(opciones);
       this.datosForm.disable(opciones);
-      this.accesosForm.enable(opciones);
+      this.accesosForm.disable(opciones);
     }
 
-    this.liquidacionForm.enable(opciones);
+    if (puedeEditarTodo) this.liquidacionForm.enable(opciones);
+    else this.liquidacionForm.disable(opciones);
   }
 
   tieneLiquidacion(nodoId: string): boolean {
@@ -2817,7 +2849,7 @@ export class RegistroClienteComponent {
       return;
     }
 
-    controles.forEach(control => control.enable({ emitEvent: false }));
+    controles.forEach(control => this.soloConsulta ? control.disable({ emitEvent: false }) : control.enable({ emitEvent: false }));
     this.liquidacionForm.controls.nombreBeneficiario.setValidators([Validators.required]);
     this.liquidacionForm.controls.correoBeneficiario.setValidators([Validators.required, Validators.email]);
     this.liquidacionForm.controls.direccionBeneficiario.setValidators([Validators.required]);

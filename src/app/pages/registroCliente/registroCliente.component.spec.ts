@@ -1,6 +1,7 @@
 import { of, throwError } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
+import { StepDocumentosComponent } from '../preRegistro/components/documentos/step-documentos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { RegistroClienteComponent } from './registroCliente.component';
 import { RegistroProspectoClienteComponent } from '../registroProspectoCliente/registroProspectoCliente.component';
@@ -13,11 +14,14 @@ describe('RegistroCliente: pasos finales internos', () => {
       nodeIDEdicion: 'nodo-entidad',
       secciones: [
         { id: 'comercio', titulo: 'Datos del Comercio' },
+        { id: 'datos', titulo: 'Datos Generales' },
+        { id: 'documentos', titulo: 'Documentos' },
         { id: 'liquidacion', titulo: 'Cuenta de Liquidación' },
         { id: 'accesos', titulo: 'Accesos a Plataforma' }
       ]
     });
     Object.defineProperty(component, 'esMesaDigitalSesion', { value: mesaDigital });
+    Object.defineProperty(component, 'esCajaSesion', { value: false });
     Object.defineProperty(component, 'nivelSeleccionado', { value: nivel });
     Object.defineProperty(component, 'seccionesVisibles', {
       value: [{ id: 'comercio', titulo: 'Datos del Comercio' }]
@@ -25,11 +29,15 @@ describe('RegistroCliente: pasos finales internos', () => {
     return component;
   }
 
-  it('añade los pasos finales solamente en pendientes de revisión', () => {
-    expect(pantalla(true).pasosVisiblesRegistro.map(paso => paso.id))
-      .toEqual(['comercio', 'liquidacion', 'accesos']);
-    expect(pantalla(false).pasosVisiblesRegistro.map(paso => paso.id)).toEqual(['comercio']);
-    expect(pantalla(true, 'caja').pasosVisiblesRegistro.map(paso => paso.id)).toEqual(['comercio']);
+  it('muestra los cinco módulos para todos los roles y niveles, incluso fuera de pendientes', () => {
+    for (const pendiente of [true, false]) {
+      for (const nivel of ['entidad', 'sucursal', 'caja']) {
+        for (const admin of [true, false]) {
+          expect(pantalla(pendiente, nivel, admin).pasosVisiblesRegistro.map(paso => paso.id))
+            .toEqual(['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']);
+        }
+      }
+    }
   });
 
   it('no permite cambiar de nodo durante el envío de liquidación o accesos', () => {
@@ -74,42 +82,77 @@ describe('RegistroCliente: pasos finales internos', () => {
 
     component.continuarDesdeDocumentos();
 
-    expect(component.seccionAbierta).toBe('documentos');
+    expect<string | null>(component.seccionAbierta).toBe('documentos');
     expect(completar).not.toHaveBeenCalled();
     expect(alGuardar).toBeDefined();
     alGuardar!();
     expect(completar).toHaveBeenCalledWith('documentos');
-    expect(component.seccionAbierta).toBe('documentos');
+    expect<string | null>(component.seccionAbierta).toBe('documentos');
     expect(component.nodoSeleccionado).toBe('entidad');
     expect(siguienteNodo).not.toHaveBeenCalled();
   });
 
-  it('conserva los pasos 1 a 3 para Mesa Digital y añade 4 y 5 solamente a los otros roles', () => {
-    for (const mesaDigital of [true, false]) {
-      const component = Object.create(RegistroClienteComponent.prototype) as RegistroClienteComponent;
-      Object.assign(component, {
-        pendienteRevisionEdicion: true, nodeIDEdicion: 'SUCURSAL-1',
-        secciones: ['comercio', 'datos', 'liquidacion', 'accesos', 'documentos'].map(id => ({ id, titulo: id }))
-      });
-      Object.defineProperty(component, 'esMesaDigitalSesion', { value: mesaDigital });
-      Object.defineProperty(component, 'nivelSeleccionado', { value: 'sucursal' });
-      expect(component.seccionesVisibles.map(item => item.id)).toEqual(
-        ['comercio', 'datos', 'documentos']);
-      expect(component.pasosVisiblesRegistro.map(item => item.id)).toEqual(
-        mesaDigital ? ['comercio', 'datos', 'documentos'] : ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']);
-      expect(component.numeroPasoRegistro('documentos')).toBe(3);
-      expect(component.numeroPasoRegistro('liquidacion')).toBe(4);
-      expect(component.numeroPasoRegistro('accesos')).toBe(5);
-      expect(component.documentacionSoloConsulta).toBe(!mesaDigital);
-      expect(component.mostrarCapturaFinalPendiente).toBe(!mesaDigital);
-    }
-  });
-
-  it('no despliega documentación para el rol de captura', () => {
+  it('permite abrir documentos en consulta sin conceder permisos de revisión', () => {
     const component = pantalla(true);
     component.seccionAbierta = null;
     component.alternarSeccion('documentos');
-    expect(component.seccionAbierta).toBeNull();
+    expect<string | null>(component.seccionAbierta).toBe('documentos');
+    expect(component.pasoActual).toBe(3);
+    expect(component.documentacionSoloConsulta).toBeTrue();
+  });
+
+  it('bloquea todas las acciones de escritura de un rol distinto al 2', () => {
+    const component = pantalla(false);
+    const guardar = spyOn<any>(component, 'guardarCapturaNodoActual');
+    const modal = spyOn<any>(component, 'mostrarModalRegistro');
+    component.documentosProspecto = [{ documentID: '1', status: 'IN_REVIEW' }];
+    const documento = { numero: 1, nombre: 'INE', obligatorio: true, archivoId: '1', estatusRevision: 'IN_REVIEW' } as const;
+    component.actualizarEstatusDocumento(documento, 'APPROVED');
+    component.enviarNotificacionMesaDigital();
+    component.guardarRevisionDocumentos();
+    component.guardarLiquidacion();
+    component.finalizar();
+    component.registrarClienteProspecto();
+    component.seleccionarArchivo({} as Event, documento);
+    expect(component.documentosProspecto[0].status).toBe('IN_REVIEW');
+    expect(guardar).not.toHaveBeenCalled();
+    expect(modal).not.toHaveBeenCalled();
+  });
+
+  it('deshabilita los cuatro formularios en consulta y los habilita para el administrador', () => {
+    for (const admin of [true, false]) {
+      const component = pantalla(false, 'entidad', admin);
+      const formularios = {
+        comercioForm: new FormGroup({ nivel: new FormControl('Entidad'), tipoComercio: new FormControl('Empresa Grupo') }),
+        datosForm: new FormGroup({ rfc: new FormControl('RFC') }),
+        liquidacionForm: new FormGroup({ cuentaClabe: new FormControl('123') }),
+        accesosForm: new FormGroup({ adminCorreo: new FormControl('a@b.com') })
+      };
+      Object.assign(component, formularios);
+      (component as any).actualizarModoEdicionNodo('entidad');
+      for (const form of Object.values(formularios)) expect(form.disabled).toBe(!admin);
+      expect(formularios.comercioForm.controls.nivel.disabled).toBeTrue();
+    }
+  });
+
+  it('mantiene Datos Generales cuando el tipo de comercio no está disponible', () => {
+    const component = pantalla(false);
+    Object.assign(component, {
+      comercioForm: new FormGroup({ nivel: new FormControl('Entidad'), tipoComercio: new FormControl('') }),
+      datosGeneralesPorTipo: { 'Empresa Grupo': ['tipoPersona', 'rfc', 'codigoPostal', 'nombreVialidad'] }
+    });
+    expect(component.camposDatosGenerales).toContain('tipoPersona');
+    expect(component.camposDatosGenerales).toContain('codigoPostal');
+  });
+
+  it('Caja no obtiene la excepción de captura aunque consulte una entidad pendiente', () => {
+    const component = Object.create(RegistroClienteComponent.prototype) as RegistroClienteComponent;
+    Object.assign(component, { pendienteRevisionEdicion: true, nodeIDEdicion: 'entidad' });
+    Object.defineProperties(component, {
+      esMesaDigitalSesion: { value: false }, esCajaSesion: { value: true }, nivelSeleccionado: { value: 'entidad' }
+    });
+    expect(component.mostrarCapturaFinalPendiente).toBeFalse();
+    expect(component.capturaFinalHabilitada).toBeFalse();
   });
 
   it('no marca documentación concluida con avances locales sin aprobación', () => {
@@ -208,5 +251,28 @@ describe('RegistroCliente: tipo de comercio del catálogo', () => {
     expect(tipo.readOnly).toBeTrue();
     expect(tipo.value).toBe('Sucursales Únicas');
     expect(elemento.querySelector<HTMLInputElement>('#nivel')!.readOnly).toBeTrue();
+  });
+});
+
+
+describe('Documentos: consulta sin edición', () => {
+  it('muestra el archivo y su estado sin carga, validación, notificación ni guardado', async () => {
+    await TestBed.configureTestingModule({ imports: [StepDocumentosComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(StepDocumentosComponent);
+    fixture.componentRef.setInput('soloConsulta', true);
+    fixture.componentRef.setInput('mostrarMesaDigital', true);
+    fixture.componentRef.setInput('documentos', [{ numero: 1, nombre: 'INE', obligatorio: true, s3Key: 'archivo.pdf', estado: 'Aprobado' }]);
+    const ver = spyOn(fixture.componentInstance.verArchivo, 'emit');
+    const validar = spyOn(fixture.componentInstance.validarArchivo, 'emit');
+    fixture.detectChanges();
+    const elemento: HTMLElement = fixture.nativeElement;
+    expect(elemento.textContent).toContain('Aprobado');
+    expect(elemento.querySelectorAll('input').length).toBe(0);
+    const botones = elemento.querySelectorAll('button');
+    expect(botones.length).toBe(1);
+    botones[0].click();
+    expect(ver).toHaveBeenCalled();
+    fixture.componentInstance.validarDocumento(fixture.componentInstance.documentos[0], 'cumple');
+    expect(validar).not.toHaveBeenCalled();
   });
 });

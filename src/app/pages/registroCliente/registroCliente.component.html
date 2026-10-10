@@ -64,35 +64,40 @@
           <small>{{ contextoSeleccionado.nivel }} · {{ contextoSeleccionado.rfc || 'RFC pendiente' }}</small>
         </div>
 
+        <p *ngIf="soloConsulta" role="status">Información de consulta. La edición y revisión de documentos corresponden al administrador.</p>
+        <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
+        <p *ngIf="errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
+
         <article
           class="section-card"
           *ngFor="let seccion of seccionesCardsVisibles"
           [class.open]="seccionAbierta === seccion.id"
           [class.done]="pasoTerminado(seccion.id)"
-          [class.readonly-existing]="esNodoExistente && seccion.id !== 'liquidacion' && seccion.id !== 'documentos'">
-          <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)" [disabled]="seccion.id === 'documentos' && documentacionSoloConsulta">
+          [class.readonly-existing]="soloConsulta && seccion.id !== 'documentos'">
+          <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)">
             <span class="section-icon"><i class="fa-solid" [ngClass]="seccion.icono"></i></span>
             <span class="section-copy">
               <strong>{{ numeroPasoRegistro(seccion.id) }}. {{ seccion.titulo }}</strong>
               <small>{{ seccion.descripcion }}</small>
             </span>
             <span class="step-status">{{ estadoPaso(seccion.id) }}</span>
-            <i *ngIf="seccion.id !== 'documentos' || !documentacionSoloConsulta" class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            <i class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
-          <div class="section-body" *ngIf="seccionAbierta === seccion.id && (seccion.id !== 'documentos' || !documentacionSoloConsulta)">
+          <div class="section-body" *ngIf="seccionAbierta === seccion.id">
             <app-step-comercio
               *ngIf="seccion.id === 'comercio'"
               [form]="comercioForm"
               [niveles]="nivelesNodoActual"
               [tiposComercio]="tiposComercio"
               [bloquearNivel]="true"
-              [bloquearTipoComercio]="esNodoExistente"
-              [soloInformativo]="esNodoExistente"
+              [bloquearTipoComercio]="soloConsulta"
+              [soloInformativo]="soloConsulta"
               [cargandoInformacion]="cargandoCuentaComercio"
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 
+            <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'datos'" [disabled]="soloConsulta">
             <app-step-datos
               *ngIf="seccion.id === 'datos'"
               [form]="datosForm"
@@ -109,18 +114,22 @@
               [cargandoLocalidadesFiscal]="cargandoLocalidadesFiscal"
               [cargandoLocalidadesComercial]="cargandoLocalidadesComercial"
               [cargandoLocalidadesRepresentante]="cargandoLocalidadesRepresentante"
+              [incluirRepresentantePersonaMoral]="true"
+              [forzarDatosCaja]="esEdicionCaja"
               [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
               [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
               [mostrarMismoDomicilio]="false"
-              [bloquearActividad]="true"
+              [bloquearActividad]="soloConsulta"
               [mostrarBusquedaAvanzadaGiro]="false"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
               (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
               (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"
               (seleccionarLocalidadRepresentante)="seleccionarLocalidad($event, 'REP')"
-              (continuar)="completarPaso('datos', 'liquidacion')"
+              (continuar)="completarPaso('datos', 'documentos')"
               (volver)="continuarSeccion('comercio')" />
+            </fieldset>
 
+            <p *ngIf="seccion.id === 'accesos' && accesosRegistrados" role="status">Este comercio tiene accesos a plataforma registrados.</p>
             <app-step-accesos
               *ngIf="seccion.id === 'accesos'"
               [form]="accesosForm"
@@ -129,24 +138,27 @@
               [usuarioActivo]="usuarioAccesoActivo"
               textoContinuar="Guardar y continuar"
               (usuarioActivoChange)="seleccionarUsuarioAcceso($event)"
-              (continuar)="completarPaso('accesos', 'documentos')"
+              (continuar)="completarPaso('accesos')"
               (volver)="continuarSeccion('liquidacion')" />
 
+            <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'liquidacion'" [disabled]="soloConsulta">
             <app-step-liquidacion
               *ngIf="seccion.id === 'liquidacion'"
               [form]="liquidacionForm"
               [tiposCuenta]="tiposCuenta"
               [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio"
               [mostrarBeneficiarioIgualComercio]="true"
-              [habilitarBusquedasCatalogo]="true"
+              [habilitarBusquedasCatalogo]="!soloConsulta"
               [permitirVacio]="true"
               [varianteRegistro]="true"
               [textoContinuar]="esNodoExistente ? 'Guardar cuenta de liquidación' : 'Guardar y continuar'"
               (continuar)="guardarLiquidacion()"
               (volver)="continuarSeccion('datos')" />
+            </fieldset>
 
             <app-step-documentos
-              *ngIf="seccion.id === 'documentos' && !documentacionSoloConsulta"
+              *ngIf="seccion.id === 'documentos'"
+              [soloConsulta]="documentacionSoloConsulta"
               [documentos]="documentosVisibles"
               [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes"
@@ -171,20 +183,11 @@
               (enviarNotificacion)="enviarNotificacionMesaDigital()"
               (guardarBorrador)="guardarRevisionDocumentos()"
               (finalizar)="continuarDesdeDocumentos()"
-              (volver)="continuarSeccion('accesos')" />
+              (volver)="continuarSeccion('datos')" />
           </div>
         </article>
 
-        <ng-container *ngIf="mostrarCapturaFinalPendiente && !capturaFinalHabilitada">
-          <p role="status">Cuenta de liquidación y Acceso a plataforma se habilitarán cuando Mesa Digital valide toda la documentación.</p>
-          <article class="section-card" *ngFor="let titulo of ['4. Cuenta de liquidación', '5. Acceso a plataforma']">
-            <button type="button" class="section-trigger" disabled>
-              <span class="section-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
-              <span class="section-copy"><strong>{{ titulo }}</strong></span>
-              <span class="step-status">Bloqueado</span>
-            </button>
-          </article>
-        </ng-container>
+        <p *ngIf="mostrarCapturaFinalPendiente && !capturaFinalHabilitada" role="status">Puedes consultar la información. La captura de cuentas de liquidación y accesos se habilitará cuando Mesa Digital valide toda la documentación.</p>
 
         <app-registro-prospecto-cliente
           *ngIf="capturaFinalHabilitada && arbolServicio.length"
@@ -206,7 +209,7 @@
           <button *ngIf="nodeIDEdicion && !esUltimoNodoSeleccionado" class="button primary" type="button" (click)="seleccionarSiguienteNodoArbol()">
             Siguiente <i class="fa-solid fa-arrow-right"></i>
           </button>
-          <button *ngIf="!esNodoExistente" class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
+          <button *ngIf="!esNodoExistente && !soloConsulta" class="button primary" type="button" (click)="finalizar()">Guardar registro <i class="fa-solid fa-check"></i></button>
         </footer>
       </section>
     </div>
