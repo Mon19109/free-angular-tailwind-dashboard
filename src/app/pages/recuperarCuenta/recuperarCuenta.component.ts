@@ -22,8 +22,8 @@ export class RecuperarCuentaComponent implements OnInit {
 
   readonly recuperarForm = this.fb.nonNullable.group({
     info: ['', Validators.required],
-    contrasena: ['', [Validators.required, Validators.pattern(PASSWORD_PATTERN)]],
-    contrasenaCon: ['', Validators.required]
+    contrasena: ['', [Validators.required, Validators.pattern(PASSWORD_PATTERN), Validators.maxLength(20)]],
+    contrasenaCon: ['', [Validators.required, Validators.maxLength(20)]]
   }, { validators: confirmarContrasenas });
 
   mostrarContrasena = false;
@@ -43,7 +43,7 @@ export class RecuperarCuentaComponent implements OnInit {
   get requisitos(): Array<{ texto: string; cumplido: boolean }> {
     const value = this.recuperarForm.controls.contrasena.value;
     return [
-      { texto: 'Al menos 12 caracteres', cumplido: value.length >= 12 },
+      { texto: 'De 12 a 20 caracteres', cumplido: value.length >= 12 && value.length <= 20 },
       { texto: 'Letras minúsculas', cumplido: /[a-z]/.test(value) },
       { texto: 'Letras mayúsculas', cumplido: /[A-Z]/.test(value) },
       { texto: 'Números', cumplido: /\d/.test(value) },
@@ -68,7 +68,7 @@ export class RecuperarCuentaComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const value = Array.from(input.value)
       .filter(character => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@$!%*?&'.includes(character))
-      .join('');
+      .join('').slice(0, 20);
     input.value = value;
     this.recuperarForm.controls[field].setValue(value);
   }

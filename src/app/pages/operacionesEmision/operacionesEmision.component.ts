@@ -408,7 +408,7 @@ cerrarDetalle(): void {
     ]);
 
     const worksheet = XLSX.utils.aoa_to_sheet([
-      [`Operaciones-Emision-${fecha}`],
+      [`Operaciones-Emisión-${fecha}`],
       encabezados,
       ...filas
     ]);
@@ -417,7 +417,7 @@ cerrarDetalle(): void {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Operaciones');
-    XLSX.writeFile(workbook, `Operaciones-Emision-${fecha}.xlsx`);
+    XLSX.writeFile(workbook, `Operaciones-Emisión-${fecha}.xlsx`);
   }
 
   private obtenerFechaArchivo(): string {

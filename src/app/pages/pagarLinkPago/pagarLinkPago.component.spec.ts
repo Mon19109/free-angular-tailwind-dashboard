@@ -183,7 +183,7 @@ describe('PagarLinkPagoComponent', () => {
     component.formulario.patchValue({
       nameCard: 'Ana Lopez', numCard: '4111 1111 1111 1111', vencimiento: '12/29',
       ccv: '123', pais: 'Mexico', cp: '12345', address: 'Calle 1', ciudad: 'Mexico',
-      estado: 'CDMX', meses: 3, propina: 0, terminos: true
+      estado: 'CDMX', meses: 3, amountPending: '100.00', propina: 0, terminos: true
     });
 
     component.procesarPago();
@@ -211,6 +211,31 @@ describe('PagarLinkPagoComponent', () => {
       queryParams: { reference: 'ORDER-1' }, replaceUrl: true
     });
   });
+
+  for (const porcentaje of [0, 10]) {
+    it(`includes the tip in a mixed payment charge and keeps it separate (${porcentaje}%)`, () => {
+      component.orden = { id: 'MIXED-1', amount: 2000, amountPending: 1500,
+        paymentMethod: { paymentMethodID: 6 } };
+      service.procesarTransaccion.and.returnValue(of({ success: true }));
+      component.seleccionarOtraPropina();
+      component.formulario.patchValue({
+        amountPending: '1,000.00', propina: porcentaje ? '' : '200.00', propinaPorcentaje: porcentaje,
+        nameCard: 'Ana Lopez', numCard: '4111 1111 1111 1111', vencimiento: '12/29',
+        ccv: '123', pais: 'Mexico', cp: '12345', terminos: true
+      });
+
+      component.procesarPago();
+
+      const payload = service.procesarTransaccion.calls.mostRecent().args[0] as any;
+      const propina = porcentaje ? 100 : 200;
+      expect(payload.amount).toBe(1000 + propina);
+      expect(payload.otherAmount).toBe(propina);
+      expect(payload.amount - payload.otherAmount).toBe(1000);
+      expect(component.formulario.controls.amountPending.value).toBe('1,000.00');
+      expect(component.orden.amount).toBe(2000);
+      expect(component.orden.amountPending).toBe(1500);
+    });
+  }
 
   it('shows the transaction rejection in the payment error modal', () => {
     service.obtenerCliente.and.returnValue(of({ merchanID: 'MERCHANT-9' }));

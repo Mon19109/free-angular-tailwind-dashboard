@@ -304,8 +304,8 @@ export class TransaccionesEmisionComponent implements OnInit {
     const fecha = this.obtenerFechaArchivo();
     const worksheet = XLSX.utils.json_to_sheet(this.operacionesFiltradasTabla.map(item => this.exportRow(item)));
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones Emision');
-    XLSX.writeFile(workbook, `Transacciones-Emision-${fecha}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones Emisión');
+    XLSX.writeFile(workbook, `Transacciones-Emisión-${fecha}.xlsx`);
     this.exportMenuAbierto = false;
   }
 
@@ -319,7 +319,7 @@ export class TransaccionesEmisionComponent implements OnInit {
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Transacciones-Emision-${fecha}`, 148, 23, { align: 'center' });
+    doc.text(`Transacciones-Emisión-${fecha}`, 148, 23, { align: 'center' });
 
     autoTable(doc, {
       startY: 30,
@@ -361,7 +361,7 @@ export class TransaccionesEmisionComponent implements OnInit {
         this.valorAutorizacion(item)
       ])
     });
-    doc.save(`Transacciones-Emision-${fecha}.pdf`);
+    doc.save(`Transacciones-Emisión-${fecha}.pdf`);
     this.exportMenuAbierto = false;
   }
 

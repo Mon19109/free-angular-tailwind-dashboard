@@ -82,7 +82,7 @@
             </div>
 
             <div class="transaction-field">
-              <app-label>Ingresar busqueda</app-label>
+              <app-label>Ingresar búsqueda</app-label>
               <input id="concepto" [type]="formulario.get('filtro')?.value === 'Fecha de expiración' ? 'date' : 'text'"
                 [attr.inputmode]="formulario.get('filtro')?.value === 'Teléfono' ? 'numeric' : formulario.get('filtro')?.value === 'Monto' ? 'decimal' : null"
                 [attr.maxlength]="formulario.get('filtro')?.value === 'Teléfono' ? 10 : null"

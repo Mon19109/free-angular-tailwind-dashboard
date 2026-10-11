@@ -49,7 +49,7 @@ export class UsuariosComponent implements OnInit {
     { id: 14, nombre: 'Inactivo' },
     { id: 18, nombre: 'Revisando' },
     { id: 19, nombre: 'Verificado' },
-    { id: 20, nombre: 'Fallo envio SCUD' },
+    { id: 20, nombre: 'Fallo envío SCUD' },
     { id: 21, nombre: 'Pendiente por revisar core' },
     { id: 22, nombre: 'Estatus diferente de verified' },
     { id: 23, nombre: 'Fallo alta web' },
@@ -57,7 +57,7 @@ export class UsuariosComponent implements OnInit {
   ];
 
   accionesOptions = [
-    { label: 'Reenvio de token', value: 'token' },
+    { label: 'Reenvío de token', value: 'token' },
     { label: 'Actualizar correo electrónico', value: 'correo' }
   ];
 
@@ -350,7 +350,7 @@ export class UsuariosComponent implements OnInit {
     reenviarToken(usuario: any): void {
   
       console.log(
-        'Reenvio token',
+        'Reenvío token',
         usuario
       );
   

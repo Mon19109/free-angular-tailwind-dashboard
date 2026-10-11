@@ -1,7 +1,7 @@
 <form [attr.inert]="loading() || modalResultado.visible ? '' : null" [attr.aria-busy]="loading()" id="formulario" [formGroup]="formulario" (ngSubmit)="enviarForm($event)">
   @if (formulario.invalid && formulario.touched) {
     <div class="form-validation-alert" role="alert">
-      Completa todos los campos requeridos. Productos es el único campo opcional.
+      Completa todos los campos requeridos marcados con *. Productos es el único campo opcional.
     </div>
   }
   <div class="operations-shell page-container">

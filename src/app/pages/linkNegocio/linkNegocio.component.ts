@@ -22,7 +22,7 @@ export class LinkNegocioComponent implements OnInit {
     sirio: [''],
     virtualAccount: [''],
     orderingAccount: [''],
-    monto: ['', [Validators.required, Validators.pattern(/^\d+(\.\d{1,2})?$/)]],
+    monto: ['', [Validators.required, Validators.pattern(/^(?:\d+|\d{1,3}(?:,\d{3})+)(\.\d{1,2})?$/)]],
     concepto: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
     nombre: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
     apaterno: ['', [Validators.required, Validators.pattern(/^[A-Za-z ]+$/)]],
@@ -152,7 +152,8 @@ export class LinkNegocioComponent implements OnInit {
     const digitos = valor.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
     if (!digitos) return '';
     const centavos = digitos.padStart(3, '0');
-    return `${centavos.slice(0, -2)}.${centavos.slice(-2)}`;
+    const entero = centavos.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return `${entero}.${centavos.slice(-2)}`;
   }
 
   procesarTelefono(event: Event): void {

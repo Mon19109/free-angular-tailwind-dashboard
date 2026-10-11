@@ -421,7 +421,7 @@ export class PagarLinkPagoComponent implements OnInit {
     const payload = {
       messagetype: 90,
       posEntryMode: 6,
-      amount: this.subtotal,
+      amount: this.esPagoMixto ? this.total : this.subtotal,
       otherAmount: this.propinaCalculada,
       user: this.orden?.user ?? cliente.email ?? '',
       currency: '484',

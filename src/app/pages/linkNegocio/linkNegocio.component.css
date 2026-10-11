@@ -291,17 +291,7 @@
   position: relative;
 }
 
-.input-with-prefix > span {
-  position: absolute;
-  top: 50%;
-  left: 15px;
-  color: var(--navy-900);
-  font-weight: 800;
-  transform: translateY(-50%);
-}
-
 .input-with-prefix .form-control {
-  padding-left: 32px;
   font-size: 17px;
   font-weight: 750;
 }

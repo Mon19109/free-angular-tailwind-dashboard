@@ -79,7 +79,7 @@ export class AppSidebarComponent {
           ]
         },
         {
-          name: 'REPORTES EMISION',
+          name: 'REPORTES EMISIÓN',
            icon: '<i class="fas fa-chart-pie fa-lg"></i>',
           access: 'reportesEmision',
           subItems: [
@@ -147,7 +147,7 @@ export class AppSidebarComponent {
           path: '/beneficiarios'
         },
         {
-          name: 'ENVIOS',
+          name: 'ENVÍOS',
            icon: '<i class="fas fa-exchange-alt fa-lg"></i>',
           path: '/orden_pago'
         }

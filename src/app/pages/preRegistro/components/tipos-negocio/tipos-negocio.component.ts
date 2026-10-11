@@ -75,7 +75,7 @@ export class TiposNegocioComponent {
     {
       id: 'auditor-unico',
       titulo: 'Sucursales múltiples un solo auditor',
-      descripcion: 'Un usuario  Administrador de Portal para Gestion del negocio. Administrador de Recursos. Consulta de Reportes de todas las sucursales.',
+      descripcion: 'Un usuario  Administrador de Portal para Gestión del negocio. Administrador de Recursos. Consulta de Reportes de todas las sucursales.',
       icono: '',
       imagen: 'assets/paquetes/auditor.png',
       iconoInferior: 'fa-shield-halved',
