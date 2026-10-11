@@ -1,3 +1,38 @@
+@if (permitirAgregarDocumento && !soloConsulta) {
+  <section class="step-section documents-panel" aria-label="Agregar documento">
+    @if (!documentos.length) {
+      <p>No hay documentos cargados. Selecciona el tipo de documento y sube el archivo.</p>
+    }
+    <button type="button" class="button secondary" [disabled]="subiendoDocumento || !documentosDisponibles.length"
+      (click)="mostrarCargaDocumento = !mostrarCargaDocumento">
+      <i class="fa-solid fa-plus"></i> Agregar documento
+    </button>
+    @if (!documentosDisponibles.length) { <p>Todos los tipos de documento ya tienen un archivo cargado.</p> }
+    @if (mostrarCargaDocumento && !subiendoDocumento) {
+      <div class="field">
+        <label for="tipo-documento-nuevo">Tipo de documento</label>
+        <select id="tipo-documento-nuevo" [value]="tipoDocumentoNuevo"
+          (change)="tipoDocumentoNuevo = +$any($event.target).value; archivoNuevo = null; nuevoArchivo.value = ''">
+          <option value="0">Selecciona un documento</option>
+          @for (documento of documentosDisponibles; track documento.numero) {
+            <option [value]="documento.numero">{{ documento.nombre }}</option>
+          }
+        </select>
+      </div>
+      <label class="file-picker">
+        <input #nuevoArchivo type="file" [disabled]="!documentoNuevo"
+          [accept]="documentoNuevo?.nombre?.toLowerCase()?.startsWith('imagen') ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.pdf,application/pdf'"
+          (change)="elegirArchivoNuevo($event)" />
+        <span>Seleccionar archivo</span>
+      </label>
+      <p>{{ archivoNuevo?.name || 'Sin archivo seleccionado' }} · Máximo 10 MB. PDF para documentos; PNG o JPG para imágenes.</p>
+      <button type="button" class="button primary" [disabled]="!documentoNuevo || !archivoNuevo" (click)="cargarDocumentoNuevo()">Subir documento</button>
+    }
+    @if (subiendoDocumento) { <p role="status">Subiendo documento…</p> }
+    @if (mensajeCargaDocumento) { <p role="status">{{ mensajeCargaDocumento }}</p> }
+  </section>
+}
+
 @if (mostrarMesaDigital || soloConsulta) {
   <section class="mesa-review">
     <h3>Revisión de Mesa Digital</h3>

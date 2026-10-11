@@ -200,41 +200,40 @@ describe('RegistroCliente: pasos finales internos', () => {
 });
 
 
-describe('RegistroCliente: tipo de comercio del catálogo', () => {
-  function pantalla(respuesta: unknown) {
-    const component = Object.create(RegistroClienteComponent.prototype);
-    const getTiposComercio = jasmine.createSpy().and.returnValue(of(respuesta));
-    Object.assign(component, { preRegistroService: { getTiposComercio } });
-    return { component, getTiposComercio };
+describe('RegistroCliente: tipo de comercio por nivel del GET', () => {
+  for (const [nivel, esperado] of [
+    [3, 'Empresa Holding'], [4, 'Empresa Grupo'],
+    [5, 'Sucursales de Grupo'], [6, 'Cuenta Terminal'],
+  ] as const) {
+    it(`pinta ${esperado} únicamente por idAffiliationLevel ${nivel}`, () => {
+      const component = Object.create(RegistroClienteComponent.prototype);
+      for (const typeOfBusiness of [0, 8, null, undefined]) {
+        const cuenta = component.registroCuentaDesdeRespuesta({
+          success: true, entityInfo: { idAffiliationLevel: nivel, typeOfBusiness },
+        });
+        component.consultarTipoComercioCuenta(cuenta)
+          .subscribe((valor: string) => expect(valor).toBe(esperado));
+      }
+    });
   }
 
-  it('consulta el nivel recibido y resuelve el ID 8 como Sucursales Únicas', () => {
-    const { component, getTiposComercio } = pantalla({ data: [
-      { id: 7, name: 'Sucursales de Grupo', idAffiliationType: 5 },
-      { id: 8, name: 'Sucursales Únicas', idAffiliationType: 5 },
-    ] });
-    let nombre: string | undefined;
-    component.consultarTipoComercioCuenta({ idAffiliationLevel: 5, typeOfBusiness: 8 })
-      .subscribe((valor: string) => nombre = valor);
-    expect(getTiposComercio).toHaveBeenCalledOnceWith(5);
-    expect(nombre).toBe('Sucursales Únicas');
+  it('lee niveles anidados, numéricos en texto y la llave alternativa', () => {
+    const component = Object.create(RegistroClienteComponent.prototype);
+    for (const cuenta of [
+      { data: { entityInfo: { idAffiliationLevel: '3' } } },
+      { idAffilationLevel: '3' },
+    ]) {
+      component.consultarTipoComercioCuenta(cuenta)
+        .subscribe((valor: string) => expect(valor).toBe('Empresa Holding'));
+    }
   });
 
-  it('usa cada nivel recibido y admite identificadores numéricos en texto', () => {
-    const { component, getTiposComercio } = pantalla([{ id: '2', name: 'Empresa Grupo' }]);
-    let nombre: string | undefined;
-    component.consultarTipoComercioCuenta({ idAffiliationLevel: '4', typeOfBusiness: '2' })
-      .subscribe((valor: string) => nombre = valor);
-    expect(getTiposComercio).toHaveBeenCalledOnceWith(4);
-    expect(nombre).toBe('Empresa Grupo');
-  });
-
-  it('no supone un tipo si el catálogo falla o no contiene el ID', () => {
-    const { component, getTiposComercio } = pantalla([{ id: 7, name: 'Sucursales de Grupo' }]);
-    const cuenta = { idAffiliationLevel: 5, typeOfBusiness: 8 };
-    component.consultarTipoComercioCuenta(cuenta).subscribe((valor: string) => expect(valor).toBe(''));
-    getTiposComercio.and.returnValue(throwError(() => new Error('Catálogo no disponible')));
-    component.consultarTipoComercioCuenta(cuenta).subscribe((valor: string) => expect(valor).toBe(''));
+  it('no supone un tipo cuando no hay un nivel reconocido', () => {
+    const component = Object.create(RegistroClienteComponent.prototype);
+    for (const idAffiliationLevel of [undefined, null, '', 0, 99]) {
+      component.consultarTipoComercioCuenta({ idAffiliationLevel })
+        .subscribe((valor: string) => expect(valor).toBe(''));
+    }
   });
 
   it('presenta los campos informativos sin selectores', async () => {
@@ -279,5 +278,121 @@ describe('Documentos: consulta sin edición', () => {
     expect(ver).toHaveBeenCalled();
     fixture.componentInstance.validarDocumento(fixture.componentInstance.documentos[0], 'cumple');
     expect(validar).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('RegistroCliente: subir documentos faltantes', () => {
+  function pantalla() {
+    const component = Object.create(RegistroClienteComponent.prototype);
+    const subirDocumentos = jasmine.createSpy().and.returnValue(of([{ success: true }]));
+    const consultarDocumentosProspecto = jasmine.createSpy();
+    Object.assign(component, {
+      commerceID: 'comercio-actual', nodoSeleccionado: 'nodo-actual', documentosProspecto: [],
+      documentos: [
+        { numero: 1, nombre: 'Comprobante de domicilio', obligatorio: true },
+        { numero: 2, nombre: 'Acta Constitutiva', obligatorio: true },
+      ],
+      preregistroDocumentosService: { subirDocumentos }, consultarDocumentosProspecto,
+    });
+    Object.defineProperty(component, 'esMesaDigitalSesion', { value: true, configurable: true });
+    return { component, subirDocumentos, consultarDocumentosProspecto };
+  }
+
+  it('sube un documento cuando la consulta está vacía y vuelve a consultar', () => {
+    const { component, subirDocumentos, consultarDocumentosProspecto } = pantalla();
+    const archivo = new File(['pdf'], 'domicilio.pdf', { type: 'application/pdf' });
+    component.subirDocumentoFaltante({ archivo, documento: component.documentos[0] });
+    expect(subirDocumentos).toHaveBeenCalledWith([
+      { guid: 'comercio-actual', fileName: 'comercio-actual_COMP_DOM.pdf', file: archivo },
+    ], jasmine.any(String), { crearDirectorio: true });
+    expect(consultarDocumentosProspecto).toHaveBeenCalledTimes(1);
+    expect(component.subiendoDocumento).toBeFalse();
+  });
+
+  it('excluye del selector el acta existente con sufijo ACTA_CONS', () => {
+    const { component } = pantalla();
+    component.documentosProspecto = [{ s3Key: 'carpeta/comercio_ACTA_CONS.pdf' }];
+    expect(component.documentosDisponiblesParaSubir.map((doc: { numero: number }) => doc.numero)).toEqual([1]);
+  });
+
+  it('no envía archivos con formato incorrecto ni permite cargas en solo consulta', () => {
+    const { component, subirDocumentos } = pantalla();
+    component.subirDocumentoFaltante({ archivo: new File(['x'], 'archivo.exe'), documento: component.documentos[0] });
+    expect(subirDocumentos).not.toHaveBeenCalled();
+    expect(component.mensajeCargaDocumento).toContain('PDF');
+    Object.defineProperty(component, 'esMesaDigitalSesion', { value: false });
+    component.subirDocumentoFaltante({ archivo: new File(['pdf'], 'archivo.pdf'), documento: component.documentos[0] });
+    expect(subirDocumentos).not.toHaveBeenCalled();
+  });
+
+  it('muestra el error de subida y permite reintentar', () => {
+    const { component, subirDocumentos, consultarDocumentosProspecto } = pantalla();
+    for (const respuesta of [of([{ success: false }]), throwError(() => new Error('Fallo'))]) {
+      subirDocumentos.and.returnValue(respuesta);
+      component.subirDocumentoFaltante({ archivo: new File(['pdf'], 'archivo.pdf'), documento: component.documentos[0] });
+      expect(component.mensajeCargaDocumento).toContain('No fue posible');
+      expect(component.subiendoDocumento).toBeFalse();
+      expect(consultarDocumentosProspecto).not.toHaveBeenCalled();
+    }
+  });
+});
+
+describe('RegistroCliente: actualización del nodo seleccionado', () => {
+  function pantalla() {
+    const component = Object.create(RegistroClienteComponent.prototype);
+    const actualizar = jasmine.createSpy().and.returnValue(of(undefined));
+    const nodo = { id: 'nodo-hijo', nombre: 'Antes' };
+    Object.assign(component, {
+      nodeIDEdicion: 'raiz', nodoSeleccionado: 'nodo-hijo',
+      cuentaNodoActual: { commerceGuid: 'guid-hijo', nameCommerce: 'Antes', typeOfBusiness: 0, contacts: [] },
+      datosForm: new FormGroup({ nombreComercial: new FormControl('Antes'), rfc: new FormControl('RFC') }),
+      datosPorNodo: {}, contextoSeleccionado: {}, merchantUpdateDataService: { actualizar },
+      actualizarIdentificadoresDesdeCuenta: jasmine.createSpy(), actualizarModoEdicionNodo: jasmine.createSpy(),
+      buscarNodo: () => nodo,
+    });
+    Object.defineProperty(component, 'arbol', { value: [] });
+    return { component, actualizar, nodo };
+  }
+
+  it('envía el GUID del hijo consultado y conserva los datos sin modificar', () => {
+    const { component, actualizar, nodo } = pantalla();
+    component.editarDatosNodo();
+    component.datosForm.patchValue({ nombreComercial: 'Después' });
+    component.guardarDatosNodo();
+    expect(actualizar).toHaveBeenCalledWith(jasmine.objectContaining({
+      commerceGuid: 'guid-hijo', nameCommerce: 'Después', typeOfBusiness: 0, contacts: [],
+    }));
+    expect(nodo.nombre).toBe('Después');
+    expect(component.editandoDatosNodo).toBeFalse();
+    expect(component.guardandoDatosNodo).toBeFalse();
+  });
+
+  it('cancelar restaura el formulario y no envía el PUT', () => {
+    const { component, actualizar } = pantalla();
+    component.editarDatosNodo();
+    component.datosForm.patchValue({ nombreComercial: 'No guardar' });
+    component.cancelarEdicionDatosNodo();
+    expect(component.datosForm.getRawValue().nombreComercial).toBe('Antes');
+    expect(actualizar).not.toHaveBeenCalled();
+  });
+
+  it('conserva los cambios para reintentar después de un error', () => {
+    const { component, actualizar } = pantalla();
+    actualizar.and.returnValue(throwError(() => new Error('No actualizado')));
+    component.editarDatosNodo();
+    component.datosForm.patchValue({ nombreComercial: 'Después' });
+    component.guardarDatosNodo();
+    expect(component.editandoDatosNodo).toBeTrue();
+    expect(component.datosForm.getRawValue().nombreComercial).toBe('Después');
+    expect(component.guardandoDatosNodo).toBeFalse();
+    expect(component.mensajeActualizacionDatos).toBe('No actualizado');
+  });
+
+  it('impide cambiar de nodo durante el PUT', () => {
+    const { component } = pantalla();
+    component.guardandoDatosNodo = true;
+    component.seleccionarNodo({ id: 'otro', nombre: 'Otro', nivel: 'entidad' });
+    expect(component.nodoSeleccionado).toBe('nodo-hijo');
   });
 });

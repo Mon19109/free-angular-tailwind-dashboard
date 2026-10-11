@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DocumentoRequerido } from '../../models/preregistro.models';
 import { SipreladResultado } from '../../../../services/siprelad.service';
@@ -9,7 +9,7 @@ import { SipreladResultado } from '../../../../services/siprelad.service';
   templateUrl: './step-documentos.component.html',
     styleUrls: ['../../preRegistro.component.css']
 })
-export class StepDocumentosComponent {
+export class StepDocumentosComponent implements OnChanges {
  @Input() documentos: DocumentoRequerido[] = [];
   @Input() documentosCargados = 0;
   @Input() documentosPendientes = 0;
@@ -39,6 +39,38 @@ export class StepDocumentosComponent {
   @Output() cambiarMismaDocumentacionEntidad = new EventEmitter<boolean>();
   @Output() finalizar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
+
+  @Input() permitirAgregarDocumento = false;
+  @Input() documentosDisponibles: DocumentoRequerido[] = [];
+  @Input() subiendoDocumento = false;
+  @Input() contextoDocumento = '';
+  @Input() mensajeCargaDocumento = '';
+  @Output() subirDocumento = new EventEmitter<{ archivo: File; documento: DocumentoRequerido }>();
+  mostrarCargaDocumento = false;
+  tipoDocumentoNuevo = 0;
+  archivoNuevo: File | null = null;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['contextoDocumento']) this.validacionesMesaDigital = {};
+    if (changes['contextoDocumento'] || (changes['subiendoDocumento']?.previousValue && !this.subiendoDocumento)) {
+      this.mostrarCargaDocumento = false;
+      this.tipoDocumentoNuevo = 0;
+      this.archivoNuevo = null;
+    }
+  }
+
+  get documentoNuevo(): DocumentoRequerido | undefined {
+    return this.documentosDisponibles.find(documento => documento.numero === this.tipoDocumentoNuevo);
+  }
+
+  elegirArchivoNuevo(event: Event): void {
+    this.archivoNuevo = (event.target as HTMLInputElement).files?.[0] ?? null;
+  }
+
+  cargarDocumentoNuevo(): void {
+    if (!this.permitirAgregarDocumento || this.soloConsulta || this.subiendoDocumento || !this.archivoNuevo || !this.documentoNuevo) return;
+    this.subirDocumento.emit({ archivo: this.archivoNuevo, documento: this.documentoNuevo });
+  }
 
   validacionesMesaDigital: Record<number, 'cumple' | 'no-cumple'> = {};
 

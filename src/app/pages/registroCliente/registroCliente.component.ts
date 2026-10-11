@@ -1,3 +1,6 @@
+import { MerchantUpdateDataService } from '../../services/merchant-update-data.service';
+import { crearMerchantUpdatePayload } from './utils/merchant-update-payload';
+import { PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
 import { RegistroProspectoClienteComponent } from '../registroProspectoCliente/registroProspectoCliente.component';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { CommonModule } from '@angular/common';
@@ -11,7 +14,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { Observable, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -28,7 +31,7 @@ import {
 import { CuentaComercioService } from '../../services/cuenta-comercio.service';
 import { Actividad, ActividadesService } from '../../services/actividades.service';
 import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/localidades.service';
-import { GiroComercial, PreRegistroService, TipoComercioCatalogo } from '../../services/preregistro.service';
+import { GiroComercial, PreRegistroService } from '../../services/preregistro.service';
 import { ArbolNodoApi, ArbolNodosService } from '../../services/arbol-nodos.service';
 import { ActivarProspectoService } from '../../services/activar-prospecto.service';
 
@@ -90,6 +93,84 @@ export class RegistroClienteComponent {
   private readonly cuentaComercioService = inject(CuentaComercioService);
   private readonly actividadesService = inject(ActividadesService);
   private readonly localidadesService = inject(LocalidadesService);
+  private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
+  subiendoDocumento = false;
+  mensajeCargaDocumento = '';
+
+  private readonly merchantUpdateDataService = inject(MerchantUpdateDataService);
+  private cuentaNodoActual: Record<string, unknown> | null = null;
+  private datosAntesEdicion: Record<string, unknown> = {};
+  editandoDatosNodo = false;
+  guardandoDatosNodo = false;
+  mensajeActualizacionDatos = '';
+
+  get puedeEditarDatosNodo(): boolean {
+    return !!this.nodeIDEdicion && !!this.cuentaNodoActual && !this.cargandoCuentaComercio
+      && !this.errorCuentaComercio && !!this.valorCuenta(this.cuentaNodoActual, ['commerceGuid', 'guid', 'commerceID']);
+  }
+
+  editarDatosNodo(): void {
+    if (!this.puedeEditarDatosNodo || this.guardandoDatosNodo) return;
+    this.datosAntesEdicion = structuredClone(this.datosForm.getRawValue());
+    this.editandoDatosNodo = true;
+    this.mensajeActualizacionDatos = '';
+    this.datosForm.enable({ emitEvent: false });
+    this.datosForm.markAsPristine();
+  }
+
+  cancelarEdicionDatosNodo(): void {
+    if (this.guardandoDatosNodo) return;
+    this.datosForm.patchValue(this.datosAntesEdicion, { emitEvent: false });
+    this.editandoDatosNodo = false;
+    this.datosForm.markAsPristine();
+    this.actualizarModoEdicionNodo(this.nodoSeleccionado);
+    this.mensajeActualizacionDatos = '';
+  }
+
+  guardarDatosNodo(): void {
+    if (!this.editandoDatosNodo || !this.puedeEditarDatosNodo || this.guardandoDatosNodo || !this.cuentaNodoActual) return;
+    const datos = this.datosForm.getRawValue();
+    const modificados = Object.entries(datos).filter(([campo, valor]) => valor !== this.datosAntesEdicion[campo]);
+    if (!modificados.length) { this.mensajeActualizacionDatos = 'No hay cambios para guardar.'; return; }
+    const invalidos = modificados.filter(([campo]) => this.datosForm.get(campo)?.invalid);
+    if (invalidos.length) {
+      invalidos.forEach(([campo]) => this.datosForm.get(campo)?.markAsTouched());
+      this.mensajeActualizacionDatos = 'Revisa los campos modificados antes de guardar.';
+      return;
+    }
+    let payload;
+    try {
+      payload = crearMerchantUpdatePayload(this.cuentaNodoActual, this.datosAntesEdicion, datos);
+    } catch (error) {
+      this.mensajeActualizacionDatos = error instanceof Error ? error.message : 'Revisa los datos del comercio.';
+      return;
+    }
+    const nodo = this.nodoSeleccionado;
+    this.guardandoDatosNodo = true;
+    this.mensajeActualizacionDatos = '';
+    this.merchantUpdateDataService.actualizar(payload).pipe(
+      finalize(() => this.guardandoDatosNodo = false)
+    ).subscribe({
+      next: () => {
+        if (nodo !== this.nodoSeleccionado) return;
+        this.cuentaNodoActual = { ...this.cuentaNodoActual, ...payload };
+        this.actualizarIdentificadoresDesdeCuenta(this.cuentaNodoActual);
+        const nodoArbol = this.buscarNodo(this.arbol, nodo);
+        if (nodoArbol && datos.nombreComercial) nodoArbol.nombre = datos.nombreComercial;
+        this.contextoSeleccionado = { ...this.contextoSeleccionado, nombreComercial: datos.nombreComercial, rfc: datos.rfc };
+        this.datosPorNodo[nodo] = datos;
+        this.editandoDatosNodo = false;
+        this.datosForm.markAsPristine();
+        this.actualizarModoEdicionNodo(nodo);
+        this.mensajeActualizacionDatos = 'Datos actualizados correctamente.';
+      },
+      error: error => {
+        if (nodo !== this.nodoSeleccionado) return;
+        this.mensajeActualizacionDatos = error instanceof Error ? error.message : 'No fue posible actualizar los datos. Intenta nuevamente.';
+      },
+    });
+  }
+
   private readonly preRegistroService = inject(PreRegistroService);
   private readonly arbolNodosService = inject(ArbolNodosService);
   private readonly activarProspectoService = inject(ActivarProspectoService);
@@ -296,7 +377,7 @@ export class RegistroClienteComponent {
 
   readonly datosForm = this.fb.nonNullable.group({
     razonSocial: [''], nombreComercial: [''], rfc: [''], regimenFiscal: [''], giroComercial: [''], descripcionGiro: [''], mcc: [''],
-    mismaInfoFiscalEntidad: [false], nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''],
+    mismaInfoFiscalEntidad: [false], nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''], actividadId: [''], giroId: [''],
     tipoPersona: [''], correo: ['', Validators.email], telefono: [''], departamento: [''], ciudad: [''], direccionComercial: [''],
     codigoPostal: [''], tipoVialidad: [''], nombreVialidad: [''], numeroExterior: [''], numeroInterior: [''], colonia: [''], localidad: [''], municipio: [''], entidadFederativa: [''], locationID: [''], entreCalle: [''], yCalle: [''],
     nombreRepresentante: [''], apellidoPaternoRepresentante: [''], apellidoMaternoRepresentante: [''], calleRepresentante: [''], numeroExteriorRepresentante: [''], numeroInteriorRepresentante: [''], codigoPostalRepresentante: [''], coloniaRepresentante: [''], municipioRepresentante: [''], estadoRepresentante: [''], locationIDRepresentante: [''], correoRepresentante: [''], telefonoRepresentante: [''], telefonoAdicionalRepresentante: [''],
@@ -668,6 +749,9 @@ export class RegistroClienteComponent {
     const sirioId = (sirioIdNodo || this.comercioSeleccionado.idComercio).trim();
     if (!sirioId) return;
 
+    this.cuentaNodoActual = null;
+    this.editandoDatosNodo = false;
+    this.mensajeActualizacionDatos = '';
     const consulta = ++this.consultaCuentaActual;
     this.cargandoCuentaComercio = true;
     this.errorCuentaComercio = '';
@@ -682,6 +766,7 @@ export class RegistroClienteComponent {
     ).subscribe({
       next: ({ cuenta, tipoComercio }) => {
         if (consulta !== this.consultaCuentaActual) return;
+        this.cuentaNodoActual = cuenta;
         this.actualizarIdentificadoresDesdeCuenta(cuenta);
         this.pintarCuentaComercio(cuenta, tipoComercio);
         this.consultarResultadoSiprelad();
@@ -697,28 +782,14 @@ export class RegistroClienteComponent {
   }
 
   private consultarTipoComercioCuenta(cuenta: Record<string, unknown>): Observable<string> {
-    const nivel = Number(cuenta['idAffiliationLevel']);
-    const tipo = Number(cuenta['typeOfBusiness']);
-    if (!Number.isInteger(nivel) || nivel <= 0 || !Number.isInteger(tipo) || tipo <= 0) return of('');
-
-    return this.preRegistroService.getTiposComercio(nivel).pipe(
-      map(respuesta => {
-        const seleccionado = this.listaTiposComercio(respuesta).find(item => Number(item.id) === tipo);
-        return seleccionado?.name?.trim() || '';
-      }),
-      catchError(() => of(''))
-    );
-  }
-
-  private listaTiposComercio(respuesta: unknown): TipoComercioCatalogo[] {
-    if (Array.isArray(respuesta)) return respuesta.filter(item => item && typeof item === 'object');
-    if (!respuesta || typeof respuesta !== 'object') return [];
-    const body = respuesta as Record<string, unknown>;
-    for (const key of ['data', 'response', 'result', 'items', 'object', 'payload', 'content', 'typeOfBusinesses', 'catTypeOfBusinesses']) {
-      const lista = this.listaTiposComercio(body[key]);
-      if (lista.length) return lista;
-    }
-    return [];
+    const nivel = Number(this.valorCuenta(cuenta, ['idAffiliationLevel', 'idAffilationLevel']));
+    const tiposPorNivel: Record<number, string> = {
+      3: 'Empresa Holding',
+      4: 'Empresa Grupo',
+      5: 'Sucursales de Grupo',
+      6: 'Cuenta Terminal',
+    };
+    return of(tiposPorNivel[nivel] ?? '');
   }
 
   private consultarArbolEdicion(): void {
@@ -916,11 +987,13 @@ export class RegistroClienteComponent {
     const phone = this.valorCuenta(cuenta, ['phoneNumber', 'phone', 'telefono']);
     const tipoPersona = this.tipoPersonaDesdeCuenta(cuenta, rfc);
     const niveles: Record<number, string> = { 3: 'Sub Afiliado', 4: 'Entidad', 5: 'Sucursal', 6: 'Caja' };
-    const nivel = niveles[Number(cuenta['idAffiliationLevel'])] || this.comercioForm.getRawValue().nivel;
+    const nivel = niveles[Number(this.valorCuenta(cuenta, ['idAffiliationLevel', 'idAffilationLevel']))] || this.comercioForm.getRawValue().nivel;
     this.tiposComercio = [...new Set([...(this.tiposComercioPorNivel[nivel] ?? []), ...(tipoComercio ? [tipoComercio] : [])])];
     this.comercioForm.patchValue({ nivel, tipoComercio }, { emitEvent: false });
 
     this.datosForm.patchValue(this.valoresConContenido({
+      actividadId: this.valorCuenta(cuenta, ['idActivity']),
+      giroId: this.valorCuenta(cuenta, ['idBussinesLine']),
       tipoPersona,
       razonSocial,
       nombreComercial: nombreComercial || razonSocial || this.comercioSeleccionado.nombreComercial,
@@ -1051,7 +1124,9 @@ export class RegistroClienteComponent {
   private registroCuentaDesdeRespuesta(respuesta: unknown): Record<string, unknown> {
     const registros = this.registrosCuentaDesdeRespuesta(respuesta);
     const registro = registros[0] ?? {};
-    return this.esRegistroCuenta(respuesta) ? { ...respuesta, ...registro } : registro;
+    const contenido = registro !== respuesta && Object.keys(registro).length
+      ? this.registroCuentaDesdeRespuesta(registro) : registro;
+    return this.esRegistroCuenta(respuesta) ? { ...respuesta, ...contenido } : contenido;
   }
 
   private registrosCuentaDesdeRespuesta(respuesta: unknown): Array<Record<string, unknown>> {
@@ -1151,8 +1226,10 @@ export class RegistroClienteComponent {
     const idActivity = this.valorCuenta(cuenta, ['idActivity']);
     if (!idActivity) return;
 
+    const consulta = this.consultaCuentaActual;
     this.actividadesService.getActividades().subscribe({
       next: actividades => {
+        if (consulta !== this.consultaCuentaActual || this.editandoDatosNodo) return;
         const actividad = actividades.find(item => this.idActividad(item) === idActivity);
         this.datosForm.patchValue({
           actividad: this.descripcionActividad(actividad) || idActivity
@@ -1178,8 +1255,10 @@ export class RegistroClienteComponent {
 
     if (!idGiro) return;
 
+    const consulta = this.consultaCuentaActual;
     this.preRegistroService.getGirosByFamily(idGiro).subscribe({
       next: respuesta => {
+        if (consulta !== this.consultaCuentaActual || this.editandoDatosNodo) return;
         const giro = this.girosDesdeRespuesta(respuesta).find(item => this.valorCuenta(item, ['idGiro', 'id', 'mcc', 'MCC']) === idGiro);
         if (!giro) return;
 
@@ -1227,19 +1306,21 @@ export class RegistroClienteComponent {
     if (addressType === 'DF') this.cargandoLocalidadesFiscal = true;
     if (addressType === 'DC') this.cargandoLocalidadesComercial = true;
 
+    const consulta = this.consultaCuentaActual;
     this.localidadesService.obtenerPorCodigoPostal(codigoPostal).subscribe({
       next: localidades => {
+        if (consulta !== this.consultaCuentaActual) return;
         const localidad = this.localidadPorId(localidades, locationID);
         if (addressType === 'DF') {
           this.localidadesFiscal = localidades;
           this.cargandoLocalidadesFiscal = false;
-          this.pintarLocalidadFiscal(localidad, direccion);
+          if (!this.editandoDatosNodo) this.pintarLocalidadFiscal(localidad, direccion);
           return;
         }
 
         this.localidadesComercial = localidades;
         this.cargandoLocalidadesComercial = false;
-        this.pintarLocalidadComercial(localidad, direccion);
+        if (!this.editandoDatosNodo) this.pintarLocalidadComercial(localidad, direccion);
       },
       error: error => {
         const mensaje = error?.error?.error?.message || error?.error?.message;
@@ -1410,8 +1491,13 @@ export class RegistroClienteComponent {
   }
 
   seleccionarNodo(nodo: NodoRegistro): void {
-    if (this.registroFinal?.guardando || this.registroFinal?.guardandoLiquidacion || this.registroFinal?.validandoArchivos) return;
+    if (this.guardandoDatosNodo || this.registroFinal?.guardando || this.registroFinal?.guardandoLiquidacion || this.registroFinal?.validandoArchivos) return;
+    if (this.editandoDatosNodo) this.cancelarEdicionDatosNodo();
     this.guardarCapturaNodoActual();
+    this.mensajeCargaDocumento = '';
+    this.editandoDatosNodo = false;
+    this.cuentaNodoActual = null;
+    this.mensajeActualizacionDatos = '';
     this.nodoSeleccionado = nodo.id;
     const nivel = nodo.nivel === 'sub-afiliado' ? 'Sub Afiliado' : nodo.nivel === 'referenciador' ? 'Referenciador' : nodo.nivel === 'entidad' ? 'Entidad' : nodo.nivel === 'sucursal' ? 'Sucursal' : 'Caja';
     const tipo = nivel === 'Caja' ? 'Cuenta Terminal' : nivel === 'Entidad' ? 'Empresa Grupo' : nivel === 'Sub Afiliado' ? 'Empresa Holding' : nivel === 'Referenciador' ? '' : 'Sucursales de Grupo';
@@ -1793,6 +1879,67 @@ export class RegistroClienteComponent {
 
   private nodosPlanos(nodos: NodoRegistro[]): NodoRegistro[] {
     return nodos.flatMap(nodo => [nodo, ...this.nodosPlanos(nodo.hijos ?? [])]);
+  }
+
+  get documentosDisponiblesParaSubir(): DocumentoRequerido[] {
+    const cargados = new Set(this.documentosProspecto.map(documento =>
+      this.documentoCatalogoDesdeProspecto(documento, this.nombreDocumentoDesdeProspecto(documento))?.numero
+    ));
+    return this.documentos.filter(documento => !cargados.has(documento.numero));
+  }
+
+  subirDocumentoFaltante({ archivo, documento }: { archivo: File; documento: DocumentoRequerido }): void {
+    if (!this.esMesaDigitalSesion || this.subiendoDocumento || this.cargandoDocumentosProspecto || this.cargandoCuentaComercio) return;
+    this.mensajeCargaDocumento = '';
+    const guid = this.commerceID?.trim();
+    if (!guid || guid === 'ND') {
+      this.mensajeCargaDocumento = 'No se encontró el identificador del comercio para subir el documento.';
+      return;
+    }
+    if (!this.documentosDisponiblesParaSubir.some(item => item.numero === documento.numero)) return;
+    const esImagen = [5, 6, 7].includes(documento.numero);
+    const extension = archivo.name.split('.').pop()?.toLowerCase() ?? '';
+    const tipos: Record<string, string> = esImagen
+      ? { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' }
+      : { pdf: 'application/pdf' };
+    if (!tipos[extension] || (archivo.type && archivo.type !== tipos[extension]) || archivo.size <= 0 || archivo.size > 10 * 1024 * 1024) {
+      this.mensajeCargaDocumento = `Selecciona un archivo ${esImagen ? 'PNG o JPG' : 'PDF'} válido, de máximo 10 MB.`;
+      return;
+    }
+    const sufijos: Record<number, string> = {
+      1: 'COMP_DOM', 2: 'ACTA_CONST', 3: 'INE', 4: 'CONTRATO',
+      5: 'IMGE', 6: 'IMGI', 7: 'IMGI2', 8: 'ESCRI', 9: 'PODER',
+      10: 'CONS', 11: 'EFIRMA', 12: 'INERL', 13: 'INETER',
+      14: 'CARATULA_EDO_CTA', 15: 'CARTA_LIQUIDACION',
+    };
+    const sufijo = sufijos[documento.numero];
+    if (!sufijo) return;
+    const nodoId = this.nodoSeleccionado;
+    let token = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    try {
+      token = JSON.parse(localStorage.getItem('auth_session') || '{}')?.token || token;
+    } catch { /* Usa el token de sesión legacy. */ }
+    this.subiendoDocumento = true;
+    this.preregistroDocumentosService.subirDocumentos([
+      { guid, fileName: `${guid}_${sufijo}.${extension}`, file: archivo },
+    ], token, { crearDirectorio: this.documentosProspecto.length === 0 }).pipe(
+      finalize(() => this.subiendoDocumento = false)
+    ).subscribe({
+      next: respuestas => {
+        if (nodoId !== this.nodoSeleccionado || guid !== this.commerceID) return;
+        if (respuestas.some(respuesta => (respuesta as { success?: boolean } | null)?.success === false)) {
+          this.mensajeCargaDocumento = 'No fue posible subir el documento. Intenta nuevamente.';
+          return;
+        }
+        this.mensajeCargaDocumento = 'Documento subido correctamente.';
+        this.consultarDocumentosProspecto();
+      },
+      error: () => {
+        if (nodoId === this.nodoSeleccionado && guid === this.commerceID) {
+          this.mensajeCargaDocumento = 'No fue posible subir el documento. Intenta nuevamente.';
+        }
+      },
+    });
   }
 
   seleccionarArchivo(event: Event, documento: DocumentoRequerido): void {
@@ -2245,6 +2392,9 @@ export class RegistroClienteComponent {
       this.accesosForm.disable(opciones);
     }
 
+    if (this.nodeIDEdicion && !this.editandoDatosNodo) this.datosForm.disable(opciones);
+    else if (this.editandoDatosNodo) this.datosForm.enable(opciones);
+
     if (puedeEditarTodo) this.liquidacionForm.enable(opciones);
     else this.liquidacionForm.disable(opciones);
   }
@@ -2521,11 +2671,14 @@ export class RegistroClienteComponent {
   }
 
   private documentoCatalogoDesdeProspecto(documentoProspecto: DocumentoProspectoApi, nombre: string): DocumentoRequerido | undefined {
-    const sufijo = this.sufijoDocumentoDesdeS3Key(this.s3KeyDocumentoCargado(documentoProspecto));
+    const sufijo = this.sufijoDocumentoDesdeS3Key(
+      this.s3KeyDocumentoCargado(documentoProspecto) || documentoProspecto.fileName || nombre
+    );
     const numeroPorSufijo: Record<string, number> = {
       COMP_DOM: 1,
       CONS: 10,
       ACTA_CONST: 2,
+      ACTA_CONS: 2,
       INE: 3,
       ID_PROP: 3,
       CONT: 4,
@@ -2538,13 +2691,21 @@ export class RegistroClienteComponent {
       IMGI_2: 7,
       IMG_INTERIOR_2: 7,
       ESCRITURAS: 8,
+      ESCRI: 8,
       PODER_REP: 9,
+      PODER: 9,
       CSF: 10,
       CONST_SIT_FISCAL: 10,
       EFIRMA: 11,
       E_FIRMA: 11,
       ID_REP: 12,
+      INERL: 12,
       ID_TERCERO: 13,
+      INETER: 13,
+      CARATULA_EDO_CTA: 14,
+      CAR_EST_CTA: 14,
+      CARTA_LIQUIDACION: 15,
+      CARTA_LIQ: 15,
     };
 
     const numero = numeroPorSufijo[sufijo];

@@ -9,6 +9,7 @@ import { Actividad, ActividadesService } from '../../../../services/actividades.
 import { Option, SelectComponent } from '../../../../shared/components/form/select/select.component';
 
 interface GiroBusqueda {
+  id?: string;
   familia: string;
   descripcion: string;
   mcc: string;
@@ -55,6 +56,7 @@ export class StepDatosComponent implements OnInit {
   @Input() bloquearActividad = false;
   @Input() mostrarBusquedaAvanzadaGiro = true;
   @Input() forzarDatosCaja = false;
+  @Input() validarSoloCambios = false;
   @Input() textoContinuar = 'Guardar y continuar';
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
@@ -164,6 +166,7 @@ export class StepDatosComponent implements OnInit {
     const lista = this.obtenerListaGiros(response);
 
     return lista.map(giro => ({
+      id: this.obtenerTexto(giro, ['idBussinesLine', 'idGiro', 'id']),
       familia: this.obtenerTexto(giro, ['familia', 'family', 'giro', 'giroComercial', 'businessLine', 'name', 'nombre']),
       descripcion: this.obtenerTexto(giro, ['descripcion', 'description', 'desGiro', 'actividad', 'activity', 'label', 'nombreGiro']),
       mcc: this.obtenerTexto(giro, ['giro', 'mcc', 'MCC', 'codigoMcc', 'codigoMCC', 'idGiro', 'code', 'codigo'])
@@ -222,6 +225,7 @@ export class StepDatosComponent implements OnInit {
       descripcionGiro: this.giroSeleccionado.descripcion,
       mcc:             this.giroSeleccionado.mcc,
     });
+    this.form.get('giroId')?.setValue(this.giroSeleccionado.id || '');
     this.mostrarModalGiro = false;
   }
 
@@ -407,7 +411,7 @@ export class StepDatosComponent implements OnInit {
 
   this.form.markAllAsTouched();
 
-  if (this.form.invalid) {
+  if (this.form.invalid && !this.validarSoloCambios) {
     this.irAlPrimerError();
     return;
   }

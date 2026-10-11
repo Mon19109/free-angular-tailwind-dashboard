@@ -64,7 +64,7 @@
           <small>{{ contextoSeleccionado.nivel }} · {{ contextoSeleccionado.rfc || 'RFC pendiente' }}</small>
         </div>
 
-        <p *ngIf="soloConsulta" role="status">Información de consulta. La edición y revisión de documentos corresponden al administrador.</p>
+        <p *ngIf="soloConsulta" role="status">Selecciona un nodo para consultar o editar sus datos. La revisión de documentos corresponde al administrador.</p>
         <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
         <p *ngIf="errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
 
@@ -73,7 +73,7 @@
           *ngFor="let seccion of seccionesCardsVisibles"
           [class.open]="seccionAbierta === seccion.id"
           [class.done]="pasoTerminado(seccion.id)"
-          [class.readonly-existing]="soloConsulta && seccion.id !== 'documentos'">
+          [class.readonly-existing]="soloConsulta && seccion.id !== 'documentos' && seccion.id !== 'datos'">
           <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)">
             <span class="section-icon"><i class="fa-solid" [ngClass]="seccion.icono"></i></span>
             <span class="section-copy">
@@ -97,7 +97,19 @@
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 
-            <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'datos'" [disabled]="soloConsulta">
+            <div *ngIf="seccion.id === 'datos' && nodeIDEdicion" class="step-actions">
+              <button *ngIf="!editandoDatosNodo" type="button" class="button secondary"
+                [disabled]="!puedeEditarDatosNodo || guardandoDatosNodo" (click)="editarDatosNodo()">Editar datos</button>
+              <ng-container *ngIf="editandoDatosNodo">
+                <button type="button" class="button ghost" [disabled]="guardandoDatosNodo" (click)="cancelarEdicionDatosNodo()">Cancelar</button>
+                <button type="button" class="button primary" [disabled]="guardandoDatosNodo" (click)="guardarDatosNodo()">
+                  {{ guardandoDatosNodo ? 'Guardando…' : 'Guardar cambios' }}
+                </button>
+              </ng-container>
+            </div>
+            <p *ngIf="seccion.id === 'datos' && mensajeActualizacionDatos" role="status">{{ mensajeActualizacionDatos }}</p>
+            <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'datos'"
+              [disabled]="guardandoDatosNodo || (nodeIDEdicion ? !editandoDatosNodo : soloConsulta)">
             <app-step-datos
               *ngIf="seccion.id === 'datos'"
               [form]="datosForm"
@@ -119,13 +131,15 @@
               [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
               [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
               [mostrarMismoDomicilio]="false"
-              [bloquearActividad]="soloConsulta"
-              [mostrarBusquedaAvanzadaGiro]="false"
+              [bloquearActividad]="nodeIDEdicion ? !editandoDatosNodo : soloConsulta"
+              [mostrarBusquedaAvanzadaGiro]="editandoDatosNodo"
+              [validarSoloCambios]="editandoDatosNodo"
+              [textoContinuar]="editandoDatosNodo ? 'Guardar cambios' : 'Guardar y continuar'"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
               (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
               (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"
               (seleccionarLocalidadRepresentante)="seleccionarLocalidad($event, 'REP')"
-              (continuar)="completarPaso('datos', 'documentos')"
+              (continuar)="editandoDatosNodo ? guardarDatosNodo() : completarPaso('datos', 'documentos')"
               (volver)="continuarSeccion('comercio')" />
             </fieldset>
 
@@ -160,6 +174,12 @@
               *ngIf="seccion.id === 'documentos'"
               [soloConsulta]="documentacionSoloConsulta"
               [documentos]="documentosVisibles"
+              [permitirAgregarDocumento]="esMesaDigitalSesion && !!commerceID && !cargandoDocumentosProspecto && !cargandoCuentaComercio"
+              [documentosDisponibles]="documentosDisponiblesParaSubir"
+              [subiendoDocumento]="subiendoDocumento"
+              [contextoDocumento]="nodoSeleccionado"
+              [mensajeCargaDocumento]="mensajeCargaDocumento"
+              (subirDocumento)="subirDocumentoFaltante($event)"
               [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes"
               [archivosInvalidos]="archivosInvalidos"
