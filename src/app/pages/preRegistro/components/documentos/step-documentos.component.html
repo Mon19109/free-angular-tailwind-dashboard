@@ -1,12 +1,9 @@
-@if (permitirAgregarDocumento && !soloConsulta) {
+<ng-template #cargaDocumento>
+@if (permitirAgregarDocumento && !soloConsulta && (mostrarCargaDocumento || subiendoDocumento || mensajeCargaDocumento)) {
   <section class="step-section documents-panel" aria-label="Agregar documento">
     @if (!documentos.length) {
       <p>No hay documentos cargados. Selecciona el tipo de documento y sube el archivo.</p>
     }
-    <button type="button" class="button secondary" [disabled]="subiendoDocumento || !documentosDisponibles.length"
-      (click)="mostrarCargaDocumento = !mostrarCargaDocumento">
-      <i class="fa-solid fa-plus"></i> Agregar documento
-    </button>
     @if (!documentosDisponibles.length) { <p>Todos los tipos de documento ya tienen un archivo cargado.</p> }
     @if (mostrarCargaDocumento && !subiendoDocumento) {
       <div class="field">
@@ -32,6 +29,8 @@
     @if (mensajeCargaDocumento) { <p role="status">{{ mensajeCargaDocumento }}</p> }
   </section>
 }
+
+</ng-template>
 
 @if (mostrarMesaDigital || soloConsulta) {
   <section class="mesa-review">
@@ -142,6 +141,13 @@
       </label>
     </div>
     <div class="mesa-register-action">
+      @if (permitirAgregarDocumento) {
+    <button type="button" class="button secondary" [disabled]="subiendoDocumento || !documentosDisponibles.length"
+      (click)="mostrarCargaDocumento = !mostrarCargaDocumento">
+      <i class="fa-solid fa-plus"></i> Agregar documento
+    </button>
+      }
+
       <button
         type="button"
         class="button primary"
@@ -160,6 +166,7 @@
       </button>
       <button type="button" class="button primary" [disabled]="deshabilitarFinalizar" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
     </div>
+    <ng-container *ngTemplateOutlet="cargaDocumento" />
     @if (mensajeNotificacion) {
       <p class="mesa-notification-message">{{ mensajeNotificacion }}</p>
     }
@@ -230,6 +237,16 @@
     <span class="consent-icon">Seguro</span>
     <p>Tu información se almacenará de forma segura y será utilizada únicamente para validar el alta del comercio.</p>
   </div>
+}
+
+@if (!mostrarMesaDigital && !soloConsulta && permitirAgregarDocumento) {
+  <div class="document-add-actions">
+    <button type="button" class="button secondary" [disabled]="subiendoDocumento || !documentosDisponibles.length"
+      (click)="mostrarCargaDocumento = !mostrarCargaDocumento">
+      <i class="fa-solid fa-plus"></i> Agregar documento
+    </button>
+  </div>
+  <ng-container *ngTemplateOutlet="cargaDocumento" />
 }
 
 <div class="step-actions" *ngIf="!mostrarMesaDigital && !soloConsulta">

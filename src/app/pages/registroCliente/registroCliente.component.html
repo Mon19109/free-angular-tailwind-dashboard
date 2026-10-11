@@ -97,15 +97,12 @@
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 
-            <div *ngIf="seccion.id === 'datos' && nodeIDEdicion" class="step-actions">
-              <button *ngIf="!editandoDatosNodo" type="button" class="button secondary"
-                [disabled]="!puedeEditarDatosNodo || guardandoDatosNodo" (click)="editarDatosNodo()">Editar datos</button>
-              <ng-container *ngIf="editandoDatosNodo">
-                <button type="button" class="button ghost" [disabled]="guardandoDatosNodo" (click)="cancelarEdicionDatosNodo()">Cancelar</button>
-                <button type="button" class="button primary" [disabled]="guardandoDatosNodo" (click)="guardarDatosNodo()">
-                  {{ guardandoDatosNodo ? 'Guardando…' : 'Guardar cambios' }}
-                </button>
-              </ng-container>
+            <div *ngIf="seccion.id === 'datos' && nodeIDEdicion" class="node-update-actions">
+              <button type="button" class="button primary" [disabled]="!puedeEditarDatosNodo || !editandoDatosNodo || guardandoDatosNodo" (click)="guardarDatosNodo()">
+                <i class="fa-solid" [ngClass]="guardandoDatosNodo ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i>
+                {{ guardandoDatosNodo ? 'Actualizando…' : 'Actualizar información del nodo seleccionado' }}
+              </button>
+              <button type="button" class="button ghost" [disabled]="!editandoDatosNodo || guardandoDatosNodo" (click)="cancelarEdicionDatosNodo()">Deshacer cambios</button>
             </div>
             <p *ngIf="seccion.id === 'datos' && mensajeActualizacionDatos" role="status">{{ mensajeActualizacionDatos }}</p>
             <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'datos'"
@@ -134,7 +131,7 @@
               [bloquearActividad]="nodeIDEdicion ? !editandoDatosNodo : soloConsulta"
               [mostrarBusquedaAvanzadaGiro]="editandoDatosNodo"
               [validarSoloCambios]="editandoDatosNodo"
-              [textoContinuar]="editandoDatosNodo ? 'Guardar cambios' : 'Guardar y continuar'"
+              [textoContinuar]="editandoDatosNodo ? 'Actualizar información del nodo seleccionado' : 'Guardar y continuar'"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
               (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
               (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"

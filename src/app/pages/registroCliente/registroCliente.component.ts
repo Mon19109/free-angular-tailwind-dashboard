@@ -125,6 +125,7 @@ export class RegistroClienteComponent {
     this.datosForm.markAsPristine();
     this.actualizarModoEdicionNodo(this.nodoSeleccionado);
     this.mensajeActualizacionDatos = '';
+    this.editarDatosNodo();
   }
 
   guardarDatosNodo(): void {
@@ -159,7 +160,8 @@ export class RegistroClienteComponent {
         if (nodoArbol && datos.nombreComercial) nodoArbol.nombre = datos.nombreComercial;
         this.contextoSeleccionado = { ...this.contextoSeleccionado, nombreComercial: datos.nombreComercial, rfc: datos.rfc };
         this.datosPorNodo[nodo] = datos;
-        this.editandoDatosNodo = false;
+        this.datosAntesEdicion = structuredClone(datos);
+        this.editandoDatosNodo = true;
         this.datosForm.markAsPristine();
         this.actualizarModoEdicionNodo(nodo);
         this.mensajeActualizacionDatos = 'Datos actualizados correctamente.';
@@ -772,6 +774,7 @@ export class RegistroClienteComponent {
         this.consultarResultadoSiprelad();
         this.consultarDocumentosProspecto();
         this.cargandoCuentaComercio = false;
+        this.editarDatosNodo();
       },
       error: () => {
         if (consulta !== this.consultaCuentaActual) return;
@@ -1216,10 +1219,20 @@ export class RegistroClienteComponent {
     return registro ? this.valorCuenta(registro, llaves) : '';
   }
 
+  private completarDatosConsultados(valores: Record<string, string>): void {
+    for (const [campo, valor] of Object.entries(valores)) {
+      const control = this.datosForm.get(campo);
+      if (!control) continue;
+      if (this.editandoDatosNodo && control.value !== this.datosAntesEdicion[campo]) continue;
+      control.setValue(valor, { emitEvent: false });
+      if (this.editandoDatosNodo) this.datosAntesEdicion[campo] = valor;
+    }
+  }
+
   private resolverActividadCuenta(cuenta: Record<string, unknown>): void {
     const descripcion = this.valorCuenta(cuenta, ['activityDescription', 'actividad']);
     if (descripcion) {
-      this.datosForm.patchValue({ actividad: descripcion }, { emitEvent: false });
+      this.completarDatosConsultados({ actividad: descripcion });
       return;
     }
 
@@ -1229,11 +1242,11 @@ export class RegistroClienteComponent {
     const consulta = this.consultaCuentaActual;
     this.actividadesService.getActividades().subscribe({
       next: actividades => {
-        if (consulta !== this.consultaCuentaActual || this.editandoDatosNodo) return;
+        if (consulta !== this.consultaCuentaActual) return;
         const actividad = actividades.find(item => this.idActividad(item) === idActivity);
-        this.datosForm.patchValue({
+        this.completarDatosConsultados({
           actividad: this.descripcionActividad(actividad) || idActivity
-        }, { emitEvent: false });
+        });
       }
     });
   }
@@ -1245,11 +1258,11 @@ export class RegistroClienteComponent {
     const idGiro = this.valorCuentaNoCero(cuenta, ['idBussinesLine']);
 
     if (familia || descripcion || mcc) {
-      this.datosForm.patchValue({
+      this.completarDatosConsultados({
         giroComercial: familia,
         descripcionGiro: descripcion,
         mcc
-      }, { emitEvent: false });
+      });
       return;
     }
 
@@ -1258,15 +1271,15 @@ export class RegistroClienteComponent {
     const consulta = this.consultaCuentaActual;
     this.preRegistroService.getGirosByFamily(idGiro).subscribe({
       next: respuesta => {
-        if (consulta !== this.consultaCuentaActual || this.editandoDatosNodo) return;
+        if (consulta !== this.consultaCuentaActual) return;
         const giro = this.girosDesdeRespuesta(respuesta).find(item => this.valorCuenta(item, ['idGiro', 'id', 'mcc', 'MCC']) === idGiro);
         if (!giro) return;
 
-        this.datosForm.patchValue({
+        this.completarDatosConsultados({
           giroComercial: this.valorCuenta(giro, ['familia', 'family', 'giro', 'giroComercial', 'name', 'nombre']),
           descripcionGiro: this.valorCuenta(giro, ['descripcion', 'description', 'desGiro', 'actividad', 'activity', 'label', 'nombreGiro']),
           mcc: this.valorCuenta(giro, ['mcc', 'MCC', 'codigoMcc', 'codigoMCC', 'idGiro', 'id', 'code', 'codigo'])
-        }, { emitEvent: false });
+        });
       }
     });
   }

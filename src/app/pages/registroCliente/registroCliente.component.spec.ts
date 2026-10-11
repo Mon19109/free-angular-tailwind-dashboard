@@ -364,7 +364,7 @@ describe('RegistroCliente: actualización del nodo seleccionado', () => {
       commerceGuid: 'guid-hijo', nameCommerce: 'Después', typeOfBusiness: 0, contacts: [],
     }));
     expect(nodo.nombre).toBe('Después');
-    expect(component.editandoDatosNodo).toBeFalse();
+    expect(component.editandoDatosNodo).toBeTrue();
     expect(component.guardandoDatosNodo).toBeFalse();
   });
 
