@@ -39,11 +39,12 @@
     <div class="mesa-siprelad-result">
       <strong>Resultado de la consulta en listas SIPRELAD:</strong>
       @if (resultadosSiprelad.length) {
-        <div class="siprelad-table">
+        <div class="siprelad-table" tabindex="0" role="region" aria-label="Resultados SIPRELAD, tabla con desplazamiento horizontal">
           <div class="siprelad-head">
             <span>RFC</span>
             <span>Nombre</span>
             <span>Fecha de registro</span>
+            <span>Descripción</span>
             <span>Coincidencia en listas</span>
           </div>
           @for (resultado of resultadosSiprelad; track $index) {
@@ -51,11 +52,8 @@
               <span>{{ resultado.rfc || 'ND' }}</span>
               <span>{{ resultado.nombre || 'ND' }}</span>
               <span>{{ resultado.fechaRegistro || 'ND' }}</span>
-              <strong>
-                {{ resultado.coincidenciaListas || 'No' }}
-                @if (resultado.categoria) { <span> · {{ resultado.categoria }}</span> }
-                @if (resultado.fuente) { <span> · {{ resultado.fuente }}</span> }
-              </strong>
+              <span>{{ resultado.categoria }}{{ resultado.categoria && resultado.fuente ? ' · ' : '' }}{{ resultado.fuente }}{{ !resultado.categoria && !resultado.fuente ? 'ND' : '' }}</span>
+              <strong>{{ resultado.coincidenciaListas === 'Si' ? 'Sí' : (resultado.coincidenciaListas || 'No') }}</strong>
             </div>
           }
         </div>
