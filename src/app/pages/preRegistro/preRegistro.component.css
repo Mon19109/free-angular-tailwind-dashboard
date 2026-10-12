@@ -1645,7 +1645,10 @@ small {
 
 .siprelad-table {
   margin-top: 4px;
-  overflow: hidden;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: auto;
+  scrollbar-color: var(--pre-gold) transparent;
   border: 1px solid rgba(241, 178, 61, 0.34);
   border-radius: 6px;
 }
@@ -1653,7 +1656,8 @@ small {
 .siprelad-head,
 .siprelad-row {
   display: grid;
-  grid-template-columns: minmax(120px, 0.9fr) minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(150px, 1fr);
+  min-width: 980px;
+  grid-template-columns: minmax(140px, 0.9fr) minmax(240px, 1.5fr) minmax(160px, 1fr) minmax(260px, 1.5fr) minmax(180px, 1fr);
 }
 
 .siprelad-head span,
