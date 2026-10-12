@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { Component, OnInit, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -10,7 +11,7 @@ const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\
 @Component({
   selector: 'app-recuperar-cuenta',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, A11yModule],
   templateUrl: './recuperarCuenta.component.html',
   styleUrls: ['../login/login.component.css', './recuperarCuenta.component.css']
 })
@@ -30,6 +31,8 @@ export class RecuperarCuentaComponent implements OnInit {
   mostrarConfirmacion = false;
   enviando = false;
   mostrarModalExito = false;
+  mostrarModalError = false;
+  mensajeErrorRecuperacion = '';
   mensajeEstado = '';
   mensajeEsError = false;
 
@@ -74,6 +77,8 @@ export class RecuperarCuentaComponent implements OnInit {
   }
 
   recuperarCuenta(): void {
+    if (this.enviando) return;
+    this.cerrarModalError();
     this.mensajeEstado = '';
     this.mensajeEsError = false;
     this.recuperarForm.markAllAsTouched();
@@ -97,8 +102,9 @@ export class RecuperarCuentaComponent implements OnInit {
     ).subscribe({
       next: response => {
         if (response?.success !== true) {
-          this.mensajeEstado = response?.message || response?.mensaje || 'No fue posible recuperar la cuenta.';
-          this.mensajeEsError = true;
+          this.mensajeErrorRecuperacion = response?.error?.message
+            || response?.message || response?.mensaje || 'No fue posible recuperar la cuenta.';
+          this.mostrarModalError = true;
           return;
         }
 
@@ -108,12 +114,18 @@ export class RecuperarCuentaComponent implements OnInit {
         this.mostrarModalExito = true;
       },
       error: error => {
-        this.mensajeEstado = error?.error?.message
+        this.mensajeErrorRecuperacion = error?.error?.error?.message
+          || error?.error?.message
           || error?.error?.mensaje
           || 'No fue posible recuperar la cuenta.';
-        this.mensajeEsError = true;
+        this.mostrarModalError = true;
       }
     });
+  }
+
+  cerrarModalError(): void {
+    this.mostrarModalError = false;
+    this.mensajeErrorRecuperacion = '';
   }
 
   irAlLogin(): void {

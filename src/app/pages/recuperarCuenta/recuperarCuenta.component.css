@@ -120,6 +120,10 @@
   font-size: 58px;
 }
 
+.recovery-error-icon {
+  color: #ef4444;
+}
+
 .recovery-success-body .recovery-title {
   margin: 0 0 10px;
 }

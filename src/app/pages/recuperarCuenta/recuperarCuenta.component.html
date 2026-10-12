@@ -107,6 +107,30 @@
   </div>
 </div>
 
+<div class="token-modal-backdrop" *ngIf="mostrarModalError" (click)="cerrarModalError()">
+  <section
+    class="token-modal recovery-success-modal"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="recovery-error-title"
+    aria-describedby="recovery-error-description"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    (keydown.escape)="cerrarModalError()"
+    (click)="$event.stopPropagation()">
+    <div class="token-modal-body recovery-success-body">
+      <i class="far fa-times-circle recovery-success-icon recovery-error-icon" aria-hidden="true"></i>
+      <h2 id="recovery-error-title" class="recovery-title">No se pudo recuperar la cuenta</h2>
+      <p id="recovery-error-description" class="recovery-description">{{ mensajeErrorRecuperacion }}</p>
+    </div>
+    <div class="token-modal-actions recovery-success-actions">
+      <button type="button" class="token-btn token-btn-primary" (click)="cerrarModalError()" cdkFocusInitial>
+        Aceptar
+      </button>
+    </div>
+  </section>
+</div>
+
 <div class="token-modal-backdrop" *ngIf="mostrarModalExito">
   <section
     class="token-modal recovery-success-modal"
