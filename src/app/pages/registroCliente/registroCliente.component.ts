@@ -526,12 +526,10 @@ export class RegistroClienteComponent {
       this.seleccionarNodoPorId(this.nodoSeleccionado);
     }
     this.actualizarModoEdicionNodo(this.nodoSeleccionado);
+    this.consultarResultadoSiprelad();
+    this.consultarDocumentosProspecto();
+    this.consultarCuentaComercio();
     this.consultarArbolEdicion();
-    if (!this.nodeIDEdicion || this.habilitarMesaDigitalEdicion) {
-      this.consultarResultadoSiprelad();
-      this.consultarDocumentosProspecto();
-      this.consultarCuentaComercio();
-    }
   }
 
   get arbol(): NodoRegistro[] {
@@ -790,9 +788,10 @@ export class RegistroClienteComponent {
       next: ({ cuenta, tipoComercio }) => {
         if (consulta !== this.consultaCuentaActual) return;
         this.cuentaNodoActual = cuenta;
+        const pldIDAnterior = this.pldID;
         this.actualizarIdentificadoresDesdeCuenta(cuenta);
         this.pintarCuentaComercio(cuenta, tipoComercio);
-        this.consultarResultadoSiprelad();
+        if (this.pldID !== pldIDAnterior) this.consultarResultadoSiprelad();
         this.consultarDocumentosProspecto();
         this.cargandoCuentaComercio = false;
         this.editarDatosNodo();
@@ -1602,6 +1601,7 @@ export class RegistroClienteComponent {
     };
     this.cargarCapturaNodo(nodo.id);
     if (this.nodeIDEdicion) {
+      this.consultarResultadoSiprelad();
       this.consultarCuentaComercio(idComercio);
       this.precargarDocumentosRuta(nodo.id);
     }
