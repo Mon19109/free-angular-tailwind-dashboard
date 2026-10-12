@@ -15,11 +15,10 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Observable, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
-import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
+import { UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
 import { StepDocumentosComponent } from '../preRegistro/components/documentos/step-documentos.component';
-import { StepLiquidacionComponent } from '../preRegistro/components/liquidacion/step-liquidacion.component';
 import { DocumentoRequerido } from '../preRegistro/models/preregistro.models';
 import { SipreladResultado, SipreladService } from '../../services/siprelad.service';
 import {
@@ -70,8 +69,6 @@ interface SeccionRegistro {
     RouterModule,
     StepComercioComponent,
     StepDatosComponent,
-    StepAccesosComponent,
-    StepLiquidacionComponent,
     StepDocumentosComponent
   ],
   templateUrl: './registroCliente.component.html',
@@ -574,6 +571,15 @@ export class RegistroClienteComponent {
 
   get soloConsulta(): boolean { return !this.esMesaDigitalSesion; }
 
+  get opcionLiquidacionConsulta(): string {
+    const opciones: Record<string, string> = {
+      'otros-bancos': 'Otros Bancos',
+      'en-red': 'En Red',
+      'otros-bancos-en-red': 'Otros Bancos y En Red'
+    };
+    return opciones[this.liquidacionForm.controls.cuentaFueraRed.value] || '';
+  }
+
   get esEdicionPendiente(): boolean {
     return this.pendienteRevisionEdicion && !!this.nodeIDEdicion;
   }
@@ -1048,7 +1054,7 @@ export class RegistroClienteComponent {
       numeroExteriorRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['exteriorNumber', 'extNum', 'numeroExterior']),
       numeroInteriorRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['interiorNumber', 'intNum', 'numeroInterior']),
       codigoPostalRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['postalCode', 'codigoPostal']),
-      coloniaRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['district', 'colonia']),
+      coloniaRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['district', 'suburb', 'colonia']),
       municipioRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['municipality', 'municipio']),
       estadoRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['state', 'federativeEntity', 'estado']),
       locationIDRepresentante: this.valorDireccionRepresentanteCuenta(direccionRepresentante, ['idLocation', 'locationID']),
@@ -1073,6 +1079,7 @@ export class RegistroClienteComponent {
     this.resolverGiroCuenta(cuenta);
     this.consultarLocalidadesCuenta('DF', direccionFiscal);
     this.consultarLocalidadesCuenta('DC', direccionComercial);
+    this.consultarLocalidadRepresentante(direccionRepresentante);
 
     this.contextoSeleccionado = {
       ...this.contextoSeleccionado,
@@ -1311,6 +1318,35 @@ export class RegistroClienteComponent {
   private descripcionActividad(actividad: Actividad | undefined): string {
     if (!actividad) return '';
     return this.valorCuenta(actividad, ['descripcion', 'description', 'actividad', 'activity', 'nombre', 'name', 'label']);
+  }
+
+  private consultarLocalidadRepresentante(direccion: Record<string, unknown> | null): void {
+    this.localidadesRepresentante = [];
+    this.cargandoLocalidadesRepresentante = false;
+    const codigoPostal = this.valorDireccionRepresentanteCuenta(direccion, ['postalCode', 'codigoPostal']);
+    const locationID = this.valorDireccionRepresentanteCuenta(direccion, ['idLocation', 'locationID']);
+    if (!codigoPostal || !locationID) return;
+
+    const consulta = this.consultaCuentaActual;
+    this.cargandoLocalidadesRepresentante = true;
+    this.localidadesService.obtenerPorCodigoPostal(codigoPostal).subscribe({
+      next: localidades => {
+        if (consulta !== this.consultaCuentaActual) return;
+        this.cargandoLocalidadesRepresentante = false;
+        this.localidadesRepresentante = localidades;
+        const localidad = this.localidadPorId(localidades, locationID);
+        if (!localidad || this.datosForm.controls.locationIDRepresentante.value !== locationID) return;
+        this.completarDatosConsultados({
+          coloniaRepresentante: this.coloniaLocalidad(localidad),
+          municipioRepresentante: this.municipioLocalidad(localidad),
+          estadoRepresentante: this.estadoLocalidad(localidad)
+        });
+      },
+      error: () => {
+        if (consulta !== this.consultaCuentaActual) return;
+        this.cargandoLocalidadesRepresentante = false;
+      }
+    });
   }
 
   private consultarLocalidadesCuenta(addressType: 'DF' | 'DC', direccion: Record<string, unknown> | null): void {
@@ -1644,6 +1680,7 @@ export class RegistroClienteComponent {
   }
 
   completarPaso(id: SeccionRegistro['id'], siguiente?: SeccionRegistro['id']): void {
+    if (id === 'liquidacion' || id === 'accesos') return;
     if (this.soloConsulta) {
       if (siguiente) this.continuarSeccion(siguiente);
       return;
@@ -1658,17 +1695,8 @@ export class RegistroClienteComponent {
   }
 
   guardarLiquidacion(): void {
-    if (!this.esMesaDigitalSesion) return;
-    this.guardarCapturaNodoActual();
-    this.guardarLiquidacionActual();
-    this.pasosCompletados.add(this.clavePasoNodo('liquidacion'));
-    this.guardarComercioLocal();
-    this.guardarEstadoRegistroLocal();
-    this.liquidacionPorNodo = { ...this.liquidacionPorNodo };
-    if (this.mostrarPasoAccesos) {
-      this.seccionAbierta = this.resolverSeccionVisible('accesos', 'liquidacion');
-      this.pasoActual = this.numeroPasoPorSeccion(this.seccionAbierta);
-    }
+    // La captura autorizada se procesa en RegistroProspectoCliente.
+    return;
   }
 
   estadoPaso(id: SeccionRegistro['id']): string {
@@ -2399,7 +2427,7 @@ export class RegistroClienteComponent {
     if (puedeEditarTodo) {
       this.comercioForm.enable(opciones);
       this.datosForm.enable(opciones);
-      this.accesosForm.enable(opciones);
+      this.accesosForm.disable(opciones);
       this.comercioForm.controls.nivel.disable(opciones);
     } else {
       this.comercioForm.disable(opciones);
@@ -2410,8 +2438,7 @@ export class RegistroClienteComponent {
     if (this.nodeIDEdicion && !this.editandoDatosNodo) this.datosForm.disable(opciones);
     else if (puedeEditarTodo && this.editandoDatosNodo) this.datosForm.enable(opciones);
 
-    if (puedeEditarTodo) this.liquidacionForm.enable(opciones);
-    else this.liquidacionForm.disable(opciones);
+    this.liquidacionForm.disable(opciones);
   }
 
   tieneLiquidacion(nodoId: string): boolean {

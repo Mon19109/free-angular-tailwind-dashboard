@@ -138,40 +138,21 @@
               (volver)="continuarSeccion('comercio')" />
             </fieldset>
 
-            <div *ngIf="seccion.id === 'accesos' && accesosRegistrados" role="status">
-              <p>Este comercio cuenta con una cuenta registrada en la plataforma.</p>
-              <p>Tipos de perfil asociados al tipo de comercio:</p>
-              <ul>
-                <li *ngFor="let usuario of usuariosAcceso">{{ usuario.titulo }}</li>
-              </ul>
+            <div *ngIf="seccion.id === 'accesos'" role="status">
+              <p *ngIf="cargandoCuentaComercio">Cargando accesos a plataforma...</p>
+              <ng-container *ngIf="!cargandoCuentaComercio && !errorCuentaComercio">
+                <p>{{ accesosRegistrados ? 'Este comercio cuenta con una cuenta registrada en la plataforma.' : 'No se encontraron accesos registrados a la plataforma.' }}</p>
+                <p *ngIf="accesosRegistrados && usuariosAcceso.length">{{ usuariosAcceso[0].titulo }}</p>
+              </ng-container>
             </div>
-            <app-step-accesos
-              *ngIf="seccion.id === 'accesos' && !accesosRegistrados"
-              [form]="accesosForm"
-              [usuarios]="usuariosAcceso"
-              [mostrarResumenUsuarios]="true"
-              [usuarioActivo]="usuarioAccesoActivo"
-              textoContinuar="Guardar y continuar"
-              (usuarioActivoChange)="seleccionarUsuarioAcceso($event)"
-              (continuar)="completarPaso('accesos')"
-              (volver)="continuarSeccion('liquidacion')" />
 
-            <p *ngIf="seccion.id === 'liquidacion' && nodeIDEdicion && cargandoCuentaComercio" role="status">Cargando cuenta de liquidación...</p>
-            <p *ngIf="seccion.id === 'liquidacion' && nodeIDEdicion && !cargandoCuentaComercio && !errorCuentaComercio && !liquidacionForm.controls.cuentaFueraRed.value" role="status">No se encontraron datos de la cuenta de liquidación.</p>
-            <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'liquidacion'" [disabled]="soloConsulta || cargandoCuentaComercio">
-            <app-step-liquidacion
-              *ngIf="seccion.id === 'liquidacion'"
-              [form]="liquidacionForm"
-              [tiposCuenta]="tiposCuenta"
-              [beneficiarioIgualComercio]="datosBeneficiarioIgualComercio"
-              [mostrarBeneficiarioIgualComercio]="true"
-              [habilitarBusquedasCatalogo]="!soloConsulta"
-              [permitirVacio]="true"
-              [varianteRegistro]="true"
-              [textoContinuar]="esNodoExistente ? 'Guardar cuenta de liquidación' : 'Guardar y continuar'"
-              (continuar)="guardarLiquidacion()"
-              (volver)="continuarSeccion('datos')" />
-            </fieldset>
+            <div *ngIf="seccion.id === 'liquidacion'" role="status">
+              <p *ngIf="cargandoCuentaComercio">Cargando cuenta de liquidación...</p>
+              <ng-container *ngIf="!cargandoCuentaComercio && !errorCuentaComercio">
+                <p *ngIf="!opcionLiquidacionConsulta">No se encontraron datos de la cuenta de liquidación.</p>
+                <p *ngIf="opcionLiquidacionConsulta">Destino de las liquidaciones: <strong>{{ opcionLiquidacionConsulta }}</strong></p>
+              </ng-container>
+            </div>
 
             <app-step-documentos
               *ngIf="seccion.id === 'documentos'"

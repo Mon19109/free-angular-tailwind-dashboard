@@ -119,7 +119,7 @@ describe('RegistroCliente: pasos finales internos', () => {
     expect(modal).not.toHaveBeenCalled();
   });
 
-  it('deshabilita los cuatro formularios en consulta y los habilita para el administrador', () => {
+  it('mantiene liquidación y accesos deshabilitados también para el administrador', () => {
     for (const admin of [true, false]) {
       const component = pantalla(false, 'entidad', admin);
       const formularios = {
@@ -130,10 +130,25 @@ describe('RegistroCliente: pasos finales internos', () => {
       };
       Object.assign(component, formularios);
       (component as any).actualizarModoEdicionNodo('entidad');
-      for (const form of Object.values(formularios)) expect(form.disabled).toBe(!admin);
+      expect(formularios.comercioForm.disabled).toBe(!admin);
+      expect(formularios.datosForm.disabled).toBe(!admin);
+      expect(formularios.liquidacionForm.disabled).toBeTrue();
+      expect(formularios.accesosForm.disabled).toBeTrue();
       expect(formularios.comercioForm.controls.nivel.disabled).toBeTrue();
     }
   });
+
+  for (const pendiente of [true, false]) {
+    it(`el rol 2 no guarda liquidación ni accesos, pendiente=${pendiente}`, () => {
+      const component = pantalla(pendiente, 'entidad', true);
+      const guardar = spyOn<any>(component, 'guardarCapturaNodoActual');
+      component.guardarLiquidacion();
+      component.completarPaso('liquidacion');
+      component.completarPaso('accesos');
+      expect(guardar).not.toHaveBeenCalled();
+      expect(component.capturaFinalHabilitada).toBeFalse();
+    });
+  }
 
   it('mantiene Datos Generales cuando el tipo de comercio no está disponible', () => {
     const component = pantalla(false);
@@ -410,5 +425,30 @@ describe('RegistroCliente: actualización del nodo seleccionado', () => {
     component.guardandoDatosNodo = true;
     component.seleccionarNodo({ id: 'otro', nombre: 'Otro', nivel: 'entidad' });
     expect(component.nodoSeleccionado).toBe('nodo-hijo');
+  });
+});
+
+
+describe('RegistroCliente: localidad del representante', () => {
+  it('completa municipio y estado usando la localidad exacta del contacto', () => {
+    const component = Object.create(RegistroClienteComponent.prototype) as any;
+    Object.assign(component, {
+      consultaCuentaActual: 1,
+      localidadesService: { obtenerPorCodigoPostal: jasmine.createSpy().and.returnValue(of([
+        { idLocalidad: 'otra', municipio: 'Otro municipio', estado: 'Otro estado' },
+        { idLocalidad: '15421456334', colonia: 'Centro', municipio: 'Municipio esperado', estado: 'Estado esperado' }
+      ])) },
+      datosForm: new FormGroup({
+        locationIDRepresentante: new FormControl('15421456334'),
+        coloniaRepresentante: new FormControl(''),
+        municipioRepresentante: new FormControl(''),
+        estadoRepresentante: new FormControl('')
+      })
+    });
+    component.consultarLocalidadRepresentante({ postalCode: '12345', idLocation: '15421456334' });
+    expect(component.datosForm.getRawValue()).toEqual({
+      locationIDRepresentante: '15421456334', coloniaRepresentante: 'Centro',
+      municipioRepresentante: 'Municipio esperado', estadoRepresentante: 'Estado esperado'
+    });
   });
 });
