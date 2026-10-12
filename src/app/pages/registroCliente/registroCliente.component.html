@@ -129,6 +129,7 @@
               [bloquearActividad]="nodeIDEdicion ? !editandoDatosNodo : soloConsulta"
               [mostrarBusquedaAvanzadaGiro]="editandoDatosNodo"
               [validarSoloCambios]="editandoDatosNodo"
+              [mostrarContinuar]="esMesaDigitalSesion"
               [textoContinuar]="nodeIDEdicion ? (guardandoDatosNodo ? 'Actualizando…' : 'Actualizar datos') : 'Guardar y continuar'"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
               (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"

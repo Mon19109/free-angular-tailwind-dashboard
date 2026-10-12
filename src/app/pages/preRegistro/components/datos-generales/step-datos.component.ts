@@ -58,6 +58,7 @@ export class StepDatosComponent implements OnInit {
   @Input() forzarDatosCaja = false;
   @Input() validarSoloCambios = false;
   @Input() textoContinuar = 'Guardar y continuar';
+  @Input() mostrarContinuar = true;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
   @Output() cambiarInfoFiscalEntidad = new EventEmitter<boolean>();
@@ -408,6 +409,7 @@ export class StepDatosComponent implements OnInit {
   }
 
  submit(): void {
+  if (!this.mostrarContinuar) return;
 
   this.form.markAllAsTouched();
 

@@ -1699,7 +1699,15 @@ export class RegistroClienteComponent {
     return;
   }
 
+  private seccionConInformacionRegistrada(id: SeccionRegistro['id']): boolean {
+    if (!this.nodeIDEdicion || this.cargandoCuentaComercio || this.errorCuentaComercio) return false;
+    if (id === 'liquidacion') return !!this.opcionLiquidacionConsulta;
+    if (id === 'accesos') return this.accesosRegistrados;
+    return false;
+  }
+
   estadoPaso(id: SeccionRegistro['id']): string {
+    if (this.seccionConInformacionRegistrada(id)) return 'Completado';
     if (this.esEdicionPendiente && id === 'documentos') {
       return this.documentosNodoValidados(this.nodoSeleccionado) ? 'Concluida' : 'Pendiente de revisión';
     }
@@ -1715,6 +1723,7 @@ export class RegistroClienteComponent {
   }
 
   pasoTerminado(id: SeccionRegistro['id']): boolean {
+    if (this.seccionConInformacionRegistrada(id)) return true;
     if (this.pendienteRevisionEdicion && id === 'liquidacion') return this.registroFinal?.liquidacionCompleta ?? false;
     if (this.pendienteRevisionEdicion && id === 'accesos') return this.registroFinal?.accesosCompletos ?? false;
     const estado = this.estadoPaso(id);
