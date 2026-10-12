@@ -447,6 +447,11 @@ textarea.form-control {
   min-width: 120px;
 }
 
+.beneficiary-confirm-actions {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 @keyframes beneficiaryModalIn {
   from {
     opacity: 0;

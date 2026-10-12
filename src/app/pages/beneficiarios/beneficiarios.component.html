@@ -291,6 +291,32 @@
   </article>
 </div>
 
+<div class="beneficiary-modal-backdrop" *ngIf="mostrarModalConfirmacionEliminacion" (click)="cancelarEliminacion()">
+  <section
+    class="beneficiary-modal"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="delete-confirm-title"
+    aria-describedby="delete-confirm-message"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    (keydown.escape)="cancelarEliminacion()"
+    (click)="$event.stopPropagation()">
+    <div class="beneficiary-modal-body">
+      <h2 id="delete-confirm-title">Eliminar beneficiarios</h2>
+      <p id="delete-confirm-message">
+        {{ idsPendientesEliminar.length === 1
+          ? '¿Deseas eliminar el beneficiario seleccionado?'
+          : '¿Deseas eliminar los ' + idsPendientesEliminar.length + ' beneficiarios seleccionados?' }}
+      </p>
+    </div>
+    <footer class="beneficiary-modal-footer beneficiary-confirm-actions">
+      <button type="button" class="button danger" (click)="cancelarEliminacion()" cdkFocusInitial>Cancelar</button>
+      <button type="button" class="button primary" (click)="confirmarEliminacion()">Confirmar</button>
+    </footer>
+  </section>
+</div>
+
 <div
   class="beneficiary-modal-backdrop"
   *ngIf="mostrarModalResultadoEliminacion"

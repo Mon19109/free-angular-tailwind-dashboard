@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize, Subscription } from 'rxjs';
@@ -10,7 +11,7 @@ type TipoResultadoEliminacion = 'exito' | 'error';
 @Component({
   selector: 'app-beneficiarios',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, A11yModule],
   templateUrl: './beneficiarios.component.html',
   styleUrls: ['./beneficiarios.component.css']
 })
@@ -33,6 +34,8 @@ export class BeneficiariosComponent implements OnInit {
   cuentaMostrada = '';
   mostrarModalBeneficiarioAgregado = false;
   mostrarModalResultadoEliminacion = false;
+  mostrarModalConfirmacionEliminacion = false;
+  idsPendientesEliminar: string[] = [];
   tipoResultadoEliminacion: TipoResultadoEliminacion = 'exito';
   mensajeResultadoEliminacion = '';
 
@@ -79,6 +82,7 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   cambiarVista(vista: VistaBeneficiarios): void {
+    this.cancelarEliminacion();
     this.vista = vista;
     this.mensaje = '';
     this.error = '';
@@ -232,6 +236,7 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   eliminarSeleccionados(): void {
+    if (this.cargando || this.mostrarModalConfirmacionEliminacion) return;
     this.mensaje = '';
     this.error = '';
     const ids = Array.from(this.idsEliminar);
@@ -244,6 +249,19 @@ export class BeneficiariosComponent implements OnInit {
       return;
     }
 
+    this.idsPendientesEliminar = ids;
+    this.mostrarModalConfirmacionEliminacion = true;
+  }
+
+  cancelarEliminacion(): void {
+    this.mostrarModalConfirmacionEliminacion = false;
+    this.idsPendientesEliminar = [];
+  }
+
+  confirmarEliminacion(): void {
+    if (!this.mostrarModalConfirmacionEliminacion || this.cargando || !this.idsPendientesEliminar.length) return;
+    const ids = [...this.idsPendientesEliminar];
+    this.cancelarEliminacion();
     this.cargando = true;
     this.beneficiariosService.eliminarContactos(ids).subscribe({
       next: response => {
