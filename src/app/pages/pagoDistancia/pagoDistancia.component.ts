@@ -7,11 +7,12 @@ import {
   PagoDistanciaService
 } from '../../services/pagoDistancia.service';
 import { LabelComponent } from '../../shared/components/form/label/label.component';
+import { DatePickerComponent } from '../../shared/components/form/date-picker/date-picker.component';
 
 @Component({
   selector: 'app-tarjeta',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LabelComponent],
+  imports: [CommonModule, ReactiveFormsModule, LabelComponent, DatePickerComponent],
   templateUrl: './pagoDistancia.component.html',
   styleUrls: ['./pagoDistancia.component.css']
 }) 
@@ -52,6 +53,12 @@ export class PagoDistanciaComponent {
       filtro: [''],
       busqueda: ['']
     });
+  }
+
+  actualizarFecha(campo: 'fechaCreacion' | 'busqueda', evento: { dateStr: string }): void {
+    const control = this.formulario.get(campo);
+    control?.setValue(evento.dateStr);
+    control?.markAsDirty();
   }
 
   handleSelectChangeFil(event: Event) {
