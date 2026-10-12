@@ -118,7 +118,7 @@ export class UsuariosComponent implements OnInit {
     // Cargar cuentas
     this.usuariosService.obtenerEntidades().subscribe({
       next: (data) => {
-        this.entidades = data;
+        this.entidades = data.filter(entidad => entidad?.type === 4 && entidad?.active === true);
       },
       error: (error) => {
         console.error('Error al cargar cuentas:', error);
