@@ -29,7 +29,6 @@ export interface RegimenFiscal {
   providedIn: 'root'
 })
 export class RegimenFiscalService {
-  private readonly bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
   private readonly http = inject(HttpClient);
   private readonly apiV1Url = `${environment.api.kashpay}api/v1/`;
 
@@ -55,7 +54,7 @@ export class RegimenFiscalService {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': `Bearer ${this.bearerToken}`
+      'Authorization': `Bearer ${environment.bearerTokens.portal}`
     });
   }
 

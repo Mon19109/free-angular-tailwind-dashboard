@@ -80,7 +80,7 @@ export class ProspectoClienteService {
       'Content-Type': 'application/json',
       versionApp: '3',
       //Authorization: `Bearer ${this.obtenerToken()}`
-      Authorization: `Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc`
+      Authorization: `Bearer ${environment.bearerTokens.portal}`
         });
   }
 

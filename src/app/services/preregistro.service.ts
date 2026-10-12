@@ -90,7 +90,7 @@ export class PreRegistroService {
   private http = inject(HttpClient);
   private baseUrl = environment.api.linkpago; // Tu base URLAdquirenciaAdquirencia
   private apiV1Url = `${environment.api.kashpay}api/v1/`;
-  private girosBearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
+  private girosBearerToken = environment.bearerTokens.portal;
 
   //user: UserSessionData | null = null;
 

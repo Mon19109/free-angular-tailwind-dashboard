@@ -1,3 +1,4 @@
+import { environment } from '../../environments/environments';
 import { CommonModule } from '@angular/common';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
@@ -86,7 +87,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     if (this.nodoInterno) this.seleccionarNodo(this.nodoInterno);
   }
 
-  readonly prospectoBearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
+  readonly prospectoBearerToken = environment.bearerTokens.portal;
   private readonly fb = inject(FormBuilder);
   private readonly registroAccesosService = inject(RegistroAccesosService);
   private readonly seguimientoProspectoService = inject(SeguimientoProspectoService);

@@ -128,7 +128,7 @@ export class AuthService {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhNzYwODAwZi1kOWQxLTQxY2MtYjMwMy0yYzg0NzU4YzdiZTYiLCJzZXNzaW9uSWQiOiJmMTA4YjdhMS1mNzUxLTRjZmItYjFmOC04YTY4N2M2ZTg3ZGQiLCJlbWFpbCI6InNhX21vbnlAZ21haWwuY29tIiwiZGV2aWNlSWQiOiJmYTFjNTBkZWVlMjYyOTY5MDJjNTA2MzcxNmFhYTk2MjhiNTU4NmZlMjA2NjE4YjhmNDZkOTk5MmZiNzNlMGRmIiwidHlwZSI6ImFjY2VzcyIsInNjb3BlcyI6WyJyZWFkIiwid3JpdGUiXSwiaWF0IjoxNzgxODk0MjQ5LCJleHAiOjE3ODE4OTc4NDl9.biMkQyPIY1Bl2OKizTvP1tQmFBo4hYw3eWQV4Z2eD-MnxKgvSPdaFA_ddT2U2M7HEhPUeQjRv3BLEJ4k5SpOOw'
+      'Authorization': `Bearer ${environment.bearerTokens.login}`
     });
   }
 

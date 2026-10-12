@@ -29,12 +29,11 @@ export class PagarLinkPagoService {
   private readonly transactionUrl = environment.api.voucher;
   // Equivale a WS_CARDS + CTXT_CARDS del servicio anterior.
   private readonly cardsUrl = environment.api.card+'api/v1/';
-  private readonly bearerToken = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc';
   private ubicacionPrecargada?: Observable<UbicacionPago>;
 
   private get cardsHeaders(): HttpHeaders {
     return new HttpHeaders({
-      Authorization: `Bearer ${this.bearerToken}`,
+      Authorization: `Bearer ${environment.bearerTokens.portal}`,
       'Entity-i': 'com.onsigna',
       versionApp: '3'
     });
@@ -89,7 +88,7 @@ export class PagarLinkPagoService {
 
   obtenerOrden(referencia: string): Observable<any> {
     const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.bearerToken}`,
+      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
       'Entity-i': 'com.onsigna',
       'versionApp': '3',
       'Content-Type': 'application/json'
@@ -99,7 +98,7 @@ export class PagarLinkPagoService {
 
   obtenerBalance(sirioId: string): Observable<any> {
     const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.bearerToken}`,
+      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
       'Entity-i': 'com.onsigna',
       'versionApp': '3',
       'SonEntity-i': sirioId
@@ -109,7 +108,7 @@ export class PagarLinkPagoService {
 
   validarBin(bin: string, amount: number): Observable<any> {
     const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.bearerToken}`,
+      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
       'Entity-i': 'com.onsigna',
       'Content-Type': 'application/json'
     });
@@ -127,7 +126,7 @@ export class PagarLinkPagoService {
 
   procesarTransaccion(payload: Record<string, unknown>): Observable<any> {
     const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.bearerToken}`,
+      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
       'Content-Type': 'application/json'
     });
 

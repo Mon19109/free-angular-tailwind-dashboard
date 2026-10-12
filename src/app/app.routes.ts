@@ -312,19 +312,19 @@ export const routes: Routes = [
       { 
         path: 'reportes', 
         component: ReportesComponent, 
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title:'KASHPAY'
       },
       { 
         path: 'pago_distancia', 
         component: PagoDistanciaComponent, 
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title:'KASHPAY'
       },
       {
         path: 'detalleLinkpago',
         component: DetalleLinkPagoComponent,
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title: 'KASHPAY'
       },
       {
@@ -368,7 +368,7 @@ export const routes: Routes = [
       {
         path: 'manuales',
         component: ManualesComponent,
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title:'KASHPAY'
       },
 
@@ -382,7 +382,7 @@ export const routes: Routes = [
       {
         path: 'informacion_cuenta',
         component: InformacionCuentaComponent,
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title:'KASHPAY'
       },
 
@@ -426,7 +426,7 @@ export const routes: Routes = [
       {
         path: 'estado_cuenta',
         component: EstadoCuentaComponent,
-        //canActivate: [AuthGuard],
+        canActivate: [AuthGuard],
         title:'KASHPAY'
       },
       {
