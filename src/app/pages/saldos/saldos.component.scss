@@ -323,3 +323,64 @@ tbody tr:hover td {
     width: 100%;
   }
 }
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 16px clamp(18px, 2.4vw, 26px);
+  flex-wrap: wrap;
+  color: var(--saldos-muted);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.pagination > div {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-block: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 850;
+  flex-shrink: 0;
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--saldos-border);
+  color: var(--saldos-text);
+  background: var(--saldos-panel);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.pagination button:not(:disabled):hover {
+  border-color: var(--saldos-gold);
+  transform: translateY(-1px);
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.pagination button.active {
+  border-color: var(--saldos-gold);
+  background: var(--saldos-gold);
+  color: #1d1608;
+}
+
+.pagination-ellipsis {
+  min-width: 24px;
+  text-align: center;
+  color: var(--saldos-muted);
+  font-weight: 800;
+}

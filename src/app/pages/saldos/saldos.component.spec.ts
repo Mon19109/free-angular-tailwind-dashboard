@@ -23,7 +23,13 @@ describe('Selección de entidad en Saldos', () => {
             { idSirio: 'EMI', name: 'Emisión', idbusinessModel: 1 },
             { idSirio: 'RES', name: ' Cuenta Reserva ', idbusinessModel: 1 }
           ]),
-          obtenerEntidades: () => of([{ bundle: 'EMI.1', bussinesName: 'Entidad' }])
+          obtenerEntidades: () => of([
+            { bundle: 'EMI.1', bussinesName: 'Entidad', type: 4, active: true },
+            { bundle: 'EMI.2', bussinesName: 'Inactiva', type: 4, active: false },
+            { bundle: 'EMI.3', bussinesName: 'Sucursal', type: 5, active: true },
+            { bundle: 'EMI.4', bussinesName: 'Sin estado', type: 4 },
+            { bundle: 'EMI.5', bussinesName: 'Estado en texto', type: 4, active: 'true' }
+          ])
         } }
       ]
     });
@@ -52,6 +58,42 @@ describe('Selección de entidad en Saldos', () => {
 
   it('oculta Cuenta Reserva del listado de cuentas', () => {
     expect(component.cuentasOptions.map(cuenta => cuenta.value)).toEqual(['ADQ', 'EMI']);
+  });
+
+  it('muestra únicamente entidades de tipo 4 activas', () => {
+    component.seleccionarCuenta('EMI');
+    expect(component.entidadesOptions).toEqual([{ label: 'EMI.1 - Entidad', value: 'EMI.1' }]);
+  });
+
+  it('pagina los resultados y conserva todas las filas para exportación', () => {
+    response.next({ entities: Array.from({ length: 23 }, (_, id) => ({ id })) });
+    expect(component.saldosPaginados.length).toBe(10);
+    expect(component.totalPaginas).toBe(3);
+    component.cambiarPagina(3);
+    expect(component.saldosPaginados.map(saldo => saldo.id)).toEqual([20, 21, 22]);
+    expect((component as any).filasExportacion().length).toBe(23);
+    component.cambiarPagina(99);
+    expect(component.paginaActual).toBe(3);
+    component.cambiarPagina(0);
+    expect(component.paginaActual).toBe(1);
+  });
+
+  it('reinicia la página al cambiar de cuenta o entidad y maneja resultados vacíos', () => {
+    component.paginaActual = 3;
+    component.seleccionarCuenta('EMI');
+    expect(component.paginaActual).toBe(1);
+    component.paginaActual = 2;
+    component.seleccionarEntidad('EMI.1');
+    response.next({ entities: [] });
+    expect(component.paginaActual).toBe(1);
+    expect(component.totalPaginas).toBe(1);
+    expect(component.saldosPaginados).toEqual([]);
+  });
+
+  it('abrevia una lista larga de páginas manteniendo los extremos y la página actual', () => {
+    response.next({ entities: Array.from({ length: 200 }, (_, id) => ({ id })) });
+    component.cambiarPagina(10);
+    expect(component.paginasVisibles.map(pagina => pagina.valor)).toEqual([1, '...', 9, 10, 11, '...', 20]);
   });
 
   it('cierra el popup y muestra el error cuando falla la consulta', () => {

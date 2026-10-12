@@ -72,7 +72,7 @@
         </thead>
 
         <tbody>
-          @for (saldo of saldos; track saldo.id) {
+          @for (saldo of saldosPaginados; track saldo.id) {
             <tr>
               <td>{{ saldo.id }}</td>
               <td>{{ saldo.nombre }}</td>
@@ -87,6 +87,24 @@
         </tbody>
       </table>
     </div>
+    <footer class="pagination">
+      <span>Mostrando {{ saldosPaginados.length }} de {{ saldos.length }} registros</span>
+      <div>
+        <button type="button" aria-label="Página anterior" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1"><i class="fa-solid fa-chevron-left"></i></button>
+        <ng-container *ngFor="let pagina of paginasVisibles">
+          <button
+            type="button"
+            *ngIf="pagina.tipo === 'pagina'"
+            [class.active]="pagina.valor === paginaActual"
+            [attr.aria-current]="pagina.valor === paginaActual ? 'page' : null"
+            [attr.aria-label]="'Ir a página ' + pagina.valor"
+            (click)="cambiarPagina(pagina.valor)"
+          >{{ pagina.valor }}</button>
+          <span class="pagination-ellipsis" *ngIf="pagina.tipo === 'ellipsis'">{{ pagina.valor }}</span>
+        </ng-container>
+        <button type="button" aria-label="Página siguiente" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </footer>
   </article>
 </div>
 

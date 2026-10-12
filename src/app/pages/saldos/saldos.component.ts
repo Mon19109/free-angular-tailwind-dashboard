@@ -10,6 +10,8 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; valor: '...' };
+
 @Component({
   selector: 'app-saldos',
   standalone: true,
@@ -29,6 +31,57 @@ export class SaldosComponent implements OnInit {
   entidadSeleccionada = '';
   cuentas: any[] = [];
   fatherIDActual = '';
+
+  paginaActual = 1;
+  readonly elementosPorPagina = 10;
+
+  get saldosPaginados(): any[] {
+    const inicio = (this.paginaActual - 1) * this.elementosPorPagina;
+    return this.saldos.slice(inicio, inicio + this.elementosPorPagina);
+  }
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.saldos.length / this.elementosPorPagina));
+  }
+
+  cambiarPagina(pagina: number): void {
+    this.paginaActual = Math.min(Math.max(pagina, 1), this.totalPaginas);
+  }
+
+  get paginasVisibles(): PaginaVisible[] {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, index) => ({
+        tipo: 'pagina' as const,
+        valor: index + 1
+      }));
+    }
+
+    const paginas = new Set<number>([1, total, actual - 1, actual, actual + 1]);
+
+    if (actual <= 4) {
+      [2, 3, 4, 5].forEach(pagina => paginas.add(pagina));
+    }
+
+    if (actual >= total - 3) {
+      [total - 4, total - 3, total - 2, total - 1].forEach(pagina => paginas.add(pagina));
+    }
+
+    const ordenadas = [...paginas]
+      .filter(pagina => pagina >= 1 && pagina <= total)
+      .sort((a, b) => a - b);
+
+    return ordenadas.reduce<PaginaVisible[]>((acumulado, pagina, index) => {
+      const anterior = ordenadas[index - 1];
+      if (anterior && pagina - anterior > 1) {
+        acumulado.push({ tipo: 'ellipsis', valor: '...' });
+      }
+      acumulado.push({ tipo: 'pagina', valor: pagina });
+      return acumulado;
+    }, []);
+  }
 
   get cuentasOptions() {
     return this.cuentas.map(cuenta => ({
@@ -96,6 +149,7 @@ export class SaldosComponent implements OnInit {
     this.entidadSeleccionada = '';
     this.entidades = [];
     this.saldos = [];
+    this.paginaActual = 1;
     this.fatherIDActual = '';
     this.errorCarga = '';
 
@@ -110,7 +164,9 @@ export class SaldosComponent implements OnInit {
     this.entidadesRequest = this.conCarga(
       this.operacionesEmisionService.obtenerEntidades(cuenta)
     ).subscribe({
-      next: resp => { this.entidades = resp; },
+      next: resp => {
+        this.entidades = resp.filter((entidad: any) => entidad?.type === 4 && entidad?.active === true);
+      },
       error: () => { this.errorCarga = 'No se pudieron cargar las entidades. Vuelve a seleccionar la cuenta.'; }
     });
   }
@@ -124,6 +180,7 @@ export class SaldosComponent implements OnInit {
   cargarSaldo(fatherId?: string): void {
     this.saldoRequest?.unsubscribe();
     this.saldos = [];
+    this.paginaActual = 1;
     this.errorCarga = '';
     this.fatherIDActual = fatherId ?? '';
     if (!fatherId) return;
