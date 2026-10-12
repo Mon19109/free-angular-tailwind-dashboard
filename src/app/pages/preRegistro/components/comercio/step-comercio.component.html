@@ -77,6 +77,6 @@
 
   <div class="step-actions">
     <button type="button" class="button ghost" (click)="volver.emit()">Atrás</button>
-    <button type="submit" class="button primary">Guardar y continuar</button>
+    <button *ngIf="mostrarContinuar" type="submit" class="button primary">Guardar y continuar</button>
   </div>
 </form>

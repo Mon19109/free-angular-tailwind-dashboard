@@ -105,7 +105,7 @@ export class RegistroClienteComponent {
   mensajeActualizacionDatos = '';
 
   get puedeEditarDatosNodo(): boolean {
-    return !!this.nodeIDEdicion && !!this.cuentaNodoActual && !this.cargandoCuentaComercio
+    return this.esMesaDigitalSesion && !!this.nodeIDEdicion && !!this.cuentaNodoActual && !this.cargandoCuentaComercio
       && !this.errorCuentaComercio && !!this.valorCuenta(this.cuentaNodoActual, ['commerceGuid', 'guid', 'commerceID']);
   }
 
@@ -165,6 +165,7 @@ export class RegistroClienteComponent {
         this.datosForm.markAsPristine();
         this.actualizarModoEdicionNodo(nodo);
         this.mensajeActualizacionDatos = 'Datos actualizados correctamente.';
+        this.mostrarModalRegistro('success', 'Actualización exitosa', 'Se actualizó de forma correcta.');
       },
       error: error => {
         if (nodo !== this.nodoSeleccionado) return;
@@ -757,6 +758,7 @@ export class RegistroClienteComponent {
     const consulta = ++this.consultaCuentaActual;
     this.cargandoCuentaComercio = true;
     this.errorCuentaComercio = '';
+    this.liquidacionForm.controls.cuentaFueraRed.setValue('', { emitEvent: false });
     this.comercioForm.patchValue({ tipoComercio: '' }, { emitEvent: false });
     this.cuentaComercioService.consultarCuenta(sirioId).pipe(
       switchMap(respuesta => {
@@ -2310,7 +2312,7 @@ export class RegistroClienteComponent {
       this.accesosForm.reset();
     }
     this.liquidacionForm.reset({
-      cuentaFueraRed: 'otros-bancos',
+      cuentaFueraRed: this.nodeIDEdicion ? '' : 'otros-bancos',
       digitoVerificador: '',
       tipoPersonaBeneficiario: 'fisica',
       beneficiarioIgualComercio: false,
@@ -2406,7 +2408,7 @@ export class RegistroClienteComponent {
     }
 
     if (this.nodeIDEdicion && !this.editandoDatosNodo) this.datosForm.disable(opciones);
-    else if (this.editandoDatosNodo) this.datosForm.enable(opciones);
+    else if (puedeEditarTodo && this.editandoDatosNodo) this.datosForm.enable(opciones);
 
     if (puedeEditarTodo) this.liquidacionForm.enable(opciones);
     else this.liquidacionForm.disable(opciones);

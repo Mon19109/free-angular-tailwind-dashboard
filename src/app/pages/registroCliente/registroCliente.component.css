@@ -1645,22 +1645,3 @@
   padding: 0;
   min-width: 0;
 }
-
-
-.node-update-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.node-update-actions .button {
-  min-height: 48px;
-  white-space: normal;
-}
-
-.node-update-actions .button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}

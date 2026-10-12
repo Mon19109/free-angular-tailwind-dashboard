@@ -1,5 +1,9 @@
 <div class="registro-shell">
   <app-processing-overlay *ngIf="registrandoCliente" />
+  <app-processing-overlay
+    *ngIf="guardandoDatosNodo"
+    texto="Cargando..."
+    descripcion="Estamos actualizando los datos del comercio. Espera un momento." />
   <article class="registro-card">
     <header class="registro-card-header">
       <div>
@@ -93,20 +97,14 @@
               [bloquearNivel]="true"
               [bloquearTipoComercio]="soloConsulta"
               [soloInformativo]="soloConsulta"
+              [mostrarContinuar]="!nodeIDEdicion"
               [cargandoInformacion]="cargandoCuentaComercio"
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 
-            <div *ngIf="seccion.id === 'datos' && nodeIDEdicion" class="node-update-actions">
-              <button type="button" class="button primary" [disabled]="!puedeEditarDatosNodo || !editandoDatosNodo || guardandoDatosNodo" (click)="guardarDatosNodo()">
-                <i class="fa-solid" [ngClass]="guardandoDatosNodo ? 'fa-spinner fa-spin' : 'fa-floppy-disk'"></i>
-                {{ guardandoDatosNodo ? 'Actualizando…' : 'Actualizar información del nodo seleccionado' }}
-              </button>
-              <button type="button" class="button ghost" [disabled]="!editandoDatosNodo || guardandoDatosNodo" (click)="cancelarEdicionDatosNodo()">Deshacer cambios</button>
-            </div>
             <p *ngIf="seccion.id === 'datos' && mensajeActualizacionDatos" role="status">{{ mensajeActualizacionDatos }}</p>
             <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'datos'"
-              [disabled]="guardandoDatosNodo || (nodeIDEdicion ? !editandoDatosNodo : soloConsulta)">
+              [disabled]="soloConsulta || guardandoDatosNodo || (nodeIDEdicion && !editandoDatosNodo)">
             <app-step-datos
               *ngIf="seccion.id === 'datos'"
               [form]="datosForm"
@@ -131,7 +129,7 @@
               [bloquearActividad]="nodeIDEdicion ? !editandoDatosNodo : soloConsulta"
               [mostrarBusquedaAvanzadaGiro]="editandoDatosNodo"
               [validarSoloCambios]="editandoDatosNodo"
-              [textoContinuar]="editandoDatosNodo ? 'Actualizar información del nodo seleccionado' : 'Guardar y continuar'"
+              [textoContinuar]="nodeIDEdicion ? (guardandoDatosNodo ? 'Actualizando…' : 'Actualizar datos') : 'Guardar y continuar'"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
               (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
               (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"
@@ -140,9 +138,15 @@
               (volver)="continuarSeccion('comercio')" />
             </fieldset>
 
-            <p *ngIf="seccion.id === 'accesos' && accesosRegistrados" role="status">Este comercio tiene accesos a plataforma registrados.</p>
+            <div *ngIf="seccion.id === 'accesos' && accesosRegistrados" role="status">
+              <p>Este comercio cuenta con una cuenta registrada en la plataforma.</p>
+              <p>Tipos de perfil asociados al tipo de comercio:</p>
+              <ul>
+                <li *ngFor="let usuario of usuariosAcceso">{{ usuario.titulo }}</li>
+              </ul>
+            </div>
             <app-step-accesos
-              *ngIf="seccion.id === 'accesos'"
+              *ngIf="seccion.id === 'accesos' && !accesosRegistrados"
               [form]="accesosForm"
               [usuarios]="usuariosAcceso"
               [mostrarResumenUsuarios]="true"
@@ -152,7 +156,9 @@
               (continuar)="completarPaso('accesos')"
               (volver)="continuarSeccion('liquidacion')" />
 
-            <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'liquidacion'" [disabled]="soloConsulta">
+            <p *ngIf="seccion.id === 'liquidacion' && nodeIDEdicion && cargandoCuentaComercio" role="status">Cargando cuenta de liquidación...</p>
+            <p *ngIf="seccion.id === 'liquidacion' && nodeIDEdicion && !cargandoCuentaComercio && !errorCuentaComercio && !liquidacionForm.controls.cuentaFueraRed.value" role="status">No se encontraron datos de la cuenta de liquidación.</p>
+            <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'liquidacion'" [disabled]="soloConsulta || cargandoCuentaComercio">
             <app-step-liquidacion
               *ngIf="seccion.id === 'liquidacion'"
               [form]="liquidacionForm"

@@ -339,7 +339,7 @@ describe('RegistroCliente: subir documentos faltantes', () => {
 });
 
 describe('RegistroCliente: actualización del nodo seleccionado', () => {
-  function pantalla() {
+  function pantalla(mesaDigital = true) {
     const component = Object.create(RegistroClienteComponent.prototype);
     const actualizar = jasmine.createSpy().and.returnValue(of(undefined));
     const nodo = { id: 'nodo-hijo', nombre: 'Antes' };
@@ -352,7 +352,23 @@ describe('RegistroCliente: actualización del nodo seleccionado', () => {
       buscarNodo: () => nodo,
     });
     Object.defineProperty(component, 'arbol', { value: [] });
+    Object.defineProperty(component, 'esMesaDigitalSesion', { value: mesaDigital });
     return { component, actualizar, nodo };
+  }
+
+  for (const pendienteRevisionEdicion of [true, false]) {
+    it(`impide editar y enviar datos generales con otro rol, pendiente=${pendienteRevisionEdicion}`, () => {
+      const { component, actualizar } = pantalla(false);
+      component.pendienteRevisionEdicion = pendienteRevisionEdicion;
+      component.datosForm.disable();
+      component.editarDatosNodo();
+      expect(component.datosForm.disabled).toBeTrue();
+      expect(component.puedeEditarDatosNodo).toBeFalse();
+      component.editandoDatosNodo = true;
+      component.datosForm.patchValue({ nombreComercial: 'No permitido' });
+      component.guardarDatosNodo();
+      expect(actualizar).not.toHaveBeenCalled();
+    });
   }
 
   it('envía el GUID del hijo consultado y conserva los datos sin modificar', () => {
