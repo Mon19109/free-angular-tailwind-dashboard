@@ -183,6 +183,13 @@ export class LoginComponent implements OnInit {
     this.executeToken();
   }
 
+  formatearToken(event: Event): void {
+    const input = event.target as HTMLTextAreaElement;
+    this.tokenValue = input.value.toUpperCase();
+    input.value = this.tokenValue;
+    this.clearTokenError();
+  }
+
   clearTokenError(): void {
     this.tokenErrorMessage = '';
     this.mostrarReenvioToken = false;

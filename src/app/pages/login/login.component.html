@@ -172,12 +172,12 @@
           [class.is-invalid]="tokenErrorMessage"
           [ngModelOptions]="{ standalone: true }"
           autocomplete="new-password"
-          autocapitalize="off"
+          autocapitalize="characters"
           autocorrect="off"
           spellcheck="false"
           rows="1"
           [disabled]="loading"
-          (ngModelChange)="clearTokenError()"
+          (input)="formatearToken($event)"
           (keydown.enter)="$event.preventDefault(); validateToken()"
           autofocus
         ></textarea>
