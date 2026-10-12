@@ -1,6 +1,7 @@
 
 import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, SimpleChanges } from '@angular/core';
 import flatpickr from 'flatpickr';
+import { Spanish } from 'flatpickr/dist/l10n/es';
 import { LabelComponent } from '../label/label.component';
 
 @Component({
@@ -12,6 +13,7 @@ import { LabelComponent } from '../label/label.component';
 export class DatePickerComponent {
 
   @Input() id!: string;
+  @Input() locale: 'en' | 'es' = 'en';
   @Input() mode: 'single' | 'multiple' | 'range' | 'time' = 'single';
   @Input() position: 'auto' | 'above' | 'below' | 'auto left' | 'auto center' | 'auto right' = 'auto';
   @Input() defaultDate?: string | Date | string[] | Date[];
@@ -26,6 +28,7 @@ export class DatePickerComponent {
 
   ngAfterViewInit() {
   this.flatpickrInstance = flatpickr(this.dateInput.nativeElement, {
+    locale: this.locale === 'es' ? Spanish : 'default',
     mode: this.mode,
     appendTo: document.body,
     position: this.position,
