@@ -853,6 +853,16 @@
   color: #fca5a5;
 }
 
+:host-context(html:not(.dark)) .registration-message {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+:host-context(html:not(.dark)) .registration-message i {
+  color: #991b1b;
+}
+
 .registro-modal-backdrop {
   position: fixed;
   inset: 0;

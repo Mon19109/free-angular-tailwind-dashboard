@@ -8,6 +8,8 @@ export interface SipreladResultado {
   nombre: string;
   fechaRegistro: string;
   coincidenciaListas: string;
+  categoria?: string;
+  fuente?: string;
 }
 
 interface SipreladContexto {
@@ -60,6 +62,8 @@ export class SipreladService {
       nombre: this.valor(registro, ['nombre', 'name', 'Nombre', 'businessName', 'nameCommerce']) || contexto.nombre,
       fechaRegistro: this.valor(registro, ['fechaBusqueda', 'fechaRegistro', 'registerDate', 'dateTimeCreated', 'createdAt', 'Fecha de registro']),
       coincidenciaListas: this.coincidenciaDesdeRegistro(registro),
+      categoria: this.valor(registro, ['categoria']),
+      fuente: this.valor(registro, ['fuente']),
     })).filter(registro => Object.values(registro).some(Boolean));
   }
 

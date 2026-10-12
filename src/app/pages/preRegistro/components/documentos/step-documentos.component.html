@@ -46,12 +46,16 @@
             <span>Fecha de registro</span>
             <span>Coincidencia en listas</span>
           </div>
-          @for (resultado of resultadosSiprelad; track resultado.rfc + resultado.nombre + resultado.fechaRegistro) {
+          @for (resultado of resultadosSiprelad; track $index) {
             <div class="siprelad-row">
               <span>{{ resultado.rfc || 'ND' }}</span>
               <span>{{ resultado.nombre || 'ND' }}</span>
               <span>{{ resultado.fechaRegistro || 'ND' }}</span>
-              <strong>{{ resultado.coincidenciaListas || 'No' }}</strong>
+              <strong>
+                {{ resultado.coincidenciaListas || 'No' }}
+                @if (resultado.categoria) { <span> · {{ resultado.categoria }}</span> }
+                @if (resultado.fuente) { <span> · {{ resultado.fuente }}</span> }
+              </strong>
             </div>
           }
         </div>

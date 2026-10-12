@@ -1,4 +1,4 @@
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { StepDocumentosComponent } from '../preRegistro/components/documentos/step-documentos.component';
@@ -506,5 +506,33 @@ describe('RegistroCliente: recorrido de revisión sin cajas', () => {
     (component as any).validarDocumentosRutaRegistro().subscribe((valor: string) => pendiente = valor);
     expect(validar.calls.allArgs().map(args => (args[0] as { id: string }).id)).toEqual(['sub', 'e1', 's1', 'e2', 's2']);
     expect(pendiente).toBe('s1');
+  });
+});
+
+
+describe('RegistroCliente: respuestas PLD concurrentes', () => {
+  it('una respuesta anterior sin coincidencias no borra una coincidencia reciente', () => {
+    const anterior = new Subject<any[]>();
+    const actual = new Subject<any[]>();
+    const component = Object.create(RegistroClienteComponent.prototype) as any;
+    Object.assign(component, {
+      consultaSipreladActual: 0, pldPorNodo: {}, nodoSeleccionado: 'entidad', pldID: 'transaccion',
+      sipreladService: { consultarResultadoPld: jasmine.createSpy().and.returnValues(anterior, actual) }
+    });
+    component.consultarResultadoSiprelad();
+    component.consultarResultadoSiprelad();
+    const coincidencias = [{ rfc: 'GHG1505267G2', nombre: 'GRUPO HERCOR GAS SA DE CV', coincidenciaListas: 'Si' }];
+    actual.next(coincidencias);
+    anterior.next([]);
+    expect(component.resultadosSiprelad).toEqual(coincidencias);
+    expect(component.resultadoSiprelad).toBe('');
+  });
+
+  it('sin identificador no afirma que el comercio está libre de coincidencias', () => {
+    const component = Object.create(RegistroClienteComponent.prototype) as any;
+    Object.assign(component, { consultaSipreladActual: 0, pldID: '', cargandoSiprelad: true });
+    component.consultarResultadoSiprelad();
+    expect(component.resultadoSiprelad).toBe('No hay una consulta PLD disponible para este comercio.');
+    expect(component.cargandoSiprelad).toBeFalse();
   });
 });

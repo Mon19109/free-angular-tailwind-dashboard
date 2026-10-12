@@ -190,6 +190,8 @@ export class RegistroClienteComponent {
   archivosInvalidos = false;
   accesosRegistrados = false;
   pldID = '';
+  private pldPorNodo: Record<string, string> = {};
+  private consultaSipreladActual = 0;
   cargandoSiprelad = false;
   resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
   resultadosSiprelad: SipreladResultado[] = [];
@@ -468,6 +470,7 @@ export class RegistroClienteComponent {
     }
 
     this.nodoSeleccionado = this.nodeIDEdicion || params.get('selectedNode') || this.nodoInicialPorNivel(this.comercioSeleccionado.nivel);
+    if (this.pldID && this.pldID !== 'ND') this.pldPorNodo[this.nodoSeleccionado] = this.pldID;
     const nivel = this.comercioSeleccionado.nivel || 'Sucursal';
     const tipo = nivel === 'Caja' ? 'Cuenta Terminal' : nivel === 'Entidad' ? 'Empresa Grupo' : nivel === 'Sub Afiliado' ? 'Empresa Holding' : 'Sucursales de Grupo';
     this.tiposComercio = this.tiposComercioPorNivel[nivel] ?? [];
@@ -697,16 +700,22 @@ export class RegistroClienteComponent {
   get nivelSeleccionado(): NivelNodo { return this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nivel ?? 'sucursal'; }
 
   private consultarResultadoSiprelad(): void {
+    const consulta = ++this.consultaSipreladActual;
+    const nodoId = this.nodoSeleccionado;
+    const pldID = this.pldID;
+    this.resultadosSiprelad = [];
     if (!this.pldID || this.pldID === 'ND') {
-      this.resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
-      this.resultadosSiprelad = [];
+      this.resultadoSiprelad = 'No hay una consulta PLD disponible para este comercio.';
+      this.cargandoSiprelad = false;
       return;
     }
 
+    this.pldPorNodo[nodoId] = pldID;
     this.cargandoSiprelad = true;
     this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
     this.sipreladService.consultarResultadoPld(this.pldID).subscribe({
       next: resultados => {
+        if (consulta !== this.consultaSipreladActual || nodoId !== this.nodoSeleccionado || pldID !== this.pldID) return;
         this.resultadosSiprelad = resultados;
         this.resultadoSiprelad = resultados.length
           ? ''
@@ -714,6 +723,7 @@ export class RegistroClienteComponent {
         this.cargandoSiprelad = false;
       },
       error: () => {
+        if (consulta !== this.consultaSipreladActual || nodoId !== this.nodoSeleccionado || pldID !== this.pldID) return;
         this.resultadosSiprelad = [];
         this.resultadoSiprelad = 'No fue posible consultar el resultado de SIPRELAD.';
         this.cargandoSiprelad = false;
@@ -1576,13 +1586,13 @@ export class RegistroClienteComponent {
         rfc: esNodoEditado ? this.comercioSeleccionado.rfc : ''
       };
       this.commerceID = nodo.commerceID || '';
-      this.pldID = nodo.pldID || '';
+      this.pldID = nodo.pldID && nodo.pldID !== 'ND' ? nodo.pldID : this.pldPorNodo[nodo.id] || '';
       this.documentosProspecto = [];
       this.cargandoDocumentosProspecto = false;
       this.errorDocumentosProspecto = '';
       this.accesosRegistrados = false;
       this.resultadosSiprelad = [];
-      this.resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
+      this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
     }
     this.contextoSeleccionado = {
       idComercio,
