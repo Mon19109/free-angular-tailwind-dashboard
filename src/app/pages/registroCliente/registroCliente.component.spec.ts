@@ -29,12 +29,12 @@ describe('RegistroCliente: pasos finales internos', () => {
     return component;
   }
 
-  it('muestra los cinco módulos para todos los roles y niveles, incluso fuera de pendientes', () => {
+  it('muestra solo comercio en cajas y los cinco módulos en otros niveles para todos los roles', () => {
     for (const pendiente of [true, false]) {
       for (const nivel of ['entidad', 'sucursal', 'caja']) {
         for (const admin of [true, false]) {
           expect(pantalla(pendiente, nivel, admin).pasosVisiblesRegistro.map(paso => paso.id))
-            .toEqual(['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']);
+            .toEqual(nivel === 'caja' ? ['comercio'] : ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']);
         }
       }
     }
@@ -450,5 +450,61 @@ describe('RegistroCliente: localidad del representante', () => {
       locationIDRepresentante: '15421456334', coloniaRepresentante: 'Centro',
       municipioRepresentante: 'Municipio esperado', estadoRepresentante: 'Estado esperado'
     });
+  });
+});
+
+describe('RegistroCliente: recorrido de revisión sin cajas', () => {
+  function pantalla() {
+    const component = Object.create(RegistroClienteComponent.prototype) as RegistroClienteComponent;
+    const arbol = [{ id: 'sub', nombre: 'Sub', nivel: 'sub-afiliado', hijos: [
+      { id: 'e1', nombre: 'Entidad 1', nivel: 'entidad', hijos: [
+        { id: 's1', nombre: 'Sucursal 1', nivel: 'sucursal', hijos: [
+          { id: 'c1', nombre: 'Caja 1', nivel: 'caja' }
+        ] }
+      ] },
+      { id: 'e2', nombre: 'Entidad 2', nivel: 'entidad', hijos: [
+        { id: 's2', nombre: 'Sucursal 2', nivel: 'sucursal', hijos: [
+          { id: 'c2', nombre: 'Caja 2', nivel: 'caja' }
+        ] }
+      ] }
+    ] }];
+    Object.defineProperty(component, 'arbol', { value: arbol });
+    Object.assign(component, { habilitarMesaDigitalEdicion: true, mostrarMesaDigitalProspecto: true });
+    return component;
+  }
+
+  it('salta las cajas al avanzar entre entidades y desde una caja consultada manualmente', () => {
+    const component = pantalla();
+    const seleccionar = spyOn(component, 'seleccionarNodo');
+    spyOn<any>(component, 'abrirRutaNodo');
+    spyOn<any>(component, 'resolverSeccionVisible').and.returnValue('comercio');
+    for (const actual of ['s1', 'c1']) {
+      component.nodoSeleccionado = actual;
+      component.seleccionarSiguienteNodoArbol();
+      expect(seleccionar).toHaveBeenCalledWith(jasmine.objectContaining({ id: 'e2' }));
+      seleccionar.calls.reset();
+    }
+    component.nodoSeleccionado = 's2';
+    component.seleccionarSiguienteNodoArbol();
+    expect(seleccionar).not.toHaveBeenCalled();
+  });
+
+  it('ofrece registrar en la última sucursal, nunca en sus cajas', () => {
+    const component = pantalla();
+    for (const id of ['sub', 'e1', 's1', 'c1', 'e2', 's2', 'c2']) {
+      component.nodoSeleccionado = id;
+      expect(component.mostrarRegistrarClienteDocumentos).toBe(id === 's2');
+    }
+  });
+
+  it('comprueba todas las ramas y detecta documentos pendientes en una sucursal anterior', () => {
+    const component = pantalla();
+    component.nodoSeleccionado = 's2';
+    const validar = spyOn<any>(component, 'documentosNodoParaValidacion').and.callFake((nodo: any) =>
+      of({ nivel: nodo.id, validado: nodo.id !== 's1' }));
+    let pendiente = '';
+    (component as any).validarDocumentosRutaRegistro().subscribe((valor: string) => pendiente = valor);
+    expect(validar.calls.allArgs().map(args => (args[0] as { id: string }).id)).toEqual(['sub', 'e1', 's1', 'e2', 's2']);
+    expect(pendiente).toBe('s1');
   });
 });

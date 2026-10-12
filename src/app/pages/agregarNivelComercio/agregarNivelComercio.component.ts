@@ -1227,7 +1227,7 @@ export class AgregarNivelComercioComponent implements OnInit {
       phoneNumber: this.valorTexto(datos.telefono),
       rfc: this.valorTexto(datos.rfc),
       curp: this.valorTexto(datos.curp),
-      fiscalRegime: this.valorTexto(datos.regimenFiscal),
+      fiscalRegime: this.valorTexto(datos.regimenFiscal).match(/^\d+/)?.[0] || '',
       typePerson: tipoPersona,
       liquidationLevel: '0',
       dispersionAccount: 'CONC_ADQUI',

@@ -62,7 +62,7 @@
       <section class="content-panel">
         <div class="context-strip" *ngIf="contextoSeleccionado.idComercio">
           <div>
-            <span>{{ contextoSeleccionado.idComercio }}</span>
+            <span *ngIf="!mostrarMesaDigitalProspecto">{{ contextoSeleccionado.idComercio }}</span>
             <strong>{{ contextoSeleccionado.nombreComercial }}</strong>
           </div>
           <small>{{ contextoSeleccionado.nivel }} · {{ contextoSeleccionado.rfc || 'RFC pendiente' }}</small>
@@ -70,7 +70,7 @@
 
         <p *ngIf="soloConsulta" role="status">Selecciona un nodo para consultar o editar sus datos. La revisión de documentos corresponde al administrador.</p>
         <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
-        <p *ngIf="errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
+        <p *ngIf="nivelSeleccionado !== 'caja' && errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
 
         <article
           class="section-card"

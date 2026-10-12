@@ -606,19 +606,21 @@ export class RegistroClienteComponent {
   }
 
   get seccionesOrdenadas(): SeccionRegistro[] {
+    if (this.nivelSeleccionado === 'caja') return this.secciones.filter(seccion => seccion.id === 'comercio');
     return ['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']
       .flatMap(id => this.secciones.filter(seccion => seccion.id === id));
   }
 
   get seccionesVisibles(): SeccionRegistro[] {
     // La captura pendiente usa los componentes que envían liquidación y accesos.
-    // En consulta los cinco módulos siempre están disponibles.
+    // Las cajas únicamente muestran los datos del comercio.
     return this.capturaFinalHabilitada
       ? this.seccionesOrdenadas.filter(seccion => !['liquidacion', 'accesos'].includes(seccion.id))
       : this.seccionesOrdenadas;
   }
 
   get seccionesCardsVisibles(): SeccionRegistro[] {
+    if (this.nivelSeleccionado === 'caja') return this.seccionesOrdenadas;
     if (!this.mostrarSoloPasosTresCincoRegistroTemporal) return this.seccionesVisibles;
     return this.seccionesVisibles.filter(seccion => ['liquidacion', 'accesos', 'documentos'].includes(seccion.id));
   }
@@ -720,9 +722,10 @@ export class RegistroClienteComponent {
   }
 
   private consultarDocumentosProspecto(): void {
-    if (!this.commerceID || this.commerceID === 'ND') {
+    if (this.nivelSeleccionado === 'caja' || !this.commerceID || this.commerceID === 'ND') {
       this.documentosProspecto = [];
       this.cargandoDocumentosProspecto = false;
+      this.errorDocumentosProspecto = '';
       return;
     }
 
@@ -1759,7 +1762,7 @@ export class RegistroClienteComponent {
   }
 
   get esUltimoNodoSeleccionado(): boolean {
-    const nodos = this.nodosPlanos(this.arbol);
+    const nodos = this.nodosPlanos(this.arbol).filter(nodo => nodo.nivel !== 'caja');
     return nodos.length > 0 && nodos[nodos.length - 1]?.id === this.nodoSeleccionado;
   }
 
@@ -1782,7 +1785,7 @@ export class RegistroClienteComponent {
       return;
     }
     if (!this.esUltimoNodoSeleccionado) {
-      this.mostrarModalRegistro('error', 'Acción no disponible', 'El cliente solo puede registrarse al llegar al último nodo del árbol.');
+      this.mostrarModalRegistro('error', 'Acción no disponible', 'El cliente solo puede registrarse al llegar al último nodo que requiere revisión.');
       return;
     }
     const commerceGuid = this.commerceGuidPadreNodoSeleccionado();
@@ -1840,8 +1843,7 @@ export class RegistroClienteComponent {
   }
 
   private validarDocumentosRutaRegistro(): Observable<string> {
-    const ruta = this.buscarRutaNodos(this.arbol, this.nodoSeleccionado);
-    const niveles = ruta.filter(nodo => nodo.nivel !== 'caja');
+    const niveles = this.nodosPlanos(this.arbol).filter(nodo => nodo.nivel !== 'caja');
     if (!niveles.length) return of('');
 
     return forkJoin(niveles.map(nodo => this.documentosNodoParaValidacion(nodo))).pipe(
@@ -1920,7 +1922,7 @@ export class RegistroClienteComponent {
   seleccionarSiguienteNodoArbol(): void {
     const nodos = this.nodosPlanos(this.arbol);
     const indiceActual = nodos.findIndex(nodo => nodo.id === this.nodoSeleccionado);
-    const siguiente = indiceActual >= 0 ? nodos[indiceActual + 1] : nodos[0];
+    const siguiente = nodos.slice(indiceActual + 1).find(nodo => nodo.nivel !== 'caja');
     if (!siguiente) return;
 
     this.abrirRutaNodo(this.arbol, siguiente.id);
