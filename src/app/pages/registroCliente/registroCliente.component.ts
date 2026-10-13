@@ -244,6 +244,7 @@ export class RegistroClienteComponent {
   };
 
   contextoSeleccionado = {
+    email: '',
     idComercio: '',
     nivel: '',
     nombreComercial: '',
@@ -457,6 +458,7 @@ export class RegistroClienteComponent {
     this.emailNotificacionMesaDigital = this.comercioSeleccionado.correo;
     this.contextoSeleccionado = {
       idComercio: this.comercioSeleccionado.idComercio,
+      email: this.comercioSeleccionado.correo,
       nivel: this.comercioSeleccionado.nivel,
       nombreComercial: this.comercioSeleccionado.nombreComercial,
       rfc: this.comercioSeleccionado.rfc
@@ -1095,6 +1097,7 @@ export class RegistroClienteComponent {
     this.contextoSeleccionado = {
       ...this.contextoSeleccionado,
       nombreComercial: nombreComercial || razonSocial || this.contextoSeleccionado.nombreComercial,
+      email,
       rfc: rfc || this.contextoSeleccionado.rfc
     };
     this.actualizarValidadoresDatos();
@@ -1126,6 +1129,7 @@ export class RegistroClienteComponent {
     this.contextoSeleccionado = {
       ...this.contextoSeleccionado,
       nombreComercial,
+      email,
       rfc: rfc || this.contextoSeleccionado.rfc
     };
     this.emailNotificacionMesaDigital = email || this.emailNotificacionMesaDigital;
@@ -1594,6 +1598,7 @@ export class RegistroClienteComponent {
     }
     this.contextoSeleccionado = {
       idComercio,
+      email: '',
       nivel,
       nombreComercial,
       rfc: esNodoEditado ? this.comercioSeleccionado.rfc : registro.rfc || ''

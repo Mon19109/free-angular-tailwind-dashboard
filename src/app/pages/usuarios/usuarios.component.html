@@ -42,7 +42,7 @@
         <!-- Fecha Inicio -->
         <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
 
-          <app-date-picker id="fechaInicio" label="Fecha Inicio" placeholder="Selecciona fecha" maxDate="today"
+          <app-date-picker id="fechaInicio" label="Fecha Inicio" placeholder="Selecciona fecha" maxDate="today" locale="es"
             (dateChange)="onFechaInicioChange($event)">
           </app-date-picker>
 
@@ -50,7 +50,7 @@
 
         <div class="users-field col-md-3" *ngIf="tipoBusquedaSeleccionado === '0'">
 
-          <app-date-picker id="fechaFin" label="Fecha Fin" placeholder="Selecciona fecha" maxDate="today"
+          <app-date-picker id="fechaFin" label="Fecha Fin" placeholder="Selecciona fecha" maxDate="today" locale="es"
             (dateChange)="onFechaFinChange($event)">
           </app-date-picker>
 
