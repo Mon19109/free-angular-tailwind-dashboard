@@ -11,8 +11,14 @@
         <label for="afiliacion">Número de afiliación <b>*</b></label>
         <input maxlength="20" id="afiliacion" type="text" inputmode="numeric"
           formControlName="afiliacion" placeholder="Ej. 33359863"
-          [class.invalid]="esInvalido('afiliacion')" />
-        @if (errorValidacion) {
+          (beforeinput)="validarEntradaAfiliacion($event)"
+          (input)="filtrarAfiliacion($event)"
+          [attr.aria-invalid]="mostrarErrorNumeros || esInvalido('afiliacion')"
+          [attr.aria-describedby]="mostrarErrorNumeros || form.get('afiliacion')?.hasError('pattern') ? 'afiliacion-error-numeros' : null"
+          [class.invalid]="mostrarErrorNumeros || esInvalido('afiliacion')" />
+        @if (mostrarErrorNumeros || form.get('afiliacion')?.hasError('pattern')) {
+          <small id="afiliacion-error-numeros" role="alert">Ingresa solo números</small>
+        } @else if (errorValidacion) {
           <small>{{ errorValidacion }}</small>
         }
       </div>

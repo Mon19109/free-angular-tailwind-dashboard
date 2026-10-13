@@ -674,6 +674,15 @@
   font-size: 15px;
 }
 
+.context-strip span {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.consulta-indicaciones {
+  text-align: right;
+}
+
 .section-card {
   overflow: hidden;
   border-color: rgba(241, 178, 61, 0.12);

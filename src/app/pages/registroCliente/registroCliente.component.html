@@ -67,7 +67,7 @@
           </div>
         </div>
 
-        <p *ngIf="soloConsulta" role="status">Selecciona un nodo para consultar o editar sus datos. La revisión de documentos corresponde al administrador.</p>
+        <p *ngIf="soloConsulta" class="consulta-indicaciones" role="status">Selecciona un nodo para consultar o editar sus datos. La revisión de documentos corresponde al administrador.</p>
         <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
         <p *ngIf="nivelSeleccionado !== 'caja' && errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
 

@@ -505,7 +505,7 @@ export class PreRegistroComponent {
 
   // ── Formularios ──────────────────────────────────────────────────────────────
   readonly afiliacionForm = this.fb.nonNullable.group({
-    afiliacion: ['', [Validators.required, Validators.maxLength(20)]],
+    afiliacion: ['', [Validators.required, Validators.maxLength(20), Validators.pattern(/^[0-9]+$/)]],
   });
 
   readonly comercioForm = this.fb.nonNullable.group({
