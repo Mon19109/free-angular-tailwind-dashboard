@@ -125,15 +125,14 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   
   inicializarFechas() {
     const hoy = new Date();
-    const mesLim = new Date();
-    mesLim.setDate(mesLim.getDate() - 30);
+    const mesLim = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     
-    // Si no hay fechas seleccionadas, establecer fecha fin a hoy y fecha inicio a hace 30 días
+    // Iniciar la consulta en el mes actual para respetar el límite de un mes calendario.
     if (!this.filtros.fechaInicio) {
-      this.filtros.fechaInicio = mesLim.toISOString().slice(0, 16);
+      this.filtros.fechaInicio = this.formatearFechaFiltro(mesLim);
     }
     if (!this.filtros.fechaFin) {
-      this.filtros.fechaFin = hoy.toISOString().slice(0, 16);
+      this.filtros.fechaFin = this.formatearFechaFiltro(hoy);
     }
   }
   
@@ -352,15 +351,25 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       return false;
     }
 
-    const diffDays = Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays > 30) {
-      this.errorMessage.set('Para poder hacer una búsqueda necesitas seleccionar un rango de fecha no mayor a 30 días.');
+    const limite = new Date(fechaInicio);
+    const diaInicio = limite.getDate();
+    limite.setDate(1);
+    limite.setMonth(limite.getMonth() + 1);
+    const ultimoDia = new Date(limite.getFullYear(), limite.getMonth() + 1, 0).getDate();
+    limite.setDate(Math.min(diaInicio, ultimoDia));
+
+    if (fechaFin.getTime() > limite.getTime()) {
+      this.errorMessage.set('Para poder hacer una búsqueda necesitas seleccionar un rango de fecha no mayor a un mes calendario.');
       return false;
     }
     
     this.errorMessage.set('');
     return true;
+  }
+
+  private formatearFechaFiltro(fecha: Date): string {
+    const pad = (valor: number) => String(valor).padStart(2, '0');
+    return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}T${pad(fecha.getHours())}:${pad(fecha.getMinutes())}`;
   }
 
   private obtenerFechaFiltro(value: unknown): Date | null {

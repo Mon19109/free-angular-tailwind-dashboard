@@ -15,6 +15,41 @@ describe('Filtros de Transacciones Adquirencia', () => {
     component.rolId = '2';
   });
 
+  for (const [inicio, fin] of [
+    ['2025-01-01 00:00', '2025-02-01 00:00'],
+    ['2025-04-01 00:00', '2025-05-01 00:00'],
+    ['2025-02-01 00:00', '2025-03-01 00:00'],
+    ['2024-02-01 00:00', '2024-03-01 00:00'],
+    ['2025-01-31 12:00', '2025-02-28 12:00'],
+    ['2024-01-31 12:00', '2024-02-29 12:00'],
+    ['2025-12-15 12:00', '2026-01-15 12:00']
+  ]) {
+    it(`permite un mes calendario desde ${inicio} hasta ${fin} y rechaza un minuto adicional`, () => {
+      component.filtros.fechaInicio = inicio;
+      component.filtros.fechaFin = fin;
+      expect(component.validarFechas()).toBeTrue();
+      const exceso = new Date(fin.replace(' ', 'T'));
+      exceso.setMinutes(exceso.getMinutes() + 1);
+      component.filtros.fechaFin = (component as any).formatearFechaFiltro(exceso);
+      expect(component.validarFechas()).toBeFalse();
+      expect(component.errorMessage()).toContain('un mes calendario');
+    });
+  }
+
+  it('permite consultar enero completo incluyendo la última hora del día 31', () => {
+    component.filtros.fechaInicio = '2025-01-01 00:00';
+    component.filtros.fechaFin = '2025-01-31 23:59';
+    expect(component.validarFechas()).toBeTrue();
+  });
+
+  it('inicializa fechas locales dentro del mes actual con un rango válido', () => {
+    component.filtros.fechaInicio = '';
+    component.filtros.fechaFin = '';
+    component.inicializarFechas();
+    expect(component.filtros.fechaInicio).toMatch(/^\d{4}-\d{2}-01T00:00$/);
+    expect(component.validarFechas()).toBeTrue();
+  });
+
   it('descarta niveles distintos y nodos sin levelType explícito', () => {
     const tree = { idNode: 'sub', levelType: 3, children: [
       { idNode: 'entidad', levelType: 4, children: [
