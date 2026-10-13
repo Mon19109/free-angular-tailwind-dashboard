@@ -10,6 +10,18 @@ describe('SipreladService', () => {
 
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
+  it('trata success false como error y no como ausencia de coincidencias', () => {
+    const service = TestBed.inject(SipreladService);
+    const error = jasmine.createSpy('error');
+    service.consultarResultadoPld('').subscribe({
+      next: () => fail('Una respuesta fallida no debe presentarse como resultado PLD'),
+      error
+    });
+    TestBed.inject(HttpTestingController).expectOne(req => req.url.endsWith('getPLDResult'))
+      .flush({ success: false, message: 'transactionId requerido' });
+    expect(error).toHaveBeenCalled();
+  });
+
   it('muestra la coincidencia de lista negra dentro de pldResult.response', () => {
     const service = TestBed.inject(SipreladService);
     service.consultarResultadoPld('971a81aa-23cb-42ae-b050-1d9a39122c0b').subscribe(resultados => {

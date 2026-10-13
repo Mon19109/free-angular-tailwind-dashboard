@@ -702,16 +702,15 @@ export class RegistroClienteComponent {
     const nodoId = this.nodoSeleccionado;
     const pldID = this.pldID;
     this.resultadosSiprelad = [];
-    if (!this.pldID || this.pldID === 'ND') {
+    if (!pldID || pldID === 'ND') {
       this.resultadoSiprelad = 'No hay una consulta PLD disponible para este comercio.';
       this.cargandoSiprelad = false;
       return;
     }
-
     this.pldPorNodo[nodoId] = pldID;
     this.cargandoSiprelad = true;
     this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
-    this.sipreladService.consultarResultadoPld(this.pldID).subscribe({
+    this.sipreladService.consultarResultadoPld(pldID).subscribe({
       next: resultados => {
         if (consulta !== this.consultaSipreladActual || nodoId !== this.nodoSeleccionado || pldID !== this.pldID) return;
         this.resultadosSiprelad = resultados;
@@ -820,7 +819,7 @@ export class RegistroClienteComponent {
 
     this.cargandoArbol = true;
     this.errorArbol = '';
-    this.arbolNodosService.obtenerArbol(this.nodeIDEdicion).subscribe({
+    this.arbolNodosService.obtenerArbol(this.nodeIDEdicion, undefined, 0).subscribe({
       next: respuesta => {
         this.arbolServicio = this.nodosRegistroDesdeArbol(respuesta);
         this.cargandoArbol = false;

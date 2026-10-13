@@ -70,7 +70,7 @@ export class UsuariosComponent implements OnInit {
 
   get entidadesSelectOptions() {
     return this.entidades.map(entidad => ({
-      label: entidad.bundle,
+      label: [entidad.bundle, entidad.bussinesName].filter(Boolean).join(' - '),
       value: entidad.bundle
     }));
   }

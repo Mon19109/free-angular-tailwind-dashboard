@@ -6,6 +6,8 @@ import { environment } from '../environments/environments';
 //import { AuthService, UserSessionData } from '../services/auth.service';
 
 export interface Cuenta {
+  type?: number;
+  active?: boolean;
   id: number;
   nombre: string;
   numero: string;

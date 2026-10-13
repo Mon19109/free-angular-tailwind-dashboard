@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../environments/environments';
@@ -30,7 +30,12 @@ export class SipreladService {
       { transactionId },
       { headers: this.headers() }
     ).pipe(
-      map(respuesta => this.normalizarResultados(respuesta))
+      map(respuesta => {
+        if (this.esRegistro(respuesta) && respuesta['success'] === false) {
+          throw new HttpErrorResponse({ error: respuesta, status: 200, statusText: 'Error al consultar PLD' });
+        }
+        return this.normalizarResultados(respuesta);
+      })
     );
   }
 
