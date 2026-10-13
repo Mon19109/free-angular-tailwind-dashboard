@@ -25,6 +25,7 @@ export class OrdenPagoComponent implements OnInit {
 
     pasoActual = 1;
     saldo = 0;
+    readonly importeMaximo = 1_000_000;
     get comisionEnvio(): number {
         return String(this.formulario?.get('idInstitution')?.value ?? '').trim() === '40903' ? 0 : 5;
     }
@@ -348,6 +349,17 @@ export class OrdenPagoComponent implements OnInit {
         return cuentaOr.valid && cuentaD.valid;
     }
 
+    private validarImporte(): boolean {
+        const importe = Number(String(this.formulario.get('importe')?.value ?? '').replace(/[$,\s]/g, ''));
+        this.mostrarErrorImporte = !Number.isFinite(importe) || importe <= 0;
+        if (this.mostrarErrorImporte) return false;
+        if (importe > this.importeMaximo) {
+            this.abrirModalValidacionOrden('El importe no puede superar $1,000,000.00.');
+            return false;
+        }
+        return true;
+    }
+
     private validarSaldoDisponible(): boolean {
         if (this.saldoRestante < 0) {
             this.abrirModalValidacionOrden('El importe más la comisión no puede superar el saldo de la cuenta ordenante.');
@@ -365,17 +377,7 @@ export class OrdenPagoComponent implements OnInit {
         }
 
         if (this.pasoActual === 2) {
-
-            const importe = Number(String(this.formulario.get('importe')?.value ?? '').replace(/,/g, ''));
-
-            if (!Number.isFinite(importe) || importe <= 0) {
-
-                this.mostrarErrorImporte = true;
-
-                return;
-            }
-
-            this.mostrarErrorImporte = false;
+            if (!this.validarImporte()) return;
             if (!this.validarSaldoDisponible()) return;
         }
 
@@ -397,7 +399,7 @@ export class OrdenPagoComponent implements OnInit {
             return;
         }
 
-        if (!this.validarSaldoDisponible()) {
+        if (!this.validarImporte() || !this.validarSaldoDisponible()) {
             this.pasoActual = 2;
             return;
         }
@@ -521,12 +523,14 @@ export class OrdenPagoComponent implements OnInit {
             return;
         }
 
-        const numero = Number(valor) / 100;
+        const numero = Math.min(Number(valor) / 100, this.importeMaximo);
 
         const formateado = numero.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
+
+        event.target.value = formateado;
 
         this.formulario.patchValue(
             { importe: formateado },

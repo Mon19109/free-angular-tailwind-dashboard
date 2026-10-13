@@ -129,6 +129,7 @@
                 Campo requerido.
               </div>
               <input type="text" formControlName="importe" (input)="formatearImporte($event)">
+              <small>Importe máximo: {{ importeMaximo | currency:'MXN':'$':'1.2-2':'en-US' }}</small>
               <div class="resumen-saldo">
                 <span class="aviso-comision">Recuerda contemplar la comisión por envío de {{ comisionEnvio | currency:'MXN':'$':'1.2-2':'en-US' }} aprox.</span>
                 <span class="saldo-restante">Saldo restante: {{ saldoRestante | currency:'MXN':'$':'1.2-2':'en-US' }} aprox.</span>
