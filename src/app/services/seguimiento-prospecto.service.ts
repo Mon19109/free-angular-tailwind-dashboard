@@ -12,7 +12,13 @@ export class SeguimientoProspectoService {
     return this.http.put<{ success?: boolean; message?: string } | null>(
       `${environment.api.KashpayCoreAPI}prospect/follow_up_link`,
       { url, statusDescription: 'COMPLETED' },
-      { context: new HttpContext().set(SKIP_AUTH_TOKEN, true) }
+      {
+        context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
+        headers: {
+          Authorization: `Bearer ${environment.bearerTokens.seguimientoProspecto}`,
+          versionApp: '3'
+        }
+      }
     ).pipe(map(respuesta => {
       if (respuesta?.success === false) {
         throw new Error(respuesta.message || 'No fue posible completar el seguimiento del prospecto.');

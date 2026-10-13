@@ -6,7 +6,7 @@ import { authTokenInterceptor } from './auth-token.interceptor';
 import { SeguimientoProspectoService } from './seguimiento-prospecto.service';
 
 describe('SeguimientoProspectoService', () => {
-  it('omite Authorization aunque exista un token de sesión y conserva autenticación en otras solicitudes', () => {
+  it('envía el bearer fijo aunque exista un token de sesión y conserva autenticación en otras solicitudes', () => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(withInterceptors([authTokenInterceptor])), provideHttpClientTesting()]
     });
@@ -17,7 +17,8 @@ describe('SeguimientoProspectoService', () => {
     const request = http.expectOne(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
     expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual({ url: 'token_seguimiento-123', statusDescription: 'COMPLETED' });
-    expect(request.request.headers.has('Authorization')).toBeFalse();
+    expect(request.request.headers.get('Authorization')).toBe(`Bearer ${environment.bearerTokens.seguimientoProspecto}`);
+    expect(request.request.headers.get('versionApp')).toBe('3');
     request.flush(null);
     expect(completado).toBeTrue();
     TestBed.inject(HttpClient).get('/otra-consulta').subscribe();
