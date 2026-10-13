@@ -37,13 +37,25 @@ describe('Información de cuenta', () => {
     expect(operations.obtenerEntidades).toHaveBeenCalledWith('ADQ');
     expect(operations.obtenerCuentas).not.toHaveBeenCalled();
     expect(component.cargando()).toBeTrue();
-    entities.next([{ bundle: 'ADQ.1', bussinesName: 'Comercio' }]);
+    entities.next([{ type: 4, active: true, bundle: 'ADQ.1', bussinesName: 'Comercio' }]);
     entities.complete();
     expect(component.entidadesOptions[0].value).toBe('ADQ.1');
     expect(component.cargando()).toBeTrue();
     balance.complete();
     expect(component.cargando()).toBeFalse();
   }));
+
+  it('solo ofrece entidades de tipo 4 activas', () => {
+    component.ngOnInit();
+    entities.next({ entityLevels: [
+      { bundle: 'activa', type: 4, active: true },
+      { bundle: 'inactiva', type: 4, active: false },
+      { bundle: 'sucursal', type: 5, active: true },
+      { bundle: 'sin-estado', type: 4 },
+      { bundle: 'estado-texto', type: 4, active: 'true' }
+    ] });
+    expect(component.entidadesOptions.map(entidad => entidad.value)).toEqual(['activa']);
+  });
 
   it('muestra carga al consultar información y la cierra ante errores', fakeAsync(() => {
     component.seleccionarEntidad('ADQ.1');
@@ -58,9 +70,9 @@ describe('Información de cuenta', () => {
     const nuevasEntidades = new Subject<any>();
     operations.obtenerEntidades.and.returnValue(nuevasEntidades);
     component.seleccionarCuenta('EMI');
-    nuevasEntidades.next([{ bundle: 'EMI.1' }]);
+    nuevasEntidades.next([{ type: 4, active: true, bundle: 'EMI.1' }]);
     nuevasEntidades.complete();
-    entities.next([{ bundle: 'ADQ.1' }]);
+    entities.next([{ type: 4, active: true, bundle: 'ADQ.1' }]);
     expect(component.entidadesOptions[0].value).toBe('EMI.1');
     expect(component.cargando()).toBeFalse();
   }));
@@ -86,8 +98,8 @@ describe('Información de cuenta', () => {
     component.ngOnInit();
     component.seleccionarCuenta('EMI');
     entities.next({ entityLevels: [
-      { bundle: 'EMI.SUB55.1', affiliationId: '001234' },
-      { bundle: 'EMI.SUB55.2', affiliationId: 5678 }
+      { type: 4, active: true, bundle: 'EMI.SUB55.1', affiliationId: '001234' },
+      { type: 4, active: true, bundle: 'EMI.SUB55.2', affiliationId: 5678 }
     ] });
     component.seleccionarEntidad('EMI.SUB55.1');
     expect(component.infoCuenta.afiliacion).toBe('001234');
@@ -103,7 +115,7 @@ describe('Información de cuenta', () => {
   });
 
   it('muestra ND si la entidad no tiene affiliationId aunque el saldo devuelva afiliación', () => {
-    component.entidades = [{ bundle: 'EMI.1' }];
+    component.entidades = [{ type: 4, active: true, bundle: 'EMI.1' }];
     component.seleccionarEntidad('EMI.1');
     balance.next({ affiliationId: 'otro' });
     expect(component.infoCuenta.afiliacion).toBe('ND');

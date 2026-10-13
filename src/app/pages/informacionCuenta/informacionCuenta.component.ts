@@ -137,7 +137,7 @@ export class InformacionCuentaComponent implements OnInit {
           'entities',
           'entityLevels',
           'items'
-        ]).filter(entidad => !this.esCuentaReserva(entidad));
+        ]).filter(entidad => entidad?.type === 4 && entidad?.active === true && !this.esCuentaReserva(entidad));
       },
       error: () => { this.errorCarga = 'No se pudieron cargar las entidades. Vuelve a seleccionar la cuenta.'; }
     });
