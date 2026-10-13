@@ -39,12 +39,14 @@ export class ArbolNodosService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.api.kashpay;
 
-  obtenerArbol(nodeID: string | number, bearerToken?: string): Observable<ArbolNodoApi> {
+  obtenerArbol(nodeID: string | number, bearerToken?: string, status?: number): Observable<ArbolNodoApi> {
+    let params = new HttpParams().set('levels', '');
+    if (status !== undefined) params = params.set('status', status);
     return this.http.get<ArbolNodoApi>(
       `${this.baseUrl}api/nodes/${encodeURIComponent(String(nodeID))}/tree`,
       {
         headers: this.headers(bearerToken),
-        params: new HttpParams().set('levels', '')
+        params
       }
     );
   }

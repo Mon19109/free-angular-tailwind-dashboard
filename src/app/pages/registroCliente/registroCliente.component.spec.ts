@@ -528,11 +528,23 @@ describe('RegistroCliente: respuestas PLD concurrentes', () => {
     expect(component.resultadoSiprelad).toBe('');
   });
 
-  it('sin identificador no afirma que el comercio está libre de coincidencias', () => {
-    const component = Object.create(RegistroClienteComponent.prototype) as any;
-    Object.assign(component, { consultaSipreladActual: 0, pldID: '', cargandoSiprelad: true });
-    component.consultarResultadoSiprelad();
-    expect(component.resultadoSiprelad).toBe('No hay una consulta PLD disponible para este comercio.');
-    expect(component.cargandoSiprelad).toBeFalse();
-  });
+  for (const pldID of ['', 'ND', 'transaccion']) {
+    it(`consulta solo con un pldID válido: ${JSON.stringify(pldID)}`, () => {
+      const component = Object.create(RegistroClienteComponent.prototype) as any;
+      const consultar = jasmine.createSpy().and.returnValue(throwError(() => new Error('Sin resultado')));
+      Object.assign(component, {
+        consultaSipreladActual: 0, pldPorNodo: {}, nodoSeleccionado: 'entidad', pldID,
+        sipreladService: { consultarResultadoPld: consultar }
+      });
+      component.consultarResultadoSiprelad();
+      if (pldID && pldID !== 'ND') {
+        expect(consultar).toHaveBeenCalledWith(pldID);
+        expect(component.resultadoSiprelad).toBe('No fue posible consultar el resultado de SIPRELAD.');
+      } else {
+        expect(consultar).not.toHaveBeenCalled();
+        expect(component.resultadoSiprelad).toBe('No hay una consulta PLD disponible para este comercio.');
+      }
+      expect(component.cargandoSiprelad).toBeFalse();
+    });
+  }
 });

@@ -52,7 +52,7 @@ cardNameDisplay = '';
     // Cargar cuentas
     this.tarjetaService.obtenerCuentas().subscribe({
       next: (data) => {
-        this.cuentas = data;
+        this.cuentas = data.filter(cuenta => cuenta?.type === 4 && cuenta?.active === true);
       },
       error: (error) => {
         console.error('Error al cargar cuentas:', error);
