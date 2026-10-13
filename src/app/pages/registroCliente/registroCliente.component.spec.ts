@@ -7,6 +7,19 @@ import { RegistroClienteComponent } from './registroCliente.component';
 import { RegistroProspectoClienteComponent } from '../registroProspectoCliente/registroProspectoCliente.component';
 
 describe('RegistroCliente: pasos finales internos', () => {
+  for (const esProspecto of [true, false]) {
+    it(`consulta el árbol ${esProspecto ? 'sin status para prospectos' : 'con status 0 para otros comercios'}`, () => {
+      const component = pantalla(false);
+      const obtenerArbol = jasmine.createSpy('obtenerArbol').and.returnValue(new Subject());
+      Object.assign(component, {
+        mostrarMesaDigitalProspecto: esProspecto,
+        arbolNodosService: { obtenerArbol }
+      });
+      (component as any).consultarArbolEdicion();
+      expect(obtenerArbol).toHaveBeenCalledWith('nodo-entidad', undefined, esProspecto ? undefined : 0);
+    });
+  }
+
   it('habilita la captura para rol 2 únicamente con una cuenta consultada sin dispersión válida', () => {
     for (const rol2 of [true, false]) {
       for (const dispersionAccount of [undefined, null, '', 'PENDING', 'NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK']) {

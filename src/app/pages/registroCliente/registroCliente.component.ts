@@ -841,7 +841,8 @@ export class RegistroClienteComponent {
 
     this.cargandoArbol = true;
     this.errorArbol = '';
-    this.arbolNodosService.obtenerArbol(this.nodeIDEdicion, undefined, 0).subscribe({
+    const status = this.mostrarMesaDigitalProspecto ? undefined : 0;
+    this.arbolNodosService.obtenerArbol(this.nodeIDEdicion, undefined, status).subscribe({
       next: respuesta => {
         this.arbolServicio = this.nodosRegistroDesdeArbol(respuesta);
         this.cargandoArbol = false;
