@@ -336,6 +336,7 @@ Seleccione una caja
         <p><strong>Hora:</strong> {{ comprobanteOperacion.hora }}</p>
       </div>
 
+
       <ng-container *ngIf="comprobanteOperacion.tipo === 1 || comprobanteOperacion.tipo === 4">
       <p class="voucher-message">
         Su transferencia ha sido aplicada con número de autorización #{{ comprobanteOperacion.id }}
@@ -349,6 +350,7 @@ Seleccione una caja
           <p>KASHPAY</p>
           <p>Clabe emisor **7854</p>
           <p><strong>Cuenta deposito beneficiario</strong></p>
+          <p class="voucher-message">Beneficiario: {{ comprobanteOperacion.destinatario || 'ND' }}</p>
           <p>{{ comprobanteOperacion.banco }} beneficiario</p>
         </div>
       </div>

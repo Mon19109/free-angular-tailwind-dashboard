@@ -794,7 +794,7 @@ mostrarResultados = false;
       monto,
       banco: this.obtenerBancoDestinatario(operacion),
       cuentaDestino: this.obtenerPrimerValor(operacion.targetID, operacion.accountNumber),
-      destinatario: this.obtenerPrimerValor(operacion.targetName, operacion.originalUsername),
+      destinatario: this.obtenerPrimerValor(operacion.targetName),
       referenciaNumerica: this.obtenerPrimerValor(operacion.numericReference),
       claveRastreo: this.obtenerPrimerValor(operacion.externalReference, operacion.internalReference),
       concepto: [10, 11].includes(Number(operacion.type)) ? this.obtenerPrimerValor(operacion.description) : this.obtenerConceptoPago(operacion),
