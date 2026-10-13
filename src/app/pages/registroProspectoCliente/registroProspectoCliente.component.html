@@ -313,7 +313,8 @@
         }
 
         @if (nodoRequiereAccesos) {
-        <article class="section-card" [class.open]="seccionFinalAbierta === 'liquidacion'" [class.done]="liquidacionCompleta">
+        <article class="section-card" [class.liquidacion-embedded]="soloLiquidacion" [class.open]="seccionFinalAbierta === 'liquidacion'" [class.done]="liquidacionCompleta">
+          @if (!soloLiquidacion) {
           <button type="button" class="section-trigger" (click)="alternarSeccionFinal('liquidacion')" [attr.aria-expanded]="seccionFinalAbierta === 'liquidacion'" [disabled]="!modoInterno && (!liquidacionConsultada || liquidacionCompleta)">
             <span class="section-icon"><i class="fa-solid fa-building-columns"></i></span>
             <span class="section-copy">
@@ -324,6 +325,7 @@
             <i class="fa-solid" [ngClass]="seccionFinalAbierta === 'liquidacion' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
+          }
           @if (modoInterno && seccionFinalAbierta === 'liquidacion' && liquidacionCompleta) {
           <div class="section-body"><p role="status">La cuenta de liquidación de este nodo está concluida.</p></div>
           }
@@ -424,13 +426,16 @@
             <p class="field-error" role="alert">{{ error }}</p>
             }
             <div class="prospect-step-actions">
+              @if (!soloLiquidacion) {
               <button type="button" class="button ghost" (click)="volverLiquidacion()">Anterior</button>
-              <button type="button" class="button primary" (click)="continuarLiquidacion()" [disabled]="guardandoLiquidacion || validandoArchivos > 0">{{ guardandoLiquidacion ? 'Guardando...' : 'Guardar y continuar' }}</button>
+              }
+              <button type="button" class="button primary" (click)="continuarLiquidacion()" [disabled]="guardandoLiquidacion || validandoArchivos > 0">{{ guardandoLiquidacion ? 'Guardando...' : soloLiquidacion ? 'Guardar cuenta de liquidación' : 'Guardar y continuar' }}</button>
             </div>
           </div>
           }
         </article>
 
+        @if (!soloLiquidacion) {
         <article class="section-card" [class.open]="seccionFinalAbierta === 'accesos'" [class.done]="accesosCompletos">
           <button type="button" class="section-trigger" (click)="alternarSeccionFinal('accesos')" [attr.aria-expanded]="seccionFinalAbierta === 'accesos'" [disabled]="!modoInterno && !liquidacionConsultada">
             <span class="section-icon"><i class="fa-solid fa-lock"></i></span>
@@ -459,5 +464,6 @@
           </div>
           }
         </article>
+        }
         }
 </ng-template>

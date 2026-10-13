@@ -71,6 +71,8 @@ interface NodoProspecto {
 })
 export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   @Input() modoInterno = false;
+  @Input() soloLiquidacion = false;
+  @Output() liquidacionGuardada = new EventEmitter<string>();
   @Input() seccionInterna: 'liquidacion' | 'accesos' | null = null;
   @Output() seccionInternaChange = new EventEmitter<'liquidacion' | 'accesos' | null>();
   @Input() arbolInterno: NodoProspecto[] = [];
@@ -521,6 +523,10 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
 
   private abrirAccesos(): void {
     this.error = '';
+    if (this.soloLiquidacion) {
+      this.liquidacionGuardada.emit(this.liquidacionForm.controls.cuentaFueraRed.value);
+      return;
+    }
     this.pasoActivo = 'accesos';
     if (this.modoInterno) this.seccionInternaChange.emit('accesos');
     this.asegurarUsuarioActivo();

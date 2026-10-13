@@ -87,7 +87,17 @@
             <i class="fa-solid" [ngClass]="seccionAbierta === seccion.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
 
-          <div class="section-body" *ngIf="seccionAbierta === seccion.id">
+          <app-registro-prospecto-cliente
+            *ngIf="seccion.id === 'liquidacion' && puedeCapturarLiquidacionConsulta && arbol.length"
+            [hidden]="seccionAbierta !== 'liquidacion'"
+            [modoInterno]="true"
+            [soloLiquidacion]="true"
+            seccionInterna="liquidacion"
+            [arbolInterno]="arbol"
+            [nodoInterno]="nodoSeleccionado"
+            (liquidacionGuardada)="liquidacionConsultaGuardada($event)" />
+
+          <div class="section-body" *ngIf="seccionAbierta === seccion.id && !(seccion.id === 'liquidacion' && puedeCapturarLiquidacionConsulta)">
             <app-step-comercio
               *ngIf="seccion.id === 'comercio'"
               [form]="comercioForm"

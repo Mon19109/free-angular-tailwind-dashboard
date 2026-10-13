@@ -7,6 +7,37 @@ import { RegistroClienteComponent } from './registroCliente.component';
 import { RegistroProspectoClienteComponent } from '../registroProspectoCliente/registroProspectoCliente.component';
 
 describe('RegistroCliente: pasos finales internos', () => {
+  it('habilita la captura para rol 2 únicamente con una cuenta consultada sin dispersión válida', () => {
+    for (const rol2 of [true, false]) {
+      for (const dispersionAccount of [undefined, null, '', 'PENDING', 'NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK']) {
+        const component = pantalla(false, 'entidad', rol2);
+        Object.assign(component, { cuentaNodoActual: { dispersionAccount } });
+        expect(component.puedeCapturarLiquidacionConsulta)
+          .toBe(rol2 && !['NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK'].includes(dispersionAccount as string));
+        component.cargandoCuentaComercio = true;
+        expect(component.puedeCapturarLiquidacionConsulta).toBeFalse();
+        component.cargandoCuentaComercio = false;
+        component.errorCuentaComercio = 'Error de consulta';
+        expect(component.puedeCapturarLiquidacionConsulta).toBeFalse();
+      }
+    }
+    expect(pantalla(false, 'entidad', true).puedeCapturarLiquidacionConsulta).toBeFalse();
+    const caja = pantalla(false, 'caja', true);
+    Object.assign(caja, { cuentaNodoActual: {} });
+    expect(caja.puedeCapturarLiquidacionConsulta).toBeFalse();
+  });
+
+  it('actualiza el resumen y cierra la captura después de guardar liquidación', () => {
+    const component = pantalla(false, 'entidad', true);
+    Object.assign(component, {
+      cuentaNodoActual: {},
+      liquidacionForm: new FormGroup({ cuentaFueraRed: new FormControl('') })
+    });
+    component.liquidacionConsultaGuardada('en-red');
+    expect(component.opcionLiquidacionConsulta).toBe('En Red');
+    expect(component.puedeCapturarLiquidacionConsulta).toBeFalse();
+  });
+
   function pantalla(pendienteRevision: boolean, nivel = 'entidad', mesaDigital = false) {
     const component = Object.create(RegistroClienteComponent.prototype) as RegistroClienteComponent;
     Object.assign(component, {

@@ -574,6 +574,26 @@ export class RegistroClienteComponent {
 
   get soloConsulta(): boolean { return !this.esMesaDigitalSesion; }
 
+  get puedeCapturarLiquidacionConsulta(): boolean {
+    return this.esMesaDigitalSesion && !!this.nodeIDEdicion
+      && this.nivelSeleccionado !== 'caja' && !!this.cuentaNodoActual
+      && !this.cargandoCuentaComercio && !this.errorCuentaComercio
+      && !['NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK'].includes(
+        this.valorCuenta(this.cuentaNodoActual, ['dispersionAccount'])
+      );
+  }
+
+  liquidacionConsultaGuardada(opcion: string): void {
+    const dispersion: Record<string, string> = {
+      'en-red': 'NETWORK',
+      'otros-bancos': 'OTHER_BANK',
+      'otros-bancos-en-red': 'OTHER_BANK_AND_NETWORK'
+    };
+    if (!this.cuentaNodoActual || !dispersion[opcion]) return;
+    this.cuentaNodoActual['dispersionAccount'] = dispersion[opcion];
+    this.liquidacionForm.controls.cuentaFueraRed.setValue(opcion, { emitEvent: false });
+  }
+
   get opcionLiquidacionConsulta(): string {
     const opciones: Record<string, string> = {
       'otros-bancos': 'Otros Bancos',

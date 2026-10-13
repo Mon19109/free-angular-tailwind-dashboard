@@ -25,6 +25,24 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   afterEach(() => http.verify());
 
+  it('guarda En Red desde consulta con el GUID del GET sin abrir accesos', () => {
+    component.modoInterno = true;
+    component.soloLiquidacion = true;
+    component.liquidacionConsultada = true;
+    component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
+    component.modalLiquidacion = 'en-red';
+    const guardada = spyOn(component.liquidacionGuardada, 'emit');
+    const seccion = spyOn(component.seccionInternaChange, 'emit');
+    component.aceptarModalLiquidacion();
+    const peticion = http.expectOne(req => req.url.endsWith('merchant/updateData'));
+    expect(peticion.request.method).toBe('PUT');
+    expect(peticion.request.body).toEqual({ commerceGuid: 'commerce-del-get', dispersionAccount: 'NETWORK' });
+    expect(guardada).not.toHaveBeenCalled();
+    peticion.flush({ success: true });
+    expect(guardada).toHaveBeenCalledWith('en-red');
+    expect(seccion).not.toHaveBeenCalled();
+  });
+
   it('abre y cierra secciones internas sin enviar ni validar formularios', () => {
     component.modoInterno = true;
     component.seccionInternaChange.subscribe(seccion => component.seccionInterna = seccion);
