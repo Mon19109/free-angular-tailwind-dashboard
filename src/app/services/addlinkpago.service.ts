@@ -221,7 +221,7 @@ export class AddLinkPagoService {
         msi: formData.msi
       };
 
-      console.log('datosTransformados::',datosTransformados);
+      /* console.log('datosTransformados::',datosTransformados); */
 
       return this.http.post(
         `${this.crearLink}order`,

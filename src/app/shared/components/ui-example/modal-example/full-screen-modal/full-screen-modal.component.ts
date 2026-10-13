@@ -28,7 +28,7 @@ export class FullScreenModalComponent {
   }
 
   handleSave() {
-    console.log('Saving changes...');
+    /* console.log('Saving changes...'); */
     this.closeModal();
   }
 }

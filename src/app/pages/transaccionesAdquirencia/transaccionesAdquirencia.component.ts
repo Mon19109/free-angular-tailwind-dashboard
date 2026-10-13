@@ -140,7 +140,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
   this.transaccionesAdquirenciaService.getOperaciones().subscribe({
     next: (res) => {
-      console.log('OPERACIONES', res);
+      /* console.log('OPERACIONES', res); */
 
       this.operaciones.set(
         res.catTransactionTypes || []
@@ -151,7 +151,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
   this.transaccionesAdquirenciaService.getEstadosTransaccion().subscribe({
     next: (res) => {
-      console.log('[Transacciones Adquirencia] catResponseCode/getAll:', res);
+      /* console.log('[Transacciones Adquirencia] catResponseCode/getAll:', res); */
 
       this.estadosTransaccion.set(
         res.catResponseCodes || []
@@ -420,8 +420,8 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   
   processTransactions(data: any) {
     const transacciones = this.aplicarFiltrosLocales(this.obtenerTransaccionesRespuesta(data));
-    console.log('[Transacciones Adquirencia] searchOperations response:', data);
-    console.log('[Transacciones Adquirencia] primeros estatus recibidos:', transacciones.slice(0, 10).map((transaccion: any) => ({
+    /* console.log('[Transacciones Adquirencia] searchOperations response:', data); */
+    /* console.log('[Transacciones Adquirencia] primeros estatus recibidos:', transacciones.slice(0, 10).map((transaccion: any) => ({
       idOperation: transaccion?.idOperation,
       status: transaccion?.status,
       statusDescription: transaccion?.statusDescription,
@@ -429,7 +429,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
       responseCodeMaster: transaccion?.responseCodeMaster,
       responseDescription: transaccion?.responseDescription,
       respCodeDescription: transaccion?.respCodeDescription
-    })));
+    }))); */
     this.transacciones.set(transacciones);
   }
 

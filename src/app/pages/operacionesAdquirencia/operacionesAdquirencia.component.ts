@@ -234,7 +234,7 @@ cajaSesionBloqueada = false;
   seleccionados: number[] = [];
   
   onSelectionChange() {
-    console.log('Seleccionados:', this.seleccionados);
+    /* console.log('Seleccionados:', this.seleccionados); */
   }
 
   onTipoOperacionChange(selected: string[]) {
@@ -243,7 +243,7 @@ cajaSesionBloqueada = false;
     tipoOperacion: selected
   });
 
-  console.log('Tipos:', selected);
+  /* console.log('Tipos:', selected); */
 
 }
 
@@ -253,7 +253,7 @@ onEstatusChange(selected: string[]) {
     estatus: selected
   });
 
-  console.log('Estatus:', selected);
+  /* console.log('Estatus:', selected); */
 
 }
 onFechaInicioChange(event: any) {
@@ -262,7 +262,7 @@ onFechaInicioChange(event: any) {
     fechaInicio: event.dateStr
   });
 
-  console.log('Fecha Inicio:', event.dateStr);
+  /* console.log('Fecha Inicio:', event.dateStr); */
 
 }
 
@@ -272,7 +272,7 @@ onFechaFinChange(event: any) {
     fechaFin: event.dateStr
   });
 
-  console.log('Fecha Fin:', event.dateStr);
+  /* console.log('Fecha Fin:', event.dateStr); */
 
 }
 

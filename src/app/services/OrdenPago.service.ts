@@ -177,10 +177,10 @@ export class OrdenPagoService {
             JSON.stringify(body, null, 2)
         );*/
 
-        console.log(
+        /* console.log(
             'BODY :: ',
             JSON.stringify(body, null, 2)
-        );
+        ); */
 
         
 

@@ -91,7 +91,7 @@ export class FormularioModalComponent {
   enviar() {
     if (this.formulario.valid) {
       // Aquí puedes procesar los datos (enviar a API, guardar en servicio, etc.)
-      console.log('Datos del formulario:', this.formulario.value);
+      /* console.log('Datos del formulario:', this.formulario.value); */
       this.closed.emit();
     }
   }

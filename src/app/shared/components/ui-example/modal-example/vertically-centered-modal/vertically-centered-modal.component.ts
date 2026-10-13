@@ -28,7 +28,7 @@ export class VerticallyCenteredModalComponent {
   }
 
   handleSave() {
-    console.log('Saving changes...');
+    /* console.log('Saving changes...'); */
     this.closeModal();
   }
 }

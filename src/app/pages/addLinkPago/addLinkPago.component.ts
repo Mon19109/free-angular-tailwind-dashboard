@@ -64,7 +64,7 @@ export class AddLinkPagoComponent {
     textoCopiado = '';
   
   onSelectionChange() {
-    console.log('Seleccionados:', this.seleccionados);
+    /* console.log('Seleccionados:', this.seleccionados); */
   }
 
   private  addlinkpagoService = inject(AddLinkPagoService);
@@ -103,18 +103,18 @@ export class AddLinkPagoComponent {
   handleSelectChangePago(value: string) {
     this.selectedOptionPago = value;
     this.actualizarControl('tipoPago', value);
-    console.log('Selected value:', value);
+    /* console.log('Selected value:', value); */
   }
   handleSelectChangeNoti(value: string) {
     this.selectedOptionNoti = value;
     this.actualizarControl('tipoNoti', value);
-    console.log('Selected value:', value);
+    /* console.log('Selected value:', value); */
     //this.opcionSeleccionada = value
   }
   handleDateChange(event: any) {
     this.dateValue = event;
     this.actualizarControl('fechaVen', event?.dateStr ?? event ?? '');
-    console.log('Date changed:', event);
+    /* console.log('Date changed:', event); */
   }
 
   actualizarControl(nombre: string, valor: unknown): void {
@@ -271,7 +271,7 @@ export class AddLinkPagoComponent {
   onSubmit(): void {
     if (this.formulario.valid) {
       const formValues = this.formulario.value;
-      console.log('Formulario enviado:', formValues);
+      /* console.log('Formulario enviado:', formValues); */
       
       // Aquí puedes llamar a otro servicio para enviar los datos
       /*this.addlinkpagoService.enviarFormulario(formValues).subscribe({
@@ -313,7 +313,7 @@ export class AddLinkPagoComponent {
       return;
     }
 
-    console.log('selectedOptionNoti = '+this.selectedOptionNoti);
+    /* console.log('selectedOptionNoti = '+this.selectedOptionNoti); */
     if (this.selectedOptionNoti == '1') {
         this.mostrarDiv = true;
         this.mostrarForm = false;
@@ -322,7 +322,7 @@ export class AddLinkPagoComponent {
         this.mostrarForm = true; 
         this.enviarForm();
     }
-    console.log('mostrarDiv = '+this.mostrarDiv);
+    /* console.log('mostrarDiv = '+this.mostrarDiv); */
   }
   seleccionarBoton(claseBoton: string): void {
     this.botonSeleccionado = claseBoton;
@@ -333,7 +333,7 @@ export class AddLinkPagoComponent {
     this.mostrarDiv = false; 
     this.mostrarDiv2 = false;
     this.mostrarForm = true;
-    console.log('mostrarDiv = '+this.mostrarDiv);
+    /* console.log('mostrarDiv = '+this.mostrarDiv); */
   }
 
   enviarForm(event?: Event): void {
@@ -352,11 +352,11 @@ export class AddLinkPagoComponent {
     this.loading.set(true);
     this.mensajeEstado = '';
     this.mensajeEsError = false;
-    console.log('Formulario enviado:', formValues);
+    /* console.log('Formulario enviado:', formValues); */
 
     this.addlinkpagoService.enviarFormulario(formValues).subscribe({
       next: (response) => {
-        console.log('Formulario enviado exitosamente:', response);
+        /* console.log('Formulario enviado exitosamente:', response); */
 
         if (response?.success !== true) {
           this.loading.set(false);

@@ -22,7 +22,7 @@ export class DropzoneComponent {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length) {
       this.filesDropped.emit(Array.from(input.files));
-      console.log('Files dropped:', Array.from(input.files));
+      /* console.log('Files dropped:', Array.from(input.files)); */
     }
   }
 
@@ -47,7 +47,7 @@ export class DropzoneComponent {
         ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type)
       );
       this.filesDropped.emit(files);
-      console.log('Files dropped:', files);
+      /* console.log('Files dropped:', files); */
     }
   }
 }

@@ -78,7 +78,7 @@ export class UsuariosComponent implements OnInit {
   seleccionados: number[] = [];
 
   onSelectionChange() {
-    console.log('Seleccionados:', this.seleccionados);
+    /* console.log('Seleccionados:', this.seleccionados); */
   }
 
   private usuariosService = inject(UsuariosService);
@@ -149,8 +149,8 @@ export class UsuariosComponent implements OnInit {
 
 
   onSubmit(): void {
-    console.log('Formulario ');
-    console.log(this.formulario.value);
+    /* console.log('Formulario '); */
+    /* console.log(this.formulario.value); */
 
     this.mensajeError = '';
 

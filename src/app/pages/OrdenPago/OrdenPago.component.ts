@@ -133,7 +133,7 @@ export class OrdenPagoComponent implements OnInit {
         });
       */
 
-        console.log('Tipo envío:', valor);
+        /* console.log('Tipo envío:', valor); */
 
     }
 
@@ -151,7 +151,7 @@ export class OrdenPagoComponent implements OnInit {
             .subscribe({
                 next: (resp) => {
 
-                    console.log('Cuentas ordenantes', resp);
+                    /* console.log('Cuentas ordenantes', resp); */
 
                     this.cuentas = this.normalizarLista(resp, [
                         'data',
@@ -183,14 +183,14 @@ export class OrdenPagoComponent implements OnInit {
             return;
         }
 
-        console.log('Cargando beneficiarios con idUser:', idUser);
+        /* console.log('Cargando beneficiarios con idUser:', idUser); */
 
         this.ordenPagoService
             .obtenerContactos(String(idUser))
             .subscribe({
                 next: (resp) => {
 
-                    console.log('Beneficiarios', resp);
+                    /* console.log('Beneficiarios', resp); */
                     this.beneficiariosCargados = true;
                     this.beneficiarios = this.normalizarLista(resp, [
                         'data',

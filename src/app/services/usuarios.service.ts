@@ -137,8 +137,8 @@ export class UsuariosService {
       `&value2=${value2}` +
       `&page=${Math.max(page - 1, 0)}&size=10`;
 
-    console.log('URL');
-    console.log(url);
+    /* console.log('URL'); */
+    /* console.log(url); */
 
     return this.http.get(url);
 

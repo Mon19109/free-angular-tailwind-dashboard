@@ -64,13 +64,13 @@ cardNameDisplay = '';
   onSubmit(): void {
     if (this.formulario.valid) {
       const formValues = this.formulario.value;
-      console.log('Formulario enviado:', formValues);
+      /* console.log('Formulario enviado:', formValues); */
       
       // Aquí puedes llamar a otro servicio para enviar los datos
 this.tarjetaService.enviarFormulario(formValues).subscribe({
        next: (response: any) => {
 
-  console.log('Formulario enviado exitosamente:', response);
+  /* console.log('Formulario enviado exitosamente:', response); */
 
   if (response?.success === false) {
     this.mostrarTarjeta = false;

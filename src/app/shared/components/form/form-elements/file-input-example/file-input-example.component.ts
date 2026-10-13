@@ -25,7 +25,7 @@ export class FileInputExampleComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (file) {
-      console.log('Selected file:', file.name);
+      /* console.log('Selected file:', file.name); */
     }
   }
 }

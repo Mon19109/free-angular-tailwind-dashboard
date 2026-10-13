@@ -98,9 +98,9 @@ obtenerConcentratorAccounts(): Observable<any> {
    */
 obtenerEntidades(cuenta: string): Observable<any> {
 
-  console.log(
+  /* console.log(
     `${this.apiUrlCuentas}getEntityLevels?fatherId=${cuenta}&level=`
-  );
+  ); */
 
   return this.http.get<any>(
     `${this.apiUrlCuentas}getEntityLevels?fatherId=${cuenta}&level=`

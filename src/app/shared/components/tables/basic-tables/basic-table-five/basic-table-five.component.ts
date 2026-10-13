@@ -69,12 +69,12 @@ export class BasicTableFiveComponent {
   ];
 
   handleFilter() {
-    console.log('Filter clicked');
+    /* console.log('Filter clicked'); */
     // Add your filter logic here
   }
 
   handleSeeAll() {
-    console.log('See all clicked');
+    /* console.log('See all clicked'); */
     // Add your see all logic here
   }
 }

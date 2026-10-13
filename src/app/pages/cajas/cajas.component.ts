@@ -338,7 +338,7 @@ export class CajasComponent implements OnInit {
       return;
     }
 
-    console.log('Acción caja:', accion, caja);
+    /* console.log('Acción caja:', accion, caja); */
   }
 
   obtenerSubafiliadoId(item: any): string {

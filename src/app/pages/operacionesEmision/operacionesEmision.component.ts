@@ -79,14 +79,14 @@ defaultTipoOperacion = ['11', '22', '24', '30'];
   seleccionados: number[] = [];
   
   onSelectionChange() {
-    console.log('Seleccionados:', this.seleccionados);
+    /* console.log('Seleccionados:', this.seleccionados); */
   }
 onTipoOperacionChange(selected: string[]) {
   this.formulario.patchValue({
     tipoOperacion: selected
   });
 
-  console.log('Tipos:', selected);
+  /* console.log('Tipos:', selected); */
 }
 
 onEstatusChange(selected: string[]) {
@@ -94,7 +94,7 @@ onEstatusChange(selected: string[]) {
     estatus: selected
   });
 
-  console.log('Estatus:', selected);
+  /* console.log('Estatus:', selected); */
 }
 
 onFechaInicioChange(event: any) {
@@ -103,7 +103,7 @@ onFechaInicioChange(event: any) {
     fechaInicio: event.dateStr
   });
 
-  console.log('Fecha Inicio:', event.dateStr);
+  /* console.log('Fecha Inicio:', event.dateStr); */
 
 }
 
@@ -113,7 +113,7 @@ onFechaFinChange(event: any) {
     fechaFin: event.dateStr
   });
 
-  console.log('Fecha Fin:', event.dateStr);
+  /* console.log('Fecha Fin:', event.dateStr); */
 
 }
 
@@ -240,7 +240,7 @@ this.operaEmiService.obtenerTiposOperacion().subscribe({
       next: (response: any) => {
         // Acceder a catOperationTypes dentro de la respuesta
         this.tiposOperacion = response.catOperationTypes || [];
-        console.log('Tipos de operación:', this.tiposOperacion);
+        /* console.log('Tipos de operación:', this.tiposOperacion); */
       },
       error: (error) => {
         console.error('Error:', error);
@@ -323,7 +323,7 @@ verDetalle(operacion: any): void {
       break;
 
     default:
-      console.log('La operación no tiene detalle:', operacion);
+      /* console.log('La operación no tiene detalle:', operacion); */
       break;
   }
 }

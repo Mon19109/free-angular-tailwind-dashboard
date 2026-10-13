@@ -35,20 +35,20 @@ export class DefaultInputsComponent {
 
   handleSelectChange(value: string) {
     this.selectedOption = value;
-    console.log('Selected value:', value);
+    /* console.log('Selected value:', value); */
   }
 
   handleDateChange(event: any) {
     this.dateValue = event;
-    console.log('Date changed:', event);
+    /* console.log('Date changed:', event); */
   }
 
   handleTimeChange(event: any) {
     this.timeValue = event.target.value;
-    console.log(this.timeValue);
+    /* console.log(this.timeValue); */
   }
 
   onTimeSelected(time: string) {
-    console.log('Picked time:', time); // e.g. "10:45"
+    /* console.log('Picked time:', time); */ // e.g. "10:45"
   }
 }

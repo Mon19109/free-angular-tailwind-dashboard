@@ -35,8 +35,8 @@ export class DashboardComponent {
   
   ngOnInit(): void {
     this.session = this.getSession();
-    console.log('[Dashboard debug] auth_session sin token:', this.omitSensitive(this.session));
-    console.log('[Dashboard debug] claves utiles localStorage:', {
+    /* console.log('[Dashboard debug] auth_session sin token:', this.omitSensitive(this.session)); */
+    /* console.log('[Dashboard debug] claves utiles localStorage:', {
       issueId: localStorage.getItem('issueId'),
       acquiringId: localStorage.getItem('acquiringId'),
       entitySonID: localStorage.getItem('entitySonID'),
@@ -45,7 +45,7 @@ export class DashboardComponent {
       idBusinessModel: localStorage.getItem('idBusinessModel'),
       idTypeAffiliation: localStorage.getItem('idTypeAffiliation'),
       idRol: localStorage.getItem('idRol')
-    });
+    }); */
     this.cargarDatosIniciales();
   }
 
@@ -171,12 +171,12 @@ export class DashboardComponent {
           }
         }
         
-        console.log('Datos a asignar:', datos);
+        /* console.log('Datos a asignar:', datos); */
         
         // Asignar usando signal
         this.balanceSirio.set(datos);
         
-        console.log('Signal actualizada:', this.balanceSirio());
+        /* console.log('Signal actualizada:', this.balanceSirio()); */
       },
       error: (error) => {
         console.error('Error al cargar balance de sirio:', error);
@@ -200,12 +200,12 @@ export class DashboardComponent {
           }
         }
         
-        console.log('Datos a asignar:', datos);
+        /* console.log('Datos a asignar:', datos); */
         
         // Asignar usando signal
         this.balanceAhorro.set(datos);
         
-        console.log('Signal actualizada Ahorro:', this.balanceAhorro());
+        /* console.log('Signal actualizada Ahorro:', this.balanceAhorro()); */
       },
       error: (error) => {
         console.error('Error al cargar balance de ahorro:', error);
@@ -231,12 +231,12 @@ export class DashboardComponent {
           }
         }
         
-        console.log('Datos a asignar Aldebaran:', datos);
+        /* console.log('Datos a asignar Aldebaran:', datos); */
         
         // Asignar usando signal
         this.balanceAlde.set(datos);
         
-        console.log('Signal actualizada Aldebaran:', this.balanceAlde());
+        /* console.log('Signal actualizada Aldebaran:', this.balanceAlde()); */
       },
       error: (error) => {
         console.error('Error al cargar balance de Aldebaran:', error);
@@ -261,12 +261,12 @@ export class DashboardComponent {
           }
         }
         
-        console.log('Datos a asignar Reportes:', datos);
+        /* console.log('Datos a asignar Reportes:', datos); */
         
         // Asignar usando signal
         this.reportes.set(datos);
         
-        console.log('Signal actualizada Reportes:', this.reportes());
+        /* console.log('Signal actualizada Reportes:', this.reportes()); */
       },
       error: (error) => {
         console.error('Error al cargar reportes:', error);

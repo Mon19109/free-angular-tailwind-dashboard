@@ -265,7 +265,7 @@ export class SucursalesComponent implements OnInit {
 
   onAccionChange(accion: string, sucursal: any): void {
     if (!accion) return;
-    console.log('Acción sucursal:', accion, sucursal);
+    /* console.log('Acción sucursal:', accion, sucursal); */
   }
 
   obtenerSubafiliadoId(item: any): string {

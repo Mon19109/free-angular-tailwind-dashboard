@@ -101,7 +101,7 @@ export class PagoDistanciaComponent {
       this.pagoDistanciaService.buscarOrdenes(formValues).subscribe({
         next: (response) => {
           this.ordenes = this.normalizarOrdenes(response);
-          console.log('Links encontrados:', this.ordenes);
+          /* console.log('Links encontrados:', this.ordenes); */
         },
         error: (error) => {
           this.ordenes = [];

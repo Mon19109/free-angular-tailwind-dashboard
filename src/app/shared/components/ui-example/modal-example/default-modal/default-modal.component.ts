@@ -28,7 +28,7 @@ export class DefaultModalComponent {
   }
 
   handleSave() {
-    console.log('Saving changes...');
+    /* console.log('Saving changes...'); */
     this.closeModal();
   }
 }

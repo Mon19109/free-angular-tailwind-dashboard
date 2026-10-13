@@ -146,7 +146,7 @@ export class PagarLinkPagoService {
           }
         };
 
-        console.log('*BODY* :: ',payloadConUbicacion);
+        /* console.log('*BODY* :: ',payloadConUbicacion); */
 
         return this.http.post(
           `${this.transactionUrl}processTransaction`,

@@ -234,7 +234,7 @@ export class ListarComerciosComponent implements OnInit {
 
   onAccionChange(accion: string, entidad: any): void {
     if (!accion) return;
-    console.log('Acción entidad:', accion, entidad);
+    /* console.log('Acción entidad:', accion, entidad); */
   }
 
   obtenerSubafiliadoId(item: any): string {

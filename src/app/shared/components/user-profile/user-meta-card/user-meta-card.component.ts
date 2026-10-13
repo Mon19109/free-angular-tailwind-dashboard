@@ -43,7 +43,7 @@ export class UserMetaCardComponent {
 
   handleSave() {
     // Handle save logic here
-    console.log('Saving changes...');
+    /* console.log('Saving changes...'); */
     this.modal.closeModal();
   }
 }
