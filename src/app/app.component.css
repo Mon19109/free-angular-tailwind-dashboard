@@ -78,10 +78,10 @@
   background: linear-gradient(180deg, #f8d877 0%, #f1b23d 100%);
   color: #140e02;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  text-transform: lowercase;
   box-shadow: 0 18px 34px rgba(241, 178, 61, 0.24);
 }
 
