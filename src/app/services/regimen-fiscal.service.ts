@@ -5,6 +5,7 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface RegimenFiscal {
+  referencia?: number;
   id?: number | string;
   code?: string;
   key?: string;
@@ -31,6 +32,7 @@ export interface RegimenFiscal {
 })
 export class RegimenFiscalService {
   private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
+  private readonly referenciasPreregistro = new Map<string, string>();
   private readonly http = inject(HttpClient);
   private readonly apiV1Url = `${environment.api.kashpay}api/v1/`;
 
@@ -48,11 +50,23 @@ export class RegimenFiscalService {
 
   getAllOptions(preregistroPublico = false): Observable<string[]> {
     return this.getAll(preregistroPublico).pipe(
-      map(regimenes => regimenes
-        .map(regimen => this.toOptionLabel(regimen))
-        .filter((regimen): regimen is string => !!regimen)
-      )
+      map(regimenes => regimenes.map(regimen => {
+        const referencia = typeof regimen === 'object' ? regimen.referencia : undefined;
+        const label = preregistroPublico && referencia !== undefined
+          ? String((regimen as RegimenFiscal).descripcion ?? '') : this.toOptionLabel(regimen);
+        if (preregistroPublico && label) {
+          this.referenciasPreregistro.set(label, referencia !== undefined ? String(referencia) : label.split('-')[0].trim());
+        }
+        return label;
+      }).filter(Boolean))
     );
+  }
+
+  codigoParaPreregistro(label: string): string {
+    if (!label.trim()) return '';
+    const referencia = this.referenciasPreregistro.get(label);
+    if (!referencia) throw new Error('Vuelve a seleccionar el régimen fiscal desde el catálogo vigente.');
+    return referencia;
   }
 
   private getHeaders(): HttpHeaders {

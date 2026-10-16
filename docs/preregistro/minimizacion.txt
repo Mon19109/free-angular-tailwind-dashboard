@@ -1,0 +1,125 @@
+Minimización de respuestas del prerregistro — implementación local
+
+Contratos públicos de salida
+- Regímenes: { data: [{ descripcion }], referencias: [numeroOpaco] }.
+- Tipos de comercio: { data: [{ name }], referencias: [numeroOpaco] }.
+- Actividades: { success: true, catActividadResponse: [{ actividad }], referencias: [numeroOpaco] }.
+- Giros: { data: [{ giro, familia, descripcion }] }.
+- Localidades: { data: [{ colonia, municipio, estado }], referencias: [numeroOpaco] }.
+- Instituciones: { institutionResponse: { institutions: [{ name }] }, referencias: [numeroOpaco] }.
+- Afiliación exitosa: { success: true, comprobante }.
+- Registro exitoso: { success: true, message: "Registro exitoso" }.
+
+Los elementos y las envolturas se construyen con listas explícitas de campos.
+No se propagan propiedades desconocidas, metadatos ni objetos originales de Payara.
+Las referencias adicionales fueron autorizadas expresamente por el usuario para
+conservar los tipos numéricos de los campos de entrada sin mostrar IDs reales.
+El índice de cada referencia corresponde al índice del elemento de su catálogo.
+
+Campos eliminados
+Regímenes: códigos/IDs y todos los metadatos, conservando únicamente descripcion.
+Tipos: id, idAffiliationType y demás propiedades, conservando únicamente name.
+Actividades: idcat_actividades, estatus, idGiro y demás propiedades; solo actividad.
+Giros: id y cualquier propiedad adicional; giro se conserva porque es el código
+que Angular usa en idBussinesLine y businessActivityCode, no un GUID de comercio.
+Localidades: identificador real y metadatos; solo texto de colonia/municipio/estado.
+Instituciones: identificador real, numCuenta, accountNumber y metadatos; solo name.
+Afiliación: expiresIn; nunca se publica nodeId ni el contenido de Redis.
+Registro: frontera explícita success/message; elimina motivo interno y cualquier
+campo que una implementación futura agregue al resultado del servicio.
+
+Referencias de catálogo
+- crypto.randomBytes(6) produce 48 bits aleatorios, más un prefijo numérico fijo
+  para distinguirlas de IDs legacy y mantener enteros seguros de JavaScript.
+- No codifican el ID original, no son Base64 ni hashes reversibles.
+- Redis almacena preregistro:catalogo:<tipo>:<referencia> -> valor original,
+  usando NX y expiración de 24 horas; los tipos de catálogo están separados.
+- Son referencias a catálogos públicos, NO secretos de autenticación ni
+  autorizaciones para registrar comercios. El comprobante sigue siendo obligatorio.
+- resolverCatalogosPayload recupera typeOfBusiness, idActivity, fiscalRegime,
+  locationID, idLocation e idInstitution, conservando número/cadena según el
+  contrato existente. Se ejecuta antes de reservar o llamar a Payara.
+- Una referencia inexistente, vencida o de otro catálogo falla de forma controlada
+  antes de la reserva del registro. No se hace un registro ni una carga de archivos.
+- Por compatibilidad con formularios ya abiertos, se mantienen los valores legacy
+  de entrada fuera del espacio de referencias. El BFF nuevo no los publica.
+- Los catálogos por nombre que resulten ambiguos se rechazan; no se adivina un ID.
+
+Comprobante y GUID
+- Se reutiliza crearComprobante: 32 bytes criptográficos (256 bits), TTL de 900 s,
+  con nodeId guardado únicamente en Redis.
+- El registro completo ya recibe comprobante, árbol con IDs locales y documentos;
+  no requiere GUID de Payara en la entrada ni en la respuesta del navegador.
+- El mapa nodo local -> GUID y el progreso de documentos permanecen asociados al
+  comprobante en Redis, con la expiración de registro existente (24 h).
+- Payara/DocumentsServices siguen recibiendo el GUID original internamente.
+- No se crea un segundo token de documentos ni se cambia la reserva atómica.
+- Las rutas legacy de documentos siguen sin montarse en server.js y con respuestas
+  controladas 501. No se habilitaron endpoints nuevos de carga directa.
+
+Compatibilidad Angular y orden de despliegue
+Angular debe desplegarse ANTES del BFF minimizado (no se realizó despliegue).
+La versión anterior de Angular necesita expiresIn y los IDs de catálogo originales.
+La versión adaptada acepta temporalmente respuestas anteriores para permitir ese
+orden, y utiliza las referencias opacas cuando existe referencias en la envoltura.
+Los IDs de referencia viven en controles internos; las etiquetas no muestran dichos
+números. Regímenes conserva un mapa descripción -> referencia para el payload.
+Se eliminaron los IDs de tipo de comercio usados como fallback local: se requiere
+que el catálogo haya cargado antes de enviar, incluidas las cajas automáticas.
+Afiliación usa la vigencia de Redis de 900 s cuando expiresIn no está presente;
+conserva el valor anterior si llega durante el despliegue gradual. El comprobante
+se conserva en memoria, se invalida al editar afiliación y se comprueba antes de enviar.
+No se alteran endpoints, métodos HTTP ni campos/tipos de entrada al BFF/Payara.
+No cambian el árbol, el orden de archivos ni la asociación de documentos.
+Los consumidores de servicios compartidos fuera del prerregistro conservan su transporte.
+
+Archivos BFF modificados
+src/server.js (middleware de errores solo para /bff/preregistro)
+src/routes/preregistro.routes.js
+src/routes/registro-completo.routes.js
+src/services/preregistro.service.js
+src/services/preregistro-completo.service.js
+test/preregistro-catalogos.test.js
+
+Archivos BFF nuevos
+src/services/catalogo-referencias.service.js
+src/services/catalogos-publicos.service.js
+src/middlewares/preregistro-error.middleware.js
+test/preregistro-minimizacion.test.js
+test/preregistro-respuestas.test.js
+
+Archivos Angular modificados
+src/app/pages/preRegistro/preRegistro.component.ts
+src/app/pages/preRegistro/preRegistro.component.spec.ts
+src/app/services/preregistro-catalogos-http.service.ts
+src/app/services/preregistro-catalogos-http.service.spec.ts
+src/app/services/regimen-fiscal.service.ts
+scripts/verificar-preregistro-bff.mjs
+Este documento complementa y actualiza las formas de respuesta del inventario anterior.
+
+Verificación
+- Node: node --test test/*.test.js — 10/10 pruebas pasan.
+- Angular: node scripts/verificar-preregistro-bff.mjs — pasa; catálogos mínimos,
+  asociación de referencias, normalizadores, compatibilidad legacy, afiliación,
+  comprobante, multipart, orden y prevención de reenvíos.
+- TypeScript: npx tsc --noEmit -p tsconfig.app.json y tsconfig.spec.json — pasan.
+- Plantillas: npx ngc --noEmit -p tsconfig.app.json — pasa con advertencias existentes.
+- Las pruebas Jasmine se verificaron en TypeScript; no se ejecutó Karma/navegador.
+- Compilación de producción: no ejecutada en este cambio; se rechazó el permiso
+  para ejecutarla fuera del sandbox. No se afirma que se haya compilado.
+- Las pruebas usan fetch/Redis/Payara simulados en memoria, sin operaciones reales.
+
+Pendiente manual
+- Verificar las formas reales de los catálogos del entorno destino con los alias
+  admitidos y descartar etiquetas fiscales o tipos duplicados con IDs diferentes.
+- Verificar funcionamiento de Redis NX/EX y expiración de referencias en staging.
+- Recorrer los cuatro paquetes en navegador con las respuestas minimizadas y el
+  catálogo de cajas cargado; revisar representante, domicilio y búsqueda bancaria.
+- Validar integración con Payara y DocumentsServices en el entorno autorizado.
+- El build de producción continúa pendiente de ejecución autorizada.
+- Las referencias de catálogo no son por sesión porque los catálogos son públicos;
+  la autorización del flujo continúa exclusivamente en el comprobante existente.
+- Las credenciales globales legacy de otros módulos Angular no se modificaron.
+
+No se modificaron .env, PREREGISTRO_MODO, autenticación, límites por IP ni proxies.
+No se hicieron registros reales, carga de archivos, commits, push ni despliegues.

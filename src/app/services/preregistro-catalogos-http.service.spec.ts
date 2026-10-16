@@ -28,14 +28,15 @@ describe('Catálogos públicos del prerregistro', () => {
 
   it('comparte la petición de actividades y conserva campos sin Authorization', () => {
     const service = TestBed.inject(ActividadesService);
-    const actividades = [{ idcat_actividades: 7, actividad: 'Comercio', extra: 'conservado' }];
+    const referencia = 2 ** 48 + 7;
+    const actividades = [{ idcat_actividades: referencia, actividad: 'Comercio' }];
     let primera: unknown;
     let segunda: unknown;
     service.getActividades(true).subscribe(data => primera = data);
     service.getActividades(true).subscribe(data => segunda = data);
     const req = http.expectOne(environment.preregistroBff.actividadesUrl);
     expect(req.request.headers.has('Authorization')).toBeFalse();
-    req.flush({ success: true, catActividadResponse: actividades });
+    req.flush({ success: true, catActividadResponse: [{ actividad: 'Comercio' }], referencias: [referencia] });
     expect(primera).toEqual(actividades);
     expect(segunda).toEqual(actividades);
   });
@@ -68,8 +69,9 @@ describe('Catálogos públicos del prerregistro', () => {
     let result: string[] = [];
     service.getAllOptions(true).subscribe(data => result = data);
     http.expectOne(environment.preregistroBff.regimenesFiscalesUrl)
-      .flush({ data: [{ code: '601', description: 'General' }] });
-    expect(result).toEqual(['601 - General']);
+      .flush({ data: [{ descripcion: 'General' }], referencias: [2 ** 48 + 1] });
+    expect(result).toEqual(['General']);
+    expect(service.codigoParaPreregistro('General')).toBe(String(2 ** 48 + 1));
   });
 
   it('mantiene el endpoint anterior para consumidores compartidos sin la opción pública', () => {

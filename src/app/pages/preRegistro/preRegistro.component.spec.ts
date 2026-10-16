@@ -170,7 +170,7 @@ describe('PreRegistro: referencia de afiliación', () => {
     const request = http.expectOne(url);
     expect(request.request.body).toEqual({ affiliationNumber: '0012345' });
     expect(request.request.headers.has('Authorization')).toBeFalse();
-    request.flush({ success: true, comprobante, expiresIn: 900 });
+    request.flush({ success: true, comprobante });
   }
 
   it('acepta el contrato sin nodeId y reutiliza el comprobante vigente', () => {
@@ -231,7 +231,6 @@ describe('PreRegistro: referencia de afiliación', () => {
   for (const respuesta of [
     { success: true, comprobante: 'incorrecto', expiresIn: 900 },
     { success: true, comprobante, expiresIn: 0 },
-    { success: true, comprobante },
     { success: false, comprobante, expiresIn: 900 },
   ]) {
     it('rechaza respuestas sin comprobante y vigencia válidos o sin éxito', () => {

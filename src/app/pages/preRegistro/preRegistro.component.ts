@@ -145,23 +145,6 @@ export class PreRegistroComponent {
   private typeOfBusinessPorTipoComercio: Record<string, number> = {};
   private tiposComercioCatalogoPorNivel: Record<string, Array<{ id: number; nombre: string }>> = {};
   private tiposComercioCatalogoSolicitados = new Set<string>();
-  private readonly typeOfBusinessFallbackPorTipoComercio: Record<string, number> = {
-    'Empresa Holding': 1,
-    'Empresa Grupo': 16,
-    'Empresa Agrupadora': 4,
-    'Entidad Agrupadora': 5,
-    'Entidad Agrupadora con auditor': 5,
-    'Entidad Agrupadora con supervisor': 17,
-    'Persona Física': 3,
-    'Sucursales de Grupo': 6,
-    'Sucursal Persona Física': 6,
-    'Sucursales Únicas': 6,
-    'Caja con Tarjeta sólo Fondeo': 9,
-    'Caja con Tarjeta SPEI': 11,
-    'Cuenta Entidad': 13,
-    'Cuenta Terminal': 13,
-    'Cuenta Terminal Pin Rapido': 13,
-  };
   localidadesFiscal: CodigoPostalLocalizacion[] = [];
   localidadesComercial: CodigoPostalLocalizacion[] = [];
   localidadesRepresentante: CodigoPostalLocalizacion[] = [];
@@ -1739,15 +1722,18 @@ export class PreRegistroComponent {
             this.errorAfiliacion = response?.error?.message || 'No fue posible validar el número de afiliación.';
             return;
           }
+          // El contrato mínimo omite expiresIn; Redis conserva su TTL de 15 minutos.
+          // Aceptar la vigencia anterior permite desplegar Angular antes que el BFF.
+          const expiresIn = response.expiresIn ?? 900;
           if (typeof response.comprobante !== 'string' || !/^[0-9a-f]{64}$/.test(response.comprobante)
-            || typeof response.expiresIn !== 'number' || !Number.isSafeInteger(response.expiresIn)
-            || response.expiresIn <= 0) {
+            || typeof expiresIn !== 'number' || !Number.isSafeInteger(expiresIn)
+            || expiresIn <= 0) {
             this.errorAfiliacion = 'El BFF no devolvió un comprobante y una vigencia válidos. Vuelve a validar la afiliación.';
             return;
           }
           this.comprobanteAfiliacion = response.comprobante;
           this.afiliacionValidada = affiliationNumber;
-          this.comprobanteExpiraEn = inicioValidacion + Math.min(response.expiresIn, 900) * 1000;
+          this.comprobanteExpiraEn = inicioValidacion + Math.min(expiresIn, 900) * 1000;
           if (!this.comprobanteAfiliacionVigente()) {
             this.solicitarNuevaValidacionAfiliacion();
             return;
@@ -2150,8 +2136,13 @@ export class PreRegistroComponent {
       this.solicitarNuevaValidacionAfiliacion();
       return;
     }
-    const payload = this.imprimirPayloadPreRegistro();
-    this.enviarPreRegistroCompleto(payload);
+    try {
+      const payload = this.imprimirPayloadPreRegistro();
+      this.enviarPreRegistroCompleto(payload);
+    } catch {
+      this.enviandoPreRegistro = false;
+      this.mostrarErrorPreRegistro('Vuelve a cargar y seleccionar los catálogos del comercio antes de enviar. Tu captura se conserva.');
+    }
     this.guardarBorradorSilencioso();
   }
 
@@ -2186,6 +2177,16 @@ export class PreRegistroComponent {
     } catch (error) {
       this.enviandoPreRegistro = false;
       this.mostrarErrorPreRegistro(error instanceof Error ? error.message : 'Revisa los datos del registro.');
+      return;
+    }
+    const tiposCompletos = (value: unknown): boolean => {
+      if (!value || typeof value !== 'object') return true;
+      return Object.entries(value).every(([key, child]) => key === 'typeOfBusiness'
+        ? typeof child === 'number' && child > 0 : tiposCompletos(child));
+    };
+    if (!tiposCompletos(payload)) {
+      this.enviandoPreRegistro = false;
+      this.mostrarErrorPreRegistro('Espera a que se carguen los tipos de comercio, incluidas las cajas, antes de enviar.');
       return;
     }
     this.nombreComercioRegistrado = this.nombreComercioDelNodoPadre(payload);
@@ -2487,6 +2488,7 @@ export class PreRegistroComponent {
     const comercio = comercioGuardado ?? this.comercioForm.getRawValue();
     const tipoComercioPayload = this.tipoComercioPayload(nodoId, comercio.tipoComercio);
     const typeOfBusiness = this.typeOfBusinessPayload(nodoId, tipoComercioPayload, comercio.tipoComercioId);
+    if (!typeOfBusiness) throw new Error('Tipo de comercio pendiente de catálogo');
     datos = this.sincronizarRepresentanteDesdePersonaFisica(datos, tipoComercioPayload);
     const tipoPersona = this.tipoPersonaPayload(datos['tipoPersona']);
     const emailComercio = this.valorTexto(datos['correo'])
@@ -2648,15 +2650,8 @@ export class PreRegistroComponent {
   }
 
   private typeOfBusinessPayload(nodoId: string, tipoComercio: string, tipoComercioId?: number): number {
-    if (tipoComercio === 'Cuenta Terminal Pin Rapido') {
-      return this.typeOfBusinessPorTipoComercio[tipoComercio]
-        || this.typeOfBusinessFallbackPorTipoComercio[tipoComercio];
-    }
-    const id = tipoComercioId
-      || this.typeOfBusinessPorTipoComercio[tipoComercio]
-      || this.typeOfBusinessFallbackPorTipoComercio[tipoComercio]
-      || 0;
-    return id;
+    // Solo valores recibidos del catálogo: referencias opacas con el BFF nuevo.
+    return this.typeOfBusinessPorTipoComercio[tipoComercio] || tipoComercioId || 0;
   }
 
   private construirDireccionPayload(addressType: 'DF' | 'DC', datos: Record<string, string | boolean>, sufijo: '' | 'Comercial'): Record<string, string> {
@@ -2774,7 +2769,7 @@ export class PreRegistroComponent {
 
   private codigoRegimenFiscal(valor: unknown): string {
     const regimen = this.valorTexto(valor);
-    return regimen.split('-')[0]?.trim() || '';
+    return regimen ? this.regimenFiscalService.codigoParaPreregistro(regimen) : '';
   }
 
   private tipoPersonaPayload(valor: unknown): string {

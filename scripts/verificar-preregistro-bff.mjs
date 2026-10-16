@@ -51,13 +51,14 @@ try {
       const localidades = injector.get(LocalidadesService);
       const catalogos = injector.get(PreRegistroService);
       const bancos = injector.get(BeneficiariosService);
+      const ref = 2 ** 48 + 123;
       const casos = [
-        [() => actividades.getActividades(true), '/preregistro/actividades', {}, {success:true,catActividadResponse:[{idcat_actividades:7,actividad:'Comercio'}]}, [{idcat_actividades:7,actividad:'Comercio'}]],
-        [() => regimenes.getAllOptions(true), '/preregistro/regimenes-fiscales', {}, {data:[{code:'601',description:'General'}]}, ['601 - General']],
-        [() => localidades.obtenerPorCodigoPostal('01234',true), '/preregistro/localidades/01234', {}, {rows:[{colonia:'Centro',municipio:'Municipio',estado:'Estado'}]}, [{colonia:'Centro',municipio:'Municipio',estado:'Estado'}]],
+        [() => actividades.getActividades(true), '/preregistro/actividades', {}, {success:true,catActividadResponse:[{actividad:'Comercio'}],referencias:[ref]}, [{idcat_actividades:ref,actividad:'Comercio'}]],
+        [() => regimenes.getAllOptions(true), '/preregistro/regimenes-fiscales', {}, {data:[{descripcion:'General'}],referencias:[ref]}, ['General']],
+        [() => localidades.obtenerPorCodigoPostal('01234',true), '/preregistro/localidades/01234', {}, {data:[{colonia:'Centro',municipio:'Municipio',estado:'Estado'}],referencias:[ref]}, [{colonia:'Centro',municipio:'Municipio',estado:'Estado',idLocalidad:String(ref)}]],
         [() => catalogos.getGirosByFamily('Café & pan',true), '/preregistro/giros', {family:'Café & pan'}, {data:[{mcc:'1234'}]}, {data:[{mcc:'1234'}]}],
-        [() => catalogos.getTiposComercio(4,true), '/preregistro/tipos-comercio', {idAffiliationType:'4'}, {data:[{id:4}]}, {data:[{id:4}]}],
-        [() => bancos.buscarInstitucion('001234567890',undefined,true), '/preregistro/instituciones', {value:'001234567890'}, {institutionResponse:{institutions:[{id:1}]}}, {institutionResponse:{institutions:[{id:1}]}}],
+        [() => catalogos.getTiposComercio(4,true), '/preregistro/tipos-comercio', {idAffiliationType:'4'}, {data:[{name:'Sucursal'}],referencias:[ref]}, {data:[{name:'Sucursal',id:ref}]}],
+        [() => bancos.buscarInstitucion('001234567890',undefined,true), '/preregistro/instituciones', {value:'001234567890'}, {institutionResponse:{institutions:[{name:'Banco'}]},referencias:[ref]}, {institutionResponse:{institutions:[{name:'Banco',key:ref}]}}],
       ];
       for (const [consultar,url,params,body,expected] of casos) {
         response = new Subject(); calls = [];
@@ -85,6 +86,7 @@ try {
         assert.equal(failed,true);
         assert.equal(calls.length,1);
       }
+      assert.equal(regimenes.codigoParaPreregistro('General'),String(ref));
       // Los métodos compartidos mantienen por defecto sus endpoints anteriores.
       calls = []; response = new Subject();
       actividades.getActividades().subscribe();
@@ -136,7 +138,7 @@ try {
       validar();
       component.continuarAfiliacion();
       assert.equal(calls.length,1); // Solicitud ya en curso.
-      response.next({success:true,comprobante:token,expiresIn:900});
+      response.next({success:true,comprobante:token});
       assert.equal(component.pasoActual,6);
       assert.equal(component.comprobanteAfiliacion,token);
       assert.deepEqual(component.referenciaAfiliacionPayload(),{});
@@ -155,7 +157,7 @@ try {
       validar();
       component.afiliacionForm.controls.afiliacion.setValue('3');
       component.afiliacionForm.controls.afiliacion.setValue('2');
-      response.next({success:true,comprobante:token,expiresIn:900});
+      response.next({success:true,comprobante:token});
       assert.equal(component.comprobanteAfiliacion,''); // Respuesta A-B-A obsoleta.
       validar();
       response.error(new HttpErrorResponse({status:429,headers:new HttpHeaders({'Retry-After':'120'})}));
@@ -171,7 +173,7 @@ try {
       response.next({success:true,comprobante:'invalid',expiresIn:900});
       assert.equal(component.comprobanteAfiliacion,'');
       validar();
-      response.next({success:true,comprobante:token,expiresIn:900});
+      response.next({success:true,comprobante:token});
       const affiliationService = injector.get(ValidarAfiliacionService);
       for (const value of ['', 'a', '123456789012345678901', ' 123']) {
         let rejected = false;
@@ -211,7 +213,7 @@ try {
       assert.match(component.errorEnvioPreRegistro,/Verifica|verifica/);
       Date.now = realNow;
       injector.destroy();
-      console.log('OK: seis catálogos públicos, filtros, normalizadores, consultas compartidas, errores, compatibilidad legacy; afiliación BFF sin nodeId, vigencia, invalidación, respuestas obsoletas, 429/404, cuatro tipos, multipart y orden, archivos ausentes/compartidos, sin Bearer, éxito estricto, errores y doble envío.');
+      console.log('OK: seis catálogos públicos, filtros, normalizadores, consultas compartidas, errores, referencias opacas, compatibilidad legacy; afiliación BFF sin nodeId, vigencia, invalidación, respuestas obsoletas, 429/404, cuatro tipos, multipart y orden, archivos ausentes/compartidos, sin Bearer, éxito estricto, errores y doble envío.');
     ` }, bundle: true, platform: 'node', format: 'esm', write: false,
   });
   const path = join(temp, 'test.mjs');
