@@ -1,0 +1,110 @@
+Migración de prerregistro — cambios locales, sin despliegue
+
+Repositorios independientes:
+Angular: /Users/luistapia/Desktop/Angular/free-angular-tailwind-dashboard (Seguridad).
+Node.js: /Users/luistapia/Desktop/BFF/antares-bff (BFF-desarrollo).
+
+Inventario completo en inventario.csv. Son ocho peticiones de negocio del navegador:
+validación, registro completo y seis consultas (actividades, regímenes, localidades,
+giros, tipos de comercio, instituciones). Localidades abastece colonia, municipio y
+estado de los domicilios fiscal, comercial y del representante; no hay consultas
+separadas a esos tres catálogos. Las listas estáticas del formulario siguen locales.
+No hay llamadas de confirmación a DocumentosProspectoService ni ArbolNodosService.
+Los adjuntos permanecen en memoria hasta el multipart del registro completo.
+
+Angular:
+- Todas las URLs públicas se centralizan en environment.preregistroBff.
+- Las consultas públicas omiten Authorization mediante SKIP_AUTH_TOKEN; el
+  navegador tampoco agrega versionApp o un Content-Type manual para multipart.
+- Los servicios compartidos mantienen el transporte anterior por defecto. Solo
+  el formulario y sus pasos reciben preregistroPublico=true.
+- PreregistroCatalogosHttpService comparte consultas idénticas simultáneas; no
+  conserva cuentas bancarias en caché permanente y permite reintento manual tras error.
+- Se mantienen los normalizadores, etiquetas, IDs y estructuras de los catálogos.
+- numeroDocumento se serializa como número, conforme al validador real de Node;
+  no cambia la asociación por nodo ni el orden de files.
+- Los errores de catálogos se muestran en el formulario; los de afiliación conservan
+  manejo 429/Retry-After, 404, comprobante temporal, expiración y ausencia de nodeId.
+
+Node.js:
+- src/services/preregistro.service.js: transporte compartido para catálogos,
+  timeout de 10 s, rechazo HTTP/JSON inválido/success false, sin redirecciones de
+  credenciales, filtrado de campos sensibles e instituciones reales de Aldebarán.
+- src/routes/preregistro.routes.js: nueva ruta /catalogos/instituciones, validación
+  de parámetros, errores genéricos 502/504; actividades conserva todos sus campos.
+- test/preregistro-catalogos.test.js: pruebas con fetch y Express simulados,
+  sin Redis, Payara ni sockets. Ejecutar: node --test test/preregistro-catalogos.test.js
+- No se modifica PREREGISTRO_MODO, ni lógica de afiliación/Redis/registro/GUID/documentos.
+
+Variables servidor:
+Existentes: PAYARA_ANTARES_BASE_URL y PAYARA_PREREGISTRO_BEARER.
+Nuevas: PAYARA_ALDEBARAN_BASE_URL (base real que termina /kwt-a7f2-v1.3.2/) y
+PAYARA_INSTITUCIONES_BEARER (credencial servidor autorizada para getInstitutions).
+No se asume que el token de Antares sirve también para Aldebarán. No se modificó
+ningún .env. Si faltan las variables nuevas, instituciones falla de forma controlada.
+Las variables y credenciales del registro completo siguen intactas.
+
+Apache: copiar apache-preregistro.conf dentro del VirtualHost SSL. No duplicar
+la regla de validar ya existente. Revisar el fallback SPA según las notas del archivo;
+no usar un proxy global de /preregistro/ porque es también ruta de navegación Angular.
+Los query strings se conservan. La IP loopback pertenece al reverse proxy del servidor,
+no a Angular. No se ha modificado default-ssl.conf ni se ha recargado Apache.
+
+Pendientes y límites:
+- Verificar las nuevas rutas públicas en el dominio después de configurar Apache y
+  el balanceador; el usuario confirmó solo /preregistro/validar. No se asume que los
+  mapeos nuevos ya estén instalados ni que el antiguo 404 de /bff/ esté resuelto.
+- Confirmar conectividad y credencial de instituciones con el servicio real; las
+  pruebas locales no conectan con Payara. Verificar también permisos del token de
+  catálogos y estructuras reales del entorno de producción.
+- La configuración del proxy de desarrollo Angular no se redirigió a localhost
+  ni a una IP privada. Servir localmente requiere un proxy hacia un BFF autorizado.
+- Por instrucción expresa del usuario, las credenciales legacy globales de otros
+  módulos permanecen fuera del alcance. Siguen siendo deuda de seguridad del bundle
+  Angular; migrar sus consumidores y retirarlas es trabajo pendiente. No se copió
+  ninguna credencial real a archivos nuevos ni pruebas.
+- El BFF usa límites por IP para afiliación; revisar trust proxy con la topología
+  real antes de cambiarlo. No se amplió la confianza en cabeceras del navegador.
+
+No hay commits, push, despliegue, registro real ni carga de documentos.
+
+Archivos Angular modificados/creados en esta migración:
+src/app/environments/environments.ts
+src/app/pages/preRegistro/preRegistro.component.ts
+src/app/pages/preRegistro/preRegistro.component.html
+src/app/pages/preRegistro/components/datos-generales/step-datos.component.ts
+src/app/pages/preRegistro/components/liquidacion/step-liquidacion.component.ts
+src/app/services/actividades.service.ts
+src/app/services/beneficiarios.service.ts
+src/app/services/localidades.service.ts
+src/app/services/preregistro.service.ts
+src/app/services/regimen-fiscal.service.ts
+src/app/services/preregistro-completo.service.ts
+src/app/services/preregistro-catalogos-http.service.ts (nuevo)
+src/app/services/preregistro-catalogos-http.service.spec.ts (nuevo)
+scripts/verificar-preregistro-bff.mjs
+
+Documentación creada:
+docs/preregistro/inventario.csv
+docs/preregistro/apache-preregistro.conf
+docs/preregistro/entrega.txt
+
+Verificaciones finales:
+- node scripts/verificar-preregistro-bff.mjs: PASÓ (incluye seis catálogos,
+  preservación de filtros/datos, deduplicación, errores, compatibilidad compartida,
+  afiliación y multipart con comprobante y orden de documentos).
+- npx tsc --noEmit -p tsconfig.app.json: PASÓ.
+- npx tsc --noEmit -p tsconfig.spec.json: PASÓ. Las pruebas Jasmine se comprobaron
+  en TypeScript; no se ejecutó Karma en un navegador en esta sesión.
+- npx ngc --noEmit -p tsconfig.app.json: PASÓ con advertencias existentes.
+- BFF node --test test/preregistro-catalogos.test.js: 4/4 PASARON.
+- node --check de rutas/servicio Node.js: PASÓ.
+- git diff --check de ambos repositorios: PASÓ.
+- npx ng build --configuration production: PASÓ fuera del sandbox (código 0).
+  El primer intento restringido terminó con código 134. Bundle inicial 5.67 MB:
+  advertencia frente al presupuesto de 4 MB, además de CommonJS y plantillas.
+- No se verificaron rutas de producción ni respuestas reales de catálogos.
+
+El archivo deploy-browser.tar.gz aparecía modificado en el workspace y no se tocó
+como parte de esta migración. Los recursos visuales estáticos (incluido el logo)
+no son APIs y conservan sus ubicaciones existentes.
