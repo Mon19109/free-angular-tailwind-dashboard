@@ -1,3 +1,4 @@
+import { PreregistroCatalogosHttpService } from './preregistro-catalogos-http.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
@@ -22,18 +23,18 @@ export interface CodigoPostalLocalizacion {
   providedIn: 'root'
 })
 export class LocalidadesService {
+  private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
   private readonly http = inject(HttpClient);
   private apiUrl = environment.api.kashpay;
 
-  obtenerPorCodigoPostal(codigoPostal: string): Observable<CodigoPostalLocalizacion[]> {
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${environment.bearerTokens.portal}`
-    });
-
-    return this.http.get<unknown>(
+  obtenerPorCodigoPostal(codigoPostal: string, preregistroPublico = false): Observable<CodigoPostalLocalizacion[]> {
+    const request = preregistroPublico
+      ? this.catalogosPublicos.get(`${environment.preregistroBff.localidadesUrl}/${encodeURIComponent(codigoPostal)}`)
+      : this.http.get<unknown>(
       `${this.apiUrl}api/v1/localidades/${encodeURIComponent(codigoPostal)}`,
-      { headers }
-    ).pipe(
+      { headers: new HttpHeaders({ Authorization: `Bearer ${environment.bearerTokens.portal}` }) }
+    );
+    return request.pipe(
       map(response => {
         if (response && typeof response === 'object' && 'success' in response && response.success === false) {
           throw new HttpErrorResponse({ error: response, status: 200, statusText: 'Error al consultar código postal' });

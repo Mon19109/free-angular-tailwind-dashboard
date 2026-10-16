@@ -1,3 +1,4 @@
+import { PreregistroCatalogosHttpService } from './preregistro-catalogos-http.service';
 import { environment } from '../environments/environments';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -21,14 +22,18 @@ export interface Actividad {
   providedIn: 'root'
 })
 export class ActividadesService {
+  private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
   private readonly http = inject(HttpClient);
   private readonly apiV1Url = '/api/v3/antares.kwt-v2.2.10/api/v1/';
 
-  getActividades(): Observable<Actividad[]> {
-    return this.http.get<unknown>(
+  getActividades(preregistroPublico = false): Observable<Actividad[]> {
+    const request = preregistroPublico
+      ? this.catalogosPublicos.get(environment.preregistroBff.actividadesUrl)
+      : this.http.get<unknown>(
       `${this.apiV1Url}getActividades`,
       { headers: this.getHeaders() }
-    ).pipe(
+    );
+    return request.pipe(
       map(response => this.extractActividades(response))
     );
   }

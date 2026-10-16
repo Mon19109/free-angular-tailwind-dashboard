@@ -12,7 +12,7 @@ try {
       import assert from 'node:assert/strict';
       import { createEnvironmentInjector, runInInjectionContext, ChangeDetectorRef } from '@angular/core';
       import { FormBuilder } from '@angular/forms';
-      import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+      import { HttpClient, HttpErrorResponse, HttpHeaders, HttpRequest } from '@angular/common/http';
       import { of, Subject } from 'rxjs';
       import { PreregistroCompletoService } from './src/app/services/preregistro-completo.service';
       import { PreRegistroComponent } from './src/app/pages/preRegistro/preRegistro.component';
@@ -20,7 +20,11 @@ try {
       import { LocalidadesService } from './src/app/services/localidades.service';
       import { PreRegistroService } from './src/app/services/preregistro.service';
       import { ValidarAfiliacionService } from './src/app/services/validar-afiliacion.service';
-      import { SKIP_AUTH_TOKEN } from './src/app/services/auth-token.interceptor';
+      import { PreregistroCatalogosHttpService } from './src/app/services/preregistro-catalogos-http.service';
+      import { ActividadesService } from './src/app/services/actividades.service';
+      import { BeneficiariosService } from './src/app/services/beneficiarios.service';
+      import { environment } from './src/app/environments/environments';
+      import { SKIP_AUTH_TOKEN, authTokenInterceptor } from './src/app/services/auth-token.interceptor';
       const storage = new Map();
       globalThis.localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k) };
       globalThis.window = { scrollTo() {} };
@@ -30,13 +34,65 @@ try {
         FormBuilder,
         {provide: ChangeDetectorRef, useValue: {detectChanges() {}}},
         {provide: RegimenFiscalService, useValue: {getAllOptions: () => of([])}},
-        {provide: LocalidadesService, useValue: {}},
-        {provide: PreRegistroService, useValue: {}},
+        LocalidadesService,
+        PreRegistroService,
         ValidarAfiliacionService,
-        {provide: HttpClient, useValue: {post: (...args) => { calls.push(args); return response; }}},
-        PreregistroCompletoService,
+        {provide: HttpClient, useValue: {get: (...args) => { calls.push(args); return response; }, post: (...args) => { calls.push(args); return response; }}},
+        PreregistroCompletoService, PreregistroCatalogosHttpService, ActividadesService,
+        {provide: BeneficiariosService, useFactory: () => new BeneficiariosService(injector.get(HttpClient))},
       ]);
       const service = injector.get(PreregistroCompletoService);
+      for (const url of Object.values(environment.preregistroBff)) {
+        assert.ok(url.startsWith('/preregistro/'));
+        assert.ok(!url.includes('/bff/'));
+      }
+      const regimenes = runInInjectionContext(injector, () => new RegimenFiscalService());
+      const actividades = injector.get(ActividadesService);
+      const localidades = injector.get(LocalidadesService);
+      const catalogos = injector.get(PreRegistroService);
+      const bancos = injector.get(BeneficiariosService);
+      const casos = [
+        [() => actividades.getActividades(true), '/preregistro/actividades', {}, {success:true,catActividadResponse:[{idcat_actividades:7,actividad:'Comercio'}]}, [{idcat_actividades:7,actividad:'Comercio'}]],
+        [() => regimenes.getAllOptions(true), '/preregistro/regimenes-fiscales', {}, {data:[{code:'601',description:'General'}]}, ['601 - General']],
+        [() => localidades.obtenerPorCodigoPostal('01234',true), '/preregistro/localidades/01234', {}, {rows:[{colonia:'Centro',municipio:'Municipio',estado:'Estado'}]}, [{colonia:'Centro',municipio:'Municipio',estado:'Estado'}]],
+        [() => catalogos.getGirosByFamily('Café & pan',true), '/preregistro/giros', {family:'Café & pan'}, {data:[{mcc:'1234'}]}, {data:[{mcc:'1234'}]}],
+        [() => catalogos.getTiposComercio(4,true), '/preregistro/tipos-comercio', {idAffiliationType:'4'}, {data:[{id:4}]}, {data:[{id:4}]}],
+        [() => bancos.buscarInstitucion('001234567890',undefined,true), '/preregistro/instituciones', {value:'001234567890'}, {institutionResponse:{institutions:[{id:1}]}}, {institutionResponse:{institutions:[{id:1}]}}],
+      ];
+      for (const [consultar,url,params,body,expected] of casos) {
+        response = new Subject(); calls = [];
+        let result;
+        consultar().subscribe(value => {result=value;});
+        consultar().subscribe();
+        assert.equal(calls.length,1); // Dos consumidores, una solicitud en curso.
+        assert.equal(calls[0][0],url);
+        const options = calls[0][1];
+        assert.equal(options.context.get(SKIP_AUTH_TOKEN),true);
+        assert.equal(options.headers,undefined);
+        // El interceptor tampoco agrega un token de sesión a peticiones públicas.
+        const request = new HttpRequest('GET', url, { context: options.context });
+        authTokenInterceptor(request, forwarded => {
+          assert.equal(forwarded.headers.has('Authorization'),false);
+          return of({});
+        });
+        for (const [key,value] of Object.entries(params)) assert.equal(options.params.get(key),value);
+        response.next(body); response.complete();
+        assert.deepEqual(result,expected);
+        response = new Subject(); calls = [];
+        let failed = false;
+        consultar().subscribe({error:()=>{failed=true;}});
+        response.error(new HttpErrorResponse({status:502}));
+        assert.equal(failed,true);
+        assert.equal(calls.length,1);
+      }
+      // Los métodos compartidos mantienen por defecto sus endpoints anteriores.
+      calls = []; response = new Subject();
+      actividades.getActividades().subscribe();
+      assert.ok(calls[0][0].endsWith('/api/v1/getActividades'));
+      assert.ok(!calls[0][0].startsWith('/preregistro/'));
+      response.complete();
+      calls = []; response = new Subject();
+
       const fileA = new File(['A'], 'primero.pdf', {type: 'application/pdf'});
       const fileB = new File(['B'], 'segundo.png', {type: 'image/png'});
       const documentos = [
@@ -47,7 +103,7 @@ try {
       const arbol = [{id:'entidad-1',hijos:[{id:'sucursal-1'}]}];
       for (const tipoNegocio of ['individual','empresa-holding','sucursales-multiples','auditor-unico']) {
         const body = service.construirFormData({comprobante:'prueba',tipoNegocio,payload,arbol,documentos});
-        assert.deepEqual(JSON.parse(body.get('datos')), {payload,arbol,documentos: documentos.map(({file,...d})=>d)});
+        assert.deepEqual(JSON.parse(body.get('datos')), {payload,arbol,documentos: documentos.map(({file,...d})=>({...d,numeroDocumento:Number(d.numeroDocumento)}))});
         assert.equal(body.get('tipoNegocio'),tipoNegocio);
         assert.deepEqual(await Promise.all(body.getAll('files').map(f=>f.text())), ['A','B']);
         const request = new Request('https://example.invalid', {method:'POST',body});
@@ -55,7 +111,7 @@ try {
       }
       assert.throws(()=> service.construirFormData({comprobante:'',tipoNegocio:'individual',payload,arbol,documentos}));
       service.enviarPreRegistro({comprobante:'prueba',tipoNegocio:'individual',payload,arbol,documentos}).subscribe();
-      assert.equal(calls[0][0], '/bff/preregistro/registro-completo');
+      assert.equal(calls[0][0], '/preregistro/registro-completo');
       assert.equal(calls[0][2].context.get(SKIP_AUTH_TOKEN),true);
       assert.equal(calls[0][2].headers,undefined);
       const component = runInInjectionContext(injector, ()=>new PreRegistroComponent());
@@ -71,7 +127,7 @@ try {
         response = new Subject(); calls = [];
         component.continuarAfiliacion();
         assert.equal(calls.length,1);
-        assert.equal(calls[0][0],'/bff/preregistro/afiliacion/validar');
+        assert.equal(calls[0][0],'/preregistro/validar');
         assert.deepEqual(calls[0][1],{affiliationNumber:component.afiliacionForm.controls.afiliacion.value});
         assert.equal(calls[0][2].context.get(SKIP_AUTH_TOKEN),true);
         assert.equal(calls[0][2].headers,undefined);
@@ -155,7 +211,7 @@ try {
       assert.match(component.errorEnvioPreRegistro,/Verifica|verifica/);
       Date.now = realNow;
       injector.destroy();
-      console.log('OK: afiliación BFF sin nodeId, vigencia, invalidación, respuestas obsoletas, 429/404, cuatro tipos, multipart y orden, archivos ausentes/compartidos, sin Bearer, éxito estricto, errores y doble envío.');
+      console.log('OK: seis catálogos públicos, filtros, normalizadores, consultas compartidas, errores, compatibilidad legacy; afiliación BFF sin nodeId, vigencia, invalidación, respuestas obsoletas, 429/404, cuatro tipos, multipart y orden, archivos ausentes/compartidos, sin Bearer, éxito estricto, errores y doble envío.');
     ` }, bundle: true, platform: 'node', format: 'esm', write: false,
   });
   const path = join(temp, 'test.mjs');

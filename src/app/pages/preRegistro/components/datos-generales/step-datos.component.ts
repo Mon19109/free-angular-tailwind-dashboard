@@ -33,6 +33,7 @@ export class StepDatosComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   @Input() incluirRepresentantePersonaMoral = false;
+  @Input() preregistroPublico = false;
   @Input() form!: FormGroup;
   @Input() campos: string[] = [];
   @Input() regimenesFiscales: string[] = [];
@@ -149,7 +150,7 @@ export class StepDatosComponent implements OnInit {
     this.cargandoGiros = true;
     this.errorGiros = '';
 
-    this.preRegistroService.getGirosByFamily(family).subscribe({
+    this.preRegistroService.getGirosByFamily(family, this.preregistroPublico).subscribe({
       next: response => {
         const giros = this.normalizarGiros(response);
         this.girosBusqueda = giros;
@@ -260,7 +261,7 @@ export class StepDatosComponent implements OnInit {
     this.cargandoActividades = true;
     this.errorActividades = '';
 
-    this.actividadesService.getActividades().subscribe({
+    this.actividadesService.getActividades(this.preregistroPublico).subscribe({
       next: response => {
         this.actividadesBusqueda = this.normalizarActividades(response);
         this.cargandoActividades = false;

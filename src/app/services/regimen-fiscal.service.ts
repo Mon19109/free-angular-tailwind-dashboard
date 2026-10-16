@@ -1,3 +1,4 @@
+import { PreregistroCatalogosHttpService } from './preregistro-catalogos-http.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
@@ -29,20 +30,24 @@ export interface RegimenFiscal {
   providedIn: 'root'
 })
 export class RegimenFiscalService {
+  private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
   private readonly http = inject(HttpClient);
   private readonly apiV1Url = `${environment.api.kashpay}api/v1/`;
 
-  getAll(): Observable<Array<RegimenFiscal | string>> {
-    return this.http.get<unknown>(
+  getAll(preregistroPublico = false): Observable<Array<RegimenFiscal | string>> {
+    const request = preregistroPublico
+      ? this.catalogosPublicos.get(environment.preregistroBff.regimenesFiscalesUrl)
+      : this.http.get<unknown>(
       `${this.apiV1Url}fiscalRegimes/getAll`,
       { headers: this.getHeaders() }
-    ).pipe(
+    );
+    return request.pipe(
       map(response => this.extractRegimenes(response))
     );
   }
 
-  getAllOptions(): Observable<string[]> {
-    return this.getAll().pipe(
+  getAllOptions(preregistroPublico = false): Observable<string[]> {
+    return this.getAll(preregistroPublico).pipe(
       map(regimenes => regimenes
         .map(regimen => this.toOptionLabel(regimen))
         .filter((regimen): regimen is string => !!regimen)

@@ -31,6 +31,7 @@ export class StepLiquidacionComponent implements OnInit {
   private readonly beneficiariosService = inject(BeneficiariosService);
   private readonly destroyRef = inject(DestroyRef);
 
+  @Input() preregistroPublico = false;
   @Input() form!: FormGroup;
   @Input() tiposCuenta: string[] = [];
   @Input() beneficiarioIgualComercio = false;
@@ -220,6 +221,7 @@ export class StepLiquidacionComponent implements OnInit {
   }
 
   buscarBanco(): void {
+    if (this.buscandoInstitucion) return;
     this.errorInstituciones = '';
     this.instituciones = [];
     this.form.patchValue({ idInstitution: null, accountNumber: null, nombreBanco: '' }, { emitEvent: false });
@@ -231,7 +233,7 @@ export class StepLiquidacionComponent implements OnInit {
 
     this.buscandoInstitucion = true;
     const cuentaSinEspacios = cuenta.replace(/\s+/g, '');
-    this.beneficiariosService.buscarInstitucion(cuentaSinEspacios, this.bearerToken || undefined).pipe(
+    this.beneficiariosService.buscarInstitucion(cuentaSinEspacios, this.bearerToken || undefined, this.preregistroPublico).pipe(
       finalize(() => this.buscandoInstitucion = false)
     ).subscribe({
       next: resp => {
@@ -281,7 +283,7 @@ export class StepLiquidacionComponent implements OnInit {
 
     this.cargandoGiros = true;
     this.errorGiros = '';
-    this.preRegistroService.getGirosByFamily(family).subscribe({
+    this.preRegistroService.getGirosByFamily(family, this.preregistroPublico).subscribe({
       next: response => {
         this.girosBusqueda = this.normalizarGiros(response);
         this.cargandoGiros = false;
@@ -296,7 +298,7 @@ export class StepLiquidacionComponent implements OnInit {
   private cargarActividades(): void {
     this.cargandoActividades = true;
     this.errorActividades = '';
-    this.actividadesService.getActividades().subscribe({
+    this.actividadesService.getActividades(this.preregistroPublico).subscribe({
       next: response => {
         this.actividadesBusqueda = this.normalizarActividades(response);
         this.cargandoActividades = false;

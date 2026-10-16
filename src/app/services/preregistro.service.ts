@@ -1,3 +1,4 @@
+import { PreregistroCatalogosHttpService } from './preregistro-catalogos-http.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -87,6 +88,7 @@ export interface TipoComercioCatalogo {
   providedIn: 'root'
 })
 export class PreRegistroService {
+  private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
   private http = inject(HttpClient);
   private baseUrl = environment.api.linkpago; // Tu base URLAdquirenciaAdquirencia
   private apiV1Url = `${environment.api.kashpay}api/v1/`;
@@ -94,8 +96,9 @@ export class PreRegistroService {
 
   //user: UserSessionData | null = null;
 
-  getGirosByFamily(family: string): Observable<unknown> {
+  getGirosByFamily(family: string, preregistroPublico = false): Observable<unknown> {
     const params = new HttpParams().set('family', family);
+    if (preregistroPublico) return this.catalogosPublicos.get(environment.preregistroBff.girosUrl, params);
     const headers = new HttpHeaders({
       Authorization: `Bearer ${this.girosBearerToken}`
     });
@@ -103,8 +106,9 @@ export class PreRegistroService {
     return this.http.get<unknown>(`${this.apiV1Url}getGirosByFamily`, { headers, params });
   }
 
-  getTiposComercio(idAffiliationType: number): Observable<unknown> {
+  getTiposComercio(idAffiliationType: number, preregistroPublico = false): Observable<unknown> {
     const params = new HttpParams().set('idAffiliationType', String(idAffiliationType));
+    if (preregistroPublico) return this.catalogosPublicos.get(environment.preregistroBff.tiposComercioUrl, params);
     const headers = new HttpHeaders({
       'Accept': 'application/json',
       'Authorization': `Bearer ${this.girosBearerToken}`,

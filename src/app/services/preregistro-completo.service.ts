@@ -52,7 +52,9 @@ export class PreregistroCompletoService {
       if (!nodoId || !numeroDocumento || !(file instanceof File)) {
         throw new Error('Vuelve a adjuntar los archivos de los documentos antes de enviar.');
       }
-      return { nodoId, numeroDocumento };
+      const numero = Number(numeroDocumento);
+      if (!Number.isInteger(numero) || numero < 1 || numero > 14) throw new Error('Tipo de documento inválido.');
+      return { nodoId, numeroDocumento: numero };
     });
     body.append('datos', JSON.stringify({ payload: solicitud.payload, arbol: solicitud.arbol, documentos }));
     solicitud.documentos.forEach(({ file }) => body.append('files', file, file.name));

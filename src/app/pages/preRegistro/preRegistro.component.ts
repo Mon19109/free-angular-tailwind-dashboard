@@ -130,6 +130,7 @@ export class PreRegistroComponent {
   private proximaValidacionPermitida = 0;
   archivosInvalidos = false;
   borradorGuardado = false;
+  errorCatalogos = '';
   errorEnvioPreRegistro = '';
   mostrarModalResultadoPreRegistro = false;
   tituloResultadoPreRegistro = '';
@@ -968,7 +969,7 @@ export class PreRegistroComponent {
   }
 
   private cargarRegimenesFiscales(): void {
-    this.regimenFiscalService.getAllOptions()
+    this.regimenFiscalService.getAllOptions(true)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: regimenes => {
@@ -977,6 +978,7 @@ export class PreRegistroComponent {
         error: error => {
         void error;
           this.regimenesFiscales = [];
+          this.errorCatalogos = 'No fue posible cargar los regímenes fiscales. Recarga la página cuando el servicio esté disponible.';
         }
       });
   }
@@ -994,7 +996,7 @@ export class PreRegistroComponent {
     if (this.tiposComercioCatalogoSolicitados.has(nivel)) return;
     this.tiposComercioCatalogoSolicitados.add(nivel);
 
-    this.preRegistroService.getTiposComercio(idAffiliationType)
+    this.preRegistroService.getTiposComercio(idAffiliationType, true)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: response => {
@@ -1007,6 +1009,7 @@ export class PreRegistroComponent {
         error: error => {
           void error;
           this.tiposComercioCatalogoSolicitados.delete(nivel);
+          this.errorCatalogos = 'No fue posible cargar los tipos de comercio. Vuelve a seleccionar el nivel cuando el servicio esté disponible.';
         },
       });
   }
@@ -1146,7 +1149,7 @@ export class PreRegistroComponent {
     if (addressType === 'DC') this.cargandoLocalidadesComercial = true;
     if (addressType === 'REP') this.cargandoLocalidadesRepresentante = true;
 
-    this.localidadesService.obtenerPorCodigoPostal(cp).subscribe({
+    this.localidadesService.obtenerPorCodigoPostal(cp, true).subscribe({
       next: response => {
         if (control.value.trim() !== cp) return;
         const localidades = [...response];
@@ -1766,7 +1769,7 @@ export class PreRegistroComponent {
           this.errorAfiliacion = error instanceof HttpErrorResponse && error.status === 429
             ? this.mensajeLimiteValidaciones()
             : error instanceof HttpErrorResponse && error.status === 404
-              ? 'El servicio de afiliación no está disponible en este dominio (HTTP 404). Sigue pendiente habilitar el acceso público a /bff/.'
+              ? 'El servicio de afiliación no está disponible en este dominio (HTTP 404). Sigue pendiente habilitar el acceso público a /preregistro/validar.'
               : error instanceof HttpErrorResponse && error.status === 0
                 ? 'No se pudo conectar con el servicio de afiliación. Revisa tu conexión y vuelve a validar.'
                 : 'No fue posible validar la afiliación. Revisa el número e intenta validarlo nuevamente.';
@@ -2205,7 +2208,7 @@ export class PreRegistroComponent {
         this.enviandoPreRegistro = false;
         this.registroTerminado = false;
         this.mostrarErrorPreRegistro(error instanceof HttpErrorResponse && error.status === 404
-          ? 'La ruta de registro del BFF no está disponible en este dominio (HTTP 404). Falta habilitar /bff/ en la infraestructura pública. Verifica el estado antes de volver a registrar.'
+          ? 'La ruta de registro del BFF no está disponible en este dominio (HTTP 404). Falta habilitar /preregistro/registro-completo en la infraestructura pública. Verifica el estado antes de volver a registrar.'
           : 'No se pudo confirmar el resultado del registro. La solicitud puede haberse procesado. No la repitas; verifica su estado con soporte.');
       }
     });

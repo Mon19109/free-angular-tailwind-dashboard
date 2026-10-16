@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { PreregistroCatalogosHttpService } from './preregistro-catalogos-http.service';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
@@ -27,6 +28,7 @@ export interface BeneficiarioForm {
   providedIn: 'root'
 })
 export class BeneficiariosService {
+  private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
   private baseUrl = environment.api.kashpay;
   private apiV1Url = `${this.baseUrl}api/v1/`;
   private aldebaranUrl = environment.api.aldebaran;
@@ -82,8 +84,9 @@ export class BeneficiariosService {
     });
   }
 
-  buscarInstitucion(cuenta: string, bearerToken?: string): Observable<any> {
+  buscarInstitucion(cuenta: string, bearerToken?: string, preregistroPublico = false): Observable<any> {
     const params = new HttpParams().set('value', cuenta);
+    if (preregistroPublico) return this.catalogosPublicos.get<any>(environment.preregistroBff.institucionesUrl, params);
 
     return this.http.get(`${this.aldebaranUrl}getInstitutions`, {
       headers: this.getCommonHeaders(bearerToken),
