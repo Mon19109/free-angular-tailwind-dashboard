@@ -434,13 +434,13 @@ export const routes: Routes = [
         component: EdiarInformacionComponent,
         canActivate: [AuthGuard],
         title:'KASHPAY'
-      },
-      // error pages
-      {
-        path:'**',
-        component:NotFoundComponent,
-        title:'KASHPAY'
-      },
+      }
     ]
   },
+  // error pages
+  {
+    path:'**',
+    component:NotFoundComponent,
+    title:'KASHPAY'
+  }
 ];
