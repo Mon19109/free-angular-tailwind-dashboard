@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { environment } from '../../environments/environments';
 import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
 import { PreRegistroComponent } from './preRegistro.component';
 import { StepDatosComponent } from './components/datos-generales/step-datos.component';
@@ -22,6 +23,7 @@ describe('PreRegistro: referencia de afiliación', () => {
     });
     component = TestBed.runInInjectionContext(() => new PreRegistroComponent());
     http = TestBed.inject(HttpTestingController);
+    component.envioPreRegistroRealizado = false;
     spyOn<any>(component, 'guardarBorradorSilencioso');
     spyOn(component, 'irAlPaso');
   });
@@ -159,75 +161,85 @@ describe('PreRegistro: referencia de afiliación', () => {
     expect(component.enviandoPreRegistro).toBeFalse();
   });
 
-  it('lee accountResponse.nodeId y no avanza si falta la referencia', () => {
-    component.afiliacionForm.controls.afiliacion.setValue('12345');
+  const url = environment.preregistroBff.validarAfiliacionUrl;
+  const comprobante = 'a'.repeat(64);
+
+  function validar(): void {
+    component.afiliacionForm.controls.afiliacion.setValue('0012345');
     component.continuarAfiliacion();
-    http.expectOne(req => req.url.endsWith('/commerce/validateAffiliation'))
-      .flush({ success: true, accountResponse: { nodeId: 6, parentNodeId: 0 } });
-    expect(component['referenciaAfiliacionPayload']()).toEqual({ referrerNodeId: 6 });
-    (component.irAlPaso as jasmine.Spy).calls.reset();
+    const request = http.expectOne(url);
+    expect(request.request.body).toEqual({ affiliationNumber: '0012345' });
+    expect(request.request.headers.has('Authorization')).toBeFalse();
+    request.flush({ success: true, comprobante, expiresIn: 900 });
+  }
+
+  it('acepta el contrato sin nodeId y reutiliza el comprobante vigente', () => {
+    validar();
+    expect(component['comprobanteAfiliacion']).toBe(comprobante);
+    expect(component['referenciaAfiliacionPayload']()).toEqual({});
+    expect(component.irAlPaso).toHaveBeenCalledWith(6);
     component.continuarAfiliacion();
-    http.expectOne(req => req.url.endsWith('/commerce/validateAffiliation')).flush({ success: true });
-    expect(component.irAlPaso).not.toHaveBeenCalled();
-    expect(component.errorAfiliacion).toContain('identificador de referencia');
+    http.expectNone(url);
   });
 
-  function validar(nodeId: number | string = 6) {
-    component.afiliacionForm.controls.afiliacion.setValue('12345');
+  it('exige renovar al vencer y no envía el registro automáticamente', () => {
+    let ahora = 1000000;
+    spyOn(Date, 'now').and.callFake(() => ahora);
+    validar();
+    ahora += 900000;
+    component['enviarPreRegistroCompleto']({});
+    http.expectNone(environment.preregistroBff.registroCompletoUrl);
+    expect(component.irAlPaso).toHaveBeenCalledWith(0);
+    expect(component.errorAfiliacion).toContain('venció');
     component.continuarAfiliacion();
-    const request = http.expectOne(req => req.url.endsWith('/commerce/validateAffiliation'));
-    expect(request.request.body).toEqual({ affiliationNumber: '12345' });
-    request.flush({ success: true, accountResponse: { nodeId, parentNodeId: 0 } });
-  }
+    http.expectOne(url).flush({ success: true, comprobante, expiresIn: 900 });
+    http.expectNone(environment.preregistroBff.registroCompletoUrl);
+  });
 
-  function referencias(objeto: any): number[] {
-    if (!objeto || typeof objeto !== 'object') return [];
-    return [
-      ...(Object.hasOwn(objeto, 'referrerNodeId') ? [objeto.referrerNodeId] : []),
-      ...Object.values(objeto).flatMap(referencias)
-    ];
-  }
-
-  for (const tipo of ['individual', 'sucursales-multiples', 'auditor-unico', 'empresa-holding']) {
-    for (const nodeId of [6, 812]) {
-    it(`envía el nodeId ${nodeId} del servicio únicamente en el padre de ${tipo}`, () => {
-      validar(String(nodeId));
-      component.tipoNegocioSeleccionado = { id: tipo } as any;
-      const sucursal = { id: 'sucursal-1', nombre: 'Sucursal', nivel: 'sucursal', ruta: '', hijos: [] };
-      const entidad = { id: 'entidad-1', nombre: 'Entidad', nivel: 'entidad', ruta: '', hijos: [sucursal] };
-      const holding = { id: 'sub-afiliado-1', nombre: 'Holding', nivel: 'sub-afiliado', ruta: '', hijos: [entidad] };
-      spyOnProperty(component, 'arbolNegocioWizard').and.returnValue([holding] as any);
-      spyOn<any>(component, 'nodoBranchOfficeActualId').and.returnValue(sucursal.id);
-      spyOn<any>(component, 'construirComercioPayload').and.callFake((id: string) => ({
-        nameCommerce: id, poss: [{ nameCommerce: 'Caja' }]
-      }));
-      spyOn<any>(component, 'construirPossPayloadPorSucursal').and.returnValue([{ nameCommerce: 'Caja' }]);
-
-      const payload: any = component['construirPayloadPreRegistro']();
-      const padre = tipo === 'empresa-holding' ? payload
-        : tipo === 'individual' ? payload.entitys[0].branchOficces[0] : payload.entitys[0];
-      expect(padre.referrerNodeId).toBe(nodeId);
-      expect(referencias(payload)).toEqual([nodeId]);
-    });
-    }
-  }
-
-  it('descarta la referencia al editar la afiliación o recibir una validación fallida', () => {
+  it('invalida el comprobante al cambiar la afiliación', () => {
     validar();
     component.afiliacionForm.controls.afiliacion.setValue('98765');
-    expect(component['referenciaAfiliacionPayload']()).toEqual({});
-    component.continuarAfiliacion();
-    http.expectOne(req => req.url.endsWith('/commerce/validateAffiliation'))
-      .flush({ success: false, nodeId: 8, error: { message: 'Afiliación inválida' } });
-    expect(component['referenciaAfiliacionPayload']()).toEqual({});
+    expect(component['comprobanteAfiliacion']).toBe('');
+    expect(component['comprobanteAfiliacionVigente']()).toBeFalse();
   });
 
-  it('ignora el nodeId de una respuesta si cambió la afiliación durante la consulta', () => {
+  it('ignora respuestas obsoletas incluso si el número vuelve a su valor inicial', () => {
     component.afiliacionForm.controls.afiliacion.setValue('12345');
     component.continuarAfiliacion();
     component.afiliacionForm.controls.afiliacion.setValue('98765');
-    http.expectOne(req => req.url.endsWith('/commerce/validateAffiliation')).flush({ success: true, nodeId: 6 });
-    expect(component['referenciaAfiliacionPayload']()).toEqual({});
+    component.afiliacionForm.controls.afiliacion.setValue('12345');
+    http.expectOne(url).flush({ success: true, comprobante, expiresIn: 900 });
+    expect(component['comprobanteAfiliacion']).toBe('');
     expect(component.irAlPaso).not.toHaveBeenCalled();
   });
+
+  it('respeta Retry-After sin marcar el formulario inválido ni reintentar automáticamente', () => {
+    let ahora = 1000000;
+    spyOn(Date, 'now').and.callFake(() => ahora);
+    component.afiliacionForm.controls.afiliacion.setValue('12345');
+    component.continuarAfiliacion();
+    http.expectOne(url).flush({}, { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '120' } });
+    component.continuarAfiliacion();
+    http.expectNone(url);
+    expect(component.errorAfiliacion).toContain('120 segundos');
+    expect(component.afiliacionForm.valid).toBeTrue();
+    ahora += 120000;
+    component.continuarAfiliacion();
+    http.expectOne(url).flush({ success: true, comprobante, expiresIn: 900 });
+  });
+
+  for (const respuesta of [
+    { success: true, comprobante: 'incorrecto', expiresIn: 900 },
+    { success: true, comprobante, expiresIn: 0 },
+    { success: true, comprobante },
+    { success: false, comprobante, expiresIn: 900 },
+  ]) {
+    it('rechaza respuestas sin comprobante y vigencia válidos o sin éxito', () => {
+      component.afiliacionForm.controls.afiliacion.setValue('12345');
+      component.continuarAfiliacion();
+      http.expectOne(url).flush(respuesta);
+      expect(component['comprobanteAfiliacion']).toBe('');
+      expect(component.irAlPaso).not.toHaveBeenCalled();
+    });
+  }
 });

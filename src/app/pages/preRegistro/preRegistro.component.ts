@@ -15,8 +15,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { ThemeToggleButtonComponent } from '../../shared/components/common/theme-toggle/theme-toggle-button.component';
 import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
 import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/localidades.service';
-import { PreregistroCompletoService } from '../../services/preregistro-completo.service';
-import { DocumentoPreregistroUpload, PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
+import { DocumentoRegistroCompleto, SolicitudRegistroCompleto, TipoNegocioBff, PreregistroCompletoService } from '../../services/preregistro-completo.service';
 import { PreRegistroService, TipoComercioCatalogo } from '../../services/preregistro.service';
 import { ValidarAfiliacionService } from '../../services/validar-afiliacion.service';
 import { DocumentoRequerido } from './models/preregistro.models';
@@ -64,6 +63,7 @@ interface BorradorPreRegistro {
   pasoActual: PasoWizard;
   pasosCompletados: number[];
   registroTerminado: boolean;
+  envioPreRegistroRealizado?: boolean;
   afiliacion: { afiliacion: string };
   referrerNodeId?: number | null;
   comercio: { nivel: string; tipoComercio: string; tipoComercioId?: number; afiliacionComisionista: string };
@@ -106,11 +106,11 @@ export class PreRegistroComponent {
   private readonly regimenFiscalService = inject(RegimenFiscalService);
   private readonly localidadesService = inject(LocalidadesService);
   private readonly preregistroCompletoService = inject(PreregistroCompletoService);
-  private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly preRegistroService = inject(PreRegistroService);
   private readonly validarAfiliacionService = inject(ValidarAfiliacionService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
   private readonly payloadKey = 'kashpay.preregistro.payload.v1';
+  private readonly intentoKey = 'kashpay.preregistro.intento-bff.v1';
   private referrerNodeId: number | null = null;
   private readonly entidadFederativaNoIdentificada = 'No es Identificada';
 
@@ -122,6 +122,12 @@ export class PreRegistroComponent {
   registroTerminado = false;
   nombreComercioRegistrado = '';
   enviandoPreRegistro = false;
+  envioPreRegistroRealizado = false;
+  private comprobanteAfiliacion = '';
+  private afiliacionValidada = '';
+  private comprobanteExpiraEn = 0;
+  private versionAfiliacion = 0;
+  private proximaValidacionPermitida = 0;
   archivosInvalidos = false;
   borradorGuardado = false;
   errorEnvioPreRegistro = '';
@@ -164,24 +170,6 @@ export class PreRegistroComponent {
   private documentosPorNodo: Record<string, Record<number, DocumentoNodo>> = {};
   private documentosSucursalMismaEntidad: Record<string, boolean> = {};
   private contextoComercio: 'paquete' | 'caja' = 'paquete';
-  private readonly sufijosDocumentos: Record<number, { sufijo: string; extension: 'pdf' | 'png' }> = {
-    1: { sufijo: 'COMP_DOM', extension: 'pdf' },
-    2: { sufijo: 'ACTA_CONST', extension: 'pdf' },
-    3: { sufijo: 'INE', extension: 'pdf' },
-    4: { sufijo: 'CONTRATO', extension: 'pdf' },
-    5: { sufijo: 'IMGE', extension: 'png' },
-    6: { sufijo: 'IMGI', extension: 'png' },
-    7: { sufijo: 'IMGI2', extension: 'png' },
-    8: { sufijo: 'ESCRI', extension: 'pdf' },
-    9: { sufijo: 'PODER', extension: 'pdf' },
-    10: { sufijo: 'CONS', extension: 'pdf' },
-    11: { sufijo: 'EFIRMA', extension: 'pdf' },
-    12: { sufijo: 'INERL', extension: 'pdf' },
-    13: { sufijo: 'INETER', extension: 'pdf' },
-    14: { sufijo: 'CARATULA_EDO_CTA', extension: 'pdf' },
-  };
-
-
   // ── Datos estáticos (los consume el HTML y los steps vía [input]) ────────────
   readonly pasos = [
     { numero: 1, titulo: 'Descripción del Comercio' },
@@ -854,7 +842,7 @@ export class PreRegistroComponent {
   constructor() {
     this.afiliacionForm.controls.afiliacion.valueChanges
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => { this.referrerNodeId = null; });
+      .subscribe(() => { this.invalidarComprobanteAfiliacion(); this.errorAfiliacion = ''; });
     for (const tipo of ['Entidad Agrupadora con auditor', 'Entidad Agrupadora con supervisor']) {
       this.datosGeneralesPorTipo[tipo] = this.datosGeneralesPorTipo['Entidad Agrupadora'];
       this.documentosPorTipoComercio[tipo] = this.documentosPorTipoComercio['Entidad Agrupadora'];
@@ -964,6 +952,8 @@ export class PreRegistroComponent {
         this.actualizarValidadoresDatos();
       }); // 👈 antes no hacía nada
 
+    // Conservar el bloqueo incluso al recargar tras perder la respuesta HTTP.
+    try { this.envioPreRegistroRealizado = localStorage.getItem(this.intentoKey) === 'enviado'; } catch { /* bloqueo en memoria */ }
     //this.cargarBorrador();
     try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     this.tiposComercio = this.filtrarTiposComercioPorPaquete(
@@ -1718,44 +1708,101 @@ export class PreRegistroComponent {
 
   // ── Continuar ─────────────────────────────────────────────────────────────────
   continuarAfiliacion(): void {
-    if (this.validandoAfiliacion) return;
-    this.referrerNodeId = null;
+    if (this.validandoAfiliacion || this.enviandoPreRegistro || this.envioPreRegistroRealizado) return;
     this.errorAfiliacion = '';
     if (this.afiliacionForm.invalid) { this.afiliacionForm.markAllAsTouched(); return; }
+    if (this.comprobanteAfiliacionVigente()) {
+      this.continuarTrasValidarAfiliacion();
+      return;
+    }
+    if (Date.now() < this.proximaValidacionPermitida) {
+      this.errorAfiliacion = this.mensajeLimiteValidaciones();
+      return;
+    }
 
-    const affiliationNumber = this.afiliacionForm.controls.afiliacion.value.trim();
+    this.invalidarComprobanteAfiliacion();
+    const affiliationNumber = this.afiliacionForm.controls.afiliacion.value;
+    const version = this.versionAfiliacion;
+    // Contar desde el inicio evita sumar la latencia de red a la vigencia del BFF.
+    const inicioValidacion = Date.now();
     this.validandoAfiliacion = true;
-
-    this.validarAfiliacionService.validar(affiliationNumber).subscribe({
-      next: response => {
-        this.validandoAfiliacion = false;
-        if (this.afiliacionForm.controls.afiliacion.value.trim() !== affiliationNumber) return;
-        if (response?.success === false) {
-          this.afiliacionForm.controls.afiliacion.setErrors({ afiliacionInvalida: true });
-          this.errorAfiliacion = response.error?.message || 'No fue posible validar el número de afiliación.';
-          return;
-        }
-        this.referrerNodeId = this.extraerNodeIdAfiliacion(response);
-        if (this.referrerNodeId === null) {
-          this.errorAfiliacion = 'La validación no devolvió el identificador de referencia. Vuelve a validar la afiliación.';
-          return;
-        }
-        this.guardarBorradorSilencioso();
-        this.irAlPaso(this.arbolNegocioForm.controls.nodoSeleccionado.value ? this.ultimoPasoVisible() : 6);
-      },
-      error: error => {
-        this.validandoAfiliacion = false;
-        this.afiliacionForm.controls.afiliacion.setErrors({ afiliacionInvalida: true });
-        this.errorAfiliacion = this.extraerMensajeErrorHttp(error) || 'No fue posible validar el número de afiliación.';
-      },
-    });
+    this.validarAfiliacionService.validarParaPreregistro(affiliationNumber)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: response => {
+          this.validandoAfiliacion = false;
+          if (version !== this.versionAfiliacion) return;
+          if (response?.success !== true) {
+            this.errorAfiliacion = response?.error?.message || 'No fue posible validar el número de afiliación.';
+            return;
+          }
+          if (typeof response.comprobante !== 'string' || !/^[0-9a-f]{64}$/.test(response.comprobante)
+            || typeof response.expiresIn !== 'number' || !Number.isSafeInteger(response.expiresIn)
+            || response.expiresIn <= 0) {
+            this.errorAfiliacion = 'El BFF no devolvió un comprobante y una vigencia válidos. Vuelve a validar la afiliación.';
+            return;
+          }
+          this.comprobanteAfiliacion = response.comprobante;
+          this.afiliacionValidada = affiliationNumber;
+          this.comprobanteExpiraEn = inicioValidacion + Math.min(response.expiresIn, 900) * 1000;
+          if (!this.comprobanteAfiliacionVigente()) {
+            this.solicitarNuevaValidacionAfiliacion();
+            return;
+          }
+          this.continuarTrasValidarAfiliacion();
+        },
+        error: error => {
+          this.validandoAfiliacion = false;
+          if (error instanceof HttpErrorResponse && error.status === 429) {
+            const retryAfter = error.headers.get('Retry-After');
+            const segundos = retryAfter !== null && /^[0-9]+$/.test(retryAfter) ? Number(retryAfter) : NaN;
+            const fecha = retryAfter ? Date.parse(retryAfter) : NaN;
+            // Sin Retry-After se aplica una pausa local de 60 s, nunca un reintento automático.
+            this.proximaValidacionPermitida = Number.isFinite(segundos)
+              ? Date.now() + Math.max(1, segundos) * 1000
+              : Number.isFinite(fecha) && fecha > Date.now() ? fecha : Date.now() + 60_000;
+          }
+          if (version !== this.versionAfiliacion) return;
+          this.errorAfiliacion = error instanceof HttpErrorResponse && error.status === 429
+            ? this.mensajeLimiteValidaciones()
+            : error instanceof HttpErrorResponse && error.status === 404
+              ? 'El servicio de afiliación no está disponible en este dominio (HTTP 404). Sigue pendiente habilitar el acceso público a /bff/.'
+              : error instanceof HttpErrorResponse && error.status === 0
+                ? 'No se pudo conectar con el servicio de afiliación. Revisa tu conexión y vuelve a validar.'
+                : 'No fue posible validar la afiliación. Revisa el número e intenta validarlo nuevamente.';
+        },
+      });
   }
 
-  private extraerNodeIdAfiliacion(respuesta: unknown): number | null {
-    if (!this.esObjetoRespuesta(respuesta)) return null;
-    const cuenta = respuesta['accountResponse'];
-    const nodeId = Number(this.esObjetoRespuesta(cuenta) ? cuenta['nodeId'] : respuesta['nodeId']);
-    return Number.isSafeInteger(nodeId) && nodeId > 0 ? nodeId : null;
+  private continuarTrasValidarAfiliacion(): void {
+    this.guardarBorradorSilencioso();
+    this.irAlPaso(this.arbolNegocioForm.controls.nodoSeleccionado.value ? this.ultimoPasoVisible() : 6);
+  }
+
+  private invalidarComprobanteAfiliacion(): void {
+    this.versionAfiliacion++;
+    this.referrerNodeId = null;
+    this.comprobanteAfiliacion = '';
+    this.afiliacionValidada = '';
+    this.comprobanteExpiraEn = 0;
+  }
+
+  private comprobanteAfiliacionVigente(): boolean {
+    return !!this.comprobanteAfiliacion
+      && this.afiliacionValidada === this.afiliacionForm.controls.afiliacion.value
+      && Date.now() < this.comprobanteExpiraEn;
+  }
+
+  private solicitarNuevaValidacionAfiliacion(): void {
+    this.invalidarComprobanteAfiliacion();
+    this.enviandoPreRegistro = false;
+    this.errorAfiliacion = 'El comprobante de afiliación venció o no está disponible. Vuelve a validar la afiliación antes de enviar; tu captura se conserva.';
+    this.irAlPaso(0);
+  }
+
+  private mensajeLimiteValidaciones(): string {
+    const segundos = Math.max(1, Math.ceil((this.proximaValidacionPermitida - Date.now()) / 1000));
+    return `Se alcanzó el límite de intentos. Espera ${segundos} segundos antes de volver a validar la afiliación.`;
   }
 
   seleccionarTipoNegocio(tipo: TipoNegocio): void {
@@ -2058,7 +2105,11 @@ export class PreRegistroComponent {
   }
 
   finalizarRegistro(): void {
-    if (this.enviandoPreRegistro) return;
+    if (this.enviandoPreRegistro || this.registroTerminado) return;
+    if (this.envioPreRegistroRealizado) {
+      this.mostrarErrorPreRegistro('Ya se envió una solicitud. Verifica su estado con soporte antes de intentar otro registro para evitar duplicados.');
+      return;
+    }
     this.errorEnvioPreRegistro = '';
     this.enviandoPreRegistro = true;
     const pasoInvalido = this.primerPasoInvalido();
@@ -2092,10 +2143,8 @@ export class PreRegistroComponent {
         return;
       }
     }
-    if (this.referrerNodeId === null) {
-      this.enviandoPreRegistro = false;
-      this.errorAfiliacion = 'Vuelve a validar la afiliación para obtener la referencia antes de enviar el preregistro. Tu captura se conserva.';
-      this.irAlPaso(0);
+    if (!this.comprobanteAfiliacionVigente()) {
+      this.solicitarNuevaValidacionAfiliacion();
       return;
     }
     const payload = this.imprimirPayloadPreRegistro();
@@ -2116,35 +2165,84 @@ export class PreRegistroComponent {
   }
 
   private enviarPreRegistroCompleto(payload: PayloadPreRegistro): void {
+    if (!this.comprobanteAfiliacionVigente()) {
+      this.solicitarNuevaValidacionAfiliacion();
+      return;
+    }
+    let solicitud: SolicitudRegistroCompleto;
+    try {
+      solicitud = {
+        comprobante: this.comprobanteAfiliacion,
+        tipoNegocio: this.tipoNegocioBff(),
+        payload,
+        arbol: this.arbolNegocioWizard,
+        documentos: this.prepararDocumentosParaBff(),
+      };
+      // Validar antes de marcar el intento; un error local no envió el registro.
+      this.preregistroCompletoService.construirFormData(solicitud);
+    } catch (error) {
+      this.enviandoPreRegistro = false;
+      this.mostrarErrorPreRegistro(error instanceof Error ? error.message : 'Revisa los datos del registro.');
+      return;
+    }
     this.nombreComercioRegistrado = this.nombreComercioDelNodoPadre(payload);
-    this.preregistroCompletoService.enviarPreRegistro(payload).subscribe({
-      next: (response) => {
-        const documentos = this.prepararDocumentosParaSubida(response);
-        console.info('[Preregistro] Registro exitoso. Documentos preparados para subida:', documentos.map(documento => ({
-          guid: documento.guid,
-          nombre: documento.fileName,
-          tipo: documento.file.type,
-          tamanoBytes: documento.file.size,
-        })));
-        this.preregistroDocumentosService.subirDocumentos(documentos).subscribe({
-          next: () => {
-            console.info('[Preregistro] Documentos subidos correctamente.');
-            this.completarRegistroExitoso();
-          },
-          error: () => {
-            console.error('[Preregistro] Error al subir documentos.');
-            this.enviandoPreRegistro = false;
-            this.registroTerminado = false;
-            this.mostrarErrorPreRegistro('El registro se completó, pero no se pudieron subir los documentos. Intenta nuevamente.');
-          },
-        });
-      },
-      error: (error) => {
+    this.envioPreRegistroRealizado = true;
+    try { localStorage.setItem(this.intentoKey, 'enviado'); } catch { /* bloqueo en memoria */ }
+    this.guardarBorradorSilencioso();
+    this.preregistroCompletoService.enviarPreRegistro(solicitud).subscribe({
+      next: response => {
+        if (response?.success === true) {
+          this.completarRegistroExitoso();
+          return;
+        }
         this.enviandoPreRegistro = false;
         this.registroTerminado = false;
-        this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error));
+        this.mostrarErrorPreRegistro(response?.success === false
+          ? 'El BFF informó un error. El registro puede haberse procesado parcialmente. Verifica su estado con soporte antes de volver a registrar.'
+          : 'El BFF no confirmó el resultado del registro. Verifica su estado con soporte antes de volver a registrar.');
+      },
+      error: error => {
+        this.enviandoPreRegistro = false;
+        this.registroTerminado = false;
+        this.mostrarErrorPreRegistro(error instanceof HttpErrorResponse && error.status === 404
+          ? 'La ruta de registro del BFF no está disponible en este dominio (HTTP 404). Falta habilitar /bff/ en la infraestructura pública. Verifica el estado antes de volver a registrar.'
+          : 'No se pudo confirmar el resultado del registro. La solicitud puede haberse procesado. No la repitas; verifica su estado con soporte.');
       }
     });
+  }
+
+  private tipoNegocioBff(): TipoNegocioBff {
+    const tipo = this.tipoNegocioSeleccionado?.id;
+    if (tipo === 'comercio-unico' || tipo === 'individual') return 'individual';
+    if (tipo === 'empresa-holding' || tipo === 'sucursales-multiples' || tipo === 'auditor-unico') return tipo;
+    throw new Error('Selecciona un tipo de negocio antes de enviar.');
+  }
+
+  private prepararDocumentosParaBff(): DocumentoRegistroCompleto[] {
+    const documentos: DocumentoRegistroCompleto[] = [];
+    const comercioPorNodo = this.obtenerComercioPorNodo();
+    const datosPorNodo = this.obtenerDatosPorSucursal();
+    // Recorrer el árbol vigente excluye documentos de nodos eliminados.
+    for (const nodo of this.nodosCapturablesParaFlujo()) {
+      const idCaptura = this.mostrarArbolWizard ? nodo.id : 'preregistro';
+      const fuente = this.nodoFuenteDocumentosId(idCaptura);
+      const archivos = this.documentosPorNodo[fuente] ?? {};
+      const comercio = comercioPorNodo[nodo.id] ?? this.comercioForm.getRawValue();
+      const datos = datosPorNodo[nodo.id] ?? this.datosForm.getRawValue();
+      const tipo = ['Referenciador', 'Comisionista'].includes(comercio.nivel) ? comercio.nivel : comercio.tipoComercio;
+      for (const regla of this.obtenerReglasDocumentos(tipo, String(datos['tipoPersona'] ?? ''))) {
+        const documento = archivos[regla.numero];
+        if (!documento?.archivo) {
+          if (regla.obligatorio || documento?.archivoNombre) {
+            throw new Error(`Vuelve a adjuntar el documento ${regla.numero} de ${nodo.nombre}. El borrador conserva nombres, no archivos.`);
+          }
+          continue;
+        }
+        documentos.push({ nodoId: nodo.id, numeroDocumento: String(regla.numero), file: documento.archivo });
+      }
+      if (!this.mostrarArbolWizard) break;
+    }
+    return documentos;
   }
 
   private completarRegistroExitoso(): void {
@@ -2201,6 +2299,7 @@ export class PreRegistroComponent {
   }
 
   private extraerMensajeErrorHttp(error: unknown): string {
+    if (error instanceof Error && !(error instanceof HttpErrorResponse)) return error.message;
     if (error instanceof HttpErrorResponse) {
       return this.extraerMensajeErrorBody(error.error) || error.message || '';
     }
@@ -2248,97 +2347,6 @@ export class PreRegistroComponent {
     return primerCampoConValor.etiqueta;
   }
 
-  private prepararDocumentosParaSubida(response: unknown): DocumentoPreregistroUpload[] {
-    const guidsPorNodo = this.obtenerCommerceGuidsPorNodo(response);
-    console.info('[Preregistro documentos] GUIDs detectados por nodo:', guidsPorNodo);
-    console.info('[Preregistro documentos] Documentos guardados por nodo:', Object.entries(this.documentosPorNodo).map(([nodoId, documentos]) => ({
-      nodoId,
-      documentos: Object.entries(documentos)
-        .filter(([, documento]) => !!documento.archivo || !!documento.archivoNombre)
-        .map(([numero, documento]) => ({
-          numero: Number(numero),
-          nombre: documento.archivo?.name || documento.archivoNombre || '',
-          tieneArchivo: !!documento.archivo,
-        })),
-    })));
-    return Object.entries(this.documentosPorNodo).flatMap(([nodoId, documentos]) => {
-      const guids = guidsPorNodo[nodoId] ?? [];
-      if (!guids.length) return [];
-
-      return guids.flatMap(guid => Object.entries(documentos)
-          .map(([numeroDocumento, documento]) => {
-            const numero = Number(numeroDocumento);
-            const fileName = this.nombreArchivoDocumento(guid, numero);
-            if (!documento.archivo || !fileName) return undefined;
-
-            return { guid, fileName, file: documento.archivo };
-          })
-          .filter((documento): documento is DocumentoPreregistroUpload => !!documento)
-      );
-    });
-  }
-
-  private obtenerCommerceGuidsPorNodo(response: unknown): Record<string, string[]> {
-    const entitys = this.extraerEntitysRespuesta(response);
-    const entidadRespuesta = entitys[0];
-    const guids: Record<string, string[]> = {};
-
-    if (this.tipoNegocioSeleccionado?.id === 'empresa-holding') {
-      const subAfiliado = this.arbolNegocioWizard.find(nodo => nodo.nivel === 'sub-afiliado');
-      const rootResponse = this.extraerPreRegistrationResponse(response);
-      const guidSubAfiliado = this.extraerCommerceGuid(rootResponse);
-      if (subAfiliado?.id && guidSubAfiliado) guids[subAfiliado.id] = [guidSubAfiliado];
-
-      const entidadesRespuesta = this.extraerEntitysRespuesta(rootResponse);
-      (subAfiliado?.hijos ?? []).forEach((entidad, entidadIndex) => {
-        const entidadRespuesta = entidadesRespuesta[entidadIndex];
-        const guidEntidad = this.extraerCommerceGuid(entidadRespuesta);
-        if (guidEntidad) guids[entidad.id] = [guidEntidad];
-
-        const sucursalesRespuesta = this.extraerBranchOficcesRespuesta(entidadRespuesta);
-        (entidad.hijos ?? []).filter(nodo => nodo.nivel === 'sucursal').forEach((sucursal, sucursalIndex) => {
-          const sucursalRespuesta = sucursalesRespuesta[sucursalIndex];
-          const guid = this.extraerCommerceGuid(sucursalRespuesta);
-          if (guid) guids[sucursal.id] = [guid];
-
-          const cajasRespuesta = this.extraerPossRespuesta(sucursalRespuesta);
-          (sucursal.hijos ?? []).filter(nodo => nodo.nivel === 'caja').forEach((caja, cajaIndex) => {
-            const guidCaja = this.extraerCommerceGuid(cajasRespuesta[cajaIndex]);
-            if (guidCaja) guids[caja.id] = [guidCaja];
-          });
-        });
-      });
-
-      return guids;
-    }
-
-    if (['sucursales-multiples', 'auditor-unico'].includes(this.tipoNegocioSeleccionado?.id || '')) {
-      const entidad = this.aplanarArbolNegocio(this.arbolNegocioWizard).find(nodo => nodo.nivel === 'entidad');
-      const sucursales = (entidad?.hijos ?? this.aplanarArbolNegocio(this.arbolNegocioWizard))
-        .filter(nodo => nodo.nivel === 'sucursal');
-      const guidEntidad = this.extraerCommerceGuid(entidadRespuesta);
-
-      const sucursalesRespuesta = this.extraerBranchOficcesRespuesta(entidadRespuesta);
-      sucursales.forEach((sucursal, index) => {
-        const guid = this.extraerCommerceGuid(sucursalesRespuesta[index]);
-        if (guid) {
-          guids[sucursal.id] = [guid];
-        }
-      });
-      if (entidad?.id && guidEntidad) guids[entidad.id] = [guidEntidad];
-
-      return guids;
-    }
-
-    const guidPrincipal = this.extraerCommerceGuid(this.extraerBranchOficcesRespuesta(entidadRespuesta)[0])
-      || this.extraerCommerceGuid(entidadRespuesta)
-      || this.extraerCommerceGuid(response);
-    const nodoId = this.nodoBranchOfficeActualId();
-    if (guidPrincipal) guids[nodoId] = [guidPrincipal];
-
-    return guids;
-  }
-
   private extraerEntitysRespuesta(response: unknown): ObjetoRespuestaPreregistro[] {
     const preRegistrationRequest = this.extraerPreRegistrationResponse(response);
     const entitys = preRegistrationRequest['entitys'];
@@ -2362,30 +2370,12 @@ export class PreRegistroComponent {
     return Array.isArray(branchOficces) ? branchOficces.filter(this.esObjetoRespuesta) : [];
   }
 
-  private extraerPossRespuesta(branchOffice: unknown): ObjetoRespuestaPreregistro[] {
-    const objeto = this.extraerObjetoRespuesta(branchOffice);
-    const poss = objeto['poss'] ?? objeto['pos'];
-    return Array.isArray(poss) ? poss.filter(this.esObjetoRespuesta) : [];
-  }
-
-  private extraerCommerceGuid(response: unknown): string {
-    const objeto = this.extraerObjetoRespuesta(response);
-    const accountResponse = this.extraerObjetoRespuesta(objeto['accountResponse']);
-    return this.valorTexto(objeto['commerceGuid'])
-      || this.valorTexto(accountResponse['commerceGuid']);
-  }
-
   private extraerObjetoRespuesta(response: unknown): ObjetoRespuestaPreregistro {
     return this.esObjetoRespuesta(response) ? response : {};
   }
 
   private esObjetoRespuesta(response: unknown): response is ObjetoRespuestaPreregistro {
     return typeof response === 'object' && response !== null && !Array.isArray(response);
-  }
-
-  private nombreArchivoDocumento(guid: string, numero: number): string | null {
-    const config = this.sufijosDocumentos[numero];
-    return config ? `${guid}_${config.sufijo}.${config.extension}` : null;
   }
 
   private construirPayloadPreRegistro(): PayloadPreRegistro {
@@ -2915,6 +2905,14 @@ export class PreRegistroComponent {
   cerrarAyuda(): void { this.mostrarAyuda = false; }
 
   reiniciarFlujo(): void {
+    if (this.enviandoPreRegistro || (this.envioPreRegistroRealizado && !this.registroTerminado)) {
+      this.mostrarErrorPreRegistro('Verifica el estado de la solicitud enviada con soporte antes de iniciar otro registro.');
+      return;
+    }
+    this.envioPreRegistroRealizado = false;
+    try { localStorage.removeItem(this.intentoKey); } catch { /* no-op */ }
+    this.invalidarComprobanteAfiliacion();
+    this.documentosPorNodo = {};
     this.referrerNodeId = null;
     this.pasoActual = 0; this.pasosCompletados.clear();
     this.registroTerminado = false; this.archivosInvalidos = false;
@@ -2954,6 +2952,7 @@ export class PreRegistroComponent {
         pasoActual: this.pasoActual,
         pasosCompletados: [...this.pasosCompletados],
         registroTerminado: this.registroTerminado,
+        envioPreRegistroRealizado: this.envioPreRegistroRealizado,
         afiliacion: this.afiliacionForm.getRawValue(),
         referrerNodeId: this.referrerNodeId,
         comercio: this.comercioForm.getRawValue(),
@@ -2977,8 +2976,8 @@ export class PreRegistroComponent {
       const draft = JSON.parse(raw) as Partial<BorradorPreRegistro>;
       if (!draft) return;
       if (draft.afiliacion) this.afiliacionForm.patchValue(draft.afiliacion);
-      const nodeId = Number(draft.referrerNodeId);
-      this.referrerNodeId = Number.isSafeInteger(nodeId) && nodeId > 0 ? nodeId : null;
+      // Un borrador legacy no es fuente de referencias ni comprobantes del BFF.
+      this.invalidarComprobanteAfiliacion();
       if (draft.comercio) {
         this.comercioForm.patchValue(draft.comercio);
         if (draft.comercio.nivel === 'Caja') {
@@ -3005,6 +3004,7 @@ export class PreRegistroComponent {
       }
       this.pasosCompletados = new Set(draft.pasosCompletados ?? []);
       this.registroTerminado = draft.registroTerminado ?? false;
+      this.envioPreRegistroRealizado = draft.envioPreRegistroRealizado ?? this.registroTerminado;
       this.nombreComercioRegistrado = draft.registroTerminado && draft.payload
         ? this.nombreComercioDelNodoPadre(draft.payload)
         : '';

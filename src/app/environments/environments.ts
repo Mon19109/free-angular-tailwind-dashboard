@@ -1,6 +1,12 @@
 // environments/environment.ts
 export const environment = {
   production: true,
+  preregistroBff: {
+    // Ruta prevista. El balanceador del dominio público aún devuelve 404 para /bff/.
+    registroCompletoUrl: '/bff/preregistro/registro-completo',
+    // El nodeId permanece en Redis; Angular recibe únicamente el comprobante y su vigencia.
+    validarAfiliacionUrl: '/bff/preregistro/afiliacion/validar',
+  },
   bearerTokens: {
     seguimientoProspecto: "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI5ZjhhMjZlZS0xZWFkLTRmN2QtODlhMi0zZGFiZjU2YTNjZGQiLCJzZXNzaW9uSWQiOiI4NTlhN2NmYS1hNDA2LTRmYjItOTY3Yi02MzlmZDBjNmUyMzMiLCJlbWFpbCI6InN1YmFmaWxrbUBrbS5jb20iLCJkZXZpY2VJZCI6IjdlNDMyMDg0MmNmMGNlNzg0MjYyZDgzNzRkZmVlM2QzN2VhYTc3ZThlMjMyNmFmNzY3YWQ2YWRiMjU2NGZhNjciLCJ0eXBlIjoiYWNjZXNzIiwic2NvcGVzIjpbInJlYWQiLCJ3cml0ZSJdLCJpYXQiOjE3ODE5MTUwMTMsImV4cCI6MTc4MTkxODYxM30.YprLcc_8SeAV7V8CCBvIEnBLigHT6U9QtMc4bpJ2YYJrC0K0kVKCt1pebSgVAcc-c1hpPW1K11eve5uzlIoVTA",
     portal: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3OTEiLCJpc3MiOiJvYXV0aC12MiIsImF1ZCI6ImFjY291bnQiLCJpYXQiOjE3ODEzMDU2NTUsImV4cCI6MTc4MTM0ODg1NSwicGxhdGZvcm0iOiJUWENOSCIsImF6cCI6ImFwaS1jbGllbnQiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUifQ.-gEh_s1WlWTXaAJUtj00d95B4ueDq5PVAf5TeWDbhVc",
