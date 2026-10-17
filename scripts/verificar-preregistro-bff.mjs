@@ -144,14 +144,11 @@ try {
       assert.deepEqual(component.referenciaAfiliacionPayload(),{});
       component.continuarAfiliacion();
       assert.equal(calls.length,1); // Reutiliza comprobante vigente.
-      now += 900000;
-      component.enviarPreRegistroCompleto(payload);
-      assert.equal(component.pasoActual,0);
-      assert.equal(calls.length,1); // No registra con comprobante vencido.
-      assert.equal(component.comprobanteAfiliacion,'');
-      validar();
-      response.next({success:true,comprobante:token,expiresIn:30});
-      assert.equal(component.comprobanteExpiraEn,now+30000); // Respeta vigencias menores.
+      now += 24 * 60 * 60 * 1000;
+      assert.equal(component.comprobanteAfiliacionVigente(),true);
+      component.continuarAfiliacion();
+      assert.equal(calls.length,1); // No renueva por tiempo ni envía automáticamente.
+      assert.equal(component.comprobanteAfiliacion,token);
       component.afiliacionForm.controls.afiliacion.setValue('2');
       assert.equal(component.comprobanteAfiliacion,'');
       validar();
@@ -170,7 +167,7 @@ try {
       response.error(new HttpErrorResponse({status:404}));
       assert.match(component.errorAfiliacion,/404/);
       validar();
-      response.next({success:true,comprobante:'invalid',expiresIn:900});
+      response.next({success:true,comprobante:'invalid'});
       assert.equal(component.comprobanteAfiliacion,'');
       validar();
       response.next({success:true,comprobante:token});
@@ -213,7 +210,7 @@ try {
       assert.match(component.errorEnvioPreRegistro,/Verifica|verifica/);
       Date.now = realNow;
       injector.destroy();
-      console.log('OK: seis catálogos públicos, filtros, normalizadores, consultas compartidas, errores, referencias opacas, compatibilidad legacy; afiliación BFF sin nodeId, vigencia, invalidación, respuestas obsoletas, 429/404, cuatro tipos, multipart y orden, archivos ausentes/compartidos, sin Bearer, éxito estricto, errores y doble envío.');
+      console.log('OK: seis catálogos públicos, filtros, normalizadores, consultas compartidas, errores, referencias opacas, compatibilidad legacy; afiliación BFF sin nodeId ni vencimiento temporal, invalidación, respuestas obsoletas, 429/404, cuatro tipos, multipart y orden, archivos ausentes/compartidos, sin Bearer, éxito estricto, errores y doble envío.');
     ` }, bundle: true, platform: 'node', format: 'esm', write: false,
   });
   const path = join(temp, 'test.mjs');

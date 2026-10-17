@@ -26,7 +26,6 @@ export interface ValidarAfiliacionResponse {
 export interface ValidarAfiliacionBffResponse {
   success?: boolean;
   comprobante?: string;
-  expiresIn?: number;
   error?: { message?: string };
 }
 

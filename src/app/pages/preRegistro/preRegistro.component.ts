@@ -125,7 +125,6 @@ export class PreRegistroComponent {
   envioPreRegistroRealizado = false;
   private comprobanteAfiliacion = '';
   private afiliacionValidada = '';
-  private comprobanteExpiraEn = 0;
   private versionAfiliacion = 0;
   private proximaValidacionPermitida = 0;
   archivosInvalidos = false;
@@ -1709,8 +1708,6 @@ export class PreRegistroComponent {
     this.invalidarComprobanteAfiliacion();
     const affiliationNumber = this.afiliacionForm.controls.afiliacion.value;
     const version = this.versionAfiliacion;
-    // Contar desde el inicio evita sumar la latencia de red a la vigencia del BFF.
-    const inicioValidacion = Date.now();
     this.validandoAfiliacion = true;
     this.validarAfiliacionService.validarParaPreregistro(affiliationNumber)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -1722,18 +1719,12 @@ export class PreRegistroComponent {
             this.errorAfiliacion = response?.error?.message || 'No fue posible validar el número de afiliación.';
             return;
           }
-          // El contrato mínimo omite expiresIn; Redis conserva su TTL de 15 minutos.
-          // Aceptar la vigencia anterior permite desplegar Angular antes que el BFF.
-          const expiresIn = response.expiresIn ?? 900;
-          if (typeof response.comprobante !== 'string' || !/^[0-9a-f]{64}$/.test(response.comprobante)
-            || typeof expiresIn !== 'number' || !Number.isSafeInteger(expiresIn)
-            || expiresIn <= 0) {
-            this.errorAfiliacion = 'El BFF no devolvió un comprobante y una vigencia válidos. Vuelve a validar la afiliación.';
+          if (typeof response.comprobante !== 'string' || !/^[0-9a-f]{64}$/.test(response.comprobante)) {
+            this.errorAfiliacion = 'El BFF no devolvió un comprobante válido. Vuelve a validar la afiliación.';
             return;
           }
           this.comprobanteAfiliacion = response.comprobante;
           this.afiliacionValidada = affiliationNumber;
-          this.comprobanteExpiraEn = inicioValidacion + Math.min(expiresIn, 900) * 1000;
           if (!this.comprobanteAfiliacionVigente()) {
             this.solicitarNuevaValidacionAfiliacion();
             return;
@@ -1773,19 +1764,18 @@ export class PreRegistroComponent {
     this.referrerNodeId = null;
     this.comprobanteAfiliacion = '';
     this.afiliacionValidada = '';
-    this.comprobanteExpiraEn = 0;
   }
 
   private comprobanteAfiliacionVigente(): boolean {
-    return !!this.comprobanteAfiliacion
-      && this.afiliacionValidada === this.afiliacionForm.controls.afiliacion.value
-      && Date.now() < this.comprobanteExpiraEn;
+    return typeof this.comprobanteAfiliacion === 'string'
+      && /^[0-9a-f]{64}$/.test(this.comprobanteAfiliacion)
+      && this.afiliacionValidada === this.afiliacionForm.controls.afiliacion.value;
   }
 
   private solicitarNuevaValidacionAfiliacion(): void {
     this.invalidarComprobanteAfiliacion();
     this.enviandoPreRegistro = false;
-    this.errorAfiliacion = 'El comprobante de afiliación venció o no está disponible. Vuelve a validar la afiliación antes de enviar; tu captura se conserva.';
+    this.errorAfiliacion = 'El comprobante de afiliación es inválido o no está disponible. Vuelve a validar la afiliación antes de enviar; tu captura se conserva.';
     this.irAlPaso(0);
   }
 

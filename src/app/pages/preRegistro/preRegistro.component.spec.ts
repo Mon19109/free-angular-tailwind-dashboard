@@ -136,7 +136,7 @@ describe('PreRegistro: referencia de afiliación', () => {
   });
 
   it('avanza de datos a documentos de agrupadora y después selecciona la sucursal', () => {
-    component.tipoNegocioSeleccionado = { id: 'auditor-unico' } as any;
+    component.tipoNegocioSeleccionado = { id: 'auditor-unico', tipoComercio: 'Empresa Grupo' } as any;
     const entidad = component.arbolNegocioWizard[0];
     component.arbolNegocioForm.patchValue({ nodoSeleccionado: entidad.id, nivelSeleccionado: 'entidad' });
     component.comercioForm.patchValue({ nivel: 'Entidad', tipoComercio: 'Entidad Agrupadora con auditor', tipoComercioId: 5 }, { emitEvent: false });
@@ -173,7 +173,7 @@ describe('PreRegistro: referencia de afiliación', () => {
     request.flush({ success: true, comprobante });
   }
 
-  it('acepta el contrato sin nodeId y reutiliza el comprobante vigente', () => {
+  it('acepta el contrato sin expiresIn ni nodeId y conserva el comprobante para el mismo registro', () => {
     validar();
     expect(component['comprobanteAfiliacion']).toBe(comprobante);
     expect(component['referenciaAfiliacionPayload']()).toEqual({});
@@ -182,19 +182,85 @@ describe('PreRegistro: referencia de afiliación', () => {
     http.expectNone(url);
   });
 
-  it('exige renovar al vencer y no envía el registro automáticamente', () => {
+  it('conserva el comprobante después de más de 15 minutos sin volver a validar', () => {
     let ahora = 1000000;
     spyOn(Date, 'now').and.callFake(() => ahora);
     validar();
-    ahora += 900000;
+    ahora += 24 * 60 * 60 * 1000;
+    expect(component['comprobanteAfiliacionVigente']()).toBeTrue();
+    expect(component['comprobanteAfiliacion']).toBe(comprobante);
+    component.continuarAfiliacion();
+    http.expectNone(url);
+    http.expectNone(environment.preregistroBff.registroCompletoUrl);
+    expect(component.errorAfiliacion).toBe('');
+    component.tipoNegocioSeleccionado = { id: 'comercio-unico' } as any;
+    spyOn<any>(component, 'prepararDocumentosParaBff').and.returnValue([]);
+    component['enviarPreRegistroCompleto']({});
+    const request = http.expectOne(environment.preregistroBff.registroCompletoUrl);
+    expect(request.request.body.get('comprobante')).toBe(comprobante);
+    request.flush({ success: true });
+    expect(component.registroTerminado).toBeTrue();
+  });
+
+  it('rechaza un comprobante inválido en memoria antes de enviar', () => {
+    validar();
+    component['comprobanteAfiliacion'] = 'incorrecto';
+    expect(component['comprobanteAfiliacionVigente']()).toBeFalse();
     component['enviarPreRegistroCompleto']({});
     http.expectNone(environment.preregistroBff.registroCompletoUrl);
+    expect(component.errorAfiliacion).toContain('inválido o no está disponible');
     expect(component.irAlPaso).toHaveBeenCalledWith(0);
-    expect(component.errorAfiliacion).toContain('venció');
-    component.continuarAfiliacion();
-    http.expectOne(url).flush({ success: true, comprobante, expiresIn: 900 });
-    http.expectNone(environment.preregistroBff.registroCompletoUrl);
   });
+
+  it('no duplica una validación en curso', () => {
+    component.afiliacionForm.controls.afiliacion.setValue('12345');
+    component.continuarAfiliacion();
+    component.continuarAfiliacion();
+    http.expectOne(url).flush({ success: true, comprobante });
+    expect(component.validandoAfiliacion).toBeFalse();
+  });
+
+  for (const estado of ['enviandoPreRegistro', 'envioPreRegistroRealizado'] as const) {
+    it(`no valida de nuevo con ${estado}`, () => {
+      component.afiliacionForm.controls.afiliacion.setValue('12345');
+      component[estado] = true;
+      component.continuarAfiliacion();
+      http.expectNone(url);
+    });
+  }
+
+  it('exige otro comprobante para un nuevo registro con la misma afiliación', () => {
+    validar();
+    component.envioPreRegistroRealizado = true;
+    component.registroTerminado = true;
+    component.reiniciarFlujo();
+    expect(component['comprobanteAfiliacionVigente']()).toBeFalse();
+    component.afiliacionForm.controls.afiliacion.setValue('0012345');
+    component.continuarAfiliacion();
+    const nuevoComprobante = 'b'.repeat(64);
+    http.expectOne(url).flush({ success: true, comprobante: nuevoComprobante });
+    expect(component['comprobanteAfiliacion']).toBe(nuevoComprobante);
+  });
+
+  for (const status of [409, 500]) {
+    it(`bloquea reenvíos tras un rechazo HTTP ${status} del registro`, () => {
+      validar();
+      component.tipoNegocioSeleccionado = { id: 'comercio-unico' } as any;
+      spyOn<any>(component, 'prepararDocumentosParaBff').and.returnValue([]);
+      component['enviarPreRegistroCompleto']({});
+      const request = http.expectOne(environment.preregistroBff.registroCompletoUrl);
+      expect(request.request.body.get('comprobante')).toBe(comprobante);
+      request.flush({}, { status, statusText: 'Error' });
+      expect(component.envioPreRegistroRealizado).toBeTrue();
+      expect(component.enviandoPreRegistro).toBeFalse();
+      component.finalizarRegistro();
+      component.reiniciarFlujo();
+      component.continuarAfiliacion();
+      http.expectNone(environment.preregistroBff.registroCompletoUrl);
+      http.expectNone(url);
+      expect(component.envioPreRegistroRealizado).toBeTrue();
+    });
+  }
 
   it('invalida el comprobante al cambiar la afiliación', () => {
     validar();
@@ -208,7 +274,7 @@ describe('PreRegistro: referencia de afiliación', () => {
     component.continuarAfiliacion();
     component.afiliacionForm.controls.afiliacion.setValue('98765');
     component.afiliacionForm.controls.afiliacion.setValue('12345');
-    http.expectOne(url).flush({ success: true, comprobante, expiresIn: 900 });
+    http.expectOne(url).flush({ success: true, comprobante });
     expect(component['comprobanteAfiliacion']).toBe('');
     expect(component.irAlPaso).not.toHaveBeenCalled();
   });
@@ -225,15 +291,18 @@ describe('PreRegistro: referencia de afiliación', () => {
     expect(component.afiliacionForm.valid).toBeTrue();
     ahora += 120000;
     component.continuarAfiliacion();
-    http.expectOne(url).flush({ success: true, comprobante, expiresIn: 900 });
+    http.expectOne(url).flush({ success: true, comprobante });
   });
 
   for (const respuesta of [
-    { success: true, comprobante: 'incorrecto', expiresIn: 900 },
-    { success: true, comprobante, expiresIn: 0 },
-    { success: false, comprobante, expiresIn: 900 },
+    { success: true, comprobante: 'incorrecto' },
+    { success: true },
+    { success: true, comprobante: 'a'.repeat(63) },
+    { success: true, comprobante: 'a'.repeat(65) },
+    { success: true, comprobante: 'g'.repeat(64) },
+    { success: false, comprobante },
   ]) {
-    it('rechaza respuestas sin comprobante y vigencia válidos o sin éxito', () => {
+    it('rechaza respuestas sin comprobante válido o sin éxito', () => {
       component.afiliacionForm.controls.afiliacion.setValue('12345');
       component.continuarAfiliacion();
       http.expectOne(url).flush(respuesta);
