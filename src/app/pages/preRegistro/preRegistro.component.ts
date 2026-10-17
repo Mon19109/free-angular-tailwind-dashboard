@@ -63,7 +63,6 @@ interface BorradorPreRegistro {
   pasoActual: PasoWizard;
   pasosCompletados: number[];
   registroTerminado: boolean;
-  envioPreRegistroRealizado?: boolean;
   afiliacion: { afiliacion: string };
   referrerNodeId?: number | null;
   comercio: { nivel: string; tipoComercio: string; tipoComercioId?: number; afiliacionComisionista: string };
@@ -98,7 +97,7 @@ type DocumentoNodo = Pick<DocumentoRequerido, 'archivo' | 'archivoNombre'>;
   ],
   templateUrl: './preRegistro.component.html',
   styleUrls: ['./preRegistro.component.css'],
-})
+}) 
 export class PreRegistroComponent {
   private readonly fb = inject(FormBuilder);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -110,7 +109,6 @@ export class PreRegistroComponent {
   private readonly validarAfiliacionService = inject(ValidarAfiliacionService);
   private readonly draftKey = 'kashpay.preregistro.draft.v1';
   private readonly payloadKey = 'kashpay.preregistro.payload.v1';
-  private readonly intentoKey = 'kashpay.preregistro.intento-bff.v1';
   private referrerNodeId: number | null = null;
   private readonly entidadFederativaNoIdentificada = 'No es Identificada';
 
@@ -122,7 +120,6 @@ export class PreRegistroComponent {
   registroTerminado = false;
   nombreComercioRegistrado = '';
   enviandoPreRegistro = false;
-  envioPreRegistroRealizado = false;
   private comprobanteAfiliacion = '';
   private afiliacionValidada = '';
   private versionAfiliacion = 0;
@@ -935,9 +932,6 @@ export class PreRegistroComponent {
         this.actualizarValidadoresDatos();
       }); // 👈 antes no hacía nada
 
-    // Conservar el bloqueo incluso al recargar tras perder la respuesta HTTP.
-    try { this.envioPreRegistroRealizado = localStorage.getItem(this.intentoKey) === 'enviado'; } catch { /* bloqueo en memoria */ }
-    //this.cargarBorrador();
     try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     this.tiposComercio = this.filtrarTiposComercioPorPaquete(
       this.comercioForm.controls.nivel.value,
@@ -1693,7 +1687,7 @@ export class PreRegistroComponent {
 
   // ── Continuar ─────────────────────────────────────────────────────────────────
   continuarAfiliacion(): void {
-    if (this.validandoAfiliacion || this.enviandoPreRegistro || this.envioPreRegistroRealizado) return;
+   if (this.validandoAfiliacion || this.enviandoPreRegistro) return;
     this.errorAfiliacion = '';
     if (this.afiliacionForm.invalid) { this.afiliacionForm.markAllAsTouched(); return; }
     if (this.comprobanteAfiliacionVigente()) {
@@ -2084,12 +2078,9 @@ export class PreRegistroComponent {
   }
 
   finalizarRegistro(): void {
-    if (this.enviandoPreRegistro || this.registroTerminado) return;
-    if (this.envioPreRegistroRealizado) {
-      this.mostrarErrorPreRegistro('Ya se envió una solicitud. Verifica su estado con soporte antes de intentar otro registro para evitar duplicados.');
-      return;
-    }
-    this.errorEnvioPreRegistro = '';
+  if (this.enviandoPreRegistro || this.registroTerminado) return;
+
+  this.errorEnvioPreRegistro = '';
     this.enviandoPreRegistro = true;
     const pasoInvalido = this.primerPasoInvalido();
     if (pasoInvalido !== null) {
@@ -2180,9 +2171,7 @@ export class PreRegistroComponent {
       return;
     }
     this.nombreComercioRegistrado = this.nombreComercioDelNodoPadre(payload);
-    this.envioPreRegistroRealizado = true;
-    try { localStorage.setItem(this.intentoKey, 'enviado'); } catch { /* bloqueo en memoria */ }
-    this.guardarBorradorSilencioso();
+this.guardarBorradorSilencioso();
     this.preregistroCompletoService.enviarPreRegistro(solicitud).subscribe({
       next: response => {
         if (response?.success === true) {
@@ -2893,12 +2882,10 @@ export class PreRegistroComponent {
   cerrarAyuda(): void { this.mostrarAyuda = false; }
 
   reiniciarFlujo(): void {
-    if (this.enviandoPreRegistro || (this.envioPreRegistroRealizado && !this.registroTerminado)) {
-      this.mostrarErrorPreRegistro('Verifica el estado de la solicitud enviada con soporte antes de iniciar otro registro.');
-      return;
-    }
-    this.envioPreRegistroRealizado = false;
-    try { localStorage.removeItem(this.intentoKey); } catch { /* no-op */ }
+ if (this.enviandoPreRegistro) {
+  return;
+}
+    
     this.invalidarComprobanteAfiliacion();
     this.documentosPorNodo = {};
     this.referrerNodeId = null;
@@ -2940,7 +2927,6 @@ export class PreRegistroComponent {
         pasoActual: this.pasoActual,
         pasosCompletados: [...this.pasosCompletados],
         registroTerminado: this.registroTerminado,
-        envioPreRegistroRealizado: this.envioPreRegistroRealizado,
         afiliacion: this.afiliacionForm.getRawValue(),
         referrerNodeId: this.referrerNodeId,
         comercio: this.comercioForm.getRawValue(),
@@ -2992,8 +2978,7 @@ export class PreRegistroComponent {
       }
       this.pasosCompletados = new Set(draft.pasosCompletados ?? []);
       this.registroTerminado = draft.registroTerminado ?? false;
-      this.envioPreRegistroRealizado = draft.envioPreRegistroRealizado ?? this.registroTerminado;
-      this.nombreComercioRegistrado = draft.registroTerminado && draft.payload
+     this.nombreComercioRegistrado = draft.registroTerminado && draft.payload
         ? this.nombreComercioDelNodoPadre(draft.payload)
         : '';
       if (this.registroTerminado) { this.pasoActual = 5; this.pasosCompletados.add(5); }

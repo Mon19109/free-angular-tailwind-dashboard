@@ -1,8 +1,6 @@
 <main class="preregistro-shell">
   @if (errorCatalogos) { <p role="alert">{{ errorCatalogos }}</p> }
-  @if (envioPreRegistroRealizado && !enviandoPreRegistro && !registroTerminado) {
-    <p role="alert">La solicitud ya fue enviada. Verifica su estado con soporte antes de intentar otro registro para evitar duplicados.</p>
-  }
+  
   @if (enviandoPreRegistro) {
   <div class="processing-overlay" role="status" aria-live="polite">
     <div class="processing-card">
