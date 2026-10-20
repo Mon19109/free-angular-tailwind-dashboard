@@ -12,7 +12,7 @@ export class AuthGuard implements CanActivate, CanActivateChild {
   canActivateChild(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot) { return this.check(route); }
   private check(route: ActivatedRouteSnapshot) {
     return this.auth.validarSesion().pipe(map(session => {
-      if (!session.authenticated) {
+      if (!session.authenticated || !this.auth.hasValidSession()) {
         return this.timeout.mostrarModal() ? false : this.router.createUrlTree(['/']);
       }
       const roles = route.data['roles'] as number[] | undefined;

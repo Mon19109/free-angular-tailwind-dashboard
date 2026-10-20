@@ -1,9 +1,11 @@
 import { DestroyRef, Injectable, NgZone, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { NavigationEnd, Router } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from './auth.service';
 import { SessionRefreshService } from './session-refresh.service';
 import { SESSION_WARNING_MS } from './session-expiration';
+
 @Injectable({ providedIn: 'root' })
 export class SessionTimeoutService {
   private readonly auth = inject(AuthService);
@@ -25,53 +27,87 @@ export class SessionTimeoutService {
   iniciar(): void {
     if (this.started) return;
     this.started = true;
-    this.auth.authStatus$.subscribe(() => { this.expiresAt = this.auth.getSessionExpiry(); this.validarOProgramar(); });
+    this.auth.authStatus$.pipe(takeUntilDestroyed(this.destroy)).subscribe(active => {
+      const anterior = this.expiresAt;
+      this.expiresAt = this.auth.getSessionExpiry();
+      if (active) {
+        this.mostrarModal.set(false);
+        this.validarOProgramar();
+      } else {
+        this.clearTimer(); this.cancelarRenovacion(); this.mostrarAviso.set(false);
+        if (anterior && this.esPortal()) this.mostrarModal.set(true);
+      }
+    });
+    this.router.events.pipe(filter(event => event instanceof NavigationEnd), takeUntilDestroyed(this.destroy)).subscribe(() => {
+      if (!this.esPortal()) this.mostrarModal.set(false);
+      this.validarOProgramar();
+    });
     window.addEventListener('focus', this.revisar);
     document.addEventListener('visibilitychange', this.revisar);
     this.destroy.onDestroy(() => {
       window.removeEventListener('focus', this.revisar);
       document.removeEventListener('visibilitychange', this.revisar);
-      this.clearTimer(); this.refreshSub?.unsubscribe();
+      this.clearTimer(); this.cancelarRenovacion();
     });
-    this.auth.validarSesion().subscribe(s => { if (s.authenticated) this.setExpiresAt(s.expiresAt); });
+    // Los guards consultan /me al entrar al portal; prerregistro no necesita sesión.
+    if (this.esPortal()) this.auth.validarSesion().subscribe();
+  }
+  private esPortal(): boolean {
+    let route = this.router.routerState.snapshot.root;
+    while (route) {
+      if (route.data?.['sessionTimeout'] === true) return true;
+      if (!route.firstChild) break;
+      route = route.firstChild;
+    }
+    return false;
   }
   private readonly revisar = () => this.zone.run(() => this.validarOProgramar());
-  private clearTimer() { if (this.timer) clearTimeout(this.timer); this.timer = undefined; }
-  private setExpiresAt(expiresAt?: number) { this.expiresAt = expiresAt || 0; this.validarOProgramar(); }
+  private clearTimer(): void { if (this.timer) clearTimeout(this.timer); this.timer = undefined; }
+  private cancelarRenovacion(): void { this.refreshSub?.unsubscribe(); this.refreshSub = undefined; this.renovando.set(false); }
   private validarOProgramar(): void {
     this.clearTimer();
-    if (!this.auth.hasValidSession()) { this.mostrarAviso.set(false); return; }
+    if (!this.expiresAt) { this.mostrarAviso.set(false); return; }
     const remaining = this.expiresAt - Date.now();
-    if (remaining <= 0) { this.expirar(); return; }
+    // Comprobar vencimiento antes de hasValidSession(), que ya devuelve false al expirar.
+    if (remaining <= 0) { this.informarVencimiento(); return; }
     this.segundosRestantes.set(Math.ceil(remaining / 1000));
-    this.mostrarAviso.set(remaining <= SESSION_WARNING_MS);
+    this.mostrarAviso.set(this.esPortal() && remaining <= SESSION_WARNING_MS);
     this.timer = setTimeout(() => this.zone.run(() => this.validarOProgramar()),
       remaining > SESSION_WARNING_MS ? remaining - SESSION_WARNING_MS : Math.min(1000, remaining));
   }
   validarVencimiento(_entradaAlPortal = false): void { this.validarOProgramar(); }
-  private expirar(): void {
-    this.clearTimer(); this.refreshSub?.unsubscribe(); this.mostrarAviso.set(false);
-    this.auth.clearSession(); this.mostrarModal.set(true);
-    // Redis aplica el vencimiento aunque el usuario no acepte el modal.
+  informarVencimiento(): void {
+    const teniaSesion = !!this.expiresAt || !!this.auth.getSessionExpiry();
+    this.clearTimer(); this.cancelarRenovacion(); this.mostrarAviso.set(false);
+    this.expiresAt = 0;
+    this.auth.clearSession();
+    if (teniaSesion && this.esPortal()) this.mostrarModal.set(true);
   }
   mantenerSesion(): void {
-    if (!this.mostrarAviso() || this.renovando()) return;
+    this.validarOProgramar();
+    if (!this.mostrarAviso() || this.renovando() || !this.auth.hasValidSession()) return;
     this.renovando.set(true); this.errorRenovacion.set('');
     this.refreshSub = this.refresh.renovar().subscribe({
       next: result => {
         this.renovando.set(false);
         if (!result.success || !result.authenticated || !result.expiresAt) {
-          this.errorRenovacion.set(result.message || 'No fue posible renovar la sesión.'); return;
+          this.informarVencimiento(); return;
         }
-        this.auth.validarSesion().subscribe(s => this.setExpiresAt(s.expiresAt));
+        this.auth.actualizarSesion(result);
       },
-      error: () => { this.renovando.set(false); this.errorRenovacion.set('No fue posible renovar la sesión.'); }
+      error: error => {
+        this.renovando.set(false);
+        if (error.status === 401) this.informarVencimiento();
+        else this.errorRenovacion.set('No fue posible renovar la sesión. Intenta nuevamente antes de que venza.');
+      }
     });
   }
   cerrarSesion(): void {
-    this.refreshSub?.unsubscribe(); this.clearTimer();
-    this.auth.logout().subscribe(); this.mostrarAviso.set(false); this.mostrarModal.set(false);
-    this.router.navigate(['/']);
+    this.cancelarRenovacion();
+    this.auth.logout().subscribe({
+      next: () => { this.clearTimer(); this.mostrarAviso.set(false); this.aceptarCierreSesion(); },
+      error: () => { this.errorRenovacion.set('No fue posible cerrar la sesión en el servidor. Intenta nuevamente.'); }
+    });
   }
   aceptarCierreSesion(): void { this.mostrarModal.set(false); this.router.navigate(['/']); }
 }

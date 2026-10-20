@@ -1,0 +1,106 @@
+INTEGRACIÓN LOGIN ANGULAR — BFF 88a75b3
+
+Rama Angular: seguridad. Sin commit, push, cambios BFF ni despliegue.
+Contrato leído de src/routes/auth.routes.js, src/services/login.service.js y
+src/middlewares/private-write.middleware.js del BFF local.
+
+CAMBIOS
+- AuthService: login/SMS/me/logout relativos; estado únicamente en memoria;
+  lista de campos safeUser; protección frente a respuestas antiguas de /me;
+  eliminación de credenciales legacy sin leerlas ni borrar datos de prerregistro.
+- Interceptor: cookie del navegador y X-Portal-Request: 1 para escrituras bajo
+  /api/auth/ y /api/account/. Elimina Authorization en estas rutas. No altera
+  prerregistro ni APIs legacy. Origin y Sec-Fetch-Site los genera el navegador.
+- Reexports en services/auth-token.interceptor.ts, session-expiration.interceptor.ts
+  y session-expiration.ts corrigen imports rotos sin modificar consumidores públicos.
+- AuthGuard: valida /me y vigencia; canActivateChild protege las rutas del layout
+  privado. Prerregistro, seguimiento público y login conservan sus rutas externas.
+  Esto no concede permisos de comercios ni monta/habilita rutas privadas en Node.
+- LoginComponent: formulario visible, SMS solo permite navegación con sesión
+  authenticated vigente, errores diferenciados, contraseña/código limpiados al
+  autenticar. No registra errores completos ni tokens en consola.
+  Reenvío conserva la operación existente de repetir login: no hay endpoint
+  separado de reenviar SMS en el contrato BFF.
+- SessionTimeoutService: usa expiresAt servidor, aviso final de 20 segundos,
+  expiración antes de comprobar hasValidSession, modal solo en portal privado,
+  revisión al recuperar foco, cancelación de refresh pendiente al vencer.
+  Refresh solo al confirmar; sin accessToken/refreshToken en cuerpo ni headers.
+- Logout espera confirmación del servidor; en fallo permite reintentar en lugar
+  de afirmar que se cerró la cookie HttpOnly. El menú usa el usuario en memoria
+  y ya no hace localStorage.clear()/sessionStorage.clear() que borraban prerregistro.
+
+VERIFICACIONES
+- ng build --configuration production: correcto. Advertencias existentes de
+  tamaño inicial (5.66 MB frente al aviso de 4 MB), imports no usados y CommonJS.
+- 32 pruebas seleccionadas correctas con Karma/ChromeHeadless y HTTP simulado.
+- Pruebas de AuthService, LoginComponent y guards; SessionTimeoutService actualizado
+  al contrato sin tokens; suite existente de catálogos públicos del prerregistro.
+- tsconfig.auth.spec.json aísla estas pruebas. El tsconfig general incluye un
+  spec antiguo de PreRegistroComponent que referencia envioPreRegistroRealizado,
+  propiedad que ya no existe. No se modificó ese test ni el componente.
+- No se ejecutaron solicitudes reales al BFF ni a APIs de negocio.
+- El sandbox abortó build/tests con código 134; se ejecutaron correctamente fuera
+  de él con autorización. ChromeHeadless se descargó en una carpeta temporal,
+  sin modificar package.json ni package-lock.json.
+
+REPRODUCIR PRUEBAS
+Configurar CHROME_BIN con un Chrome/ChromeHeadless disponible y ejecutar:
+ng test --watch=false --browsers=ChromeHeadless --ts-config=tsconfig.auth.spec.json --include=src/app/services/auth.service.spec.ts --include=src/app/services/session-timeout.service.spec.ts --include=src/app/guards/auth-guard.spec.ts --include=src/app/pages/login/login.component.spec.ts --include=src/app/services/preregistro-catalogos-http.service.spec.ts
+
+PENDIENTES PARA NAVEGADOR DETRÁS DE APACHE
+1. Desplegar posteriormente el BFF 88a75b3 con Redis disponible y configuración
+   de autenticación válida. Esta tarea no despliega ni modifica ese repositorio.
+2. Enrutar /api/auth/ y /api/account/ al BFF localhost:3000 antes del fallback SPA
+   y de proxies genéricos de /api. Mantener las reglas actuales de prerregistro.
+3. Servir Angular y estas rutas desde el mismo origen HTTPS del portal.
+   Apache debe preservar Host y establecer correctamente X-Forwarded-Proto=https;
+   el BFF confía solo en proxy loopback. PORTAL_PUBLIC_ORIGIN debe coincidir con
+   el origen real, sin ruta ni slash final. No simular Origin/Fetch Metadata en JS.
+4. Verificar cookie __Host-portal.sid: Secure, HttpOnly, SameSite=Strict, Path=/.
+   Sin HTTPS la cookie no funcionará. No se lee mediante document.cookie.
+5. Permitir geolocalización (requisito ya existente), usar una cuenta de pruebas
+   y confirmar entrega SMS. El BFF espera que la operación upstream correspondiente
+   gestione el envío SMS; no tiene un endpoint independiente de reenvío.
+6. Probar login -> SMS incorrecto/correcto -> dashboard -> recarga (/me) -> aviso
+   -> refresh -> logout; confirmar que no se devuelvan tokens al navegador.
+   Las credenciales que el usuario escribe sí viajan en el cuerpo HTTPS del login;
+   el objetivo es que los tokens OAuth no salgan del servidor.
+7. Probar expiración, cookie ausente, 401, origen rechazado y fallo de Redis.
+   Revisar sesión simultánea en varias pestañas: la coordinación de refresh
+   concurrente continúa siendo responsabilidad pendiente del BFF.
+8. No interpretar el guard Angular como autorización de comercio. Consulta,
+   registro, documentos y otros módulos legacy siguen pendientes de migración.
+   Dashboard y otras pantallas pueden fallar al consultar sus APIs antiguas con
+   una sesión exclusivamente HttpOnly; no se restauran tokens para hacerlas funcionar.
+
+SERVICIOS LEGACY DETECTADOS (NO MODIFICADOS NI MIGRADOS)
+src/app/services/operacionesadquirencia.service.ts
+src/app/services/usuarios.service.ts
+src/app/services/prospecto-cliente.service.ts
+src/app/services/addlinkpago.service.ts
+src/app/services/documentos-prospecto.service.ts
+src/app/services/consulta-comercios.service.ts
+src/app/services/detalleLinkpago.service.ts
+src/app/services/activar-prospecto.service.ts
+src/app/services/agregar-nivel-comercio.service.ts
+src/app/services/pagoDistancia.service.ts
+src/app/services/reportes.service.ts
+src/app/services/merchant-update-data.service.ts
+src/app/services/siprelad.service.ts
+src/app/services/cuenta-comercio.service.ts
+src/app/services/nuevoLinkPago.service.ts
+src/app/services/beneficiarios.service.ts
+src/app/services/operacionesemision.service.ts
+src/app/services/OrdenPago.service.ts
+src/app/services/estado-cuenta.service.ts
+src/app/services/dashboard.service.ts
+src/app/services/arbol-nodos.service.ts
+src/app/services/transaccionesemision.service.ts
+src/app/services/aclaraciones.servises.ts
+src/app/services/transaccionesadquirencia.service.ts
+
+También src/app/services/login.service.ts conserva código de autenticación legacy
+con credenciales de integración y persistencia local; LoginComponent usa AuthService,
+no este servicio. Revisar sus consumidores antes de retirarlo.
+El bundle global todavía contiene configuraciones/servicios legacy ajenos a esta
+migración. No se afirma que toda la aplicación esté libre de tokens fijos.

@@ -207,8 +207,8 @@ export class LoginComponent implements OnInit {
       })
     ).subscribe({
       next: (result: any) => {
-        if (result.success) {
-          this.authService.completeSmsValidation();
+        if (result.success && result.authenticated && this.authService.hasValidSession()) {
+          this.loginForm.controls['passwordLogin'].reset();
           this.router.navigate(['/dashboard']);
           this.errorMessage = '';
           this.tokenValue = '';
@@ -219,15 +219,15 @@ export class LoginComponent implements OnInit {
           this.showTokenModal = true;
           this.tokenErrorMessage = 'Código incorrecto';
           this.mostrarReenvioToken = true;
-          console.error('Token error3:', this.getErrorMessage(result.idUser, result.message));
 
         }
       },
       error: (error: any) => {
         this.showTokenModal = true;
-        this.tokenErrorMessage = 'Código incorrecto';
-        this.mostrarReenvioToken = true;
-        console.error('Error al validar SMS');
+        this.tokenErrorMessage = error.status === 401 ? 'La validación SMS venció. Solicita un nuevo código.'
+          : error.status === 429 ? 'Demasiados intentos. Espera un minuto e intenta nuevamente.'
+          : error.status === 400 ? 'Código incorrecto' : 'No fue posible validar el código. Intenta nuevamente.';
+        this.mostrarReenvioToken = error.status === 401;
         
       }
     });
@@ -274,24 +274,20 @@ export class LoginComponent implements OnInit {
         } else {
           this.errorMessage = this.getErrorMessage(result.idUser, result.message);
           if (esReenvio) this.tokenErrorMessage = this.errorMessage;
-          console.error('Login error3:', this.errorMessage);
 
         }
       },
       error: (error: any) => {
         if (error.status === 0) {
           this.errorMessage = 'No se ha podido establecer conexión con el servidor.';
-          console.error('Login error:', error);
         } else if (error.status === 500 || error.status === 503) {
           this.errorMessage = 'Estamos teniendo complicaciones para atender tu solicitud. Intenta más tarde.';
-          console.error('Login error:', error);
         } else if (error.status == 401) {
           this.errorMessage = 'Correo o contraseña incorrectos.';
-          console.error('Login error:', error);
         } else {
-          this.errorMessage = error.message || 'No fue posible iniciar sesión. Verifica tus datos e intenta nuevamente.';
-          console.error('Login error:', error);
-          console.error('Login error2:', error.message);
+          this.errorMessage = error.status === 429 ? 'Demasiados intentos. Espera un minuto e intenta nuevamente.'
+            : error.status === 403 ? 'No fue posible validar el origen de la solicitud. Accede desde el portal HTTPS.'
+            : 'No fue posible iniciar sesión. Intenta nuevamente.';
 
         }
         if (esReenvio) this.tokenErrorMessage = this.errorMessage;

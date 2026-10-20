@@ -15,8 +15,10 @@ export class UserDropdownComponent {
   //user: UserSessionData | null = null;
 
   isOpen = false;
-  readonly userEmail = this.getUserEmail();
-  readonly userRole = this.getUserRole();
+  get userEmail(): string { return this.authService.getUserData().mail || 'USUARIO'; }
+  cerrandoSesion = false;
+  errorCierre = '';
+  get userRole(): string { return this.getRoleName(Number(this.authService.getUserData().idRol)); }
 
   constructor(
     private authService: AuthService,
@@ -33,56 +35,13 @@ export class UserDropdownComponent {
 
   signOut(event?: Event) {
     event?.preventDefault();
-    this.closeDropdown();
+    if (this.cerrandoSesion) return;
+    this.cerrandoSesion = true;
+    this.errorCierre = '';
     this.authService.logout().subscribe({
-      next: () => this.finishSignOut(),
-      error: () => this.finishSignOut()
+      next: () => { this.cerrandoSesion = false; this.closeDropdown(); this.router.navigate(['/']); },
+      error: () => { this.cerrandoSesion = false; this.errorCierre = 'No fue posible cerrar la sesión. Intenta nuevamente.'; }
     });
-  }
-
-  private finishSignOut() {
-    localStorage.clear();
-    sessionStorage.clear();
-    this.router.navigate(['/']);
-  }
-
-  private getUserEmail(): string {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession);
-        return session?.mail || session?.email || localStorage.getItem('mail') || 'USUARIO';
-      } catch {
-        return localStorage.getItem('mail') || 'USUARIO';
-      }
-    }
-
-    return localStorage.getItem('mail') || 'USUARIO';
-  }
-
-  private getUserRole(): string {
-    const session = this.getSessionData();
-    const idRol = Number(session?.idRol ?? localStorage.getItem('idRol') ?? 0);
-    const idBusinessModel = Number(session?.idBusinessModel ?? localStorage.getItem('idBusinessModel') ?? 0);
-    const roleName = this.getRoleName(idRol);
-    const typeName = this.getBusinessModelName(idBusinessModel);
-
-    return typeName ? `${roleName} - ${typeName}` : roleName;
-  }
-
-  private getSessionData(): any {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (!rawSession) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(rawSession);
-    } catch {
-      return null;
-    }
   }
 
   private getRoleName(idRol: number): string {

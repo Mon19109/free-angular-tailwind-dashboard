@@ -159,6 +159,7 @@ export const routes: Routes = [
   {
     path:'',
     component:AppLayoutComponent,
+    canActivateChild: [AuthGuard],
     data: { sessionTimeout: true },
     children:[
       {
