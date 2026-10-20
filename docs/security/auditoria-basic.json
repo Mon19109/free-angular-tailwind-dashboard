@@ -1,0 +1,90 @@
+{
+  "distinctBasicCredentials": 2,
+  "occurrences": [
+    {
+      "file": "src/app/services/OrdenPago.service.ts",
+      "line": 22,
+      "method": "getCommonHeaders",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/cajas.service.ts",
+      "line": 30,
+      "method": "getCommonHeaders",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/entidades.service.ts",
+      "line": 30,
+      "method": "getCommonHeaders",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/estado-cuenta.service.ts",
+      "line": 28,
+      "method": "getCommonHeaders",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/login.service.ts",
+      "line": 155,
+      "method": "login",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/login.service.ts",
+      "line": 316,
+      "method": "getBalance",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/login.service.ts",
+      "line": 330,
+      "method": "getCommonHeadersToken",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/operacionesadquirencia.service.ts",
+      "line": 128,
+      "method": "getCommonHeaders",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/saldos.service.ts",
+      "line": 18,
+      "method": "getSaldo",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/saldos.service.ts",
+      "line": 32,
+      "method": "getDetalleSaldo",
+      "kind": "code"
+    },
+    {
+      "file": "src/app/services/sucursales.service.ts",
+      "line": 30,
+      "method": "getCommonHeaders",
+      "kind": "code"
+    }
+  ],
+  "bundles": [
+    {
+      "file": "main-UZM3J7BQ.js",
+      "basicCredentialOccurrences": 8,
+      "credentials": [
+        {
+          "id": "BASIC-1",
+          "withBasicPrefix": 8
+        },
+        {
+          "id": "BASIC-2",
+          "withBasicPrefix": 0
+        }
+      ],
+      "getBalance": 5,
+      "getTotalsReport": 0,
+      "bffBalance": 2
+    }
+  ]
+}

@@ -129,13 +129,7 @@ export class TransaccionesAdquirenciaService {
   //private wsKashPayServices = environment.api.kashpay;
   private baseUrlTicket = environment.api.voucher; // Tu base URLAdquirenciaAdquirencia
 
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
-    });
-  }
+
 
   private getBearerHeaders(): HttpHeaders {
     const token = this.getStoredToken();
@@ -163,13 +157,7 @@ export class TransaccionesAdquirenciaService {
   }
 
   // Catalogos
- /* getOperaciones(): Observable<any> {
-    const headers = this.getCommonHeaders();
-    return this.http.get(`${this.baseUrl}/transacciones/getOperaciones`, { 
-          headers: headers,
-          withCredentials: true
-        });
-  }*/
+
 
 
 getOperaciones(): Observable<any> {

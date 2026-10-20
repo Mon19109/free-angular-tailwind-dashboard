@@ -25,16 +25,10 @@ export interface FormularioData {
 export class TarjetaService {
   private apiUrlCuentas = environment.api.aldebaran;
 
-  
+
   constructor(private http: HttpClient) { }
 
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
-    });
-  }
+
   /**
    * Obtiene la lista de cuentas del API
    */
@@ -63,7 +57,7 @@ export class TarjetaService {
    */
   enviarFormularioComoParams(formData: FormularioData): Observable<any> {
     let params = new HttpParams();
-    
+
     if (formData.tarjeta) params = params.set('cuenta', formData.tarjeta);
     if (formData.entidad) params = params.set('estatus', formData.entidad);
 

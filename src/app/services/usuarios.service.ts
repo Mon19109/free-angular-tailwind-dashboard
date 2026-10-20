@@ -31,13 +31,7 @@ export class UsuariosService {
 
   constructor(private http: HttpClient) { }
 
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
-    });
-  }
+
 
   private getBearerHeaders(extraHeaders: Record<string, string> = {}): HttpHeaders {
     const token = this.getStoredToken();
@@ -85,7 +79,7 @@ export class UsuariosService {
   /* enviarFormulario(formData: FormularioData): Observable<any> {
      let value1;
      let value2;
- 
+
      if (formData.typeSearch == '0'){
        value1 = formData.value1F ? new Date(formData.value1F).toISOString() : null;
        value2= formData.value2F ? new Date(formData.value2F).toISOString() : null
@@ -97,16 +91,16 @@ export class UsuariosService {
      const datosTransformados = {
        ...formData,
        // Convertir fechas al formato deseado si es necesario
-       
+
        value1F: value1,
        value2F: value2
      };
- 
+
      //getOperations?type_operation='.$_GET['type_operation'].'&id_status='.$_GET['id_status'].'&sirioId='.$_GET['id_context'].'&amount='.$_GET['amount'].'&auth_number='.$_GET['auth_number'].'&num_cuenta='.$_GET['num_cuenta'].'&init_date='.$_GET['init_date'].'&end_date='.$_GET['end_date'].'&email='.$_GET['email'].'&telephoneNumber='.$_GET['telephoneNumber'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE;
      //getUsersBy?sirioId='.$_GET['id_context'].'&type='.$_GET['type'].'&value1='.$_GET['value1'].'&value2='.$_GET['value2'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGEgetUsersBy?sirioId='.$_GET['id_context'].'&type='.$_GET['type'].'&value1='.$_GET['value1'].'&value2='.$_GET['value2'].'&page='.$pageURL.'&size='.NUM_ITEMS_BY_PAGE
     // return this.http.get(`${this.apiAldebaran}getUsersBy?sirioId==${formData.entidad}&type=${formData.typeSearch}&value1=${formData.value1F}&value2=${formData.value2F}&page=1&size=10`);
      return this.http.get(`${this.apiAldebaran}getUsersBy?sirioId=${formData.entidad}&type=${formData.typeSearch}&value1=${formData.value1F}&value2=${formData.value2F}&page=1&size=10`);
-   
+
    }*/
   enviarFormulario(
     formData: FormularioData,

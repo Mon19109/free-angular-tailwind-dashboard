@@ -47,16 +47,10 @@ export class TransaccionesEmisionService {
   private apiAldebaran = environment.api.aldebaran;
   //private cuen = localStorage.getItem('issueId');
 
-  
+
   constructor(private http: HttpClient) { }
 
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
-    });
-  }
+
 
   private getBearerHeaders(): HttpHeaders {
     const token = this.getStoredToken();
@@ -87,10 +81,9 @@ export class TransaccionesEmisionService {
    */
 
   obtenerCuentas(): Observable<Cuenta[]> {
-    //const headers = this.getCommonHeaders();
-    
+
     return this.http.get<any>(`${this.apiAldebaran}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
-        
+
   }
 
   /**
@@ -99,32 +92,22 @@ export class TransaccionesEmisionService {
   obtenerTiposOperacion(): Observable<TipoOperacion[]> {
     //return this.http.get<TipoOperacion[]>(`${this.apiUrl}catOperationType/getAll`);
     const headers = this.getBearerHeaders();
-    /*const headers = new HttpHeaders()
-      .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
 
-
-    return this.http.get<any>(`${this.apiAldebaran}catOperationType`, 
-      {headers})
-     .pipe(
-        map(response => response.catOperationTypes) 
-        
-        // Extraer el arreglo
-      );*/
 
       return this.http.post<any>(`${this.apiAldebaran}catOperationType`, {}, { headers });
-    
-    
+
+
   }
 
 
-  
+
   obtenerStatus(): Observable<Status[]> {
 
     return this.http.get<any>(`${this.apiAldebaran}catStatusOperations`, {
       headers: this.getBearerHeaders()
     });
 
-    
+
   }
 
   /**
@@ -158,13 +141,13 @@ export class TransaccionesEmisionService {
    */
   enviarFormularioComoParams(formData: FormularioData): Observable<any> {
     let params = new HttpParams();
-    
+
     if (formData.cuenta) params = params.set('cuenta', formData.cuenta);
     if (formData.estatus) params = params.set('estatus', formData.estatus);
     if (formData.tipoOperacion) params = params.set('tipoOperacion', formData.tipoOperacion);
     if (formData.fechaInicio) params = params.set('fechaInicio', formData.fechaInicio);
     if (formData.fechaFin) params = params.set('fechaFin', formData.fechaFin);
-    
+
     return this.http.get(`${this.apiAldebaran}/consultas`, { params });
   }
 
