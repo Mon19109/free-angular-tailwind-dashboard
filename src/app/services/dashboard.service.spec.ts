@@ -41,4 +41,21 @@ describe('DashboardService', () => {
     }
     http.expectNone(() => true);
   });
+  it('rechaza un cuerpo vacío sin producir saldo o cuenta simulados', () => {
+    service.getBalanceSirio().subscribe({
+      next: () => fail('El cuerpo vacío no cumple el contrato BFF'),
+      error: error => expect(error.message).toBe('Respuesta de cuenta no válida')
+    });
+    http.expectOne('/api/account/balance').flush(null);
+  });
+  it('propaga errores del backend sin convertirlos en resultados vacíos', () => {
+    service.getBalanceSirio().subscribe({
+      next: () => fail('El backend no respondió correctamente'),
+      error: error => expect(error.status).toBe(502)
+    });
+    http.expectOne('/api/account/balance').flush({ success: false }, {
+      status: 502, statusText: 'Bad Gateway'
+    });
+  });
+
 });
