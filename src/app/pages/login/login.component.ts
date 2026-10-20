@@ -81,9 +81,9 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    if (this.authService.hasValidSession()) {
-      this.router.navigate(['/dashboard']);
-    }
+    this.authService.validarSesion().subscribe(s => {
+      if (s.authenticated) this.router.navigate(['/dashboard']);
+    });
     this.authService.obtenerIp().subscribe({
       next: ip => { this.ip = ip; this.errorIp = false; },
       error: () => { this.errorIp = true; }
@@ -227,7 +227,7 @@ export class LoginComponent implements OnInit {
         this.showTokenModal = true;
         this.tokenErrorMessage = 'Código incorrecto';
         this.mostrarReenvioToken = true;
-        console.error('Token error:', error);
+        console.error('Error al validar SMS');
         
       }
     });
