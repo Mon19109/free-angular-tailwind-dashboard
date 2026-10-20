@@ -5,6 +5,8 @@ import { Observable, map, throwError } from 'rxjs';
 export interface AccountBalanceResponse {
   success: true;
   virtualAccount: string | null;
+  balance: number | null;
+  customerNetworkBalance: number | null;
 }
 
 export class DashboardContractPendingError extends Error {
@@ -23,8 +25,20 @@ export class DashboardService {
           (response.virtualAccount !== null && typeof response.virtualAccount !== 'string')) {
         throw new Error('Respuesta de cuenta no válida');
       }
-      // Este contrato entrega una cuenta, no importes de saldo.
-      return { success: true as const, virtualAccount: response.virtualAccount };
+      const amount = (value: unknown): number | null => {
+        // Compatibilidad con respuestas anteriores: ausente no significa cero.
+        if (value === null || value === undefined) return null;
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+          throw new Error('Respuesta de saldo no válida');
+        }
+        return value;
+      };
+      return {
+        success: true as const,
+        virtualAccount: response.virtualAccount,
+        balance: amount(response.balance),
+        customerNetworkBalance: amount(response.customerNetworkBalance)
+      };
     }));
   }
 

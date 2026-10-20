@@ -1,5 +1,5 @@
 <div class="dashboard-shell">
-  <p role="status" class="mb-4">Los importes de Emisión, Adquirencia, Reserva y el reporte están pendientes de integración con el BFF.</p>
+  <p role="status" class="mb-4">Los importes de Emisión, Reserva y el reporte están pendientes de integración con el BFF.</p>
   <p *ngIf="accountState() === 'error'" role="alert">No fue posible consultar la cuenta. Intenta nuevamente más tarde.</p>
   <div class="grid grid-cols-12 gap-4 md:gap-6">
     <div class="col-span-12 space-y-6">
@@ -44,14 +44,14 @@
               (mouseenter)="setHoveredAdquirenciaBalance('available')"
             >
               <span>Saldo Disponible:</span>
-              <strong class="positive">{{ money(adquirenciaAvailable) }}</strong>
+              <strong class="positive">{{ accountState() === 'loading' ? 'Cargando…' : money(adquirenciaAvailable) }}</strong>
             </div>
             <div
               class="balance-option"
               (mouseenter)="setHoveredAdquirenciaBalance('pending')"
             >
               <span>Saldo Pendiente:</span>
-              <strong class="highlight">{{ money(adquirenciaPending) }}</strong>
+              <strong class="highlight">{{ accountState() === 'loading' ? 'Cargando…' : money(adquirenciaPending) }}</strong>
             </div>
           </div>
 
@@ -66,7 +66,7 @@
             ></span>
             <span class="donut-hole">
               <span class="donut-label">{{ hoveredAdquirenciaLabel }}</span>
-              <span class="donut-amount">{{ money(hoveredAdquirenciaAmount) }}</span>
+              <span class="donut-amount">{{ accountState() === 'loading' ? 'Cargando…' : money(hoveredAdquirenciaAmount) }}</span>
             </span>
           </div>
         </div>

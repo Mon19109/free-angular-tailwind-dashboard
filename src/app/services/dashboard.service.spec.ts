@@ -15,7 +15,7 @@ describe('DashboardService', () => {
   it('should be created', () => expect(service).toBeTruthy());
   it('consulta la cuenta mediante cookie y ruta relativa, sin credenciales ni IDs', () => {
     spyOn(Storage.prototype, 'getItem').and.throwError('No leer almacenamiento');
-    service.getBalanceSirio().subscribe(value => expect(value).toEqual({ success: true, virtualAccount: 'cuenta-prueba' }));
+    service.getBalanceSirio().subscribe(value => expect(value).toEqual({ success: true, virtualAccount: 'cuenta-prueba', balance: 123, customerNetworkBalance: null }));
     const request = http.expectOne('/api/account/balance');
     expect(request.request.withCredentials).toBeTrue();
     expect(request.request.method).toBe('GET');
@@ -56,6 +56,36 @@ describe('DashboardService', () => {
     http.expectOne('/api/account/balance').flush({ success: false }, {
       status: 502, statusText: 'Bad Gateway'
     });
+  });
+
+  it('conserva importes decimales, cero y null sin sustituirlos', () => {
+    for (const balances of [
+      { balance: 1500.50, customerNetworkBalance: 250.75 },
+      { balance: 0, customerNetworkBalance: null },
+      { balance: null, customerNetworkBalance: 0 }
+    ]) {
+      service.getBalanceSirio().subscribe(value => {
+        expect(value.balance).toBe(balances.balance);
+        expect(value.customerNetworkBalance).toBe(balances.customerNetworkBalance);
+      });
+      http.expectOne('/api/account/balance').flush({ success: true, virtualAccount: null, ...balances });
+    }
+  });
+  it('trata los importes ausentes como no disponibles', () => {
+    service.getBalanceSirio().subscribe(value => {
+      expect(value.balance).toBeNull();
+      expect(value.customerNetworkBalance).toBeNull();
+    });
+    http.expectOne('/api/account/balance').flush({ success: true, virtualAccount: null });
+  });
+  it('rechaza importes string o booleanos en cualquiera de los campos', () => {
+    for (const fields of [{ balance: '1500.50' }, { customerNetworkBalance: false }]) {
+      service.getBalanceSirio().subscribe({
+        next: () => fail('Tipo de importe inválido'),
+        error: error => expect(error.message).toBe('Respuesta de saldo no válida')
+      });
+      http.expectOne('/api/account/balance').flush({ success: true, virtualAccount: null, ...fields });
+    }
   });
 
 });

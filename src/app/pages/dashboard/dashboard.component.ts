@@ -21,6 +21,9 @@ import { DashboardService } from '../../services/dashboard.service';
 export class DashboardComponent {
   mostrarModalImagen = true;
   virtualAccount = signal<string | null>(null);
+  private readonly adquirencia = signal<BalanceAmounts>({
+    balance: null, customerNetworkBalance: null
+  });
   accountState = signal<'loading' | 'ready' | 'error'>('loading');
   readonly pendingMessage = 'Consulta pendiente de integración con el BFF.';
   readonly reportes = signal<ReportRow[]>([]);
@@ -49,8 +52,8 @@ export class DashboardComponent {
     this.hoveredAdquirenciaBalance = type;
   }
 
-  get adquirenciaAvailable(): number | null { return null; }
-  get adquirenciaPending(): number | null { return null; }
+  get adquirenciaAvailable(): number | null { return this.adquirencia().balance; }
+  get adquirenciaPending(): number | null { return this.adquirencia().customerNetworkBalance; }
 
   get hoveredAdquirenciaLabel(): string {
     return this.hoveredAdquirenciaBalance === 'available' ? 'Disponible' : 'Pendiente';
@@ -67,9 +70,14 @@ export class DashboardComponent {
   cargarDatosIniciales(): void {
     this.accountState.set('loading');
     this.virtualAccount.set(null);
+    this.adquirencia.set({ balance: null, customerNetworkBalance: null });
     this.dashService.getBalanceSirio().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         this.virtualAccount.set(response.virtualAccount);
+        this.adquirencia.set({
+          balance: response.balance,
+          customerNetworkBalance: response.customerNetworkBalance
+        });
         this.accountState.set('ready');
       },
       error: () => this.accountState.set('error')
