@@ -1,138 +1,42 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError, of } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
-import { environment } from '../environments/environments';
-//import { AuthService, UserSessionData } from '../services/auth.service';
+import { HttpClient } from '@angular/common/http';
+import { Observable, map, throwError } from 'rxjs';
 
-
-
-export interface BalanceSirioResponse {
-  balance: number;
-  saldoD: number;
-  SaldoP: number;
-  name: string;
+export interface AccountBalanceResponse {
+  success: true;
+  virtualAccount: string | null;
 }
 
-export interface BalanceAhorroResponse {
-  balance: number;
-  saldoD: number;
-  SaldoP: number;
-  name: string;
+export class DashboardContractPendingError extends Error {
+  constructor() { super('Consulta pendiente de integración con el BFF'); }
 }
-export interface BalanceAldebaranResponse {
-  balance: number;
-  saldoD: number;
-  SaldoP: number;
-  name: string;
-}
-export interface ReportesResponse {
-  balance: number;
-  saldoD: number;
-  SaldoP: number;
-  name: string;
-}
-@Injectable({
-  providedIn: 'root',
-})
 
-
+@Injectable({ providedIn: 'root' })
 export class DashboardService {
-  
-  private apiUrl = environment.api.saldos; 
-  private apiUrlAlde = environment.api.aldebaran; 
+  constructor(private http: HttpClient) {}
 
-  //user: UserSessionData | null = null;
-
-  constructor(private http: HttpClient) { }
-
-  private getSession(): any {
-    const rawSession = localStorage.getItem('auth_session');
-    return rawSession ? JSON.parse(rawSession) : {};
+  getBalanceSirio(): Observable<AccountBalanceResponse> {
+    return this.http.get<AccountBalanceResponse>('/api/account/balance', {
+      withCredentials: true
+    }).pipe(map(response => {
+      if (response?.success !== true ||
+          (response.virtualAccount !== null && typeof response.virtualAccount !== 'string')) {
+        throw new Error('Respuesta de cuenta no válida');
+      }
+      // Este contrato entrega una cuenta, no importes de saldo.
+      return { success: true as const, virtualAccount: response.virtualAccount };
+    }));
   }
 
-  private getEntityId(): string {
-    const session = this.getSession();
-    const idBusinessModel = Number(session.idBusinessModel || 0);
-
-    if (idBusinessModel === 1) {
-      return session.issueId;
-    }
-
-    if (idBusinessModel === 2 || idBusinessModel === 3) {
-      return session.acquiringId;
-    }
-
-    return session.issueId || session.acquiringId;
+  // No ejecutar APIs antiguas ni sustituir estas cuentas por la cuenta Sirio.
+  // Los contratos faltantes se detallan en docs/dashboard-integracion.txt.
+  getBalanceAhorro(): Observable<never> {
+    return throwError(() => new DashboardContractPendingError());
   }
-  
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
-    });
+  getBalanceAldebaran(): Observable<never> {
+    return throwError(() => new DashboardContractPendingError());
   }
-
-  getBalanceSirio(): Observable<any>{
-    
-    const session = this.getSession();
-    const entS = this.getEntityId();
-    /*
-    return this.http.get<BalanceResponse>(
-          `${this.wsSaldos}getBalance/${entS}`,
-          { headers }
-        ).pipe(
-          catchError(() => of({ virtualAccount: '' }))
-        );
-    */
-
-    const headers = new HttpHeaders()
-      .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-    if(session.reserveId){ 
-      return this.http.get<any>(`${this.apiUrl}getBalance/${entS}?includeSB=true`,{ headers });
-    }else{
-      return this.http.get<any>(`${this.apiUrl}getBalance/${entS}`,{ headers });
-    }
+  getReport(): Observable<never> {
+    return throwError(() => new DashboardContractPendingError());
   }
-
-  getBalanceAhorro(): Observable<any>{
-    const session = this.getSession();
-    const entS = this.getEntityId();
-   
-    const headers = new HttpHeaders()
-      .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-    if(session.reserveId){ 
-      return this.http.get<any>(`${this.apiUrl}getBalance/${entS}?includeSB=true`,{ headers });
-    }else{
-      return of([]);
-    }
-  }
-
-
-  getBalanceAldebaran(): Observable<any>{
-    
-    const headers = new HttpHeaders()
-      .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-    return this.http.get<any>(`${this.apiUrlAlde}getBalance/${this.getSession().issueId}`);
-  }
-
-  getReport(): Observable<any>{
-    
-    const headers = new HttpHeaders()
-      .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-
-    const entS = this.getEntityId();
-
-    return this.http.get<any>(`${this.apiUrl}${entS}/getTotalsReport`);
-  }
-
-
-
-
-  
-  
-  
- 
-  
 }

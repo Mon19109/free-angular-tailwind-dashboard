@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": [
+    "src/**/*.d.ts",
+    "src/app/services/auth.service.spec.ts",
+    "src/app/services/session-timeout.service.spec.ts",
+    "src/app/guards/auth-guard.spec.ts",
+    "src/app/pages/login/login.component.spec.ts",
+    "src/app/services/preregistro-catalogos-http.service.spec.ts",
+    "src/app/services/dashboard.service.spec.ts",
+    "src/app/pages/dashboard/dashboard.component.spec.ts"
+  ]
+}
