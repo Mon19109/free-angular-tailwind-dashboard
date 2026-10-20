@@ -7,7 +7,10 @@ import { AccountBalanceResponse, DashboardService } from '../../services/dashboa
 import { AuthService } from '../../services/auth.service';
 
 describe('DashboardComponent BFF', () => {
-  const service = { getBalanceSirio: (): Observable<AccountBalanceResponse> => of({ success: true, virtualAccount: 'cuenta-prueba', balance: null, customerNetworkBalance: null }) };
+  const service = {
+    getCapabilities: () => of({ success: true, emision: false, adquirencia: true, reserva: false }),
+    getReport: () => of({ success: true, rows: [] }),
+    getBalanceSirio: (): Observable<AccountBalanceResponse> => of({ success: true, virtualAccount: 'cuenta-prueba', balance: null, customerNetworkBalance: null }) };
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [
       { provide: DashboardService, useValue: service },
@@ -36,7 +39,7 @@ describe('DashboardComponent BFF', () => {
 
 
 describe('Peticiones al entrar al dashboard', () => {
-  it('solo consulta la cuenta BFF, sin URLs legacy, identificadores ni consultas me propias', () => {
+  it('consulta capacidades, cuenta y reporte BFF sin URLs legacy ni identificadores', () => {
     TestBed.configureTestingModule({ providers: [
       provideHttpClient(), provideHttpClientTesting(),
       { provide: AuthService, useValue: { getUserData: () => ({ userName: 'Titular' }) } }
@@ -44,6 +47,12 @@ describe('Peticiones al entrar al dashboard', () => {
     const http = TestBed.inject(HttpTestingController);
     const component = TestBed.runInInjectionContext(() => new DashboardComponent());
     component.ngOnInit();
+    const capabilities = http.expectOne('/api/account/capabilities');
+    expect(capabilities.request.withCredentials).toBeTrue();
+    capabilities.flush({ success: true, emision: false, adquirencia: true, reserva: false });
+    const report = http.expectOne('/api/account/report');
+    expect(report.request.withCredentials).toBeTrue();
+    report.flush({ success: true, rows: [] });
     const requests = http.match(() => true);
     expect(requests.length).toBe(1);
     const request = requests[0];
@@ -66,7 +75,9 @@ describe('Tarjetas Adquirencia', () => {
     TestBed.configureTestingModule({
       imports: [DashboardComponent],
       providers: [
-        { provide: DashboardService, useValue: { getBalanceSirio: () => reply } },
+        { provide: DashboardService, useValue: { getBalanceSirio: () => reply,
+          getCapabilities: () => of({ success: true, emision: false, adquirencia: true, reserva: false }),
+          getReport: () => of({ success: true, rows: [] }) } },
         { provide: AuthService, useValue: { getUserData: () => ({ userName: 'Titular' }) } }
       ]
     });
@@ -96,5 +107,58 @@ describe('Tarjetas Adquirencia', () => {
     expect(amounts()).toEqual(['No disponible', 'No disponible']);
     expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
     fixture.destroy();
+  });
+});
+
+
+describe('Dashboard capacidades y contratos pendientes', () => {
+  it('respeta capacidades, no duplica Adquirencia y distingue reporte vacío de error', () => {
+    const pending = () => throwError(() => ({ status: 503, error: { code: 'BALANCE_CONTRACT_PENDING' } }));
+    const service = {
+      getCapabilities: () => of({ success: true, emision: true, adquirencia: true, reserva: true }),
+      getBalanceSirio: () => of({ success: true, virtualAccount: null, balance: 1000, customerNetworkBalance: 200 }),
+      getBalanceAhorro: jasmine.createSpy().and.callFake(pending),
+      getBalanceAldebaran: jasmine.createSpy().and.callFake(pending),
+      getReport: () => of({ success: true, rows: [] })
+    };
+    TestBed.configureTestingModule({ imports: [DashboardComponent], providers: [
+      { provide: DashboardService, useValue: service },
+      { provide: AuthService, useValue: { getUserData: () => ({ userName: 'Titular' }) } }
+    ] });
+    const fixture = TestBed.createComponent(DashboardComponent);
+    const component = fixture.componentInstance;
+    component.mostrarModalImagen = false;
+    fixture.detectChanges();
+    expect(component.adquirenciaAvailable).toBe(1000);
+    expect(component.emisionBalance()).toBeNull();
+    expect(component.balanceAhorro()).toEqual([]);
+    expect(component.emisionState()).toBe('unavailable');
+    expect(component.reservaState()).toBe('unavailable');
+    expect(fixture.nativeElement.querySelector('.reserve-card').textContent).toContain('No disponible');
+    expect(fixture.nativeElement.querySelector('.emision-card').textContent).not.toContain('0.00');
+    expect(component.pendingMessage).toBe('No hay elementos disponibles.');
+    spyOn(service, 'getReport').and.returnValue(throwError(() => new Error('failed')));
+    component.cargarDatosIniciales();
+    expect(component.pendingMessage).toBe('No fue posible consultar el reporte.');
+    spyOn(service, 'getCapabilities').and.returnValue(of({ success: true, emision: false, adquirencia: true, reserva: false }));
+    service.getBalanceAhorro.calls.reset(); service.getBalanceAldebaran.calls.reset();
+    component.cargarDatosIniciales(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.reserve-card')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.emision-card')).toBeNull();
+    expect(service.getBalanceAhorro).not.toHaveBeenCalled();
+    expect(service.getBalanceAldebaran).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+  it('no consulta cuentas cuando las capacidades fallan', () => {
+    const getBalanceSirio = jasmine.createSpy();
+    TestBed.configureTestingModule({ providers: [
+      { provide: DashboardService, useValue: { getCapabilities: () => throwError(() => new Error('failed')), getBalanceSirio } },
+      { provide: AuthService, useValue: { getUserData: () => ({}) } }
+    ] });
+    const component = TestBed.runInInjectionContext(() => new DashboardComponent());
+    component.ngOnInit();
+    expect(component.showEmision).toBeFalse(); expect(component.showReserve).toBeFalse();
+    expect(component.capabilitiesState()).toBe('error');
+    expect(getBalanceSirio).not.toHaveBeenCalled();
   });
 });
