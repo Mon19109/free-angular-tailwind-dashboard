@@ -15,6 +15,17 @@ describe('AuthService con BFF', () => {
     auth = TestBed.inject(AuthService); http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => { http.verify(); localStorage.removeItem('preregistro.draft'); });
+  it('conserva el modelo, rol y perfil de /me únicamente en memoria', () => {
+    const local = spyOn(localStorage, 'setItem');
+    const session = spyOn(sessionStorage, 'setItem');
+    auth.validarSesion().subscribe();
+    http.expectOne('/api/auth/me').flush({ ...active(), usuario: {
+      idBusinessModel: 3, idRol: 3, idPerfil: 1, nodeID: 'no-conservar', accessToken: 'no-conservar'
+    } });
+    expect(auth.getUserData()).toEqual({ idBusinessModel: 3, idRol: 3, idPerfil: 1 });
+    expect(local).not.toHaveBeenCalled();
+    expect(session).not.toHaveBeenCalled();
+  });
   it('elimina credenciales legacy sin borrar el prerregistro', () => {
     expect(localStorage.getItem('auth_session')).toBeNull();
     expect(localStorage.getItem('preregistro.draft')).toBe('conservar');

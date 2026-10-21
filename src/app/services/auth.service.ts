@@ -61,7 +61,7 @@ export class AuthService {
     }
     // Lista explícita del contrato safeUser del BFF; no conservar campos adicionales.
     const usuario: Record<string, any> = {};
-    for (const key of ['idRol', 'idPerfil', 'userName', 'mail', 'oft', 'cuenta', 'idStatus']) {
+    for (const key of ['idRol', 'idPerfil', 'idBusinessModel', 'userName', 'mail', 'oft', 'cuenta', 'idStatus']) {
       const campo = value.usuario?.[key];
       if (typeof campo === 'string' || typeof campo === 'number') usuario[key] = campo;
     }

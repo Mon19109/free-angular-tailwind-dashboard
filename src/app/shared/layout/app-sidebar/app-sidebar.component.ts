@@ -357,8 +357,12 @@ export class AppSidebarComponent {
   private hasMenuAccess(access?: MenuAccess): boolean {
     if (access === 'consultaComercios') {
       const user = this.auth.getUserData();
-      const modeloPermitido = [1, 2, 3].includes(this.idBusinessModel)
-        || (this.idBusinessModel === 0 && Number(user.idPerfil) === 9);
+      // Evaluar la sesión actual en cada emisión; nunca usar el modelo legacy para Consulta.
+      const modelo = user.idBusinessModel;
+      const modeloValido = (typeof modelo === 'number' || typeof modelo === 'string')
+        && String(modelo).trim() !== '';
+      const modeloPermitido = modeloValido && ([1, 2, 3].includes(Number(modelo))
+        || (Number(modelo) === 0 && Number(user.idPerfil) === 9));
       return this.auth.hasValidSession() && [2, 3, 4, 5, 6].includes(Number(user.idRol))
         && modeloPermitido;
     }
