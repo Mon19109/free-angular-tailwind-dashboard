@@ -1,10 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface ConsultaComerciosFiltros {
-  nodeID?: string | number | null;
   nameCommerce?: string;
   email?: string;
   telefono?: string;
@@ -13,6 +12,10 @@ export interface ConsultaComerciosFiltros {
 }
 
 export interface ConsultaComercioApi {
+  ref?: string;
+  displayId?: string;
+  nivel?: string;
+  jerarquia?: string;
   contextID?: number;
   entityID?: number;
   terminalID?: number;
@@ -80,21 +83,15 @@ export interface ConsultaComerciosResponse {
 })
 export class ConsultaComerciosService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.api.kashpay}api/v1/entity/`;
 
   buscarComercios(filtros: ConsultaComerciosFiltros): Observable<ConsultaComerciosResponse> {
-    const nodeID = this.obtenerNodeId();
-    const params = new HttpParams()
-      .set('nodeID', nodeID === null ? '' : String(nodeID))
-      .set('nameCommerce', filtros.nameCommerce ?? '')
-      .set('email', filtros.email ?? '')
-      .set('telefono', filtros.telefono ?? '')
-      .set('rfc', filtros.rfc ?? '')
-      .set('status', filtros.status ?? '');
-
-    return this.http.get<ConsultaComerciosResponse>(`${this.baseUrl}searchCommercesByLevel`, {
-      headers: this.headers(),
-      params,
+    // Lista explícita: nunca reenviar identificadores ni credenciales del consumidor.
+    const body = {
+      nameCommerce: filtros.nameCommerce ?? '', email: filtros.email ?? '',
+      telefono: filtros.telefono ?? '', rfc: filtros.rfc ?? '', status: filtros.status ?? ''
+    };
+    return this.http.post<ConsultaComerciosResponse>('/api/comercios/buscar', body, {
+      withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' })
     });
   }
 
@@ -123,27 +120,6 @@ export class ConsultaComerciosService {
     }
 
     return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-  }
-
-  private obtenerNodeId(): string | null {
-    const obtenerValorValido = (value: unknown): string | null => {
-      if (value === undefined || value === null) return null;
-
-      const normalizedValue = String(value).trim();
-      return normalizedValue && normalizedValue !== '0' ? normalizedValue : null;
-    };
-
-    for (const sessionKey of ['auth_session', 'user_data']) {
-      try {
-        const session = JSON.parse(localStorage.getItem(sessionKey) || '{}');
-        const sessionNodeId = obtenerValorValido(session?.nodeID);
-        if (sessionNodeId) return sessionNodeId;
-      } catch {
-        // Usa llaves legacy abajo.
-      }
-    }
-
-    return obtenerValorValido(localStorage.getItem('nodeID'));
   }
 
 }

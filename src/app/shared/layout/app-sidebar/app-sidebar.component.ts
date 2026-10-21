@@ -1,6 +1,7 @@
+import { AuthService } from '../../../services/auth.service';
 import { canAddCommerceLevel, canSendCommerceInvitation, getSessionRole } from '../../services/session-role';
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, QueryList, ViewChildren, ChangeDetectorRef } from '@angular/core';
+import { Component, ElementRef, QueryList, ViewChildren, ChangeDetectorRef, inject } from '@angular/core';
 import { SidebarService } from '../../services/sidebar.service';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { SafeHtmlPipe } from '../../pipe/safe-html.pipe';
@@ -23,6 +24,7 @@ type MenuAccess =
   | 'centroReportes'
   | 'usuarios'
   | 'gestionNegocio'
+  | 'consultaComercios'
   | 'agregarNivelComercio'
   | 'enviarInvitacionComercio'
   | 'pagosDigitales'
@@ -45,6 +47,7 @@ type MenuSection = {
   templateUrl: './app-sidebar.component.html',
 })
 export class AppSidebarComponent {
+  private readonly auth = inject(AuthService);
 
   private readonly idBusinessModel = this.getSessionNumber('idBusinessModel');
   private readonly idPerfil = this.getSessionNumber('idPerfil');
@@ -161,7 +164,8 @@ export class AppSidebarComponent {
         {
           name: 'CONSULTA DE COMERCIOS',
           icon: '<i class="fas fa-store fa-lg"></i>',
-          path: '/consulta_comercios'
+          path: '/consulta_comercios',
+          access: 'consultaComercios'
         },
         {
           name: 'AGREGAR NIVEL A COMERCIO EXISTENTE',
@@ -219,13 +223,10 @@ export class AppSidebarComponent {
   }
 
   ngOnInit() {
-    this.menuSections = this.allMenuSections
-      .filter(section => this.hasMenuAccess(section.access))
-      .map(section => ({
-        ...section,
-        items: section.items.filter(item => this.hasMenuAccess(item.access))
-      }))
-      .filter(section => section.items.length > 0);
+    this.subscription.add(this.auth.authStatus$.subscribe(() => {
+      this.actualizarMenu();
+      this.setActiveMenuFromRoute(this.router.url);
+    }));
 
     // Subscribe to router events
     this.subscription.add(
@@ -342,7 +343,21 @@ export class AppSidebarComponent {
     }).unsubscribe();
   }  
 
+  private actualizarMenu(): void {
+    this.menuSections = this.allMenuSections.map(section => ({
+      ...section,
+      items: section.items.filter(item => {
+        // Solo Consulta puede hacer visible su sección sin datos legacy del modelo.
+        if (item.access === 'consultaComercios') return this.hasMenuAccess(item.access);
+        return this.hasMenuAccess(section.access) && this.hasMenuAccess(item.access);
+      })
+    })).filter(section => section.items.length > 0);
+  }
+
   private hasMenuAccess(access?: MenuAccess): boolean {
+    if (access === 'consultaComercios') {
+      return this.auth.hasValidSession() && Number(this.auth.getUserData().idRol) === 2;
+    }
     if (!access) return true;
     if (access === 'enviarInvitacionComercio') return canSendCommerceInvitation(this.idRol);
     if (access === 'agregarNivelComercio') return canAddCommerceLevel(this.idRol);

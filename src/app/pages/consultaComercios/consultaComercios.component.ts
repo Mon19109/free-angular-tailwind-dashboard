@@ -2,6 +2,7 @@ import { ProcessingOverlayComponent } from '../../shared/components/processing-o
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -15,6 +16,7 @@ type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; val
 type FiltroJerarquia = 'entidad' | 'sucursal' | 'caja';
 
 interface Comercio {
+  ref?: string;
   idComercio: string;
   entitySonID?: string;
   nodoId?: string;
@@ -45,12 +47,15 @@ interface Comercio {
   styleUrls: ['./consultaComercios.component.css']
 })
 export class ConsultaComerciosComponent {
-  readonly mostrarAcciones = this.obtenerIdRolSesion() !== 6;
+  // Temporal: habilitar solo después de migrar edición y caja al BFF.
+  readonly accionesInternasHabilitadas = false;
+  get mostrarAcciones(): boolean { return this.obtenerIdRolSesion() === 2; }
 
   constructor(
     private router: Router,
     private consultaComerciosService: ConsultaComerciosService,
-    private recuperarCuentaService: RecuperarCuentaService
+    private recuperarCuentaService: RecuperarCuentaService,
+    private auth: AuthService
   ) {
     this.buscar();
   }
@@ -203,7 +208,8 @@ export class ConsultaComerciosComponent {
       next: respuesta => {
         if (respuesta.success === false) {
           this.errorConsulta = respuesta.error?.message || 'No fue posible consultar los comercios.';
-          this.resultados = [];
+          this.comercios = [];
+          this.aplicarFiltroNivel();
           this.cargando = false;
           return;
         }
@@ -299,29 +305,19 @@ export class ConsultaComerciosComponent {
   }
 
   private normalizarComerciosApi(commerces: ConsultaComercioApi[]): Comercio[] {
-    return commerces.map(comercio => {
-      const estatus = this.estatusDesdeComercioApi(comercio);
-      const nivel = this.nivelDesdeComercioApi(comercio);
-      return {
-        idComercio: comercio.entitySonID || this.idComercioDesdeApi(comercio),
-        entitySonID: comercio.entitySonID,
-        nodeID: this.nodeIdDesdeComercioApi(comercio),
-        guid: this.guidDesdeComercioApi(comercio),
-        nivel,
-        jerarquia: this.jerarquiaDesdeComercioApi(comercio, nivel),
-        nombreComercial: comercio.nameCommerce || 'ND',
-        razonSocial: comercio.businessName || 'ND',
-        rfc: comercio.rfc || 'ND',
-        correo: comercio.email || 'ND',
-        telefono: comercio.phoneNumber || 'ND',
-        estatus,
-        statusOriginal: String(comercio.status || comercio['Status'] || comercio['STATUS'] || ''),
-        cajaPinRapido: nivel === 'Caja' && comercio.idBusinessModel === 3,
-        typeOfBusiness: this.numeroComercio(comercio.typeOfBusiness ?? comercio['typeOfBusiness']),
-        tieneInferiores: nivel !== 'Caja',
-        pldID: this.pldIdDesdeComercioApi(comercio),
-      };
-    });
+    return commerces.map(comercio => ({
+      ref: comercio.ref,
+      idComercio: comercio.displayId || 'ND',
+      nivel: comercio.nivel as Comercio['nivel'],
+      jerarquia: comercio.jerarquia || '',
+      nombreComercial: comercio.nameCommerce || 'ND',
+      razonSocial: comercio.businessName || 'ND',
+      rfc: comercio.rfc || 'ND', correo: comercio.email || 'ND',
+      telefono: comercio.phoneNumber || 'ND',
+      estatus: this.estatusDesdeComercioApi(comercio),
+      statusOriginal: String(comercio.status ?? ''),
+      tieneInferiores: comercio.nivel !== 'Caja'
+    }));
   }
 
   private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
@@ -519,6 +515,7 @@ export class ConsultaComerciosComponent {
   }
 
   idAcciones(comercio: Comercio, indice: number): string {
+    if (comercio.ref) return comercio.ref;
     return [
       comercio.idComercio,
       comercio.nodoId,
@@ -529,6 +526,7 @@ export class ConsultaComerciosComponent {
   }
 
   ejecutarAccion(accion: 'editarInformacion' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
+    if (!this.accionesInternasHabilitadas && (accion === 'editarInformacion' || accion === 'password')) return;
     this.accionesAbiertas = null;
 
     if (accion === 'editarInformacion') {
@@ -570,6 +568,7 @@ export class ConsultaComerciosComponent {
 
   confirmarOperacion(): void {
     if (!this.modalConfirmacion) return;
+    if (this.modalConfirmacion.tipo === 'baja' ? !this.puedeDarBaja() : !this.puedeInactivar(this.modalConfirmacion.comercio)) return;
 
     const { tipo, comercio } = this.modalConfirmacion;
     comercio.estatus = tipo === 'inactivar' ? 'Inactivo' : 'Baja definitiva';
@@ -577,6 +576,7 @@ export class ConsultaComerciosComponent {
   }
 
   abrirCambioPassword(): void {
+    if (!this.accionesInternasHabilitadas) return;
     if (!this.modalPassword) return;
 
     this.modalCambiarPassword = this.modalPassword;
@@ -590,6 +590,7 @@ export class ConsultaComerciosComponent {
   }
 
   private consultarPasswordCaja(comercio: Comercio): void {
+    if (!this.accionesInternasHabilitadas) return;
     if (!comercio.guid) {
       this.errorPassword = 'La caja no tiene guid para consultar la contraseña.';
       return;
@@ -649,6 +650,7 @@ export class ConsultaComerciosComponent {
   }
 
   guardarPassword(): void {
+    if (!this.accionesInternasHabilitadas) return;
     if (!this.modalCambiarPassword || !this.passwordValida || this.nuevaPassword !== this.confirmarPassword) return;
     if (!this.modalCambiarPassword.guid) {
       this.errorPassword = 'La caja no tiene guid para cambiar la contraseña.';
@@ -706,7 +708,7 @@ export class ConsultaComerciosComponent {
   }
 
   tieneAccionesDisponibles(comercio: Comercio): boolean {
-    return true
+    return (this.accionesInternasHabilitadas && this.puedeEditarInformacion)
       || this.puedeInactivar(comercio)
       || this.puedeDarBaja()
       || this.puedeConsultarPassword(comercio);
@@ -716,7 +718,7 @@ export class ConsultaComerciosComponent {
     const idRolSesion = this.obtenerIdRolSesion();
     const idRolComercio = this.idRolPorNivel(comercio.nivel);
 
-    return !!idRolComercio && idRolComercio > idRolSesion;
+    return idRolSesion === 2 && !!idRolComercio && idRolComercio > idRolSesion;
   }
 
   puedeDarBaja(): boolean {
@@ -724,7 +726,7 @@ export class ConsultaComerciosComponent {
   }
 
   puedeConsultarPassword(comercio: Comercio): boolean {
-    return this.obtenerIdRolSesion() !== 6 && comercio.nivel === 'Caja';
+    return this.accionesInternasHabilitadas && this.obtenerIdRolSesion() === 2 && comercio.nivel === 'Caja';
   }
 
   etiquetaInformacion(comercio: Comercio): string {
@@ -734,16 +736,11 @@ export class ConsultaComerciosComponent {
   }
 
   get puedeEditarInformacion(): boolean {
-    return true;
+    return this.accionesInternasHabilitadas;
   }
 
   private esAdministradorSesion(): boolean {
-    try {
-      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
-      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 2;
-    } catch {
-      return Number(localStorage.getItem('idRol') || 0) === 2;
-    }
+    return this.obtenerIdRolSesion() === 2;
   }
 
   puedeEditar(comercio: Comercio): boolean {
@@ -751,12 +748,7 @@ export class ConsultaComerciosComponent {
   }
 
   private obtenerIdRolSesion(): number {
-    try {
-      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
-      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0);
-    } catch {
-      return Number(localStorage.getItem('idRol') || 0);
-    }
+    return this.auth.hasValidSession() ? Number(this.auth.getUserData()?.idRol ?? 0) : 0;
   }
 
   private idRolPorNivel(nivel: Comercio['nivel']): number {

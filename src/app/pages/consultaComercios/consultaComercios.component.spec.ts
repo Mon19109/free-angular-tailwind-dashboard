@@ -1,16 +1,20 @@
-import { of } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+import { TestBed } from '@angular/core/testing';
+import { of, throwError } from 'rxjs';
 import { ConsultaComerciosComponent } from './consultaComercios.component';
 import { ConsultaComerciosService } from '../../services/consulta-comercios.service';
 import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
 import { Router } from '@angular/router';
 
+const auth = { hasValidSession: () => true, getUserData: () => ({ idRol: 2 }) } as unknown as AuthService;
+
 describe('Filtro de pendientes de revisión', () => {
   function crear(statuses: unknown[], router = {} as Router): ConsultaComerciosComponent {
     const service = { buscarComercios: () => of({ commerces: statuses.map((status, index) => ({
-      status, entitySonID: `COM.${index}`, nameCommerce: `Comercio ${index}`, idAffilationLevel: '4'
+      status: String(status), ref: `ref-${index}`, displayId: `COM.${index}`, nameCommerce: `Comercio ${index}`, nivel: 'Entidad', jerarquia: `Entidad ${index + 1}`
     })) }) };
     return new ConsultaComerciosComponent(router,
-      service as unknown as ConsultaComerciosService, {} as RecuperarCuentaService);
+      service as unknown as ConsultaComerciosService, {} as RecuperarCuentaService, auth);
   }
 
   it('acepta textos con y sin acento y el código 27 numérico o texto', () => {
@@ -45,50 +49,85 @@ describe('Filtro de pendientes de revisión', () => {
     expect(component.soloPendientesRevision).toBeFalse();
     expect(component.resultados.length).toBe(2);
   });
-  it('abre edición con documentos de Mesa Digital para el rol 2, sin convertirlos en prospectos', () => {
-    spyOn(localStorage, 'getItem').and.callFake(key => key === 'auth_session' ? JSON.stringify({ idRol: 2 }) : null);
+  it('bloquea edición y contraseñas incluso si se invocan directamente con identificadores', () => {
     const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
-    const component = crear([27], router);
-    component.ejecutarAccion('editarInformacion', component.resultados[0]);
-    expect(router.navigate).toHaveBeenCalledWith(['/registro_cliente'], {
-      queryParams: jasmine.objectContaining({
-        entitySonID: 'COM.0',
-        pendienteRevision: 'true',
-        habilitarMesaDigital: 'true',
-        esProspecto: 'false'
-      })
-    });
-  });
-
-  it('no habilita Mesa Digital para el rol 3 aunque el comercio esté pendiente', () => {
-    spyOn(localStorage, 'getItem').and.callFake(key => key === 'auth_session' ? JSON.stringify({ idRol: 3 }) : null);
-    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
-    const component = crear([27], router);
-    component.ejecutarAccion('editarInformacion', component.resultados[0]);
-    expect(router.navigate).toHaveBeenCalledWith(['/registro_cliente'], {
-      queryParams: jasmine.objectContaining({ pendienteRevision: 'true', habilitarMesaDigital: 'false' })
-    });
-  });
-
-  it('reconoce TERMINALES con typeOfBusiness 0 y consulta la contraseña con el flujo existente', () => {
-    spyOn(localStorage, 'getItem').and.callFake(key => key === 'auth_session' ? JSON.stringify({ idRol: 3 }) : null);
-    const consultarPasswordCaja = jasmine.createSpy().and.returnValue(of({ password: 'clave-prueba' }));
-    const service = {
-      buscarComercios: () => of({ commerces: [{
-        idAffilationLevel: 'TERMINALES', typeOfBusiness: 0, terminalUserID: 0,
-        terminalID: 10, entitySonID: 'CAJA-1', commerceID: 'guid-caja', status: 'ACTIVO'
-      }] }),
-      consultarPasswordCaja
-    };
-    const component = new ConsultaComerciosComponent({} as Router,
-      service as unknown as ConsultaComerciosService, {} as RecuperarCuentaService);
-    const caja = component.resultados[0];
-
-    expect(caja.nivel).toBe('Caja');
-    expect(component.puedeConsultarPassword(caja)).toBeTrue();
+    const service = jasmine.createSpyObj('Consulta', ['buscarComercios', 'consultarPasswordCaja']);
+    service.buscarComercios.and.returnValue(of({ success: true, commerces: [] }));
+    const recuperar = jasmine.createSpyObj('Recuperar', ['recuperarCuenta']);
+    const component = new ConsultaComerciosComponent(router, service, recuperar, auth);
+    const caja: any = { ref: 'ref-caja', guid: 'legacy-guid', nivel: 'Caja', estatus: 'Activo' };
+    component.ejecutarAccion('editarInformacion', caja);
     component.ejecutarAccion('password', caja);
-    expect(consultarPasswordCaja).toHaveBeenCalledOnceWith('guid-caja');
-    expect(component.modalPassword).toBe(caja);
-    expect(caja.password).toBe('clave-prueba');
+    component.modalPassword = caja;
+    component.abrirCambioPassword();
+    component.modalCambiarPassword = caja;
+    component.nuevaPassword = component.confirmarPassword = 'FixtureOnly12!';
+    component.guardarPassword();
+    (component as any).consultarPasswordCaja(caja);
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(service.consultarPasswordCaja).not.toHaveBeenCalled();
+    expect(recuperar.recuperarCuenta).not.toHaveBeenCalled();
+    expect(component.puedeEditarInformacion).toBeFalse();
+    expect(component.puedeConsultarPassword(caja)).toBeFalse();
+  });
+
+  it('conserva jerarquía, búsqueda local, paginación y filas completas para ambas exportaciones', () => {
+    const component = crear(Array(23).fill('ACTIVO'));
+    expect(component.comerciosPaginados.length).toBe(10);
+    component.cambiarPagina(3);
+    expect(component.comerciosPaginados.length).toBe(3);
+    const filas = (component as any).filasExportacion();
+    expect(filas.length).toBe(23);
+    expect(filas[0][0]).toBe('COM.0');
+    expect(component.resultados[0].jerarquia).toBe('Entidad 1');
+    component.filtros.entidad = '23';
+    component.buscar();
+    expect(component.resultados.length).toBe(1);
+    expect(component.resultados[0].idComercio).toBe('COM.22');
+    component.limpiar();
+    component.busquedaTabla = 'Comercio 22';
+    expect(component.resultadosFiltradosTabla.length).toBe(1);
+    expect((component as any).filasExportacion().length).toBe(1);
+  });
+
+  it('inactivar y baja siguen siendo cambios locales sin servicios adicionales', () => {
+    const component = crear(['ACTIVO']);
+    const comercio = component.resultados[0];
+    component.ejecutarAccion('inactivar', comercio);
+    component.confirmarOperacion();
+    expect(comercio.estatus).toBe('Inactivo');
+    component.ejecutarAccion('baja', comercio);
+    component.confirmarOperacion();
+    expect(comercio.estatus).toBe('Baja definitiva');
+  });
+
+  it('muestra error de BFF y limpia resultados sin fallback', () => {
+    const buscarComercios = jasmine.createSpy().and.returnValue(throwError(() => ({ status: 502 })));
+    const component = new ConsultaComerciosComponent({} as Router,
+      { buscarComercios } as any, {} as RecuperarCuentaService, auth);
+    expect(component.errorConsulta).toContain('No fue posible');
+    expect(component.cargando).toBeFalse();
+    expect(component.resultados).toEqual([]);
+    expect(buscarComercios).toHaveBeenCalledTimes(1);
+  });
+
+  it('no renderiza acciones pendientes ni modales aunque exista estado legacy', async () => {
+    await TestBed.configureTestingModule({ imports: [ConsultaComerciosComponent], providers: [
+      { provide: Router, useValue: {} }, { provide: AuthService, useValue: auth },
+      { provide: RecuperarCuentaService, useValue: {} },
+      { provide: ConsultaComerciosService, useValue: { buscarComercios: () => of({ success: true, commerces: [
+        { ref: 'ref-caja', displayId: 'CAJA-1', nivel: 'Caja', jerarquia: 'Sucursal 2 / Caja 3', status: 'ACTIVO' }
+      ] }) } }
+    ] }).compileComponents();
+    const fixture = TestBed.createComponent(ConsultaComerciosComponent);
+    const component = fixture.componentInstance;
+    component.accionesAbiertas = 'ref-caja';
+    component.modalPassword = component.modalCambiarPassword = component.resultados[0];
+    fixture.detectChanges();
+    const text = fixture.nativeElement.textContent;
+    expect(text).not.toContain('Editar Información');
+    expect(text).not.toContain('Consulta Contraseña');
+    expect(fixture.nativeElement.querySelector('.modal-card.password')).toBeNull();
+    expect(text).toContain('Inactivar');
   });
 });

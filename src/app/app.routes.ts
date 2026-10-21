@@ -390,7 +390,7 @@ export const routes: Routes = [
       {
         path: 'consulta_comercios',
         component: ConsultaComerciosComponent,
-        //canActivate: [AuthGuard],
+        data: { roles: [2] },
         title:'KASHPAY'
       },
       {
