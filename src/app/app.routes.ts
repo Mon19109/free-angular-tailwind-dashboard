@@ -390,7 +390,7 @@ export const routes: Routes = [
       {
         path: 'consulta_comercios',
         component: ConsultaComerciosComponent,
-        data: { roles: [2] },
+        data: { roles: [2, 3, 4, 5, 6] },
         title:'KASHPAY'
       },
       {

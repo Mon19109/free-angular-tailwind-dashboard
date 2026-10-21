@@ -347,7 +347,7 @@ export class AppSidebarComponent {
     this.menuSections = this.allMenuSections.map(section => ({
       ...section,
       items: section.items.filter(item => {
-        // Solo Consulta puede hacer visible su sección sin datos legacy del modelo.
+        // Consulta evalúa rol autenticado y la regla original de su sección.
         if (item.access === 'consultaComercios') return this.hasMenuAccess(item.access);
         return this.hasMenuAccess(section.access) && this.hasMenuAccess(item.access);
       })
@@ -356,7 +356,11 @@ export class AppSidebarComponent {
 
   private hasMenuAccess(access?: MenuAccess): boolean {
     if (access === 'consultaComercios') {
-      return this.auth.hasValidSession() && Number(this.auth.getUserData().idRol) === 2;
+      const user = this.auth.getUserData();
+      const modeloPermitido = [1, 2, 3].includes(this.idBusinessModel)
+        || (this.idBusinessModel === 0 && Number(user.idPerfil) === 9);
+      return this.auth.hasValidSession() && [2, 3, 4, 5, 6].includes(Number(user.idRol))
+        && modeloPermitido;
     }
     if (!access) return true;
     if (access === 'enviarInvitacionComercio') return canSendCommerceInvitation(this.idRol);

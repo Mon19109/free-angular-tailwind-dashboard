@@ -49,7 +49,7 @@ interface Comercio {
 export class ConsultaComerciosComponent {
   // Temporal: habilitar solo después de migrar edición y caja al BFF.
   readonly accionesInternasHabilitadas = false;
-  get mostrarAcciones(): boolean { return this.obtenerIdRolSesion() === 2; }
+  get mostrarAcciones(): boolean { return [2, 3, 4, 5].includes(this.obtenerIdRolSesion()); }
 
   constructor(
     private router: Router,
@@ -718,7 +718,7 @@ export class ConsultaComerciosComponent {
     const idRolSesion = this.obtenerIdRolSesion();
     const idRolComercio = this.idRolPorNivel(comercio.nivel);
 
-    return idRolSesion === 2 && !!idRolComercio && idRolComercio > idRolSesion;
+    return [2, 3, 4, 5].includes(idRolSesion) && !!idRolComercio && idRolComercio > idRolSesion;
   }
 
   puedeDarBaja(): boolean {
@@ -726,7 +726,7 @@ export class ConsultaComerciosComponent {
   }
 
   puedeConsultarPassword(comercio: Comercio): boolean {
-    return this.accionesInternasHabilitadas && this.obtenerIdRolSesion() === 2 && comercio.nivel === 'Caja';
+    return this.accionesInternasHabilitadas && [2, 3, 4, 5].includes(this.obtenerIdRolSesion()) && comercio.nivel === 'Caja';
   }
 
   etiquetaInformacion(comercio: Comercio): string {

@@ -101,6 +101,22 @@ describe('Filtro de pendientes de revisión', () => {
     expect(comercio.estatus).toBe('Baja definitiva');
   });
 
+  it('conserva la matriz de acciones locales por rol y oculta la columna al rol 6', () => {
+    const levels = ['Sub Afiliado', 'Entidad', 'Sucursal', 'Caja'];
+    for (const role of [2, 3, 4, 5, 6]) {
+      const roleAuth = { hasValidSession: () => true, getUserData: () => ({ idRol: role }) } as unknown as AuthService;
+      const component = new ConsultaComerciosComponent({} as Router,
+        { buscarComercios: () => of({ commerces: [] }) } as any, {} as RecuperarCuentaService, roleAuth);
+      expect(component.mostrarAcciones).toBe(role !== 6);
+      expect(component.puedeDarBaja()).toBe(role === 2);
+      levels.forEach((nivel, index) => {
+        expect(component.puedeInactivar({ nivel } as any)).toBe(index + 3 > role);
+        expect(component.puedeConsultarPassword({ nivel } as any)).toBeFalse();
+      });
+      expect(component.puedeEditarInformacion).toBeFalse();
+    }
+  });
+
   it('muestra error de BFF y limpia resultados sin fallback', () => {
     const buscarComercios = jasmine.createSpy().and.returnValue(throwError(() => ({ status: 502 })));
     const component = new ConsultaComerciosComponent({} as Router,
