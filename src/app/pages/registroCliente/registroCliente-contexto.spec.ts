@@ -24,7 +24,12 @@ describe('Registro Cliente con contexto BFF', () => {
     spyOn(localStorage, 'getItem').and.throwError('No leer storage');
     component = TestBed.runInInjectionContext(() => new RegistroClienteComponent());
   });
-  afterEach(() => http.verify());
+  afterEach(() => {
+    for (const request of http.match(req => /\/(pld|documentos)$/.test(req.url))) {
+      if (!request.cancelled) request.flush({}, { status: 503, statusText: 'Unavailable' });
+    }
+    http.verify();
+  });
   it('reutiliza formularios con datos del contexto y no ejecuta servicios legacy', () => {
     const request = http.expectOne(`/api/comercios/${ref}/contexto`);
     expect(request.request.withCredentials).toBeTrue();
@@ -55,7 +60,7 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(fixture.nativeElement.textContent).toContain('Razón real');
     expect(fixture.nativeElement.querySelector('.tree-panel')).toBeNull();
     expect(fixture.nativeElement.querySelector('.footer-actions')).toBeNull();
-    http.expectNone(request => true);
+    http.expectNone(request => !/\/(pld|documentos)$/.test(request.url));
     expect(localStorage.getItem).not.toHaveBeenCalled();
   });
   it('carga y renderiza el árbol BFF con referencias opacas y sin servicios legacy', () => {
@@ -90,7 +95,7 @@ describe('Registro Cliente con contexto BFF', () => {
     account.flush({ code: 'COMERCIOS_ACCOUNT_IDENTITY_UNVERIFIED' }, { status: 503, statusText: 'Unavailable' });
     expect(screen.errorCuentaComercio).toContain('pertenencia');
     expect(screen.datosForm.getRawValue().rfc).toBe('');
-    http.expectNone(request => true);
+    http.expectNone(request => !/\/(pld|documentos)$/.test(request.url));
     expect(localStorage.getItem).not.toHaveBeenCalled();
   });
   it('conserva árbol vacío y muestra errores BFF sin fallback', () => {
@@ -130,7 +135,7 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.contextoBff).toBeNull();
     expect(component.errorContexto).not.toBe('');
     params.next(convertToParamMap({ ref: '' }));
-    http.expectNone(request => true);
+    http.expectNone(request => !/\/(pld|documentos)$/.test(request.url));
   });
   it('selecciona entidad, sucursal y caja; cancela consultas anteriores y limpia los formularios', () => {
     const caja = '33333333-3333-4333-8333-333333333333';
@@ -173,7 +178,7 @@ describe('Registro Cliente con contexto BFF', () => {
       expect((component as any).cuentaNodoActual).toBeNull();
     }
     component.seleccionarNodo({ id: other, nombre: 'Ajeno', nivel: 'caja' });
-    http.expectNone(request => true);
+    http.expectNone(request => !/\/(pld|documentos)$/.test(request.url));
     component.seleccionarNodo(component.arbol[0]);
     const pending = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`);
     params.next(convertToParamMap({ ref: other }));
@@ -181,6 +186,55 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectOne(`/api/comercios/${other}/contexto`).flush({}, { status: 403, statusText: 'Forbidden' });
     expect(component.contextoBff).toBeNull();
     expect(component.cargandoCuentaComercio).toBeFalse();
+  });
+
+  it('pinta cuenta, contactos, domicilios, PLD y documentos autorizados sin llamadas legacy', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [
+      { ref, name: 'Entidad', levelType: 4, depth: 0 },
+      { ref: other, name: 'Sucursal', levelType: 5, depth: 1 }
+    ] });
+    const root = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`);
+    const oldPld = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`);
+    const oldDocs = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`);
+    component.seleccionarNodo(component.arbol[0].hijos![0]);
+    expect(root.cancelled).toBeTrue(); expect(oldPld.cancelled).toBeTrue(); expect(oldDocs.cancelled).toBeTrue();
+    const account = http.expectOne(`/api/comercios/${ref}/nodos/${other}/informacion-general`);
+    expect(account.request.withCredentials).toBeTrue();
+    expect(account.request.headers.has('Authorization')).toBeFalse();
+    account.flush({ success: true, information: { nameCommerce: 'Sucursal real', businessName: 'Razón', rfc: 'RFC',
+      email: 'fixture@example.test', fiscalRegime: '601', activityDescription: 'Actividad', businessActivityCode: '1234',
+      contacts: [{ type: 1, name: 'Representante', address: { street: 'Calle', postalCode: '01000' } }],
+      commerceAddress: [{ addressType: 'DF', roadName: 'Fiscal', postalCode: '02000' }] } });
+    const data = component.datosForm.getRawValue();
+    expect(data.nombreComercial).toBe('Sucursal real'); expect(data.nombreRepresentante).toBe('Representante');
+    expect(data.calleRepresentante).toBe('Calle'); expect(data.nombreVialidad).toBe('Fiscal');
+    expect(data.nombreVialidadComercial).toBe('Fiscal'); expect(data.actividad).toBe('Actividad');
+    expect(component.comercioForm.getRawValue().nivel).toBe('Sucursal');
+    expect(component.datosForm.disabled).toBeTrue();
+    http.expectOne(`/api/comercios/${ref}/nodos/${other}/pld`).flush({ success: true, pld: [
+      { nombre: 'Coincidencia', rfc: 'RFC', fechaRegistro: '2026-01-01', coincidenciaListas: 'Si', categoria: null, fuente: null }
+    ] });
+    http.expectOne(`/api/comercios/${ref}/nodos/${other}/documentos`).flush({ success: true, documents: [
+      { ref: '33333333-3333-4333-8333-333333333333', name: 'Documento real', documentType: 'LEGAL', status: 'APPROVED' }
+    ] });
+    expect(component.resultadosSiprelad[0].nombre).toBe('Coincidencia');
+    expect(component.documentosVisibles.length).toBe(1);
+    expect(component.documentacionSoloConsulta).toBeTrue();
+    expect(component.commerceID).toBe(''); expect(component.pldID).toBe('');
+    http.expectNone(request => true);
+  });
+  it('caja omite documentos; vacío y 503 no simulan resultados', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [
+      { ref, name: 'Caja', levelType: 6, depth: 0 }
+    ] });
+    http.expectNone(`/api/comercios/${ref}/nodos/${ref}/documentos`);
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true, information: {} });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({}, { status: 503, statusText: 'Unavailable' });
+    expect(component.errorCuentaComercio).toContain('No hay información');
+    expect(component.resultadoSiprelad).toContain('503');
+    expect(component.documentosVisibles).toEqual([]);
   });
 
 });

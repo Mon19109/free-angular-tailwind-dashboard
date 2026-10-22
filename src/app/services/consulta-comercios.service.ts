@@ -78,6 +78,14 @@ export interface ConsultaComerciosResponse {
   [key: string]: unknown;
 }
 
+// DTOs públicos definidos por comercios-read.service/adapters del BFF.
+export interface ComercioInformacionResponse { success: boolean; information: Record<string, unknown>; }
+export interface ComercioPldResponse { success: boolean; pld: Array<{ rfc: string | null; nombre: string | null;
+  fechaRegistro: string | null; coincidenciaListas: string | null; categoria: string | null; fuente: string | null }>; }
+export interface ComercioDocumentosResponse { success: boolean; documents: Array<{
+  ref: string; name: string | null; documentType: string | null; status: string | null }>;
+}
+
 export interface ComercioArbolResponse {
   success: boolean;
   tree: Array<{ ref: string; name: string | null; levelType: number; depth: number; status: number | null }>;
@@ -108,9 +116,16 @@ export class ConsultaComerciosService {
     });
   }
 
-  // Contrato de publicación aún bloqueado: no interpretar una respuesta como cuenta.
-  consultarInformacionNodo(ref: string, nodeRef: string): Observable<unknown> {
-    return this.http.get<unknown>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/informacion-general`, { withCredentials: true });
+  consultarInformacionNodo(ref: string, nodeRef: string): Observable<ComercioInformacionResponse> {
+    return this.http.get<ComercioInformacionResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/informacion-general`, { withCredentials: true });
+  }
+
+  consultarPldNodo(ref: string, nodeRef: string): Observable<ComercioPldResponse> {
+    return this.http.get<ComercioPldResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/pld`, { withCredentials: true });
+  }
+
+  consultarDocumentosNodo(ref: string, nodeRef: string): Observable<ComercioDocumentosResponse> {
+    return this.http.get<ComercioDocumentosResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos`, { withCredentials: true });
   }
 
   consultarArbol(ref: string): Observable<ComercioArbolResponse> {

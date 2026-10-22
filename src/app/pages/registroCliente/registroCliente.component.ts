@@ -448,8 +448,12 @@ export class RegistroClienteComponent {
   errorContexto = '';
   private consultaArbolBff?: Subscription;
   private consultaCuentaBff?: Subscription;
+  private consultaPldBff?: Subscription;
+  private consultaDocumentosBff?: Subscription;
 
   private limpiarDetalleBff(): void {
+    this.consultaPldBff?.unsubscribe();
+    this.consultaDocumentosBff?.unsubscribe();
     this.consultaCuentaBff?.unsubscribe();
     ++this.consultaCuentaActual;
     ++this.consultaSipreladActual;
@@ -489,11 +493,24 @@ export class RegistroClienteComponent {
     this.consultaCuentaBff = this.contextoService.consultarInformacionNodo(ref, nodeRef).pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: () => {
+      next: respuesta => {
         if (!vigente()) return;
-        // No existe todavía un contrato verificado para publicar/pintar la cuenta.
         this.cargandoCuentaComercio = false;
-        this.errorCuentaComercio = 'La información general sigue pendiente de verificación de pertenencia en el BFF.';
+        if (respuesta?.success !== true || !respuesta.information || typeof respuesta.information !== 'object'
+          || Array.isArray(respuesta.information)) {
+          this.errorCuentaComercio = 'Respuesta de información general no válida.';
+          return;
+        }
+        const cuenta = respuesta.information;
+        if (!Object.values(cuenta).some(value => value !== null && value !== '' && value !== undefined)) {
+          this.errorCuentaComercio = 'No hay información general disponible para este nodo.';
+          return;
+        }
+        this.cuentaNodoActual = cuenta;
+        // El nivel procede del árbol autorizado, no de una posible entidad padre.
+        const tipos: Record<string, string> = { entidad: 'Empresa Grupo', sucursal: 'Sucursales de Grupo',
+          caja: 'Cuenta Terminal', 'sub-afiliado': 'Empresa Holding' };
+        this.pintarCuentaComercio(cuenta, tipos[this.nivelSeleccionado] || '');
       },
       error: error => {
         if (!vigente()) return;
@@ -507,6 +524,56 @@ export class RegistroClienteComponent {
             : 'No fue posible consultar la información de este nodo.';
       }
     });
+  }
+
+  private consultarRelacionNodoBff(tipo: 'pld' | 'documentos'): void {
+    const ref = this.contextoBff?.commerce.ref;
+    const nodeRef = this.nodoSeleccionado;
+    if (!ref || !nodeRef || !this.buscarNodo(this.arbolServicio, nodeRef)) return;
+    const consulta = this.consultaCuentaActual;
+    const vigente = () => consulta === this.consultaCuentaActual && this.nodoSeleccionado === nodeRef
+      && this.contextoBff?.commerce.ref === ref;
+    const fallo = (error?: { status?: number; error?: { code?: string } }) => {
+      if (!vigente()) return;
+      const texto = error?.status === 503
+        ? `Consulta ${tipo} bloqueada por el BFF (503).`
+        : `No fue posible consultar ${tipo} de este nodo${error?.status ? ` (${error.status})` : ''}.`;
+      if (tipo === 'pld') { this.cargandoSiprelad = false; this.resultadosSiprelad = []; this.resultadoSiprelad = texto; }
+      else { this.cargandoDocumentosProspecto = false; this.documentosProspecto = []; this.errorDocumentosProspecto = texto; }
+    };
+    if (tipo === 'pld') {
+      this.consultaPldBff?.unsubscribe();
+      this.cargandoSiprelad = true;
+      this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
+      this.consultaPldBff = this.contextoService.consultarPldNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: respuesta => {
+          if (!vigente()) return;
+          if (respuesta?.success !== true || !Array.isArray(respuesta.pld)
+            || respuesta.pld.some(row => !row || typeof row !== 'object')) { fallo(); return; }
+          this.resultadosSiprelad = respuesta.pld.map(row => ({ rfc: row.rfc ?? '', nombre: row.nombre ?? '',
+            fechaRegistro: row.fechaRegistro ?? '', coincidenciaListas: row.coincidenciaListas ?? '',
+            categoria: row.categoria ?? '', fuente: row.fuente ?? '' }));
+          this.resultadoSiprelad = this.resultadosSiprelad.length ? '' : 'No se encontraron registros relacionados con PLD';
+          this.cargandoSiprelad = false;
+        }, error: fallo
+      });
+    } else {
+      this.consultaDocumentosBff?.unsubscribe();
+      if (this.nivelSeleccionado === 'caja') return;
+      this.cargandoDocumentosProspecto = true;
+      this.consultaDocumentosBff = this.contextoService.consultarDocumentosNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: respuesta => {
+          if (!vigente()) return;
+          if (respuesta?.success !== true || !Array.isArray(respuesta.documents)
+            || respuesta.documents.some(row => !row || typeof row.ref !== 'string')) { fallo(); return; }
+          this.documentosProspecto = this.documentosDesdeRespuesta({ documents: respuesta.documents.map(row => ({
+            ref: row.ref, name: row.name ?? '', documentType: row.documentType ?? '', status: row.status ?? ''
+          })) });
+          this.documentosProspectoPorNodo[nodeRef] = this.documentosProspecto;
+          this.cargandoDocumentosProspecto = false;
+        }, error: fallo
+      });
+    }
   }
 
   private cargarContextoBff(): void {
@@ -661,7 +728,7 @@ export class RegistroClienteComponent {
   get arbol(): NodoRegistro[] {
     if (this.modoContextoBff) return this.arbolServicio;
     if (this.arbolServicio.length) return this.arbolServicio;
-    if (this.nodeIDEdicion) return [];
+    if (this.nodeIDEdicion || this.modoContextoBff) return [];
 
     return [{
       id: 'sub-afiliado-1',
@@ -746,7 +813,7 @@ export class RegistroClienteComponent {
   }
 
   get documentacionSoloConsulta(): boolean {
-    return !this.esMesaDigitalSesion;
+    return this.modoContextoBff || !this.esMesaDigitalSesion;
   }
 
   get pasosVisiblesRegistro() {
@@ -849,7 +916,7 @@ export class RegistroClienteComponent {
   get nivelSeleccionado(): NivelNodo { return this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nivel ?? 'sucursal'; }
 
   private consultarResultadoSiprelad(): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) { this.consultarRelacionNodoBff('pld'); return; }
     const consulta = ++this.consultaSipreladActual;
     const nodoId = this.nodoSeleccionado;
     const pldID = this.pldID;
@@ -881,7 +948,7 @@ export class RegistroClienteComponent {
   }
 
   private consultarDocumentosProspecto(): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) { this.consultarRelacionNodoBff('documentos'); return; }
     if (this.nivelSeleccionado === 'caja' || !this.commerceID || this.commerceID === 'ND') {
       this.documentosProspecto = [];
       this.cargandoDocumentosProspecto = false;
@@ -1206,7 +1273,8 @@ export class RegistroClienteComponent {
     const phone = this.valorCuenta(cuenta, ['phoneNumber', 'phone', 'telefono']);
     const tipoPersona = this.tipoPersonaDesdeCuenta(cuenta, rfc);
     const niveles: Record<number, string> = { 3: 'Sub Afiliado', 4: 'Entidad', 5: 'Sucursal', 6: 'Caja' };
-    const nivel = niveles[Number(this.valorCuenta(cuenta, ['idAffiliationLevel', 'idAffilationLevel']))] || this.comercioForm.getRawValue().nivel;
+    const nivel = this.modoContextoBff ? this.comercioForm.getRawValue().nivel
+      : niveles[Number(this.valorCuenta(cuenta, ['idAffiliationLevel', 'idAffilationLevel']))] || this.comercioForm.getRawValue().nivel;
     this.tiposComercio = [...new Set([...(this.tiposComercioPorNivel[nivel] ?? []), ...(tipoComercio ? [tipoComercio] : [])])];
     this.comercioForm.patchValue({ nivel, tipoComercio }, { emitEvent: false });
 
@@ -1215,7 +1283,8 @@ export class RegistroClienteComponent {
       giroId: this.valorCuenta(cuenta, ['idBussinesLine']),
       tipoPersona,
       razonSocial,
-      nombreComercial: nombreComercial || razonSocial || this.comercioSeleccionado.nombreComercial,
+      nombreComercial: nombreComercial || razonSocial || (this.modoContextoBff
+        ? this.contextoSeleccionado.nombreComercial : this.comercioSeleccionado.nombreComercial),
       rfc,
       nombre,
       apellidoPaterno,
@@ -1281,13 +1350,15 @@ export class RegistroClienteComponent {
       opcionesDispersion[this.valorCuenta(cuenta, ['dispersionAccount'])] || '', { emitEvent: false }
     );
     this.accesosRegistrados = cuenta['hasPlatformAccess'] === true;
-    this.asegurarUsuarioAccesoActivo();
-    this.actualizarModoEdicionNodo(this.nodoSeleccionado);
-    this.resolverActividadCuenta(cuenta);
-    this.resolverGiroCuenta(cuenta);
-    this.consultarLocalidadesCuenta('DF', direccionFiscal);
-    this.consultarLocalidadesCuenta('DC', direccionComercial);
-    this.consultarLocalidadRepresentante(direccionRepresentante);
+    if (!this.modoContextoBff) {
+      this.asegurarUsuarioAccesoActivo();
+      this.actualizarModoEdicionNodo(this.nodoSeleccionado);
+      this.resolverActividadCuenta(cuenta);
+      this.resolverGiroCuenta(cuenta);
+      this.consultarLocalidadesCuenta('DF', direccionFiscal);
+      this.consultarLocalidadesCuenta('DC', direccionComercial);
+      this.consultarLocalidadRepresentante(direccionRepresentante);
+    }
 
     this.contextoSeleccionado = {
       ...this.contextoSeleccionado,
@@ -1768,6 +1839,8 @@ export class RegistroClienteComponent {
       this.comercioForm.patchValue({ nivel }, { emitEvent: false });
       this.abrirRutaNodo(this.arbolServicio, seleccionado.id);
       this.consultarCuentaComercio();
+      this.consultarResultadoSiprelad();
+      this.consultarDocumentosProspecto();
       return;
     }
     if (this.guardandoDatosNodo || this.registroFinal?.guardando || this.registroFinal?.guardandoLiquidacion || this.registroFinal?.validandoArchivos) return;
