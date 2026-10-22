@@ -64,10 +64,10 @@ describe('Filtro de pendientes de revisión', () => {
     component.nuevaPassword = component.confirmarPassword = 'FixtureOnly12!';
     component.guardarPassword();
     (component as any).consultarPasswordCaja(caja);
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/registro_cliente'], { queryParams: { ref: 'ref-caja' } });
     expect(service.consultarPasswordCaja).not.toHaveBeenCalled();
     expect(recuperar.recuperarCuenta).not.toHaveBeenCalled();
-    expect(component.puedeEditarInformacion).toBeFalse();
+    expect(component.puedeEditarInformacion).toBeTrue();
     expect(component.puedeConsultarPassword(caja)).toBeFalse();
   });
 
@@ -113,10 +113,23 @@ describe('Filtro de pendientes de revisión', () => {
         expect(component.puedeInactivar({ nivel } as any)).toBe(index + 3 > role);
         expect(component.puedeConsultarPassword({ nivel } as any)).toBeFalse();
       });
-      expect(component.puedeEditarInformacion).toBeFalse();
+      expect(component.puedeEditarInformacion).toBe(role !== 6);
     }
   });
 
+  it('navega únicamente con ref y conserva etiquetas por rol', () => {
+    for (const role of [2, 3, 4, 5, 6]) {
+      const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+      const component = new ConsultaComerciosComponent(router,
+        { buscarComercios: () => of({ commerces: [] }) } as any, {} as RecuperarCuentaService,
+        { hasValidSession: () => true, getUserData: () => ({ idRol: role }) } as unknown as AuthService);
+      const row = { ref: 'opaque', guid: 'private', nodeID: 'private', correo: 'private' } as any;
+      component.ejecutarAccion('editarInformacion', row);
+      if (role === 6) expect(router.navigate).not.toHaveBeenCalled();
+      else expect(router.navigate).toHaveBeenCalledOnceWith(['/registro_cliente'], { queryParams: { ref: 'opaque' } });
+      expect(component.etiquetaInformacion(row)).toBe(role === 2 ? 'Editar Comercio' : 'Consultar Comercio');
+    }
+  });
   it('muestra error de BFF y limpia resultados sin fallback', () => {
     const buscarComercios = jasmine.createSpy().and.returnValue(throwError(() => ({ status: 502 })));
     const component = new ConsultaComerciosComponent({} as Router,
@@ -141,7 +154,7 @@ describe('Filtro de pendientes de revisión', () => {
     component.modalPassword = component.modalCambiarPassword = component.resultados[0];
     fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
-    expect(text).not.toContain('Editar Información');
+    expect(text).toContain('Editar Comercio');
     expect(text).not.toContain('Consulta Contraseña');
     expect(fixture.nativeElement.querySelector('.modal-card.password')).toBeNull();
     expect(text).toContain('Inactivar');

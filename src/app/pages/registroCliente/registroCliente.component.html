@@ -4,7 +4,10 @@
     *ngIf="guardandoDatosNodo"
     texto="Cargando..."
     descripcion="Estamos actualizando los datos del comercio. Espera un momento." />
-  <article class="registro-card">
+  <p *ngIf="cargandoContexto" role="status">Cargando comercio...</p>
+  <p *ngIf="errorContexto" class="registration-message error" role="alert">{{ errorContexto }}</p>
+  <a *ngIf="modoContextoBff" routerLink="/consulta_comercios">Volver a Consulta de Comercios</a>
+  <article class="registro-card" *ngIf="!modoContextoBff || contextoBff">
     <header class="registro-card-header">
       <div>
         <span class="eyebrow">Gestión de negocio</span>
@@ -64,13 +67,19 @@
           <div>
             <span *ngIf="contextoSeleccionado.email">{{ contextoSeleccionado.email }}</span>
             <strong>{{ contextoSeleccionado.nombreComercial }}</strong>
+            <ng-container *ngIf="contextoBff">
+              <span>Razón social: {{ contextoBff.commerce.businessName || 'No disponible' }}</span>
+              <span>RFC: {{ contextoBff.commerce.rfc || 'No disponible' }}</span>
+              <span>Teléfono: {{ contextoBff.commerce.phoneNumber || 'No disponible' }}</span>
+            </ng-container>
           </div>
         </div>
 
-        <p *ngIf="soloConsulta" class="consulta-indicaciones" role="status">Selecciona un nodo para consultar o editar sus datos. La revisión de documentos corresponde al administrador.</p>
+        <p *ngIf="soloConsulta && !modoContextoBff" class="consulta-indicaciones" role="status">Selecciona un nodo para consultar o editar sus datos. La revisión de documentos corresponde al administrador.</p>
         <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
         <p *ngIf="nivelSeleccionado !== 'caja' && errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
 
+        <p *ngIf="contextoBff" role="status">{{ contextoBff.commerce.nivel }} · {{ contextoBff.commerce.status || 'Estatus no disponible' }}. Consulta disponible; edición pendiente.</p>
         <article
           class="section-card"
           *ngFor="let seccion of seccionesCardsVisibles"
@@ -97,7 +106,8 @@
             [nodoInterno]="nodoSeleccionado"
             (liquidacionGuardada)="liquidacionConsultaGuardada($event)" />
 
-          <div class="section-body" *ngIf="seccionAbierta === seccion.id && !(seccion.id === 'liquidacion' && puedeCapturarLiquidacionConsulta)">
+          <p *ngIf="modoContextoBff && seccionAbierta === seccion.id && !['comercio', 'datos'].includes(seccion.id)" role="status">Esta sección aún no está disponible para consulta.</p>
+          <div class="section-body" *ngIf="seccionAbierta === seccion.id && (!modoContextoBff || ['comercio', 'datos'].includes(seccion.id)) && !(seccion.id === 'liquidacion' && puedeCapturarLiquidacionConsulta)">
             <app-step-comercio
               *ngIf="seccion.id === 'comercio'"
               [form]="comercioForm"
@@ -106,7 +116,7 @@
               [bloquearNivel]="true"
               [bloquearTipoComercio]="soloConsulta"
               [soloInformativo]="soloConsulta"
-              [mostrarContinuar]="!nodeIDEdicion"
+              [mostrarContinuar]="!modoContextoBff && !nodeIDEdicion"
               [cargandoInformacion]="cargandoCuentaComercio"
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
@@ -212,7 +222,7 @@
           [nodoInterno]="nodoSeleccionado"
           (nodoInternoChange)="seleccionarNodoFinal($event)" />
 
-        <footer class="footer-actions">
+        <footer class="footer-actions" *ngIf="!modoContextoBff">
           <p class="registration-message error" *ngIf="mensajeRegistroCliente" role="alert">
             <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
             {{ mensajeRegistroCliente }}

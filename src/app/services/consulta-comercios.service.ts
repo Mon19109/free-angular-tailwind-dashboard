@@ -78,6 +78,19 @@ export interface ConsultaComerciosResponse {
   [key: string]: unknown;
 }
 
+export interface ComercioArbolResponse {
+  success: boolean;
+  tree: Array<{ ref: string; name: string | null; levelType: number; depth: number; status: number | null }>;
+}
+
+export interface ComercioContexto {
+  success: boolean;
+  commerce: { ref: string; nameCommerce: string | null; businessName: string | null;
+    rfc: string | null; email: string | null; phoneNumber: string | null; status: string | null; nivel: string };
+  navigation: { path: string; actionLabel: string };
+  capabilities: Record<string, boolean>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -93,6 +106,14 @@ export class ConsultaComerciosService {
     return this.http.post<ConsultaComerciosResponse>('/api/comercios/buscar', body, {
       withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' })
     });
+  }
+
+  consultarArbol(ref: string): Observable<ComercioArbolResponse> {
+    return this.http.get<ComercioArbolResponse>(`/api/comercios/${encodeURIComponent(ref)}/arbol`, { withCredentials: true });
+  }
+
+  consultarContexto(ref: string): Observable<ComercioContexto> {
+    return this.http.get<ComercioContexto>(`/api/comercios/${encodeURIComponent(ref)}/contexto`, { withCredentials: true });
   }
 
   consultarPasswordCaja(guid: string): Observable<ConsultaPasswordCajaResponse> {

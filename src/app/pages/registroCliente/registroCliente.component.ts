@@ -1,3 +1,6 @@
+import { ConsultaComerciosService, ComercioContexto } from '../../services/consulta-comercios.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef } from '@angular/core';
 import { MerchantUpdateDataService } from '../../services/merchant-update-data.service';
 import { crearMerchantUpdatePayload } from './utils/merchant-update-payload';
 import { PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
@@ -14,7 +17,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Observable, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
+import { Subscription, Observable, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import { UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -126,6 +129,7 @@ export class RegistroClienteComponent {
   }
 
   guardarDatosNodo(): void {
+    if (this.modoContextoBff) return;
     if (!this.editandoDatosNodo || !this.puedeEditarDatosNodo || this.guardandoDatosNodo || !this.cuentaNodoActual) return;
     const datos = this.datosForm.getRawValue();
     const modificados = Object.entries(datos).filter(([campo, valor]) => valor !== this.datosAntesEdicion[campo]);
@@ -436,7 +440,65 @@ export class RegistroClienteComponent {
   pendienteRevisionEdicion = false;
   habilitarMesaDigitalEdicion = false;
 
+  readonly modoContextoBff = this.route.snapshot.queryParamMap.has('ref');
+  private readonly contextoService = inject(ConsultaComerciosService);
+  private readonly destroyRef = inject(DestroyRef);
+  contextoBff: ComercioContexto | null = null;
+  cargandoContexto = false;
+  errorContexto = '';
+  private consultaArbolBff?: Subscription;
+
+  private cargarContextoBff(): void {
+    this.route.queryParamMap.pipe(
+      switchMap(params => {
+        this.consultaArbolBff?.unsubscribe();
+        this.arbolServicio = [];
+        this.nodoSeleccionado = '';
+        this.cargandoArbol = false;
+        this.errorArbol = '';
+        this.contextoBff = null;
+        this.errorContexto = '';
+        this.comercioForm.reset({}, { emitEvent: false });
+        this.datosForm.reset({}, { emitEvent: false });
+        this.comercioForm.disable({ emitEvent: false });
+        this.datosForm.disable({ emitEvent: false });
+        this.contextoSeleccionado = { idComercio: '', email: '', nivel: '', nombreComercial: '', rfc: '' };
+        this.cargandoContexto = true;
+        const ref = params.get('ref') || '';
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref)) {
+          this.errorContexto = 'Referencia no válida. Vuelve a buscar el comercio.';
+          return of(null);
+        }
+        return this.contextoService.consultarContexto(ref).pipe(
+          map(value => {
+            if (!value.success || value.commerce?.ref !== ref) throw new Error('Contexto inválido');
+            return value;
+          }),
+          catchError(() => {
+            this.errorContexto = 'No fue posible consultar este comercio. Vuelve a buscarlo e inténtalo nuevamente.';
+            return of(null);
+          })
+        );
+      }), takeUntilDestroyed(this.destroyRef)
+    ).subscribe(value => {
+      this.cargandoContexto = false;
+      if (!value) return;
+      this.contextoBff = value;
+      const c = value.commerce;
+      this.contextoSeleccionado = { idComercio: c.ref, email: c.email || '', nivel: c.nivel,
+        nombreComercial: c.nameCommerce || '', rfc: c.rfc || '' };
+      this.comercioForm.patchValue({ nivel: c.nivel }, { emitEvent: false });
+      this.datosForm.patchValue({ nombreComercial: c.nameCommerce || '', razonSocial: c.businessName || '',
+        rfc: c.rfc || '', correo: c.email || '', telefono: c.phoneNumber || '' }, { emitEvent: false });
+      this.consultarArbolEdicion();
+    });
+  }
+
   constructor() {
+    if (this.modoContextoBff) {
+      this.cargarContextoBff();
+      return;
+    }
     const params = this.route.snapshot.queryParamMap;
     this.mostrarMesaDigitalProspecto = params.get('esProspecto') === 'true';
     this.pendienteRevisionEdicion = params.get('pendienteRevision') === 'true';
@@ -535,6 +597,7 @@ export class RegistroClienteComponent {
   }
 
   get arbol(): NodoRegistro[] {
+    if (this.modoContextoBff) return this.arbolServicio;
     if (this.arbolServicio.length) return this.arbolServicio;
     if (this.nodeIDEdicion) return [];
 
@@ -555,6 +618,7 @@ export class RegistroClienteComponent {
   }
 
   get esMesaDigitalSesion(): boolean {
+    if (this.modoContextoBff) return false;
     try {
       const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
       return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 2;
@@ -564,6 +628,7 @@ export class RegistroClienteComponent {
   }
 
   get esCajaSesion(): boolean {
+    if (this.modoContextoBff) return false;
     try {
       const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
       return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 6;
@@ -643,12 +708,14 @@ export class RegistroClienteComponent {
   }
 
   get seccionesCardsVisibles(): SeccionRegistro[] {
+    if (this.modoContextoBff) return this.seccionesOrdenadas;
     if (this.nivelSeleccionado === 'caja') return this.seccionesOrdenadas;
     if (!this.mostrarSoloPasosTresCincoRegistroTemporal) return this.seccionesVisibles;
     return this.seccionesVisibles.filter(seccion => ['liquidacion', 'accesos', 'documentos'].includes(seccion.id));
   }
 
   get mostrarArbolRegistro(): boolean {
+    if (this.modoContextoBff) return this.contextoBff?.capabilities['tree'] === true;
     return !this.ocultarArbolRegistroTemporal;
   }
 
@@ -720,6 +787,7 @@ export class RegistroClienteComponent {
   get nivelSeleccionado(): NivelNodo { return this.buscarNodo(this.arbol, this.nodoSeleccionado)?.nivel ?? 'sucursal'; }
 
   private consultarResultadoSiprelad(): void {
+    if (this.modoContextoBff) return;
     const consulta = ++this.consultaSipreladActual;
     const nodoId = this.nodoSeleccionado;
     const pldID = this.pldID;
@@ -751,6 +819,7 @@ export class RegistroClienteComponent {
   }
 
   private consultarDocumentosProspecto(): void {
+    if (this.modoContextoBff) return;
     if (this.nivelSeleccionado === 'caja' || !this.commerceID || this.commerceID === 'ND') {
       this.documentosProspecto = [];
       this.cargandoDocumentosProspecto = false;
@@ -787,6 +856,7 @@ export class RegistroClienteComponent {
   }
 
   private consultarCuentaComercio(sirioIdNodo?: string): void {
+    if (this.modoContextoBff) return;
     const sirioId = (sirioIdNodo || this.comercioSeleccionado.idComercio).trim();
     if (!sirioId) return;
 
@@ -837,6 +907,47 @@ export class RegistroClienteComponent {
   }
 
   private consultarArbolEdicion(): void {
+    if (this.modoContextoBff) {
+      const ref = this.contextoBff?.commerce.ref;
+      if (!ref || this.contextoBff?.capabilities['tree'] !== true) return;
+      this.consultaArbolBff?.unsubscribe();
+      this.arbolServicio = [];
+      this.nodoSeleccionado = '';
+      this.cargandoArbol = true;
+      this.errorArbol = '';
+      this.consultaArbolBff = this.contextoService.consultarArbol(ref).pipe(
+        map(response => {
+          if (!response.success || !Array.isArray(response.tree)) throw new Error('Árbol inválido');
+          const seen = new Set<string>();
+          let previousDepth = -1;
+          const nodes = response.tree.map((node, index) => {
+            if (!node || typeof node.ref !== 'string' || !node.ref || seen.has(node.ref)
+              || !Number.isInteger(node.depth) || node.depth < 0 || node.depth > previousDepth + 1
+              || (index > 0 && node.depth === 0) || ![3, 4, 5, 6].includes(node.levelType)) throw new Error('Nodo inválido');
+            seen.add(node.ref);
+            previousDepth = node.depth;
+            // id es solo la referencia opaca pública; nunca un identificador upstream.
+            return { id: node.ref, name: node.name ?? '', levelType: node.levelType, depth: node.depth };
+          });
+          return this.arbolPlanoPorProfundidad(nodes);
+        }), takeUntilDestroyed(this.destroyRef)
+      ).subscribe({
+        next: tree => {
+          this.arbolServicio = tree;
+          this.cargandoArbol = false;
+          if (tree[0]) {
+            this.nodoSeleccionado = tree[0].id;
+            this.abrirRutaNodo(tree, tree[0].id);
+          }
+        },
+        error: () => {
+          this.arbolServicio = [];
+          this.cargandoArbol = false;
+          this.errorArbol = 'No fue posible consultar el árbol del comercio.';
+        }
+      });
+      return;
+    }
     if (!this.nodeIDEdicion) return;
 
     this.cargandoArbol = true;
@@ -1275,6 +1386,7 @@ export class RegistroClienteComponent {
   }
 
   private resolverActividadCuenta(cuenta: Record<string, unknown>): void {
+    if (this.modoContextoBff) return;
     const descripcion = this.valorCuenta(cuenta, ['activityDescription', 'actividad']);
     if (descripcion) {
       this.completarDatosConsultados({ actividad: descripcion });
@@ -1297,6 +1409,7 @@ export class RegistroClienteComponent {
   }
 
   private resolverGiroCuenta(cuenta: Record<string, unknown>): void {
+    if (this.modoContextoBff) return;
     const familia = this.valorCuentaNoCero(cuenta, ['businessLine', 'giroComercial', 'giro']);
     const descripcion = this.valorCuentaNoCero(cuenta, ['bussinesLineDescription', 'businessLineDescription', 'descripcionGiro']);
     const mcc = this.valorCuentaNoCero(cuenta, ['businessActivityCode', 'mcc', 'MCC']);
@@ -1357,6 +1470,7 @@ export class RegistroClienteComponent {
   }
 
   private consultarLocalidadRepresentante(direccion: Record<string, unknown> | null): void {
+    if (this.modoContextoBff) return;
     this.localidadesRepresentante = [];
     this.cargandoLocalidadesRepresentante = false;
     const codigoPostal = this.valorDireccionRepresentanteCuenta(direccion, ['postalCode', 'codigoPostal']);
@@ -1386,6 +1500,7 @@ export class RegistroClienteComponent {
   }
 
   private consultarLocalidadesCuenta(addressType: 'DF' | 'DC', direccion: Record<string, unknown> | null): void {
+    if (this.modoContextoBff) return;
     const codigoPostal = this.valorDireccionCuenta(direccion, ['postalCode']);
     const locationID = this.valorDireccionCuenta(direccion, ['locationID']);
     if (!codigoPostal || codigoPostal.length > 10) return;
@@ -1578,6 +1693,11 @@ export class RegistroClienteComponent {
   }
 
   seleccionarNodo(nodo: NodoRegistro): void {
+    if (this.modoContextoBff) {
+      // Selección visual del árbol. El detalle de nodos aún no está migrado.
+      if (this.buscarNodo(this.arbolServicio, nodo.id)) this.nodoSeleccionado = nodo.id;
+      return;
+    }
     if (this.guardandoDatosNodo || this.registroFinal?.guardando || this.registroFinal?.guardandoLiquidacion || this.registroFinal?.validandoArchivos) return;
     if (this.editandoDatosNodo) this.cancelarEdicionDatosNodo();
     this.guardarCapturaNodoActual();
@@ -1812,6 +1932,7 @@ export class RegistroClienteComponent {
   }
 
   registrarClienteProspecto(): void {
+    if (this.modoContextoBff) return;
     if (!this.esMesaDigitalSesion) return;
     this.mensajeRegistroCliente = '';
     if (this.registrandoCliente) return;
@@ -1887,6 +2008,7 @@ export class RegistroClienteComponent {
   }
 
   private documentosNodoParaValidacion(nodo: NodoRegistro): Observable<{ nivel: string; validado: boolean }> {
+    if (this.modoContextoBff) return of({ nivel: '', validado: false });
     const documentosCache = this.documentosProspectoPorNodo[nodo.id];
     if (documentosCache) {
       return of({ nivel: this.etiquetaNodo(nodo), validado: this.documentosValidadosParaRegistro(documentosCache) });
@@ -1978,6 +2100,7 @@ export class RegistroClienteComponent {
   }
 
   subirDocumentoFaltante({ archivo, documento }: { archivo: File; documento: DocumentoRequerido }): void {
+    if (this.modoContextoBff) return;
     if (!this.esMesaDigitalSesion || this.subiendoDocumento || this.cargandoDocumentosProspecto || this.cargandoCuentaComercio) return;
     this.mensajeCargaDocumento = '';
     const guid = this.commerceID?.trim();
@@ -2053,6 +2176,7 @@ export class RegistroClienteComponent {
   }
 
   verDocumentoProspecto(documento: DocumentoRequerido): void {
+    if (this.modoContextoBff) return;
     if (documento.s3Key) {
       const ventanaDocumento = window.open('about:blank', '_blank');
       if (ventanaDocumento) ventanaDocumento.opener = null;
@@ -2088,6 +2212,7 @@ export class RegistroClienteComponent {
   }
 
   enviarNotificacionMesaDigital(): void {
+    if (this.modoContextoBff) return;
     if (!this.esMesaDigitalSesion) return;
     const email = this.emailNotificacionMesaDigital.trim();
     const observations = this.observacionesClienteMesaDigital.trim();
@@ -2125,6 +2250,7 @@ export class RegistroClienteComponent {
   }
 
   guardarRevisionDocumentos(finalizarDespues = false, alGuardar?: () => void): void {
+    if (this.modoContextoBff) return;
     if (!this.esMesaDigitalSesion || !this.habilitarMesaDigitalEdicion) return;
     const legalDocuments = this.documentosProspecto
       .map(documento => ({
@@ -2286,6 +2412,7 @@ export class RegistroClienteComponent {
   }
 
   private guardarComercioLocal(): void {
+    if (this.modoContextoBff) return;
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
     const comercio = this.comercioForm.getRawValue();
     const datos = this.datosForm.getRawValue();
@@ -2315,6 +2442,7 @@ export class RegistroClienteComponent {
   }
 
   private guardarEstadoRegistroLocal(): void {
+    if (this.modoContextoBff) return;
     const estado = {
       entidades: this.entidades,
       referenciadores: this.referenciadores,

@@ -526,29 +526,12 @@ export class ConsultaComerciosComponent {
   }
 
   ejecutarAccion(accion: 'editarInformacion' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
-    if (!this.accionesInternasHabilitadas && (accion === 'editarInformacion' || accion === 'password')) return;
+    if (!this.accionesInternasHabilitadas && accion === 'password') return;
     this.accionesAbiertas = null;
 
     if (accion === 'editarInformacion') {
-      this.router.navigate(['/registro_cliente'], {
-        queryParams: {
-          id: comercio.idComercio,
-          entitySonID: comercio.entitySonID || comercio.idComercio,
-          nivel: comercio.nivel,
-          esProspecto: this.esProspectoAdmin(comercio) ? 'true' : 'false',
-          habilitarMesaDigital: this.esAdministradorSesion() ? 'true' : 'false',
-          pendienteRevision: this.esPendienteRevision(comercio.statusOriginal) ? 'true' : 'false',
-          nombre: comercio.nombreComercial,
-          rfc: comercio.rfc,
-          correo: comercio.correo,
-          email: comercio.correo,
-          telefono: comercio.telefono,
-          commerceID: comercio.guid,
-          pldID: comercio.pldID,
-          nodeID: comercio.nodeID,
-          selectedNode: this.nodoRegistroPorComercio(comercio)
-        }
-      });
+      if (!this.puedeEditarInformacion || !comercio.ref) return;
+      this.router.navigate(['/registro_cliente'], { queryParams: { ref: comercio.ref } });
       return;
     }
 
@@ -708,7 +691,7 @@ export class ConsultaComerciosComponent {
   }
 
   tieneAccionesDisponibles(comercio: Comercio): boolean {
-    return (this.accionesInternasHabilitadas && this.puedeEditarInformacion)
+    return (this.puedeEditarInformacion && !!comercio.ref)
       || this.puedeInactivar(comercio)
       || this.puedeDarBaja()
       || this.puedeConsultarPassword(comercio);
@@ -730,13 +713,12 @@ export class ConsultaComerciosComponent {
   }
 
   etiquetaInformacion(comercio: Comercio): string {
-    return this.esAdministradorSesion() || this.puedeEditar(comercio)
-      ? 'Editar Información'
-      : 'Consultar Información';
+    return this.esAdministradorSesion() ? 'Editar Comercio' : 'Consultar Comercio';
   }
 
   get puedeEditarInformacion(): boolean {
-    return this.accionesInternasHabilitadas;
+    // Solo navegación al contexto; no habilita edición ni escrituras.
+    return [2, 3, 4, 5].includes(this.obtenerIdRolSesion());
   }
 
   private esAdministradorSesion(): boolean {
