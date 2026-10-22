@@ -447,11 +447,73 @@ export class RegistroClienteComponent {
   cargandoContexto = false;
   errorContexto = '';
   private consultaArbolBff?: Subscription;
+  private consultaCuentaBff?: Subscription;
+
+  private limpiarDetalleBff(): void {
+    this.consultaCuentaBff?.unsubscribe();
+    ++this.consultaCuentaActual;
+    ++this.consultaSipreladActual;
+    this.cuentaNodoActual = null;
+    this.editandoDatosNodo = false;
+    this.mensajeActualizacionDatos = '';
+    this.cargandoCuentaComercio = false;
+    this.errorCuentaComercio = '';
+    this.commerceID = '';
+    this.pldID = '';
+    this.resultadosSiprelad = [];
+    this.resultadoSiprelad = 'Consulta PLD pendiente de autorización en el BFF.';
+    this.cargandoSiprelad = false;
+    this.documentosProspecto = [];
+    this.documentosProspectoPorNodo = {};
+    this.cargandoDocumentosProspecto = false;
+    this.errorDocumentosProspecto = '';
+    this.observacionesInternasMesaDigital = '';
+    for (const form of [this.comercioForm, this.datosForm, this.accesosForm, this.liquidacionForm]) {
+      form.reset({}, { emitEvent: false });
+      form.disable({ emitEvent: false });
+    }
+    this.liquidacionForm.controls.cuentaFueraRed.setValue('', { emitEvent: false });
+    this.contextoSeleccionado = { idComercio: '', email: '', nivel: '', nombreComercial: '', rfc: '' };
+  }
+
+  private consultarCuentaNodoBff(): void {
+    const ref = this.contextoBff?.commerce.ref;
+    const nodeRef = this.nodoSeleccionado;
+    if (!ref || !nodeRef || !this.buscarNodo(this.arbolServicio, nodeRef)) return;
+    this.consultaCuentaBff?.unsubscribe();
+    const consulta = ++this.consultaCuentaActual;
+    this.cargandoCuentaComercio = true;
+    this.errorCuentaComercio = '';
+    const vigente = () => consulta === this.consultaCuentaActual
+      && this.nodoSeleccionado === nodeRef && this.contextoBff?.commerce.ref === ref;
+    this.consultaCuentaBff = this.contextoService.consultarInformacionNodo(ref, nodeRef).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        if (!vigente()) return;
+        // No existe todavía un contrato verificado para publicar/pintar la cuenta.
+        this.cargandoCuentaComercio = false;
+        this.errorCuentaComercio = 'La información general sigue pendiente de verificación de pertenencia en el BFF.';
+      },
+      error: error => {
+        if (!vigente()) return;
+        this.cargandoCuentaComercio = false;
+        this.errorCuentaComercio = error.status === 401
+          ? 'La sesión expiró. Vuelve a iniciar sesión.'
+          : error.status === 403 ? 'No tienes permiso para consultar este nodo.'
+          : error.status === 404 ? 'La referencia del nodo ya no está disponible. Vuelve a buscar el comercio.'
+          : error.error?.code === 'COMERCIOS_ACCOUNT_IDENTITY_UNVERIFIED'
+            ? 'La información general sigue pendiente de verificación de pertenencia en el BFF.'
+            : 'No fue posible consultar la información de este nodo.';
+      }
+    });
+  }
 
   private cargarContextoBff(): void {
     this.route.queryParamMap.pipe(
       switchMap(params => {
         this.consultaArbolBff?.unsubscribe();
+        this.limpiarDetalleBff();
         this.arbolServicio = [];
         this.nodoSeleccionado = '';
         this.cargandoArbol = false;
@@ -856,7 +918,7 @@ export class RegistroClienteComponent {
   }
 
   private consultarCuentaComercio(sirioIdNodo?: string): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) { this.consultarCuentaNodoBff(); return; }
     const sirioId = (sirioIdNodo || this.comercioSeleccionado.idComercio).trim();
     if (!sirioId) return;
 
@@ -911,6 +973,7 @@ export class RegistroClienteComponent {
       const ref = this.contextoBff?.commerce.ref;
       if (!ref || this.contextoBff?.capabilities['tree'] !== true) return;
       this.consultaArbolBff?.unsubscribe();
+      this.limpiarDetalleBff();
       this.arbolServicio = [];
       this.nodoSeleccionado = '';
       this.cargandoArbol = true;
@@ -936,7 +999,7 @@ export class RegistroClienteComponent {
           this.arbolServicio = tree;
           this.cargandoArbol = false;
           if (tree[0]) {
-            this.nodoSeleccionado = tree[0].id;
+            this.seleccionarNodo(tree[0]);
             this.abrirRutaNodo(tree, tree[0].id);
           }
         },
@@ -1694,8 +1757,17 @@ export class RegistroClienteComponent {
 
   seleccionarNodo(nodo: NodoRegistro): void {
     if (this.modoContextoBff) {
-      // Selección visual del árbol. El detalle de nodos aún no está migrado.
-      if (this.buscarNodo(this.arbolServicio, nodo.id)) this.nodoSeleccionado = nodo.id;
+      const seleccionado = this.buscarNodo(this.arbolServicio, nodo.id);
+      if (!seleccionado) return;
+      this.limpiarDetalleBff();
+      this.nodoSeleccionado = seleccionado.id;
+      const nivel = seleccionado.nivel === 'sub-afiliado' ? 'Sub Afiliado'
+        : seleccionado.nivel === 'entidad' ? 'Entidad' : seleccionado.nivel === 'sucursal' ? 'Sucursal' : 'Caja';
+      this.contextoSeleccionado = { idComercio: seleccionado.id, email: '', nivel,
+        nombreComercial: seleccionado.nombre, rfc: '' };
+      this.comercioForm.patchValue({ nivel }, { emitEvent: false });
+      this.abrirRutaNodo(this.arbolServicio, seleccionado.id);
+      this.consultarCuentaComercio();
       return;
     }
     if (this.guardandoDatosNodo || this.registroFinal?.guardando || this.registroFinal?.guardandoLiquidacion || this.registroFinal?.validandoArchivos) return;

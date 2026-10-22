@@ -108,6 +108,11 @@ export class ConsultaComerciosService {
     });
   }
 
+  // Contrato de publicación aún bloqueado: no interpretar una respuesta como cuenta.
+  consultarInformacionNodo(ref: string, nodeRef: string): Observable<unknown> {
+    return this.http.get<unknown>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/informacion-general`, { withCredentials: true });
+  }
+
   consultarArbol(ref: string): Observable<ComercioArbolResponse> {
     return this.http.get<ComercioArbolResponse>(`/api/comercios/${encodeURIComponent(ref)}/arbol`, { withCredentials: true });
   }
