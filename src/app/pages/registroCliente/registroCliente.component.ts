@@ -1,3 +1,4 @@
+import { AuthService } from '../../services/auth.service';
 import { ConsultaComerciosService, ComercioContexto } from '../../services/consulta-comercios.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
@@ -193,6 +194,12 @@ export class RegistroClienteComponent {
   modoReservaActual: ModoReserva = 'NINGUNO';
   archivosInvalidos = false;
   accesosRegistrados = false;
+  accesosDisponiblesBff: boolean | null = null;
+  private readonly sesionPortal = inject(AuthService);
+  get puedeVerRevisionDocumental(): boolean {
+    return this.modoContextoBff ? this.sesionPortal.hasValidSession()
+      && Number(this.sesionPortal.getUserData()?.idRol) === 2 : this.esMesaDigitalSesion;
+  }
   pldID = '';
   private pldPorNodo: Record<string, string> = {};
   private consultaSipreladActual = 0;
@@ -452,6 +459,8 @@ export class RegistroClienteComponent {
   private consultaDocumentosBff?: Subscription;
 
   private limpiarDetalleBff(): void {
+    this.accesosRegistrados = false;
+    this.accesosDisponiblesBff = null;
     this.consultaPldBff?.unsubscribe();
     this.consultaDocumentosBff?.unsubscribe();
     this.consultaCuentaBff?.unsubscribe();
@@ -587,11 +596,6 @@ export class RegistroClienteComponent {
         this.errorArbol = '';
         this.contextoBff = null;
         this.errorContexto = '';
-        this.comercioForm.reset({}, { emitEvent: false });
-        this.datosForm.reset({}, { emitEvent: false });
-        this.comercioForm.disable({ emitEvent: false });
-        this.datosForm.disable({ emitEvent: false });
-        this.contextoSeleccionado = { idComercio: '', email: '', nivel: '', nombreComercial: '', rfc: '' };
         this.cargandoContexto = true;
         const ref = params.get('ref') || '';
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref)) {
@@ -728,7 +732,7 @@ export class RegistroClienteComponent {
   get arbol(): NodoRegistro[] {
     if (this.modoContextoBff) return this.arbolServicio;
     if (this.arbolServicio.length) return this.arbolServicio;
-    if (this.nodeIDEdicion || this.modoContextoBff) return [];
+    if (this.nodeIDEdicion) return [];
 
     return [{
       id: 'sub-afiliado-1',
@@ -786,6 +790,12 @@ export class RegistroClienteComponent {
     if (!this.cuentaNodoActual || !dispersion[opcion]) return;
     this.cuentaNodoActual['dispersionAccount'] = dispersion[opcion];
     this.liquidacionForm.controls.cuentaFueraRed.setValue(opcion, { emitEvent: false });
+  }
+
+  get liquidacionDesconocida(): boolean {
+    const valor = this.cuentaNodoActual?.['dispersionAccount'];
+    return typeof valor === 'string' && valor.trim() !== ''
+      && !['NETWORK', 'OTHER_BANK', 'OTHER_BANK_AND_NETWORK'].includes(valor);
   }
 
   get opcionLiquidacionConsulta(): string {
@@ -1350,6 +1360,8 @@ export class RegistroClienteComponent {
       opcionesDispersion[this.valorCuenta(cuenta, ['dispersionAccount'])] || '', { emitEvent: false }
     );
     this.accesosRegistrados = cuenta['hasPlatformAccess'] === true;
+    if (this.modoContextoBff) this.accesosDisponiblesBff = typeof cuenta['hasPlatformAccess'] === 'boolean'
+      ? cuenta['hasPlatformAccess'] : null;
     if (!this.modoContextoBff) {
       this.asegurarUsuarioAccesoActivo();
       this.actualizarModoEdicionNodo(this.nodoSeleccionado);
@@ -2309,6 +2321,9 @@ export class RegistroClienteComponent {
   }
 
   actualizarEstatusDocumento(documento: DocumentoRequerido, estado: EstatusDocumentoProspecto): void {
+    if (this.modoContextoBff) {
+      return;
+    }
     if (!this.esMesaDigitalSesion || !this.habilitarMesaDigitalEdicion) return;
     documento.estatusRevision = estado;
     documento.estado = this.traducirEstatusDocumento(estado);
@@ -2321,7 +2336,15 @@ export class RegistroClienteComponent {
   }
 
   verDocumentoProspecto(documento: DocumentoRequerido): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) {
+      const ref = this.contextoBff?.commerce.ref;
+      const nodeRef = this.nodoSeleccionado;
+      const selected = this.documentosProspecto.find(row => row['ref'] === documento.archivoId);
+      if (!ref || !selected || typeof selected['ref'] !== 'string') return;
+      const url = this.contextoService.archivoNodoUrl(ref, nodeRef, selected['ref']);
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
     if (documento.s3Key) {
       const ventanaDocumento = window.open('about:blank', '_blank');
       if (ventanaDocumento) ventanaDocumento.opener = null;
@@ -3019,11 +3042,12 @@ export class RegistroClienteComponent {
 
     return {
       numero: documentoCatalogo?.numero ?? 100 + index,
-      nombre: documentoCatalogo?.nombre ?? nombre,
+      nombre: this.modoContextoBff ? nombre : documentoCatalogo?.nombre ?? nombre,
       obligatorio: documentoCatalogo?.obligatorio ?? false,
       archivoNombre: this.nombreDocumentoCargado(documentoCatalogo ?? { numero: 100 + index, nombre, obligatorio: false }, documentoProspecto),
-      archivoUrl: this.urlDocumentoCargado(documentoProspecto),
-      archivoId: this.idDocumentoCargado(documentoProspecto),
+      archivoUrl: this.modoContextoBff ? this.contextoService.archivoNodoUrl(this.contextoBff?.commerce.ref || '',
+        this.nodoSeleccionado, String(documentoProspecto['ref'] || '')) : this.urlDocumentoCargado(documentoProspecto),
+      archivoId: this.modoContextoBff ? String(documentoProspecto['ref'] || '') : this.idDocumentoCargado(documentoProspecto),
       s3Key: this.s3KeyDocumentoCargado(documentoProspecto),
       tipoArchivo: this.tipoDocumentoCargado(documentoProspecto),
       estado: this.estadoDocumentoCargado(documentoProspecto),
@@ -3083,6 +3107,7 @@ export class RegistroClienteComponent {
     const nombre = documentoProspecto.documentName || documentoProspecto.name || documentoProspecto.fileName || documentoProspecto.originalName;
     if (typeof nombre === 'string' && nombre.trim()) return nombre;
 
+    if (this.modoContextoBff) return 'Nombre no disponible';
     const s3Key = typeof documentoProspecto.s3Key === 'string' ? documentoProspecto.s3Key : '';
     const sufijo = this.sufijoDocumentoDesdeS3Key(s3Key);
     const nombresPorSufijo: Record<string, string> = {

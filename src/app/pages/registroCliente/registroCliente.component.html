@@ -67,11 +67,6 @@
           <div>
             <span *ngIf="contextoSeleccionado.email">{{ contextoSeleccionado.email }}</span>
             <strong>{{ contextoSeleccionado.nombreComercial }}</strong>
-            <ng-container *ngIf="contextoBff">
-              <span>Razón social: {{ datosForm.getRawValue().razonSocial || 'No disponible' }}</span>
-              <span>RFC: {{ datosForm.getRawValue().rfc || 'No disponible' }}</span>
-              <span>Teléfono: {{ datosForm.getRawValue().telefono || 'No disponible' }}</span>
-            </ng-container>
           </div>
         </div>
 
@@ -79,7 +74,6 @@
         <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
         <p *ngIf="nivelSeleccionado !== 'caja' && errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
 
-        <p *ngIf="contextoBff" role="status">{{ contextoSeleccionado.nivel }} · {{ nodoSeleccionado === contextoBff.commerce.ref ? (contextoBff.commerce.status || 'Estatus no disponible') : 'Estatus no disponible' }}. Consulta disponible; edición pendiente.</p>
         <article
           class="section-card"
           *ngFor="let seccion of seccionesCardsVisibles"
@@ -106,8 +100,7 @@
             [nodoInterno]="nodoSeleccionado"
             (liquidacionGuardada)="liquidacionConsultaGuardada($event)" />
 
-          <p *ngIf="modoContextoBff && seccionAbierta === seccion.id && !['comercio', 'datos', 'documentos'].includes(seccion.id)" role="status">Esta sección aún no está disponible para consulta.</p>
-          <div class="section-body" *ngIf="seccionAbierta === seccion.id && (!modoContextoBff || ['comercio', 'datos', 'documentos'].includes(seccion.id)) && !(seccion.id === 'liquidacion' && puedeCapturarLiquidacionConsulta)">
+          <div class="section-body" *ngIf="seccionAbierta === seccion.id && !(seccion.id === 'liquidacion' && puedeCapturarLiquidacionConsulta)">
             <app-step-comercio
               *ngIf="seccion.id === 'comercio'"
               [form]="comercioForm"
@@ -161,7 +154,8 @@
             <div *ngIf="seccion.id === 'accesos'" role="status">
               <p *ngIf="cargandoCuentaComercio">Cargando accesos a plataforma...</p>
               <ng-container *ngIf="!cargandoCuentaComercio && !errorCuentaComercio">
-                <p>{{ accesosRegistrados ? 'Este comercio cuenta con una cuenta registrada en la plataforma.' : 'No se encontraron accesos registrados a la plataforma.' }}</p>
+                <p *ngIf="modoContextoBff && accesosDisponiblesBff === null">No hay información de accesos disponible para este nodo.</p>
+                <p *ngIf="!modoContextoBff || accesosDisponiblesBff !== null">{{ accesosRegistrados ? 'Este comercio cuenta con una cuenta registrada en la plataforma.' : 'No se encontraron accesos registrados a la plataforma.' }}</p>
                 <p *ngIf="accesosRegistrados && usuariosAcceso.length">{{ usuariosAcceso[0].titulo }}</p>
               </ng-container>
             </div>
@@ -169,14 +163,16 @@
             <div *ngIf="seccion.id === 'liquidacion'" role="status">
               <p *ngIf="cargandoCuentaComercio">Cargando cuenta de liquidación...</p>
               <ng-container *ngIf="!cargandoCuentaComercio && !errorCuentaComercio">
-                <p *ngIf="!opcionLiquidacionConsulta">No se encontraron datos de la cuenta de liquidación.</p>
+                <p *ngIf="liquidacionDesconocida">No se encontró información.</p>
+                <p *ngIf="!opcionLiquidacionConsulta && !liquidacionDesconocida">No se encontraron datos de la cuenta de liquidación.</p>
                 <p *ngIf="opcionLiquidacionConsulta">Destino de las liquidaciones: <strong>{{ opcionLiquidacionConsulta }}</strong></p>
               </ng-container>
             </div>
 
-            <p *ngIf="modoContextoBff && seccion.id === 'documentos'" role="status">La apertura de archivos continúa pendiente de autorización en el BFF.</p>
+            <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos'" role="status">Validar y rechazar documentos requiere habilitar la escritura autorizada en el BFF.</p>
             <app-step-documentos
               *ngIf="seccion.id === 'documentos'"
+              [class.revision-no-autorizada]="!puedeVerRevisionDocumental"
               [soloConsulta]="documentacionSoloConsulta"
               [documentos]="documentosVisibles"
               [permitirAgregarDocumento]="esMesaDigitalSesion && !!commerceID && !cargandoDocumentosProspecto && !cargandoCuentaComercio"

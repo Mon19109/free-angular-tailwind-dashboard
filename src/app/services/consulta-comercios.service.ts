@@ -128,6 +128,12 @@ export class ConsultaComerciosService {
     return this.http.get<ComercioDocumentosResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos`, { withCredentials: true });
   }
 
+  archivoNodoUrl(ref: string, nodeRef: string, documentRef: string): string {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (![ref, nodeRef, documentRef].every(value => uuid.test(value))) return '';
+    return `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/${encodeURIComponent(documentRef)}/archivo`;
+  }
+
   consultarArbol(ref: string): Observable<ComercioArbolResponse> {
     return this.http.get<ComercioArbolResponse>(`/api/comercios/${encodeURIComponent(ref)}/arbol`, { withCredentials: true });
   }

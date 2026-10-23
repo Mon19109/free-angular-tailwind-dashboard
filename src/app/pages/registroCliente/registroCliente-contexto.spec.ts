@@ -1,3 +1,4 @@
+import { AuthService } from '../../services/auth.service';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -57,7 +58,10 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(fixture.nativeElement.textContent).toContain('Comercio real');
     const values = Array.from(fixture.nativeElement.querySelectorAll('input')).map((input: any) => input.value);
     expect(values).toContain('Comercio real');
-    expect(fixture.nativeElement.textContent).toContain('Razón real');
+    expect(fixture.componentInstance.datosForm.controls.razonSocial.value).toBe('Razón real');
+    fixture.componentInstance.datosForm.controls.tipoPersona.setValue('PM');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[formControlName="razonSocial"]').value).toBe('Razón real');
     expect(fixture.nativeElement.querySelector('.tree-panel')).toBeNull();
     expect(fixture.nativeElement.querySelector('.footer-actions')).toBeNull();
     http.expectNone(request => !/\/(pld|documentos)$/.test(request.url));
@@ -235,6 +239,103 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.errorCuentaComercio).toContain('No hay información');
     expect(component.resultadoSiprelad).toContain('503');
     expect(component.documentosVisibles).toEqual([]);
+  });
+
+  it('conserva nombre público real y abre solamente el archivo BFF de la selección actual', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    component.nodoSeleccionado = ref;
+    component.documentosProspecto = [{ ref: other, name: 'Acta constitutiva real.pdf', status: 'APPROVED' }];
+    const doc = component.documentosVisibles[0];
+    expect(doc.nombre).toBe('Acta constitutiva real.pdf');
+    expect(doc.archivoUrl).toBe(`/api/comercios/${ref}/nodos/${ref}/documentos/${other}/archivo`);
+    const open = spyOn(window, 'open');
+    component.verDocumentoProspecto(doc);
+    expect(open).toHaveBeenCalledWith(doc.archivoUrl, '_blank', 'noopener,noreferrer');
+    component.documentosProspecto = [];
+    open.calls.reset(); component.verDocumentoProspecto(doc);
+    expect(open).not.toHaveBeenCalled();
+    expect(localStorage.getItem).not.toHaveBeenCalled();
+  });
+  it('solo rol 2 ve revisión; no guarda validaciones locales como si fueran persistidas', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const auth = TestBed.inject(AuthService);
+    for (const role of [2, 3, 4, 5, 6]) {
+      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      expect(component.puedeVerRevisionDocumental).toBe(role === 2);
+      expect(component.documentacionSoloConsulta).toBeTrue();
+      const doc = { numero: 1, nombre: 'Acta', obligatorio: false, estatusRevision: 'IN_REVIEW' as const };
+      component.actualizarEstatusDocumento(doc, 'APPROVED');
+      expect(doc.estatusRevision).toBe('IN_REVIEW');
+    }
+    auth.clearSession(); expect(component.puedeVerRevisionDocumental).toBeFalse();
+    http.expectNone(request => true);
+  });
+  it('reutiliza resumen real de dispersión y distingue acceso false de ausencia', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    for (const [access, expected] of [[true, true], [false, false], [null, null]] as const) {
+      (component as any).limpiarDetalleBff();
+      (component as any).pintarCuentaComercio({ nameCommerce: 'Nodo', dispersionAccount: 'NETWORK', hasPlatformAccess: access }, 'Empresa Grupo');
+      expect(component.opcionLiquidacionConsulta).toBe('En Red');
+      expect(component.accesosDisponiblesBff).toBe(expected);
+      expect(component.datosForm.disabled).toBeTrue();
+    }
+    (component as any).limpiarDetalleBff();
+    (component as any).pintarCuentaComercio({ dispersionAccount: null, hasPlatformAccess: null }, 'Empresa Grupo');
+    expect(component.opcionLiquidacionConsulta).toBe('');
+    expect(component.accesosDisponiblesBff).toBeNull();
+    http.expectNone(request => true);
+  });
+
+  it('oculta validación en el DOM para roles 3–6 sin alterar el componente de prerregistro', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    fixture.componentInstance.nodoSeleccionado = ref;
+    fixture.componentInstance.seccionAbierta = 'documentos';
+    fixture.componentInstance.documentosProspecto = [{ ref: other, name: 'Documento real', status: 'IN_REVIEW' }];
+    const auth = TestBed.inject(AuthService);
+    for (const role of [3, 4, 5, 6, 2]) {
+      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      fixture.detectChanges();
+      const group = fixture.nativeElement.querySelector('.mesa-switch');
+      expect(group).not.toBeNull();
+      expect(getComputedStyle(group).display === 'none').toBe(role !== 2);
+      expect(group.querySelector('button').disabled).toBeTrue();
+      const header = fixture.nativeElement.querySelector('.mesa-table-head > span:last-child');
+      expect(getComputedStyle(header).display === 'none').toBe(role !== 2);
+    }
+  });
+
+  it('distingue dispersión desconocida de vacía y conserva las tres etiquetas originales', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    for (const [value, label] of [['NETWORK', 'En Red'], ['OTHER_BANK', 'Otros Bancos'],
+      ['OTHER_BANK_AND_NETWORK', 'Otros Bancos y En Red'], ['UNKNOWN', ''], ['', ''], [null, ''], [undefined, '']]) {
+      (component as any).cuentaNodoActual = { dispersionAccount: value };
+      (component as any).pintarCuentaComercio({ dispersionAccount: value }, 'Empresa Grupo');
+      expect(component.opcionLiquidacionConsulta).toBe(label as string);
+      expect(component.liquidacionDesconocida).toBe(value === 'UNKNOWN');
+    }
+    http.expectNone(request => true);
+  });
+
+  it('conserva las etiquetas originales sin añadir un botón de edición provisional', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const view = fixture.componentInstance;
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true,
+      expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    view.seccionAbierta = 'liquidacion';
+    (view as any).pintarCuentaComercio({ dispersionAccount: 'OTHER_BANK_AND_NETWORK', hasPlatformAccess: true }, 'Empresa Grupo');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Otros Bancos y En Red');
+    expect(fixture.nativeElement.textContent).not.toContain('Editar cuenta de liquidación');
+    expect(fixture.nativeElement.textContent).not.toContain('Consulta disponible; edición pendiente.');
+    view.seccionAbierta = 'accesos';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Este comercio cuenta con una cuenta registrada en la plataforma.');
+    expect(fixture.nativeElement.textContent).toContain(view.usuariosAcceso[0].titulo);
+    http.expectNone(request => true);
   });
 
 });
