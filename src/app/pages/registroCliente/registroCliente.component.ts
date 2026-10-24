@@ -105,7 +105,11 @@ export class RegistroClienteComponent {
   guardandoDatosNodo = false;
   mensajeActualizacionDatos = '';
 
+  private camposEdicionBff: string[] = [];
+  private edicionAutorizadaBff = false;
   get puedeEditarDatosNodo(): boolean {
+    if (this.modoContextoBff) return this.puedeVerRevisionDocumental && this.edicionAutorizadaBff
+      && !!this.cuentaNodoActual && !this.cargandoCuentaComercio && !this.errorCuentaComercio;
     return this.esMesaDigitalSesion && !!this.nodeIDEdicion && !!this.cuentaNodoActual && !this.cargandoCuentaComercio
       && !this.errorCuentaComercio && !!this.valorCuenta(this.cuentaNodoActual, ['commerceGuid', 'guid', 'commerceID']);
   }
@@ -116,6 +120,11 @@ export class RegistroClienteComponent {
     this.editandoDatosNodo = true;
     this.mensajeActualizacionDatos = '';
     this.datosForm.enable({ emitEvent: false });
+    if (this.modoContextoBff) {
+      for (const [name, control] of Object.entries(this.datosForm.controls)) {
+        if (!this.camposEdicionBff.includes(name)) control.disable({ emitEvent: false });
+      }
+    }
     this.datosForm.markAsPristine();
   }
 
@@ -130,7 +139,7 @@ export class RegistroClienteComponent {
   }
 
   guardarDatosNodo(): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) { this.guardarDatosNodoBff(); return; }
     if (!this.editandoDatosNodo || !this.puedeEditarDatosNodo || this.guardandoDatosNodo || !this.cuentaNodoActual) return;
     const datos = this.datosForm.getRawValue();
     const modificados = Object.entries(datos).filter(([campo, valor]) => valor !== this.datosAntesEdicion[campo]);
@@ -173,6 +182,43 @@ export class RegistroClienteComponent {
         if (nodo !== this.nodoSeleccionado) return;
         this.mensajeActualizacionDatos = error instanceof Error ? error.message : 'No fue posible actualizar los datos. Intenta nuevamente.';
       },
+    });
+  }
+
+  private guardarDatosNodoBff(): void {
+    const ref = this.contextoBff?.commerce.ref;
+    const nodeRef = this.nodoSeleccionado;
+    if (!ref || !this.editandoDatosNodo || !this.puedeEditarDatosNodo || this.guardandoDatosNodo) return;
+    const actuales = this.datosForm.getRawValue();
+    const cambios = Object.fromEntries(Object.entries(actuales).filter(([campo, valor]) =>
+      this.camposEdicionBff.includes(campo) && valor !== this.datosAntesEdicion[campo]));
+    if (!Object.keys(cambios).length) { this.mensajeActualizacionDatos = 'No hay cambios para guardar.'; return; }
+    const invalidos = Object.keys(cambios).filter(campo => this.datosForm.get(campo)?.invalid);
+    if (invalidos.length) {
+      invalidos.forEach(campo => this.datosForm.get(campo)?.markAsTouched());
+      this.mensajeActualizacionDatos = 'Revisa los campos modificados antes de guardar.';
+      return;
+    }
+    const consulta = this.consultaCuentaActual;
+    const vigente = () => ref === this.contextoBff?.commerce.ref && nodeRef === this.nodoSeleccionado && consulta === this.consultaCuentaActual;
+    this.guardandoDatosNodo = true;
+    this.mensajeActualizacionDatos = '';
+    this.contextoService.actualizarInformacionNodo(ref, nodeRef, cambios).pipe(
+      takeUntilDestroyed(this.destroyRef), finalize(() => { if (vigente()) this.guardandoDatosNodo = false; })
+    ).subscribe({
+      next: response => {
+        if (!vigente()) return;
+        this.guardandoDatosNodo = false;
+        if (response?.success !== true) { this.mensajeActualizacionDatos = 'La actualización no fue confirmada.'; return; }
+        this.editandoDatosNodo = false;
+        this.datosForm.disable({ emitEvent: false });
+        this.mensajeActualizacionDatos = 'Datos actualizados correctamente.';
+        this.mostrarModalRegistro('success', 'Actualización exitosa', 'Se actualizó de forma correcta.');
+        this.consultarCuentaComercio();
+      },
+      error: () => {
+        if (vigente()) this.mensajeActualizacionDatos = 'No fue posible actualizar los datos. Intenta nuevamente.';
+      }
     });
   }
 
@@ -459,6 +505,9 @@ export class RegistroClienteComponent {
   private consultaDocumentosBff?: Subscription;
 
   private limpiarDetalleBff(): void {
+    this.edicionAutorizadaBff = false;
+    this.camposEdicionBff = [];
+    this.guardandoDatosNodo = false;
     this.accesosRegistrados = false;
     this.accesosDisponiblesBff = null;
     this.consultaPldBff?.unsubscribe();
@@ -516,6 +565,10 @@ export class RegistroClienteComponent {
           return;
         }
         this.cuentaNodoActual = cuenta;
+        this.edicionAutorizadaBff = respuesta.permissions?.editInformation === true;
+        const privados = /(?:id$|^id|guid|sirio|token|password)/i;
+        this.camposEdicionBff = (respuesta.permissions?.editFields ?? []).filter(campo =>
+          typeof campo === 'string' && Object.hasOwn(this.datosForm.controls, campo) && !privados.test(campo));
         // El nivel procede del árbol autorizado, no de una posible entidad padre.
         const tipos: Record<string, string> = { entidad: 'Empresa Grupo', sucursal: 'Sucursales de Grupo',
           caja: 'Cuenta Terminal', 'sub-afiliado': 'Empresa Holding' };
@@ -547,8 +600,10 @@ export class RegistroClienteComponent {
       const texto = error?.status === 503
         ? `Consulta ${tipo} bloqueada por el BFF (503).`
         : `No fue posible consultar ${tipo} de este nodo${error?.status ? ` (${error.status})` : ''}.`;
-      if (tipo === 'pld') { this.cargandoSiprelad = false; this.resultadosSiprelad = []; this.resultadoSiprelad = texto; }
-      else { this.cargandoDocumentosProspecto = false; this.documentosProspecto = []; this.errorDocumentosProspecto = texto; }
+      const code = error?.error?.code;
+      const detalle = typeof code === 'string' && /^COMERCIOS_[A-Z_]{1,80}$/.test(code) ? `${texto} Código: ${code}.` : texto;
+      if (tipo === 'pld') { this.cargandoSiprelad = false; this.resultadosSiprelad = []; this.resultadoSiprelad = detalle; }
+      else { this.cargandoDocumentosProspecto = false; this.documentosProspecto = []; this.errorDocumentosProspecto = detalle; }
     };
     if (tipo === 'pld') {
       this.consultaPldBff?.unsubscribe();

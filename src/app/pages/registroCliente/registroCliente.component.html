@@ -114,9 +114,11 @@
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 
+            <button *ngIf="modoContextoBff && seccion.id === 'datos' && puedeEditarDatosNodo && !editandoDatosNodo"
+              type="button" class="button secondary" (click)="editarDatosNodo()">Editar datos</button>
             <p *ngIf="seccion.id === 'datos' && mensajeActualizacionDatos" role="status">{{ mensajeActualizacionDatos }}</p>
             <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'datos'"
-              [disabled]="soloConsulta || guardandoDatosNodo || (nodeIDEdicion && !editandoDatosNodo)">
+              [disabled]="modoContextoBff ? (!puedeEditarDatosNodo || !editandoDatosNodo || guardandoDatosNodo) : (soloConsulta || guardandoDatosNodo || (nodeIDEdicion && !editandoDatosNodo))">
             <app-step-datos
               *ngIf="seccion.id === 'datos'"
               [form]="datosForm"
@@ -138,11 +140,11 @@
               [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
               [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
               [mostrarMismoDomicilio]="false"
-              [bloquearActividad]="nodeIDEdicion ? !editandoDatosNodo : soloConsulta"
-              [mostrarBusquedaAvanzadaGiro]="editandoDatosNodo"
+              [bloquearActividad]="modoContextoBff ? true : (nodeIDEdicion ? !editandoDatosNodo : soloConsulta)"
+              [mostrarBusquedaAvanzadaGiro]="!modoContextoBff && editandoDatosNodo"
               [validarSoloCambios]="editandoDatosNodo"
-              [mostrarContinuar]="esMesaDigitalSesion"
-              [textoContinuar]="nodeIDEdicion ? (guardandoDatosNodo ? 'Actualizando…' : 'Actualizar datos') : 'Guardar y continuar'"
+              [mostrarContinuar]="modoContextoBff ? (puedeEditarDatosNodo && editandoDatosNodo) : esMesaDigitalSesion"
+              [textoContinuar]="(modoContextoBff || nodeIDEdicion) ? (guardandoDatosNodo ? 'Actualizando…' : 'Actualizar datos') : 'Guardar y continuar'"
               (cambiarInfoFiscalEntidad)="alternarInfoFiscalEntidad($event)"
               (seleccionarLocalidadFiscal)="seleccionarLocalidad($event, 'DF')"
               (seleccionarLocalidadComercial)="seleccionarLocalidad($event, 'DC')"

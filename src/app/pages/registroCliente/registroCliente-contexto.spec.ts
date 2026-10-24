@@ -338,4 +338,79 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectNone(request => true);
   });
 
+  it('no ejecuta escrituras legacy ni simula guardados desde las acciones pendientes, incluso para rol 2', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const auth = TestBed.inject(AuthService);
+    const modal = spyOn(component as any, 'mostrarModalRegistro');
+    for (const role of [2, 3, 4, 5, 6]) {
+      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      const before = component.datosForm.getRawValue();
+      component.editarDatosNodo();
+      component.guardarDatosNodo();
+      component.guardarRevisionDocumentos();
+      component.enviarNotificacionMesaDigital();
+      component.registrarClienteProspecto();
+      component.finalizar();
+      expect(component.editandoDatosNodo).toBeFalse();
+      expect(component.datosForm.getRawValue()).toEqual(before);
+      expect(component.datosForm.disabled).toBeTrue();
+      expect(modal).not.toHaveBeenCalled();
+      http.expectNone(request => true);
+    }
+  });
+
+  it('mantiene las cinco columnas originales de PLD y sus seis campos públicos', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    fixture.componentInstance.seccionAbierta = 'documentos';
+    fixture.componentInstance.resultadosSiprelad = [{ rfc: 'RFC-PRUEBA', nombre: 'Nombre de prueba',
+      fechaRegistro: '2026-01-01', categoria: 'Categoría de prueba', fuente: 'Fuente de prueba', coincidenciaListas: 'Si' }];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.siprelad-head span').length).toBe(5);
+    const row = fixture.nativeElement.querySelector('.siprelad-row').textContent;
+    for (const value of ['RFC-PRUEBA', 'Nombre de prueba', '2026-01-01', 'Categoría de prueba', 'Fuente de prueba', 'Sí']) {
+      expect(row).toContain(value);
+    }
+    expect(fixture.nativeElement.querySelector('.mesa-observations')).toBeNull();
+    http.expectNone(request => true);
+  });
+
+  it('edita con permiso BFF, manda solo cambios públicos y recarga el nodo', () => {
+    const auth = TestBed.inject(AuthService);
+    auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Comercio', levelType: 4, depth: 0 }] });
+    const result = { success: true, information: { nameCommerce: 'Anterior' }, permissions: { editInformation: true, editFields: ['nombreComercial'] } };
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush(result);
+    expect(component.puedeEditarDatosNodo).toBeTrue();
+    component.editarDatosNodo();
+    component.datosForm.controls.nombreComercial.setValue('Nuevo');
+    component.guardarDatosNodo();
+    const write = http.expectOne(r => r.method === 'PUT');
+    expect(write.request.body).toEqual({ cambios: { nombreComercial: 'Nuevo' } });
+    expect(write.request.withCredentials).toBeTrue();
+    expect(write.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(write.request.headers.has('Authorization')).toBeFalse();
+    write.flush({ success: true });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ ...result, information: { nameCommerce: 'Nuevo' } });
+    expect(component.datosForm.controls.nombreComercial.value).toBe('Nuevo');
+    expect(component.editandoDatosNodo).toBeFalse();
+  });
+
+  it('no mezcla una respuesta de guardado con otro nodo ni concede edición por rol solo', () => {
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Entidad', levelType: 4, depth: 0 }, { ref: other, name: 'Sucursal', levelType: 5, depth: 1 }] });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true, information: { nameCommerce: 'Entidad' }, permissions: { editInformation: true, editFields: ['nombreComercial'] } });
+    component.editarDatosNodo(); component.datosForm.controls.nombreComercial.setValue('Cambio'); component.guardarDatosNodo();
+    const write = http.expectOne(r => r.method === 'PUT');
+    component.seleccionarNodo((component as any).buscarNodo(component.arbol, other));
+    http.expectOne(`/api/comercios/${ref}/nodos/${other}/informacion-general`).flush({ success: true, information: { nameCommerce: 'Sucursal' }, permissions: { editInformation: false, editFields: [] } });
+    write.flush({ success: true });
+    expect(component.datosForm.controls.nombreComercial.value).toBe('Sucursal');
+    expect(component.puedeEditarDatosNodo).toBeFalse();
+    http.expectNone(r => r.url.endsWith('informacion-general'));
+  });
+
 });

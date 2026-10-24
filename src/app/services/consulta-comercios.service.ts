@@ -79,7 +79,7 @@ export interface ConsultaComerciosResponse {
 }
 
 // DTOs públicos definidos por comercios-read.service/adapters del BFF.
-export interface ComercioInformacionResponse { success: boolean; information: Record<string, unknown>; }
+export interface ComercioInformacionResponse { success: boolean; information: Record<string, unknown>; permissions?: { editInformation: boolean; editFields: string[]; editUnavailableCode?: string }; }
 export interface ComercioPldResponse { success: boolean; pld: Array<{ rfc: string | null; nombre: string | null;
   fechaRegistro: string | null; coincidenciaListas: string | null; categoria: string | null; fuente: string | null }>; }
 export interface ComercioDocumentosResponse { success: boolean; documents: Array<{
@@ -119,6 +119,24 @@ export class ConsultaComerciosService {
   consultarInformacionNodo(ref: string, nodeRef: string): Observable<ComercioInformacionResponse> {
     return this.http.get<ComercioInformacionResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/informacion-general`, { withCredentials: true });
   }
+
+
+  actualizarInformacionNodo(
+  ref: string,
+  nodeRef: string,
+  cambios: Record<string, unknown>
+): Observable<{ success: boolean }> {
+  return this.http.put<{ success: boolean }>(
+    `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/informacion-general`,
+    { cambios },
+    {
+      withCredentials: true,
+      headers: new HttpHeaders({
+        'X-Portal-Request': '1'
+      })
+    }
+  );
+}
 
   consultarPldNodo(ref: string, nodeRef: string): Observable<ComercioPldResponse> {
     return this.http.get<ComercioPldResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/pld`, { withCredentials: true });
