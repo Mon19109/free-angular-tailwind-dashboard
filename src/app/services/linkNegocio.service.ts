@@ -1,7 +1,6 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { environment } from '../environments/environments';
 
 export interface LinkNegocioFormData {
   emailComer: string;
@@ -31,18 +30,14 @@ export interface BusinessLinkResponse {
 @Injectable({ providedIn: 'root' })
 export class LinkNegocioService {
   private readonly http = inject(HttpClient);
-  private readonly orderUrl = `${environment.api.linkpago}order`;
-  private readonly businessLinkUrl = `${environment.api.kashpay}api/v1/businessLink`;
+  private readonly orderUrl = '/api/link-negocio/order';
+  private readonly businessLinkUrl = '/api/link-negocio/businessLink';
 
 
   obtenerNegocio(sirioId: string): Observable<BusinessLinkResponse> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
-      'versionApp': '3'
-    });
     const params = new HttpParams().set('sirioId', sirioId);
 
-    return this.http.get<BusinessLinkResponse>(this.businessLinkUrl, { headers, params });
+    return this.http.get<BusinessLinkResponse>(this.businessLinkUrl, { params });
   }
 
   addLink(formData: LinkNegocioFormData): Observable<AddLinkNegocioResponse> {
@@ -91,13 +86,7 @@ export class LinkNegocioService {
       referenceThree: ''
     };
 
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
-      'Entity-i': 'com.onsigna',
-      'versionApp': '3'
-    });
-
-    return this.http.post(this.orderUrl, payload, { headers }).pipe(
+    return this.http.post(this.orderUrl, payload).pipe(
       map(response => ({ rows: response }))
     );
   }

@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environments';
 //import { AuthService, UserSessionData } from '../services/auth.service';
 
 
@@ -77,89 +76,26 @@ export interface AddLink {
 })
 export class AddLinkPagoService {
   private http = inject(HttpClient);
-  private baseUrl = environment.api.linkpago; // Tu base URLAdquirenciaAdquirencia
-  private crearLink = environment.api.linkpago; // Tu base URLAdquirenciaAdquirencia
+  private baseUrl = '/api/addlinkpago/'; // Tu base URLAdquirenciaAdquirencia
+  private crearLink = '/api/addlinkpago/'; // Tu base URLAdquirenciaAdquirencia
 
   //user: UserSessionData | null = null;
 
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-      'Content-Type': 'application/json',
-      'Entity-i': 'com.onsigna',
-      'versionApp': '3'
-    });
-  }
-
-  /*obtenerTipoNoti(): Observable<any> {
-    //const headers = this.getCommonHeaders();
-    const headers = new HttpHeaders({
-      'Authorization': 'Bearer ' + localStorage.getItem('token'),
-      'Entity-i': 'com.onsigna',
-      'Content-Type': 'application/json'
-    });
-    console.log(headers.get('Authorization')); 
-    console.log(headers.get('Entity-i')); 
-    console.log(headers.get('Content-Type')); 
-    return this.http.get(
-      `${this.baseUrl}api/v1/order/catalogs/notificationTypes`,
-      { headers }
-    );
-  }*/
-
   obtenerTipoNoti(): Observable<any> {
-    let headers = new HttpHeaders();
-    headers = headers.set('Authorization', 'Bearer ' + localStorage.getItem('token'));
-    headers = headers.set('Entity-i', 'com.onsigna');
-    headers = headers.set('versionApp', '3');
-    
-    return this.http.get(
-      `${this.baseUrl}order/catalogs/notificationTypes`,
-      { headers }
-    );
+    return this.http.get(`${this.baseUrl}notificationTypes`);
   }
-  
-  obtenerTipoPago(): Observable<any> {
-    let headers = new HttpHeaders();
-    headers = headers.set('Authorization', 'Bearer ' + localStorage.getItem('token'));
-    headers = headers.set('Entity-i', 'com.onsigna');
-    headers = headers.set('Content-Type', 'application/json');
 
-    return this.http.get(
-      `${this.baseUrl}order/catalogs/paymentMethods`,
-      { headers }
-    );
+  obtenerTipoPago(): Observable<any> {
+    return this.http.get(`${this.baseUrl}paymentMethods`);
   }
 
   enviarSMS(datos: NotificacionPagoData): Observable<any> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-      'versionApp': '3',
-      'Content-Type': 'application/json'
-    });
-
-    return this.http.post(
-      `${environment.api.kashpay}api/v1/paymentLink/notification`,
-      datos,
-      { headers }
-    );
+    return this.http.post(`${this.baseUrl}notification/sms`, datos);
   }
 
-
   enviarEmail(datos: NotificacionPagoData): Observable<any> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-      'versionApp': '3',
-      'Entity-i': 'com.onsigna',
-      'Content-Type': 'application/json'
-    });
-
-    return this.http.post(
-      `${environment.api.kashpay}api/v1/paymentLink/notification`,
-      datos,
-      { headers }
-    );
-  }    
+    return this.http.post(`${this.baseUrl}notification/email`, datos);
+  }
 
   /**
      * Envía los datos del formulario al API
@@ -225,10 +161,7 @@ export class AddLinkPagoService {
 
       return this.http.post(
         `${this.crearLink}order`,
-        datosTransformados,
-        {
-          headers: this.getCommonHeaders()
-        }
+        datosTransformados
       );
     }
 

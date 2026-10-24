@@ -1,7 +1,6 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { environment } from '../environments/environments';
 
 export interface SearchLinkResponse<T = any> {
   rows: T;
@@ -10,16 +9,11 @@ export interface SearchLinkResponse<T = any> {
 @Injectable({ providedIn: 'root' })
 export class AddBotonPagoService {
   private readonly http = inject(HttpClient);
-  private readonly checkoutUrl = `${environment.api.voucher}checkout/`;
+  private readonly checkoutUrl = '/api/addbotonpago/checkout/';
 
   searchLink(referencia: string): Observable<SearchLinkResponse> {
-    const headers = new HttpHeaders({
-      AuthorizationToken: 'Bearer 1234345'
-    });
-
     return this.http.get(
-      `${this.checkoutUrl}${encodeURIComponent(referencia)}`,
-      { headers }
+      `${this.checkoutUrl}${encodeURIComponent(referencia)}`
     ).pipe(
       map(response => ({ rows: response }))
     );
