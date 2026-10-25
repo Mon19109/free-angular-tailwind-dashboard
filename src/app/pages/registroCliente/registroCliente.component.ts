@@ -216,8 +216,15 @@ export class RegistroClienteComponent {
         this.mostrarModalRegistro('success', 'Actualización exitosa', 'Se actualizó de forma correcta.');
         this.consultarCuentaComercio();
       },
-      error: () => {
-        if (vigente()) this.mensajeActualizacionDatos = 'No fue posible actualizar los datos. Intenta nuevamente.';
+      error: error => {
+        if (!vigente()) return;
+        this.codigoEdicionBff = this.codigoBffSeguro(error.error?.code);
+        if ([401, 403, 409, 422].includes(error.status)) {
+          this.edicionAutorizadaBff = false;
+          this.editandoDatosNodo = false;
+          this.datosForm.disable({ emitEvent: false });
+        }
+        this.mensajeActualizacionDatos = 'No fue posible actualizar los datos. Intenta nuevamente.';
       }
     });
   }
@@ -505,6 +512,16 @@ export class RegistroClienteComponent {
   private consultaDocumentosBff?: Subscription;
 
   private limpiarDetalleBff(): void {
+    this.revisionPermitidaBff = false;
+    this.notificacionPermitidaBff = false;
+    this.observacionesInternasCargadasBff = false;
+    this.codigoEdicionBff = '';
+    this.codigoRevisionBff = '';
+    this.enviandoNotificacionMesaDigital = false;
+    this.guardandoRevisionDocumentos = false;
+    this.observacionesClienteMesaDigital = '';
+    this.emailNotificacionMesaDigital = '';
+    this.mensajeObservacionesCliente = '';
     this.edicionAutorizadaBff = false;
     this.camposEdicionBff = [];
     this.guardandoDatosNodo = false;
@@ -566,8 +583,9 @@ export class RegistroClienteComponent {
         }
         this.cuentaNodoActual = cuenta;
         this.edicionAutorizadaBff = respuesta.permissions?.editInformation === true;
+        this.codigoEdicionBff = this.codigoBffSeguro(respuesta.permissions?.editUnavailableCode);
         const privados = /(?:id$|^id|guid|sirio|token|password)/i;
-        this.camposEdicionBff = (respuesta.permissions?.editFields ?? []).filter(campo =>
+        this.camposEdicionBff = (Array.isArray(respuesta.permissions?.editFields) ? respuesta.permissions.editFields : []).filter(campo =>
           typeof campo === 'string' && Object.hasOwn(this.datosForm.controls, campo) && !privados.test(campo));
         // El nivel procede del árbol autorizado, no de una posible entidad padre.
         const tipos: Record<string, string> = { entidad: 'Empresa Grupo', sucursal: 'Sucursales de Grupo',
@@ -624,6 +642,9 @@ export class RegistroClienteComponent {
     } else {
       this.consultaDocumentosBff?.unsubscribe();
       if (this.nivelSeleccionado === 'caja') return;
+      this.revisionPermitidaBff = false;
+      this.notificacionPermitidaBff = false;
+      this.observacionesInternasCargadasBff = false;
       this.cargandoDocumentosProspecto = true;
       this.consultaDocumentosBff = this.contextoService.consultarDocumentosNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: respuesta => {
@@ -633,6 +654,14 @@ export class RegistroClienteComponent {
           this.documentosProspecto = this.documentosDesdeRespuesta({ documents: respuesta.documents.map(row => ({
             ref: row.ref, name: row.name ?? '', documentType: row.documentType ?? '', status: row.status ?? ''
           })) });
+          ++this.versionDocumentosBff;
+          this.observacionesInternasCargadasBff = Object.hasOwn(respuesta, 'internalObservations')
+            && (respuesta.internalObservations === null || typeof respuesta.internalObservations === 'string');
+          this.observacionesInternasMesaDigital = respuesta.internalObservations ?? '';
+          this.revisionPermitidaBff = respuesta.permissions?.reviewDocuments === true && this.observacionesInternasCargadasBff;
+          this.notificacionPermitidaBff = respuesta.permissions?.sendObservations === true;
+          this.emailNotificacionMesaDigital = respuesta.permissions?.notificationEmail ?? '';
+          this.codigoRevisionBff = this.codigoBffSeguro(respuesta.permissions?.reviewUnavailableCode);
           this.documentosProspectoPorNodo[nodeRef] = this.documentosProspecto;
           this.cargandoDocumentosProspecto = false;
         }, error: fallo
@@ -877,8 +906,24 @@ export class RegistroClienteComponent {
       && this.documentosNodoValidados(this.nodoSeleccionado);
   }
 
+  versionDocumentosBff = 0;
+  private revisionPermitidaBff = false;
+  private notificacionPermitidaBff = false;
+  private observacionesInternasCargadasBff = false;
+  codigoEdicionBff = '';
+  codigoRevisionBff = '';
+  get puedeRevisarDocumentosBff(): boolean {
+    return this.modoContextoBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
+      && this.observacionesInternasCargadasBff && !this.cargandoDocumentosProspecto
+      && !this.guardandoRevisionDocumentos && !this.errorDocumentosProspecto && this.documentosProspecto.length > 0;
+  }
+  get puedeNotificarBff(): boolean {
+    return this.modoContextoBff && this.puedeVerRevisionDocumental && this.notificacionPermitidaBff
+      && !this.cargandoDocumentosProspecto && !this.enviandoNotificacionMesaDigital;
+  }
+
   get documentacionSoloConsulta(): boolean {
-    return this.modoContextoBff || !this.esMesaDigitalSesion;
+    return this.modoContextoBff ? !(this.puedeVerRevisionDocumental && (this.revisionPermitidaBff || this.notificacionPermitidaBff)) : !this.esMesaDigitalSesion;
   }
 
   get pasosVisiblesRegistro() {
@@ -1997,6 +2042,7 @@ export class RegistroClienteComponent {
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   continuarDesdeDocumentos(): void {
+    if (this.modoContextoBff) { this.guardarRevisionDocumentos(true); return; }
     if (this.registrandoCliente || this.guardandoRevisionDocumentos) return;
 
     if (this.esEdicionPendiente) {
@@ -2377,6 +2423,12 @@ export class RegistroClienteComponent {
 
   actualizarEstatusDocumento(documento: DocumentoRequerido, estado: EstatusDocumentoProspecto): void {
     if (this.modoContextoBff) {
+      if (!this.puedeRevisarDocumentosBff) return;
+      const row = this.documentosProspecto.find(item => item['ref'] === documento.archivoId);
+      if (!row || !['APPROVED', 'REJECTED'].includes(estado)) return;
+      row.status = estado;
+      documento.estatusRevision = estado;
+      documento.estado = this.traducirEstatusDocumento(estado);
       return;
     }
     if (!this.esMesaDigitalSesion || !this.habilitarMesaDigitalEdicion) return;
@@ -2434,8 +2486,73 @@ export class RegistroClienteComponent {
     this.errorDocumentosProspecto = 'El servicio no regreso una URL para abrir este documento.';
   }
 
+  private codigoBffSeguro(code: unknown): string {
+    return typeof code === 'string' && /^COMERCIOS_[A-Z_]{1,80}$/.test(code) ? code : '';
+  }
+
+  private guardarRevisionBff(avanzar: boolean): void {
+    const ref = this.contextoBff?.commerce.ref;
+    const nodeRef = this.nodoSeleccionado;
+    if (!ref || !this.puedeRevisarDocumentosBff) return;
+    const documents = this.documentosProspecto.map(doc => ({ ref: String(doc['ref'] ?? ''), status: this.estatusDocumentoParaEnvio(doc) }));
+    if (!documents.length || documents.length > 100 || documents.some(doc => !doc.ref || !['APPROVED', 'REJECTED', 'IN_REVIEW'].includes(doc.status))) return;
+    const notes = this.observacionesInternasMesaDigital.trim();
+    if (notes.length > 4096) { this.mensajeObservacionesCliente = 'Las observaciones no deben superar 4096 caracteres.'; return; }
+    const generation = this.consultaCuentaActual;
+    const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
+    this.guardandoRevisionDocumentos = true;
+    this.mensajeObservacionesCliente = '';
+    this.contextoService.guardarRevisionNodo(ref, nodeRef, documents, notes || null).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: response => {
+        if (!vigente()) return;
+        this.guardandoRevisionDocumentos = false;
+        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El guardado no fue confirmado.'; return; }
+        this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
+        if (avanzar && !this.esUltimoNodoSeleccionado) this.seleccionarSiguienteNodoArbol();
+        else this.consultarDocumentosProspecto();
+      },
+      error: error => {
+        if (!vigente()) return;
+        this.guardandoRevisionDocumentos = false;
+        if ([401, 403, 409, 422].includes(error.status)) this.revisionPermitidaBff = false;
+        this.codigoRevisionBff = this.codigoBffSeguro(error.error?.code);
+        this.mensajeObservacionesCliente = `No fue posible guardar la revisión. ${this.codigoRevisionBff}`.trim();
+      }
+    });
+  }
+
+  private enviarObservacionesBff(): void {
+    const ref = this.contextoBff?.commerce.ref;
+    const nodeRef = this.nodoSeleccionado;
+    if (!ref || !this.puedeNotificarBff) return;
+    const observations = this.observacionesClienteMesaDigital.trim();
+    if (!observations || observations.length > 4096) {
+      this.mostrarModalRegistro('error', 'Datos incompletos', 'Captura observaciones de hasta 4096 caracteres.'); return;
+    }
+    const generation = this.consultaCuentaActual;
+    const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
+    this.enviandoNotificacionMesaDigital = true;
+    this.mensajeObservacionesCliente = '';
+    this.contextoService.enviarObservacionesNodo(ref, nodeRef, observations).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: response => {
+        if (!vigente()) return;
+        this.enviandoNotificacionMesaDigital = false;
+        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El envío no fue confirmado.'; return; }
+        this.observacionesClienteMesaDigital = '';
+        this.mostrarModalRegistro('success', 'Operación exitosa', 'Notificación enviada correctamente.');
+      },
+      error: error => {
+        if (!vigente()) return;
+        this.enviandoNotificacionMesaDigital = false;
+        if ([401, 403, 409, 422].includes(error.status)) this.notificacionPermitidaBff = false;
+        this.codigoRevisionBff = this.codigoBffSeguro(error.error?.code);
+        this.mensajeObservacionesCliente = `No fue posible enviar la notificación. ${this.codigoRevisionBff}`.trim();
+      }
+    });
+  }
+
   enviarNotificacionMesaDigital(): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) { this.enviarObservacionesBff(); return; }
     if (!this.esMesaDigitalSesion) return;
     const email = this.emailNotificacionMesaDigital.trim();
     const observations = this.observacionesClienteMesaDigital.trim();
@@ -2473,7 +2590,7 @@ export class RegistroClienteComponent {
   }
 
   guardarRevisionDocumentos(finalizarDespues = false, alGuardar?: () => void): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) { this.guardarRevisionBff(finalizarDespues); return; }
     if (!this.esMesaDigitalSesion || !this.habilitarMesaDigitalEdicion) return;
     const legalDocuments = this.documentosProspecto
       .map(documento => ({

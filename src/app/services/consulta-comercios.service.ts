@@ -82,7 +82,11 @@ export interface ConsultaComerciosResponse {
 export interface ComercioInformacionResponse { success: boolean; information: Record<string, unknown>; permissions?: { editInformation: boolean; editFields: string[]; editUnavailableCode?: string }; }
 export interface ComercioPldResponse { success: boolean; pld: Array<{ rfc: string | null; nombre: string | null;
   fechaRegistro: string | null; coincidenciaListas: string | null; categoria: string | null; fuente: string | null }>; }
-export interface ComercioDocumentosResponse { success: boolean; documents: Array<{
+export interface ComercioRevisionPermisos {
+  reviewDocuments: boolean; sendObservations: boolean; notificationEmail: string | null; reviewUnavailableCode?: string;
+}
+export interface ComercioDocumentosResponse { success: boolean; internalObservations?: string | null;
+  permissions?: ComercioRevisionPermisos; documents: Array<{
   ref: string; name: string | null; documentType: string | null; status: string | null }>;
 }
 
@@ -144,6 +148,16 @@ export class ConsultaComerciosService {
 
   consultarDocumentosNodo(ref: string, nodeRef: string): Observable<ComercioDocumentosResponse> {
     return this.http.get<ComercioDocumentosResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos`, { withCredentials: true });
+  }
+
+  guardarRevisionNodo(ref: string, nodeRef: string, documents: Array<{ ref: string; status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW' }>, internalObservations: string | null): Observable<{ success: boolean }> {
+    return this.http.put<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/revision`,
+      { documents, internalObservations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
+  }
+
+  enviarObservacionesNodo(ref: string, nodeRef: string, observations: string): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/observaciones`,
+      { observations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
   archivoNodoUrl(ref: string, nodeRef: string, documentRef: string): string {

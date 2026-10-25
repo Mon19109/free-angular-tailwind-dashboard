@@ -114,6 +114,7 @@
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 
+            <p *ngIf="modoContextoBff && seccion.id === 'datos' && codigoEdicionBff" role="status">Edición no disponible: {{ codigoEdicionBff }}</p>
             <button *ngIf="modoContextoBff && seccion.id === 'datos' && puedeEditarDatosNodo && !editandoDatosNodo"
               type="button" class="button secondary" (click)="editarDatosNodo()">Editar datos</button>
             <p *ngIf="seccion.id === 'datos' && mensajeActualizacionDatos" role="status">{{ mensajeActualizacionDatos }}</p>
@@ -171,22 +172,25 @@
               </ng-container>
             </div>
 
-            <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos'" role="status">Validar y rechazar documentos requiere habilitar la escritura autorizada en el BFF.</p>
+            <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos'" role="status">{{ codigoRevisionBff ? ('Revisión no disponible: ' + codigoRevisionBff) : (documentacionSoloConsulta ? 'Revisión documental no autorizada para este nodo.' : 'Los cambios de validación se guardan mediante Guardar Borrador. El destinatario de las observaciones es el correo registrado del comercio.') }}</p>
             <app-step-documentos
               *ngIf="seccion.id === 'documentos'"
               [class.revision-no-autorizada]="!puedeVerRevisionDocumental"
               [soloConsulta]="documentacionSoloConsulta"
+              [permitirRevision]="!modoContextoBff || puedeRevisarDocumentosBff"
+              [permitirNotificacion]="!modoContextoBff || puedeNotificarBff"
+              [emailSoloLectura]="modoContextoBff"
               [documentos]="documentosVisibles"
               [permitirAgregarDocumento]="esMesaDigitalSesion && !!commerceID && !cargandoDocumentosProspecto && !cargandoCuentaComercio"
               [documentosDisponibles]="documentosDisponiblesParaSubir"
               [subiendoDocumento]="subiendoDocumento"
-              [contextoDocumento]="nodoSeleccionado"
+              [contextoDocumento]="modoContextoBff ? nodoSeleccionado + ':' + versionDocumentosBff : nodoSeleccionado"
               [mensajeCargaDocumento]="mensajeCargaDocumento"
               (subirDocumento)="subirDocumentoFaltante($event)"
               [documentosCargados]="documentosCargados"
               [documentosPendientes]="documentosPendientes"
               [archivosInvalidos]="archivosInvalidos"
-              [mostrarMesaDigital]="habilitarMesaDigitalEdicion"
+              [mostrarMesaDigital]="modoContextoBff || habilitarMesaDigitalEdicion"
               [resultadoSiprelad]="resultadoSiprelad"
               [resultadosSiprelad]="resultadosSiprelad"
               [observacionesCliente]="observacionesClienteMesaDigital"
@@ -194,9 +198,9 @@
               [emailNotificacion]="emailNotificacionMesaDigital"
               [enviandoNotificacion]="enviandoNotificacionMesaDigital"
               [guardandoBorrador]="guardandoRevisionDocumentos"
-              [deshabilitarFinalizar]="registrandoCliente || guardandoRevisionDocumentos"
+              [deshabilitarFinalizar]="registrandoCliente || guardandoRevisionDocumentos || (modoContextoBff && !puedeRevisarDocumentosBff)"
               [mensajeNotificacion]="mensajeObservacionesCliente"
-              [textoFinalizar]="textoFinalizarDocumentos"
+              [textoFinalizar]="modoContextoBff ? (esUltimoNodoSeleccionado ? 'Guardar revisión' : 'Siguiente') : textoFinalizarDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (verArchivo)="verDocumentoProspecto($event)"
               (validarArchivo)="actualizarEstatusDocumento($event.documento, $event.estado)"

@@ -17,6 +17,9 @@ export class StepDocumentosComponent implements OnChanges {
   @Input() textoFinalizar = 'Enviar preregistro';
   @Input() mostrarMesaDigital = false;
   @Input() soloConsulta = false;
+  @Input() permitirRevision = true;
+  @Input() permitirNotificacion = true;
+  @Input() emailSoloLectura = false;
   @Input() mostrarMismaDocumentacionEntidad = false;
   @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
@@ -96,7 +99,7 @@ export class StepDocumentosComponent implements OnChanges {
   }
 
   validarDocumento(documento: DocumentoRequerido, estado: 'cumple' | 'no-cumple'): void {
-    if (this.soloConsulta) return;
+    if (this.soloConsulta || !this.permitirRevision) return;
     this.validacionesMesaDigital[documento.numero] = estado;
     this.validarArchivo.emit({
       documento,

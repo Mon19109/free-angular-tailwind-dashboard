@@ -94,7 +94,7 @@
           <div class="mesa-switch" role="group" aria-label="Validación de documento">
             <button
               type="button"
-              [disabled]="soloConsulta"
+              [disabled]="soloConsulta || !permitirRevision"
               [class.active]="estadoDocumento(documento) === 'cumple'"
               (click)="validarDocumento(documento, 'cumple')">
               Válido
@@ -102,7 +102,7 @@
             <button
               type="button"
               class="off"
-              [disabled]="soloConsulta"
+              [disabled]="soloConsulta || !permitirRevision"
               [class.active]="estadoDocumento(documento) === 'no-cumple'"
               (click)="validarDocumento(documento, 'no-cumple')">
               No válido
@@ -128,6 +128,7 @@
         <input
           type="text"
           [value]="observacionesInternas"
+          [disabled]="!permitirRevision"
           (input)="observacionesInternasChange.emit($any($event.target).value)">
       </label>
       <label class="mesa-email-field">
@@ -138,6 +139,7 @@
             placeholder="Email del Cliente"
             autocomplete="email"
             [value]="emailNotificacion"
+            [readOnly]="emailSoloLectura"
             (input)="emailNotificacionChange.emit($any($event.target).value)">
         </div>
       </label>
@@ -153,7 +155,7 @@
       <button
         type="button"
         class="button primary"
-        [disabled]="enviandoNotificacion"
+        [disabled]="enviandoNotificacion || !permitirNotificacion"
         (click)="enviarNotificacion.emit()">
         <i class="fa-solid" [ngClass]="enviandoNotificacion ? 'fa-spinner fa-spin' : 'fa-envelope'"></i>
         {{ enviandoNotificacion ? 'Enviando...' : 'Enviar Notificación' }}
@@ -161,7 +163,7 @@
       <button
         type="button"
         class="button ghost"
-        [disabled]="guardandoBorrador"
+        [disabled]="guardandoBorrador || !permitirRevision"
         (click)="guardarBorrador.emit()">
         <i class="fa-regular" [ngClass]="guardandoBorrador ? 'fa-hourglass-half' : 'fa-folder'"></i>
         {{ guardandoBorrador ? 'Guardando...' : 'Guardar Borrador' }}

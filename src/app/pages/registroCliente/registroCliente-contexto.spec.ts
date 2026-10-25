@@ -413,4 +413,94 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectNone(r => r.url.endsWith('informacion-general'));
   });
 
+  function cargarRevision(permissions = { reviewDocuments: true, sendObservations: true, notificationEmail: 'cuenta@example.test' }) {
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Entidad', levelType: 4, depth: 0 }] });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true, information: { nameCommerce: 'Entidad' }, permissions: { editInformation: false, editFields: [], editUnavailableCode: 'COMERCIOS_WRITE_ACCOUNT_MISMATCH' } });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
+      documents: [{ ref: other, name: 'Acta', status: 'IN_REVIEW' }], internalObservations: 'Nota existente', permissions });
+  }
+
+  it('conserva notas existentes y persiste aprobación/rechazo con referencias, luego recarga', () => {
+    cargarRevision();
+    expect(component.codigoEdicionBff).toBe('COMERCIOS_WRITE_ACCOUNT_MISMATCH');
+    expect(component.documentacionSoloConsulta).toBeFalse();
+    const doc = component.documentosVisibles[0];
+    component.actualizarEstatusDocumento(doc, 'APPROVED');
+    component.actualizarEstatusDocumento(doc, 'REJECTED');
+    component.guardarRevisionDocumentos();
+    component.guardarRevisionDocumentos();
+    const req = http.expectOne(r => r.method === 'PUT');
+    expect(req.request.url).toBe(`/api/comercios/${ref}/nodos/${ref}/documentos/revision`);
+    expect(req.request.body).toEqual({ documents: [{ ref: other, status: 'REJECTED' }], internalObservations: 'Nota existente' });
+    expect(req.request.withCredentials).toBeTrue(); expect(req.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    req.flush({ success: true });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true, documents: [{ ref: other, name: 'Acta', status: 'REJECTED' }], internalObservations: 'Nota existente', permissions: { reviewDocuments: true, sendObservations: true, notificationEmail: 'cuenta@example.test' } });
+    expect(component.observacionesInternasMesaDigital).toBe('Nota existente');
+    expect(component.documentosProspecto[0].status).toBe('REJECTED');
+  });
+
+  it('envía solo observations, evita duplicados y conserva el comentario ante error', () => {
+    cargarRevision(); component.observacionesClienteMesaDigital = 'Revisar documento';
+    component.emailNotificacionMesaDigital = 'no-enviar@example.test';
+    component.enviarNotificacionMesaDigital(); component.enviarNotificacionMesaDigital();
+    const req = http.expectOne(r => r.method === 'POST');
+    expect(req.request.url).toBe(`/api/comercios/${ref}/nodos/${ref}/documentos/observaciones`);
+    expect(req.request.body).toEqual({ observations: 'Revisar documento' });
+    expect(req.request.headers.get('X-Portal-Request')).toBe('1'); expect(req.request.withCredentials).toBeTrue();
+    req.flush({}, { status: 502, statusText: 'Backend error' });
+    expect(component.observacionesClienteMesaDigital).toBe('Revisar documento');
+    component.enviarNotificacionMesaDigital();
+    http.expectOne(r => r.method === 'POST').flush({ success: true });
+    expect(component.observacionesClienteMesaDigital).toBe('');
+  });
+
+  it('denegación BFF impide revisión y envío aunque el usuario sea rol 2', () => {
+    cargarRevision({ reviewDocuments: false, sendObservations: false, notificationEmail: null as any });
+    component.guardarRevisionDocumentos(); component.enviarNotificacionMesaDigital();
+    expect(component.documentacionSoloConsulta).toBeTrue();
+    http.expectNone(r => ['PUT', 'POST'].includes(r.method));
+  });
+
+  it('no borra notas ausentes del contrato y descarta respuestas de un contexto anterior', () => {
+    cargarRevision(); component.observacionesClienteMesaDigital = 'Nota vieja'; component.enviarNotificacionMesaDigital();
+    const req = http.expectOne(r => r.method === 'POST');
+    (component as any).limpiarDetalleBff(); component.nodoSeleccionado = other;
+    component.observacionesClienteMesaDigital = 'Nota nueva';
+    req.flush({ success: true });
+    expect(component.observacionesClienteMesaDigital).toBe('Nota nueva');
+    expect(component.puedeRevisarDocumentosBff).toBeFalse();
+    component.guardarRevisionDocumentos(); http.expectNone(r => r.method === 'PUT');
+  });
+
+  it('no permite guardar si la lectura no trae observaciones existentes, incluso con permiso', () => {
+    cargarRevision();
+    (component as any).consultarDocumentosProspecto();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
+      documents: [{ ref: other, name: 'Acta', status: 'APPROVED' }],
+      permissions: { reviewDocuments: true, sendObservations: false, notificationEmail: null } });
+    expect(component.puedeRevisarDocumentosBff).toBeFalse();
+    component.guardarRevisionDocumentos(); http.expectNone(r => r.method === 'PUT');
+  });
+
+  it('restaura controles de revisión y deja el destinatario en solo lectura', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    const view = fixture.componentInstance;
+    view.seccionAbierta = 'documentos'; view.nodoSeleccionado = ref;
+    view.documentosProspecto = [{ ref: other, name: 'Acta', status: 'IN_REVIEW' }];
+    (view as any).revisionPermitidaBff = true; (view as any).notificacionPermitidaBff = true;
+    (view as any).observacionesInternasCargadasBff = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mesa-observations')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.mesa-switch button').disabled).toBeFalse();
+    expect(fixture.nativeElement.querySelector('input[type=email]').readOnly).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Guardar Borrador');
+    expect(fixture.nativeElement.textContent).toContain('Enviar Notificación');
+  });
+
 });
