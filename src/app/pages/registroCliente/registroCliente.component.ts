@@ -922,6 +922,11 @@ export class RegistroClienteComponent {
       && !this.cargandoDocumentosProspecto && !this.enviandoNotificacionMesaDigital;
   }
 
+  get mostrarObservacionesConsultaBff(): boolean {
+    return this.modoContextoBff && this.observacionesInternasCargadasBff
+      && !this.cargandoDocumentosProspecto && !this.errorDocumentosProspecto;
+  }
+
   get documentacionSoloConsulta(): boolean {
     return this.modoContextoBff ? !(this.puedeVerRevisionDocumental && (this.revisionPermitidaBff || this.notificacionPermitidaBff)) : !this.esMesaDigitalSesion;
   }

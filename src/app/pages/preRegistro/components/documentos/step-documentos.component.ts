@@ -17,6 +17,7 @@ export class StepDocumentosComponent implements OnChanges {
   @Input() textoFinalizar = 'Enviar preregistro';
   @Input() mostrarMesaDigital = false;
   @Input() soloConsulta = false;
+  @Input() mostrarObservacionesConsulta = false;
   @Input() permitirRevision = true;
   @Input() permitirNotificacion = true;
   @Input() emailSoloLectura = false;

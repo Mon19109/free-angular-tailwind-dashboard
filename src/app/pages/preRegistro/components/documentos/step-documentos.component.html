@@ -114,13 +114,14 @@
       }
     </div>
 
-    @if (!soloConsulta) {
+    @if (!soloConsulta || mostrarObservacionesConsulta) {
     <div class="mesa-observations">
       <label>
         <span>Observaciones al Cliente</span>
         <input
           type="text"
           [value]="observacionesCliente"
+          [readOnly]="soloConsulta || !permitirNotificacion"
           (input)="observacionesClienteChange.emit($any($event.target).value)">
       </label>
       <label>
@@ -128,7 +129,7 @@
         <input
           type="text"
           [value]="observacionesInternas"
-          [disabled]="!permitirRevision"
+          [readOnly]="soloConsulta || !permitirRevision"
           (input)="observacionesInternasChange.emit($any($event.target).value)">
       </label>
       <label class="mesa-email-field">
@@ -139,11 +140,13 @@
             placeholder="Email del Cliente"
             autocomplete="email"
             [value]="emailNotificacion"
-            [readOnly]="emailSoloLectura"
+            [readOnly]="emailSoloLectura || soloConsulta || !permitirNotificacion"
             (input)="emailNotificacionChange.emit($any($event.target).value)">
         </div>
       </label>
     </div>
+    }
+    @if (!soloConsulta) {
     <div class="mesa-register-action">
       @if (permitirAgregarDocumento) {
     <button type="button" class="button secondary" [disabled]="subiendoDocumento || !documentosDisponibles.length"

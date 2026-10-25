@@ -503,4 +503,44 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(fixture.nativeElement.textContent).toContain('Enviar Notificación');
   });
 
+  it('muestra notas autorizadas en consulta sin habilitar escrituras ni destinatarios', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 3 } });
+    const view = fixture.componentInstance;
+    view.seccionAbierta = 'documentos'; view.nodoSeleccionado = ref;
+    view.observacionesInternasMesaDigital = 'Nota autorizada por el servidor';
+    (view as any).observacionesInternasCargadasBff = true;
+    fixture.detectChanges();
+    const inputs = fixture.nativeElement.querySelectorAll('.mesa-observations input');
+    expect(inputs.length).toBe(3);
+    expect(inputs[1].value).toBe('Nota autorizada por el servidor');
+    for (const input of inputs) expect(input.readOnly).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.mesa-register-action')).toBeNull();
+    view.guardarRevisionDocumentos(); view.enviarNotificacionMesaDigital();
+    http.expectNone(r => ['PUT', 'POST'].includes(r.method));
+    (view as any).limpiarDetalleBff(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mesa-observations')).toBeNull();
+  });
+
+  it('renderiza Editar datos sin permisos documentales y lo retira al denegar edición', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Entidad', levelType: 4, depth: 0 }] });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true, information: { nameCommerce: 'Entidad' }, permissions: { editInformation: true, editFields: ['nombreComercial'] } });
+    const view = fixture.componentInstance;
+    view.seccionAbierta = 'datos'; fixture.detectChanges();
+    const edit = Array.from(fixture.nativeElement.querySelectorAll('button')).find((b: any) => b.textContent.trim() === 'Editar datos') as HTMLButtonElement;
+    expect(edit).toBeTruthy(); edit.click(); fixture.detectChanges();
+    expect(view.datosForm.controls.nombreComercial.enabled).toBeTrue();
+    expect(view.datosForm.controls.razonSocial.disabled).toBeTrue();
+    (view as any).edicionAutorizadaBff = false;
+    view.guardarDatosNodo(); fixture.detectChanges();
+    expect(view.puedeEditarDatosNodo).toBeFalse();
+    http.expectNone(r => r.method === 'PUT');
+  });
+
 });

@@ -177,6 +177,7 @@
               *ngIf="seccion.id === 'documentos'"
               [class.revision-no-autorizada]="!puedeVerRevisionDocumental"
               [soloConsulta]="documentacionSoloConsulta"
+              [mostrarObservacionesConsulta]="mostrarObservacionesConsultaBff"
               [permitirRevision]="!modoContextoBff || puedeRevisarDocumentosBff"
               [permitirNotificacion]="!modoContextoBff || puedeNotificarBff"
               [emailSoloLectura]="modoContextoBff"
