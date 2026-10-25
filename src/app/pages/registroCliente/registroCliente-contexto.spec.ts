@@ -543,4 +543,65 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectNone(r => r.method === 'PUT');
   });
 
+  it('rol 2 ve Editar aun con guardado denegado; otros roles no lo ven', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const view = fixture.componentInstance;
+    view.seccionAbierta = 'datos';
+    for (const role of [2, 3, 4, 5, 6]) {
+      TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      fixture.detectChanges();
+      const button = Array.from(fixture.nativeElement.querySelectorAll('button')).find((b: any) => b.textContent.trim() === 'Editar datos') as HTMLButtonElement | undefined;
+      expect(!!button).toBe(role === 2);
+      if (button) { expect(button.disabled).toBeTrue(); button.click(); }
+      view.guardarDatosNodo();
+    }
+    expect(view.editandoDatosNodo).toBeFalse();
+    http.expectNone(r => r.method === 'PUT');
+  });
+
+  it('muestra el motivo de destinatario denegado y lo limpia al cambiar de nodo', () => {
+    cargarRevision();
+    (component as any).consultarDocumentosProspecto();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
+      documents: [{ ref: other, name: 'Acta', status: 'IN_REVIEW' }], internalObservations: 'Nota',
+      permissions: { reviewDocuments: true, sendObservations: false, notificationEmail: null,
+        notificationUnavailableCode: 'COMERCIOS_WRITE_ACCOUNT_MISMATCH' } });
+    expect(component.codigoNotificacionBff).toBe('COMERCIOS_WRITE_ACCOUNT_MISMATCH');
+    expect(component.puedeRevisarDocumentosBff).toBeTrue();
+    expect(component.puedeNotificarBff).toBeFalse();
+    (component as any).limpiarDetalleBff();
+    expect(component.codigoNotificacionBff).toBe('');
+  });
+
+  it('guarda revisión antes de registrar con referencias opacas y confirma respuesta real', () => {
+    cargarRevision();
+    (component as any).registroPermitidoBff = true;
+    expect(component.mostrarRegistrarClienteDocumentos).toBeTrue();
+    component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
+    component.continuarDesdeDocumentos();
+    http.expectOne(r => r.method === 'PUT').flush({success:true});
+    const registration = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/registrar`);
+    expect(registration.request.method).toBe('POST');
+    expect(registration.request.body).toEqual({});
+    expect(registration.request.withCredentials).toBeTrue();
+    expect(registration.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(registration.request.headers.has('Authorization')).toBeFalse();
+    component.registrarClienteProspecto();
+    http.expectNone(r => r.method === 'POST');
+    registration.flush({success:true});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,documents:[],internalObservations:null,
+      permissions:{reviewDocuments:false,sendObservations:false,registerClient:false,notificationEmail:null}});
+    expect(component.registrandoCliente).toBeFalse();
+    expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+  });
+
+  it('sin permiso de registro no activa, aunque se invoque el método directamente', () => {
+    cargarRevision();
+    component.registrarClienteProspecto();
+    expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+    http.expectNone(r => r.method === 'POST');
+  });
+
 });

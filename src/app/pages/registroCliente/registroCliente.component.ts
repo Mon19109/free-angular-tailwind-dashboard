@@ -107,6 +107,18 @@ export class RegistroClienteComponent {
 
   private camposEdicionBff: string[] = [];
   private edicionAutorizadaBff = false;
+  get mostrarEditarDatosNodo(): boolean {
+    return this.modoContextoBff ? this.puedeVerRevisionDocumental : this.puedeEditarDatosNodo;
+  }
+
+  get motivoEdicionNoDisponibleBff(): string {
+    if (!this.modoContextoBff || this.puedeEditarDatosNodo) return '';
+    if (this.cargandoCuentaComercio) return 'Cargando información del nodo.';
+    if (this.errorCuentaComercio) return this.errorCuentaComercio;
+    if (!this.cuentaNodoActual) return 'No hay información disponible del nodo para editar.';
+    return this.codigoEdicionBff || 'El BFF no ha autorizado el guardado de este nodo.';
+  }
+
   get puedeEditarDatosNodo(): boolean {
     if (this.modoContextoBff) return this.puedeVerRevisionDocumental && this.edicionAutorizadaBff
       && !!this.cuentaNodoActual && !this.cargandoCuentaComercio && !this.errorCuentaComercio;
@@ -512,11 +524,14 @@ export class RegistroClienteComponent {
   private consultaDocumentosBff?: Subscription;
 
   private limpiarDetalleBff(): void {
+    this.registrandoCliente = false;
     this.revisionPermitidaBff = false;
+    this.registroPermitidoBff = false;
     this.notificacionPermitidaBff = false;
     this.observacionesInternasCargadasBff = false;
     this.codigoEdicionBff = '';
     this.codigoRevisionBff = '';
+    this.codigoNotificacionBff = '';
     this.enviandoNotificacionMesaDigital = false;
     this.guardandoRevisionDocumentos = false;
     this.observacionesClienteMesaDigital = '';
@@ -643,6 +658,7 @@ export class RegistroClienteComponent {
       this.consultaDocumentosBff?.unsubscribe();
       if (this.nivelSeleccionado === 'caja') return;
       this.revisionPermitidaBff = false;
+      this.registroPermitidoBff = false;
       this.notificacionPermitidaBff = false;
       this.observacionesInternasCargadasBff = false;
       this.cargandoDocumentosProspecto = true;
@@ -660,8 +676,13 @@ export class RegistroClienteComponent {
           this.observacionesInternasMesaDigital = respuesta.internalObservations ?? '';
           this.revisionPermitidaBff = respuesta.permissions?.reviewDocuments === true && this.observacionesInternasCargadasBff;
           this.notificacionPermitidaBff = respuesta.permissions?.sendObservations === true;
+          this.registroPermitidoBff = respuesta.permissions?.registerClient === true;
           this.emailNotificacionMesaDigital = respuesta.permissions?.notificationEmail ?? '';
-          this.codigoRevisionBff = this.codigoBffSeguro(respuesta.permissions?.reviewUnavailableCode);
+          this.codigoRevisionBff = this.codigoBffSeguro(respuesta.permissions?.reviewUnavailableCode)
+            || (!respuesta.permissions ? 'Permisos documentales ausentes en la respuesta del BFF.'
+              : !this.observacionesInternasCargadasBff ? 'Observaciones internas ausentes o inválidas en la respuesta del BFF.' : '');
+          this.codigoNotificacionBff = this.codigoBffSeguro(respuesta.permissions?.notificationUnavailableCode)
+            || (respuesta.permissions?.sendObservations === false ? 'El BFF no ha autorizado el envío de observaciones para este nodo.' : '');
           this.documentosProspectoPorNodo[nodeRef] = this.documentosProspecto;
           this.cargandoDocumentosProspecto = false;
         }, error: fallo
@@ -907,11 +928,13 @@ export class RegistroClienteComponent {
   }
 
   versionDocumentosBff = 0;
+  private registroPermitidoBff = false;
   private revisionPermitidaBff = false;
   private notificacionPermitidaBff = false;
   private observacionesInternasCargadasBff = false;
   codigoEdicionBff = '';
   codigoRevisionBff = '';
+  codigoNotificacionBff = '';
   get puedeRevisarDocumentosBff(): boolean {
     return this.modoContextoBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
       && this.observacionesInternasCargadasBff && !this.cargandoDocumentosProspecto
@@ -2176,6 +2199,7 @@ export class RegistroClienteComponent {
   }
 
   get mostrarRegistrarClienteDocumentos(): boolean {
+    if (this.modoContextoBff) return this.puedeVerRevisionDocumental && this.registroPermitidoBff && this.esUltimoNodoSeleccionado;
     return this.habilitarMesaDigitalEdicion && this.mostrarMesaDigitalProspecto && this.esUltimoNodoSeleccionado;
   }
 
@@ -2194,8 +2218,33 @@ export class RegistroClienteComponent {
     return this.datosForm.controls.municipioComercial.value?.trim() || '';
   }
 
+  private registrarClienteBff(): void {
+    const ref = this.contextoBff?.commerce.ref;
+    const nodeRef = this.nodoSeleccionado;
+    if (!ref || !this.mostrarRegistrarClienteDocumentos || this.registrandoCliente || this.guardandoRevisionDocumentos) return;
+    const generation = this.consultaCuentaActual;
+    const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
+    this.registrandoCliente = true;
+    this.mensajeObservacionesCliente = '';
+    this.contextoService.registrarNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: response => {
+        if (!vigente()) return;
+        this.registrandoCliente = false;
+        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El registro no fue confirmado.'; return; }
+        this.registroPermitidoBff = false;
+        this.mostrarModalRegistro('success', 'Operación exitosa', 'Cliente registrado correctamente.');
+        this.consultarDocumentosProspecto();
+      },
+      error: error => {
+        if (!vigente()) return;
+        this.registrandoCliente = false;
+        this.mensajeObservacionesCliente = `No fue posible registrar el cliente. ${this.codigoBffSeguro(error.error?.code)}`.trim();
+      }
+    });
+  }
+
   registrarClienteProspecto(): void {
-    if (this.modoContextoBff) return;
+    if (this.modoContextoBff) { this.registrarClienteBff(); return; }
     if (!this.esMesaDigitalSesion) return;
     this.mensajeRegistroCliente = '';
     if (this.registrandoCliente) return;
@@ -2512,6 +2561,7 @@ export class RegistroClienteComponent {
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
         if (response?.success !== true) { this.mensajeObservacionesCliente = 'El guardado no fue confirmado.'; return; }
+        if (avanzar && this.mostrarRegistrarClienteDocumentos) { this.registrarClienteProspecto(); return; }
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
         if (avanzar && !this.esUltimoNodoSeleccionado) this.seleccionarSiguienteNodoArbol();
         else this.consultarDocumentosProspecto();

@@ -114,9 +114,9 @@
               (continuar)="completarPaso('comercio', 'datos')"
               (volver)="volver()" />
 
-            <p *ngIf="modoContextoBff && seccion.id === 'datos' && codigoEdicionBff" role="status">Edición no disponible: {{ codigoEdicionBff }}</p>
-            <button *ngIf="modoContextoBff && seccion.id === 'datos' && puedeEditarDatosNodo && !editandoDatosNodo"
-              type="button" class="button secondary" (click)="editarDatosNodo()">Editar datos</button>
+            <p *ngIf="modoContextoBff && seccion.id === 'datos' && mostrarEditarDatosNodo && motivoEdicionNoDisponibleBff" role="status">Edición no disponible: {{ motivoEdicionNoDisponibleBff }}</p>
+            <button *ngIf="modoContextoBff && seccion.id === 'datos' && mostrarEditarDatosNodo && !editandoDatosNodo"
+              type="button" class="button secondary" [disabled]="!puedeEditarDatosNodo || guardandoDatosNodo" (click)="editarDatosNodo()">Editar datos</button>
             <p *ngIf="seccion.id === 'datos' && mensajeActualizacionDatos" role="status">{{ mensajeActualizacionDatos }}</p>
             <fieldset class="consulta-fieldset" *ngIf="seccion.id === 'datos'"
               [disabled]="modoContextoBff ? (!puedeEditarDatosNodo || !editandoDatosNodo || guardandoDatosNodo) : (soloConsulta || guardandoDatosNodo || (nodeIDEdicion && !editandoDatosNodo))">
@@ -173,6 +173,7 @@
             </div>
 
             <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos'" role="status">{{ codigoRevisionBff ? ('Revisión no disponible: ' + codigoRevisionBff) : (documentacionSoloConsulta ? 'Revisión documental no autorizada para este nodo.' : 'Los cambios de validación se guardan mediante Guardar Borrador. El destinatario de las observaciones es el correo registrado del comercio.') }}</p>
+            <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos' && codigoNotificacionBff" role="status">Envío no disponible: {{ codigoNotificacionBff }}</p>
             <app-step-documentos
               *ngIf="seccion.id === 'documentos'"
               [class.revision-no-autorizada]="!puedeVerRevisionDocumental"
@@ -201,7 +202,7 @@
               [guardandoBorrador]="guardandoRevisionDocumentos"
               [deshabilitarFinalizar]="registrandoCliente || guardandoRevisionDocumentos || (modoContextoBff && !puedeRevisarDocumentosBff)"
               [mensajeNotificacion]="mensajeObservacionesCliente"
-              [textoFinalizar]="modoContextoBff ? (esUltimoNodoSeleccionado ? 'Guardar revisión' : 'Siguiente') : textoFinalizarDocumentos"
+              [textoFinalizar]="modoContextoBff ? (registrandoCliente ? 'Registrando...' : mostrarRegistrarClienteDocumentos ? 'Registrar Cliente' : esUltimoNodoSeleccionado ? 'Guardar revisión' : 'Siguiente') : textoFinalizarDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (verArchivo)="verDocumentoProspecto($event)"
               (validarArchivo)="actualizarEstatusDocumento($event.documento, $event.estado)"

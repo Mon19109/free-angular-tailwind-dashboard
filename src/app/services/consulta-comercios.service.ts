@@ -83,7 +83,7 @@ export interface ComercioInformacionResponse { success: boolean; information: Re
 export interface ComercioPldResponse { success: boolean; pld: Array<{ rfc: string | null; nombre: string | null;
   fechaRegistro: string | null; coincidenciaListas: string | null; categoria: string | null; fuente: string | null }>; }
 export interface ComercioRevisionPermisos {
-  reviewDocuments: boolean; sendObservations: boolean; notificationEmail: string | null; reviewUnavailableCode?: string;
+  reviewDocuments: boolean; sendObservations: boolean; registerClient?: boolean; notificationEmail: string | null; reviewUnavailableCode?: string; notificationUnavailableCode?: string;
 }
 export interface ComercioDocumentosResponse { success: boolean; internalObservations?: string | null;
   permissions?: ComercioRevisionPermisos; documents: Array<{
@@ -153,6 +153,11 @@ export class ConsultaComerciosService {
   guardarRevisionNodo(ref: string, nodeRef: string, documents: Array<{ ref: string; status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW' }>, internalObservations: string | null): Observable<{ success: boolean }> {
     return this.http.put<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/revision`,
       { documents, internalObservations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
+  }
+
+  registrarNodo(ref: string, nodeRef: string): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/registrar`,
+      {}, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
   enviarObservacionesNodo(ref: string, nodeRef: string, observations: string): Observable<{ success: boolean }> {
