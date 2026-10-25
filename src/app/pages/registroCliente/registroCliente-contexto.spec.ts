@@ -604,4 +604,67 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectNone(r => r.method === 'POST');
   });
 
+  it('Registrar es independiente de revisar/enviar y no escribe otra revisión innecesaria', () => {
+    cargarRevision({reviewDocuments:false,sendObservations:false,notificationEmail:null as any});
+    (component as any).registroPermitidoBff = true;
+    component.documentosProspecto[0].status = 'APPROVED';
+    expect(component.documentacionSoloConsulta).toBeFalse();
+    expect(component.mostrarRegistrarClienteDocumentos).toBeTrue();
+    expect(component.puedeFinalizarDocumentosBff).toBeTrue();
+    component.continuarDesdeDocumentos();
+    http.expectNone(r => r.method === 'PUT');
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/registrar`).flush({code:'COMERCIOS_REGISTER_DOCUMENTS_PENDING'}, {status:409,statusText:'Conflict'});
+    expect(component.mensajeObservacionesCliente).toContain('COMERCIOS_REGISTER_DOCUMENTS_PENDING');
+    expect(component.registrandoCliente).toBeFalse();
+  });
+
+  it('documentos rechazados pueden revisarse, pero no permiten registrar hasta aprobarlos', () => {
+    cargarRevision(); (component as any).registroPermitidoBff = true;
+    for (const status of ['REJECTED', 'IN_REVIEW']) {
+      component.documentosProspecto[0].status = status;
+      expect(component.puedeRevisarDocumentosBff).toBeTrue();
+      expect(component.mostrarRegistrarClienteDocumentos).toBeTrue();
+      expect(component.puedeFinalizarDocumentosBff).toBeFalse();
+      component.registrarClienteProspecto(); component.continuarDesdeDocumentos();
+      http.expectNone(r => ['PUT','POST'].includes(r.method));
+    }
+    component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
+    expect(component.puedeFinalizarDocumentosBff).toBeTrue();
+    TestBed.inject(AuthService).actualizarSesion({success:true,authenticated:true,expiresAt:Date.now()+60000,usuario:{idRol:3}});
+    expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+    expect(component.puedeFinalizarDocumentosBff).toBeFalse();
+  });
+
+  it('conserva la causa de configuración PLD sin presentar una consulta vacía exitosa', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({...response(),capabilities:{tree:true}});
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({success:true,tree:[{ref,name:'Entidad',levelType:4,depth:0}]});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({success:true,information:{nameCommerce:'Entidad'}});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({success:false,code:'COMERCIOS_PLD_CONFIG_UNAVAILABLE'}, {status:503,statusText:'Unavailable'});
+    expect(component.resultadoSiprelad).toContain('COMERCIOS_PLD_CONFIG_UNAVAILABLE');
+    expect(component.resultadosSiprelad).toEqual([]);
+  });
+
+  it('un rechazo de envío conserva observaciones y no cambia el diagnóstico de revisión', () => {
+    cargarRevision(); component.observacionesClienteMesaDigital = 'Observación pendiente';
+    component.codigoRevisionBff = 'COMERCIOS_REVIEW_ACTOR_UNAVAILABLE';
+    component.enviarNotificacionMesaDigital();
+    http.expectOne(r => r.method === 'POST').flush({code:'COMERCIOS_REVIEW_RECIPIENT_UNAVAILABLE'}, {status:422,statusText:'Unprocessable Entity'});
+    expect(component.codigoNotificacionBff).toBe('COMERCIOS_REVIEW_RECIPIENT_UNAVAILABLE');
+    expect(component.codigoRevisionBff).toBe('COMERCIOS_REVIEW_ACTOR_UNAVAILABLE');
+    expect(component.observacionesClienteMesaDigital).toBe('Observación pendiente');
+    expect(component.puedeNotificarBff).toBeFalse();
+    expect(component.puedeRevisarDocumentosBff).toBeTrue();
+  });
+
+  it('mantiene visible el error BFF aunque la denegación oculte los controles de escritura', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    fixture.componentInstance.seccionAbierta = 'documentos';
+    fixture.componentInstance.mensajeObservacionesCliente = 'No fue posible guardar la revisión. COMERCIOS_REVIEW_STATUS_FORBIDDEN';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mesa-register-action')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain('COMERCIOS_REVIEW_STATUS_FORBIDDEN');
+  });
+
 });

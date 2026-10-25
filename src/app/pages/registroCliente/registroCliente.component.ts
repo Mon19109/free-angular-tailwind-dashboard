@@ -950,8 +950,15 @@ export class RegistroClienteComponent {
       && !this.cargandoDocumentosProspecto && !this.errorDocumentosProspecto;
   }
 
+  get puedeFinalizarDocumentosBff(): boolean {
+    if (!this.modoContextoBff || this.registrandoCliente || this.guardandoRevisionDocumentos
+      || this.cargandoDocumentosProspecto || this.errorDocumentosProspecto) return false;
+    if (this.mostrarRegistrarClienteDocumentos) return this.documentosValidadosParaRegistro(this.documentosProspecto);
+    return this.puedeRevisarDocumentosBff;
+  }
+
   get documentacionSoloConsulta(): boolean {
-    return this.modoContextoBff ? !(this.puedeVerRevisionDocumental && (this.revisionPermitidaBff || this.notificacionPermitidaBff)) : !this.esMesaDigitalSesion;
+    return this.modoContextoBff ? !(this.puedeVerRevisionDocumental && (this.revisionPermitidaBff || this.notificacionPermitidaBff || this.mostrarRegistrarClienteDocumentos)) : !this.esMesaDigitalSesion;
   }
 
   get pasosVisiblesRegistro() {
@@ -2070,7 +2077,12 @@ export class RegistroClienteComponent {
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   continuarDesdeDocumentos(): void {
-    if (this.modoContextoBff) { this.guardarRevisionDocumentos(true); return; }
+    if (this.modoContextoBff) {
+      if (!this.puedeFinalizarDocumentosBff) return;
+      if (this.mostrarRegistrarClienteDocumentos && !this.puedeRevisarDocumentosBff) this.registrarClienteProspecto();
+      else this.guardarRevisionDocumentos(true);
+      return;
+    }
     if (this.registrandoCliente || this.guardandoRevisionDocumentos) return;
 
     if (this.esEdicionPendiente) {
@@ -2221,7 +2233,7 @@ export class RegistroClienteComponent {
   private registrarClienteBff(): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
-    if (!ref || !this.mostrarRegistrarClienteDocumentos || this.registrandoCliente || this.guardandoRevisionDocumentos) return;
+    if (!ref || !this.mostrarRegistrarClienteDocumentos || !this.puedeFinalizarDocumentosBff) return;
     const generation = this.consultaCuentaActual;
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
     this.registrandoCliente = true;
@@ -2600,8 +2612,8 @@ export class RegistroClienteComponent {
         if (!vigente()) return;
         this.enviandoNotificacionMesaDigital = false;
         if ([401, 403, 409, 422].includes(error.status)) this.notificacionPermitidaBff = false;
-        this.codigoRevisionBff = this.codigoBffSeguro(error.error?.code);
-        this.mensajeObservacionesCliente = `No fue posible enviar la notificación. ${this.codigoRevisionBff}`.trim();
+        this.codigoNotificacionBff = this.codigoBffSeguro(error.error?.code);
+        this.mensajeObservacionesCliente = `No fue posible enviar la notificación. ${this.codigoNotificacionBff}`.trim();
       }
     });
   }
