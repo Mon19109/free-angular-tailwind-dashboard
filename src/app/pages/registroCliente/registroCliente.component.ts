@@ -661,6 +661,9 @@ export class RegistroClienteComponent {
       this.registroPermitidoBff = false;
       this.notificacionPermitidaBff = false;
       this.observacionesInternasCargadasBff = false;
+      this.errorDocumentosProspecto = '';
+      this.codigoRevisionBff = '';
+      this.codigoNotificacionBff = '';
       this.cargandoDocumentosProspecto = true;
       this.consultaDocumentosBff = this.contextoService.consultarDocumentosNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: respuesta => {
@@ -673,14 +676,14 @@ export class RegistroClienteComponent {
           ++this.versionDocumentosBff;
           this.observacionesInternasCargadasBff = Object.hasOwn(respuesta, 'internalObservations')
             && (respuesta.internalObservations === null || typeof respuesta.internalObservations === 'string');
-          this.observacionesInternasMesaDigital = respuesta.internalObservations ?? '';
-          this.revisionPermitidaBff = respuesta.permissions?.reviewDocuments === true && this.observacionesInternasCargadasBff;
+          this.observacionesInternasMesaDigital = typeof respuesta.internalObservations === 'string' ? respuesta.internalObservations : '';
+          this.revisionPermitidaBff = respuesta.permissions?.reviewDocuments === true;
           this.notificacionPermitidaBff = respuesta.permissions?.sendObservations === true;
           this.registroPermitidoBff = respuesta.permissions?.registerClient === true;
           this.emailNotificacionMesaDigital = respuesta.permissions?.notificationEmail ?? '';
           this.codigoRevisionBff = this.codigoBffSeguro(respuesta.permissions?.reviewUnavailableCode)
             || (!respuesta.permissions ? 'Permisos documentales ausentes en la respuesta del BFF.'
-              : !this.observacionesInternasCargadasBff ? 'Observaciones internas ausentes o inválidas en la respuesta del BFF.' : '');
+              : '');
           this.codigoNotificacionBff = this.codigoBffSeguro(respuesta.permissions?.notificationUnavailableCode)
             || (respuesta.permissions?.sendObservations === false ? 'El BFF no ha autorizado el envío de observaciones para este nodo.' : '');
           this.documentosProspectoPorNodo[nodeRef] = this.documentosProspecto;
@@ -937,12 +940,12 @@ export class RegistroClienteComponent {
   codigoNotificacionBff = '';
   get puedeRevisarDocumentosBff(): boolean {
     return this.modoContextoBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
-      && this.observacionesInternasCargadasBff && !this.cargandoDocumentosProspecto
+      && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto
       && !this.guardandoRevisionDocumentos && !this.errorDocumentosProspecto && this.documentosProspecto.length > 0;
   }
   get puedeNotificarBff(): boolean {
     return this.modoContextoBff && this.puedeVerRevisionDocumental && this.notificacionPermitidaBff
-      && !this.cargandoDocumentosProspecto && !this.enviandoNotificacionMesaDigital;
+      && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto && !this.enviandoNotificacionMesaDigital;
   }
 
   get mostrarObservacionesConsultaBff(): boolean {

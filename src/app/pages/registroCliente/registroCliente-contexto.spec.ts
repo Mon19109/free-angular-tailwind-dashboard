@@ -475,14 +475,18 @@ describe('Registro Cliente con contexto BFF', () => {
     component.guardarRevisionDocumentos(); http.expectNone(r => r.method === 'PUT');
   });
 
-  it('no permite guardar si la lectura no trae observaciones existentes, incluso con permiso', () => {
+  it('permite revisar con permiso BFF aunque no incluya observaciones internas', () => {
     cargarRevision();
     (component as any).consultarDocumentosProspecto();
     http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
       documents: [{ ref: other, name: 'Acta', status: 'APPROVED' }],
       permissions: { reviewDocuments: true, sendObservations: false, notificationEmail: null } });
-    expect(component.puedeRevisarDocumentosBff).toBeFalse();
-    component.guardarRevisionDocumentos(); http.expectNone(r => r.method === 'PUT');
+    expect(component.puedeRevisarDocumentosBff).toBeTrue();
+    expect(component.puedeNotificarBff).toBeFalse();
+    component.guardarRevisionDocumentos();
+    const write = http.expectOne(r => r.method === 'PUT');
+    expect(write.request.body).toEqual({documents:[{ref:other,status:'APPROVED'}],internalObservations:null});
+    write.flush({success:false});
   });
 
   it('restaura controles de revisión y deja el destinatario en solo lectura', () => {
@@ -665,6 +669,71 @@ describe('Registro Cliente con contexto BFF', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa-register-action')).toBeNull();
     expect(fixture.nativeElement.querySelector('[role=alert]').textContent).toContain('COMERCIOS_REVIEW_STATUS_FORBIDDEN');
+  });
+
+  it('recarga permisos actuales tras un error documental, sin que PLD los bloquee', () => {
+    cargarRevision({reviewDocuments:false,sendObservations:false,notificationEmail:null as any});
+    (component as any).consultarDocumentosProspecto();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({}, {status:503,statusText:'Unavailable'});
+    expect(component.puedeRevisarDocumentosBff).toBeFalse();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({code:'COMERCIOS_PLD_CONFIG_UNAVAILABLE'}, {status:503,statusText:'Unavailable'});
+    (component as any).consultarDocumentosProspecto();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,
+      documents:[{ref:other,name:'Acta',status:'IN_REVIEW'}],internalObservations:'Conservar',
+      permissions:{reviewDocuments:true,sendObservations:true,notificationEmail:'cuenta@example.test'}});
+    expect(component.errorDocumentosProspecto).toBe('');
+    expect(component.puedeRevisarDocumentosBff).toBeTrue();
+    expect(component.puedeNotificarBff).toBeTrue();
+    expect(component.resultadoSiprelad).toContain('COMERCIOS_PLD_CONFIG_UNAVAILABLE');
+    component.actualizarEstatusDocumento(component.documentosVisibles[0],'APPROVED');
+    component.guardarRevisionDocumentos();
+    const write=http.expectOne(r=>r.method==='PUT');
+    expect(write.request.body.documents).toEqual([{ref:other,status:'APPROVED'}]);
+    write.flush({success:false});
+    component.observacionesClienteMesaDigital='Revisar'; component.enviarNotificacionMesaDigital();
+    const send=http.expectOne(r=>r.method==='POST');
+    expect(send.request.body).toEqual({observations:'Revisar'}); send.flush({success:true});
+  });
+
+  it('mantiene permisos independientes y los revoca al recargar, sin nodo o sin sesión', () => {
+    cargarRevision({reviewDocuments:true,sendObservations:false,notificationEmail:null as any});
+    expect(component.puedeRevisarDocumentosBff).toBeTrue(); expect(component.puedeNotificarBff).toBeFalse();
+    (component as any).consultarDocumentosProspecto();
+    expect(component.puedeRevisarDocumentosBff).toBeFalse();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,
+      documents:[{ref:other,name:'Acta',status:'IN_REVIEW'}],internalObservations:null,
+      permissions:{reviewDocuments:false,sendObservations:true,notificationEmail:'cuenta@example.test'}});
+    expect(component.puedeRevisarDocumentosBff).toBeFalse(); expect(component.puedeNotificarBff).toBeTrue();
+    component.guardarRevisionDocumentos(); http.expectNone(r=>r.method==='PUT');
+    component.nodoSeleccionado=''; expect(component.puedeNotificarBff).toBeFalse();
+    component.nodoSeleccionado=ref;
+    TestBed.inject(AuthService).actualizarSesion({success:false,authenticated:false});
+    expect(component.puedeNotificarBff).toBeFalse(); expect(component.puedeRevisarDocumentosBff).toBeFalse();
+  });
+
+  it('botones renderizados permiten clic y emiten únicamente los contratos BFF autorizados', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    TestBed.inject(AuthService).actualizarSesion({success:true,authenticated:true,expiresAt:Date.now()+60000,usuario:{idRol:2}});
+    const fixture=TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({...response(),capabilities:{tree:true}});
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({success:true,tree:[{ref,name:'Entidad',levelType:4,depth:0}]});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({success:true,information:{nameCommerce:'Entidad'}});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({code:'COMERCIOS_PLD_CONFIG_UNAVAILABLE'},{status:503,statusText:'Unavailable'});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,
+      documents:[{ref:other,name:'Acta',status:'IN_REVIEW'}],permissions:{reviewDocuments:true,sendObservations:true,notificationEmail:'cuenta@example.test'}});
+    const view=fixture.componentInstance; view.seccionAbierta='documentos'; fixture.detectChanges();
+    const buttons=fixture.nativeElement.querySelectorAll('.mesa-switch button');
+    expect(buttons.length).toBe(2); expect(buttons[0].disabled).toBeFalse(); expect(buttons[1].disabled).toBeFalse();
+    buttons[0].click(); buttons[1].click(); fixture.detectChanges();
+    const find=(label:string):HTMLButtonElement => Array.from(fixture.nativeElement.querySelectorAll('button')).find((button:any)=>button.textContent.includes(label)) as HTMLButtonElement;
+    const save=find('Guardar Borrador'); expect(save.disabled).toBeFalse(); save.click();
+    const write=http.expectOne(r=>r.method==='PUT');
+    expect(write.request.body).toEqual({documents:[{ref:other,status:'REJECTED'}],internalObservations:null});
+    write.flush({success:false});
+    view.observacionesClienteMesaDigital='Comentario autorizado'; fixture.detectChanges();
+    const send=find('Enviar Notificación'); expect(send.disabled).toBeFalse(); send.click();
+    const notification=http.expectOne(r=>r.method==='POST');
+    expect(notification.request.body).toEqual({observations:'Comentario autorizado'}); notification.flush({success:true});
   });
 
 });
