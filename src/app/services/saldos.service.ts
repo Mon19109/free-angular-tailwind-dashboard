@@ -1,39 +1,16 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environments';
-
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class SaldosService {
-
-  private apiUrl = environment.api.saldos;
-
+  private readonly url = '/api/saldos';
   constructor(private http: HttpClient) {}
-
   getSaldo(idSaldo: string): Observable<any> {
-
-    const headers = new HttpHeaders()
-      .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-
-    return this.http.get(
-      `${this.apiUrl}getBalance/${idSaldo}`,
-      { headers }
-    );
+    return this.http.get(`${this.url}/saldo/${encodeURIComponent(idSaldo)}`, { withCredentials: true });
   }
-  getDetalleSaldo(
-  fatherId: string,
-  page: number = 0,
-  size: number = 10
-): Observable<any> {
-
-  const headers = new HttpHeaders()
-    .set('Authorization', 'Basic YWRtaW46c2VjcmV0');
-
-  return this.http.get(
-    `${this.apiUrl}all?fatherID=${fatherId}&type=1&status=25&page=${page}&size=${size}`,
-    { headers }
-  );
-}
+  getDetalleSaldo(fatherId: string, page = 0, size = 10): Observable<any> {
+    return this.http.get(`${this.url}/detalle/${encodeURIComponent(fatherId)}`, {
+      params: new HttpParams().set('page', page).set('size', size), withCredentials: true
+    });
+  }
 }
