@@ -1,7 +1,7 @@
-import { PreregistroCatalogosHttpService } from './preregistro-catalogos-http.service';
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { PreregistroCatalogosHttpService } from './preregistro-catalogos-http.service';
 import { environment } from '../environments/environments';
 
 export interface BeneficiarioForm {
@@ -24,143 +24,30 @@ export interface BeneficiarioForm {
   emailB: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class BeneficiariosService {
+  private readonly http = inject(HttpClient);
   private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
-  private baseUrl = environment.api.kashpay;
-  private apiV1Url = `${this.baseUrl}api/v1/`;
-  private aldebaranUrl = environment.api.aldebaran;
-  private kashpayCoreUrl = environment.api.KashpayCoreAPI;
-
-
-  constructor(private http: HttpClient) {}
-
-  private getCommonHeaders(bearerToken?: string): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${bearerToken || this.getStoredToken()}`,
-      'versionApp': '3'
-    });
-  }
+  private readonly base = '/api/beneficiarios';
 
   obtenerContactos(idUser: string, type = 'TR'): Observable<any> {
-    const params = new HttpParams()
-      .set('idUser', idUser)
-      .set('type', type);
-
-    return this.http.get(`${this.apiV1Url}svc-8a7f3c/v2/h7q2_x91`, {
-      headers: this.getCommonHeaders(),
-      params
-    });
+    return this.http.get(`${this.base}/contactos`, { params: new HttpParams().set('idUser', idUser).set('type', type) });
   }
-
-  private getStoredToken(): string {
-    const sessionRaw = localStorage.getItem('auth_session');
-
-    if (sessionRaw) {
-      try {
-        const session = JSON.parse(sessionRaw);
-        if (session?.token) return String(session.token);
-      } catch {
-        // Se usan las llaves individuales como respaldo.
-      }
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-  }
-
-  obtenerGiros(): Observable<any> {
-    return this.http.get(`${this.apiV1Url}getGiros`, {
-      headers: this.getCommonHeaders()
-    });
-  }
-
-  obtenerActividades(): Observable<any> {
-    return this.http.get(`${this.apiV1Url}getActividades`, {
-      headers: this.getCommonHeaders()
-    });
-  }
-
+  obtenerGiros(): Observable<any> { return this.http.get(`${this.base}/giros`); }
+  obtenerActividades(): Observable<any> { return this.http.get(`${this.base}/actividades`); }
   buscarInstitucion(cuenta: string, bearerToken?: string, preregistroPublico = false): Observable<any> {
     const params = new HttpParams().set('value', cuenta);
+    // Mantiene la ruta de prerregistro publico ya existente; no envia bearerToken al navegador/BFF.
     if (preregistroPublico) return this.catalogosPublicos.get<any>(environment.preregistroBff.institucionesUrl, params);
-
-    return this.http.get(`${this.aldebaranUrl}getInstitutions`, {
-      headers: this.getCommonHeaders(bearerToken),
-      params
-    });
+    return this.http.get(`${this.base}/instituciones`, { params });
   }
-
   agregarContacto(idUser: number, form: BeneficiarioForm): Observable<any> {
-    const giro = form.tipoBen === 'PM' ? `${form.giro}|${form.desGiro}` : '';
-    const body = {
-      idUser,
-      nameAlias: form.alias,
-      cardNumberMask: form.cuenta,
-      numberPhone: 'ND',
-      typeRegister: 'TR',
-      email: form.email,
-      typeTransfer: 1,
-      fullName: form.nombre,
-      nameInstitution: form.nameIns,
-      idInstitution: Number(form.institucion),
-      typeAccount: form.tipoCuenta,
-      razonSocial: '',
-      intenationalCode: '',
-      street: '',
-      exteriorNumber: '',
-      interiorNumber: '',
-      aditionalReference: '',
-      postalCode: '',
-      city: '',
-      state: '',
-      accountNumber: form.accountNumber || form.cuenta,
-      beneficiaryType: form.tipoBen,
-      show: true,
-      aditionalData: {
-        addressBank: {
-          street: form.dirBanco
-        },
-        beneficiaryAddress: {
-          street: form.direccion
-        },
-        aditionalReferences: ['', '', ''],
-        destinationCountry: '',
-        intermediaryBank: '',
-        bankName: form.nameIns,
-        bankPhone: form.telefono,
-        bankEmail: form.emailB,
-        currency: 'MX',
-        businessLine: giro,
-        businessActivity: form.actividad,
-        typeAccount: '',
-        accountNumber: ''
-      }
-    };
-
-    return this.http.post(`${this.kashpayCoreUrl}contact`, body, {
-      headers: this.getCommonHeaders()
-    });
+    return this.http.post(`${this.base}/contactos`, { idUser, form });
   }
-
   eliminarContactos(ids: Array<string | number>): Observable<any> {
-    const params = new HttpParams().set('contactIds', ids.join(','));
-
-    return this.http.delete(`${this.kashpayCoreUrl}svc-8ch7f3c/v3/h7q2-del`, {
-      headers: this.getCommonHeaders(),
-      params
-    });
+    return this.http.delete(`${this.base}/contactos`, { params: new HttpParams().set('contactIds', ids.join(',')) });
   }
-
   consultarEstatus(fileKey: string): Observable<any> {
-    const params = new HttpParams().set('fileKey', fileKey);
-
-    return this.http.get(`${this.apiV1Url}contact/getDetailContactFile`, {
-      headers: this.getCommonHeaders(),
-      params
-    });
+    return this.http.get(`${this.base}/estatus`, { params: new HttpParams().set('fileKey', fileKey) });
   }
 }
