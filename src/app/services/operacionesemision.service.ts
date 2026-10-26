@@ -52,7 +52,6 @@ export class OperacionesEmisionService {
 
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Accept': 'application/json'
     });
   }
