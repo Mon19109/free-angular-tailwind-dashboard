@@ -124,7 +124,6 @@ export class OperacionesAdquirenciaService {
   private getCommonHeaders(): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Accept': 'application/json'
     });
   }
@@ -134,7 +133,6 @@ export class OperacionesAdquirenciaService {
 
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Accept': 'application/json'
     });
   }
@@ -368,7 +366,6 @@ getCajas(idTerminal:number) {
       'versionApp': '3',
       'Entity-i': 'com.sub.tecs',
       'terminalId': terminalId,
-      'Accept': 'application/json',
       'Accept': 'application/json'
     });
 
