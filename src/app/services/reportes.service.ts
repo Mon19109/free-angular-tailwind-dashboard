@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environments';
 
 export interface PeriodoReporte {
   anio: string;
@@ -17,181 +16,43 @@ export interface ReporteArchivo {
 
 export type TipoCuentaReporte = 'EMISION' | 'ADQUIRENTE';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class ReportesService {
-  private baseUrl = environment.api.kashpay;
-  private apiV1Url = `${this.baseUrl}api/v1/`;
-  private saldosUrl = environment.api.saldos;
-  private documentsUrl = environment.api.documents;
-
+  private readonly api = '/api/reportes';
   constructor(private http: HttpClient) {}
-
-  private getCommonHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${this.getStoredToken()}`
-    });
-  }
-
-  private getStoredToken(): string {
-    const sessionRaw = localStorage.getItem('auth_session');
-
-    if (sessionRaw) {
-      try {
-        const session = JSON.parse(sessionRaw);
-        if (session?.token) return session.token;
-      } catch {
-        return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-      }
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-  }
-
-  obtenerEntidades(): Observable<any> {
-    const nodeID = this.getStoredValue('nodeID');
-    return this.http.get(
-      `${this.baseUrl}api/nodes/${encodeURIComponent(nodeID)}/tree`,
-      {
-        headers: this.getCommonHeaders(),
-        params: new HttpParams().set('levels', '').set('type', '')
-      }
-    );
-  }
-
+  obtenerEntidades(): Observable<any> { return this.http.get(`${this.api}/entidades`, { withCredentials: true }); }
   obtenerCuentas(entitySonID?: string): Observable<any> {
-    return this.http.get(
-      `${this.apiV1Url}account/getConcentratorAccounts`,
-      {
-        headers: this.getCommonHeaders().set('versionApp', '3'),
-        params: new HttpParams().set('sirioId', entitySonID ?? this.getStoredValue('entitySonID'))
-      }
-    );
+    const params = entitySonID === undefined ? undefined : new HttpParams().set('entitySonID', entitySonID);
+    return this.http.get(`${this.api}/cuentas`, { params, withCredentials: true });
   }
-
   obtenerSaldo(idContext: string): Observable<any> {
-    return this.http.get(
-      `${this.saldosUrl}getBalance/${encodeURIComponent(idContext)}`,
-      { headers: this.getCommonHeaders() }
-    );
+    return this.http.get(`${this.api}/saldo/${encodeURIComponent(idContext)}`, { withCredentials: true });
   }
-
   buscarFolderReportes(periodo: string, tipoCuenta: TipoCuentaReporte, guidComerce: string): Observable<ReporteArchivo[]> {
-    return this.listarDirectorio(this.construirFolderReportes(periodo, tipoCuenta, guidComerce));
+    return this.http.get<ReporteArchivo[]>(`${this.api}/directorio`, { withCredentials: true,
+      params: new HttpParams().set('periodo', periodo).set('tipoCuenta', tipoCuenta).set('guidComerce', guidComerce) });
   }
-
   buscarArchivosReporte(periodo: string, tipoCuenta: TipoCuentaReporte, reporte: string, guidComerce: string): Observable<ReporteArchivo[]> {
-    return this.listarDirectorio(`${this.construirFolderReportes(periodo, tipoCuenta, guidComerce)}${reporte}`);
+    return this.http.get<ReporteArchivo[]>(`${this.api}/archivos`, { withCredentials: true,
+      params: new HttpParams().set('periodo', periodo).set('tipoCuenta', tipoCuenta).set('reporte', reporte).set('guidComerce', guidComerce) });
   }
-
   obtenerEstadoCuenta(tipo: 'PDF' | 'EXCEL', periodo: string, cuenta: string, clabe = ''): Observable<any> {
-    const periodoReporte = this.parsePeriodo(periodo);
-    const params = new HttpParams()
-      .set('idAffiliationLevel', this.getStoredValue('idRol'))
-      .set('reportType', tipo)
-      .set('month', String(Number(periodoReporte.mesNumero)))
-      .set('year', periodoReporte.anio)
-      .set('sirioId', cuenta)
-      .set('clabe', clabe);
-
-    return this.http.get(`${this.apiV1Url}account/getAccountStatus`, {
-      headers: this.getCommonHeaders().set('versionApp', '3'),
-      params
-    });
+    return this.http.get(`${this.api}/estado-cuenta`, { withCredentials: true,
+      params: new HttpParams().set('tipo', tipo).set('periodo', periodo).set('cuenta', cuenta).set('clabe', clabe) });
   }
-
   obtenerCorteDia(periodo: string): Observable<any> {
-    const periodoReporte = this.parsePeriodo(periodo);
-    const params = new HttpParams()
-      .set('nodeID', this.getStoredValue('nodeID'))
-      .set('month', String(Number(periodoReporte.mesNumero)))
-      .set('year', periodoReporte.anio);
-
-    return this.http.get(`${this.apiV1Url}reports/getReportTransactions`, {
-      headers: this.getCommonHeaders(),
-      params
-    });
+    return this.http.get(`${this.api}/corte-dia`, { withCredentials: true, params: new HttpParams().set('periodo', periodo) });
   }
-
   obtenerDiarioTransacciones(periodo: string): Observable<any> {
-    const periodoReporte = this.parsePeriodo(periodo);
-    const params = new HttpParams()
-      .set('nodeID', this.getStoredValue('nodeID'))
-      .set('month', String(Number(periodoReporte.mesNumero)))
-      .set('year', periodoReporte.anio);
-
-    return this.http.get(`${this.apiV1Url}reports/getDailyTransactionReport`, {
-      headers: this.getCommonHeaders(),
-      params
-    });
+    return this.http.get(`${this.api}/diario-transacciones`, { withCredentials: true, params: new HttpParams().set('periodo', periodo) });
   }
-
   obtenerTransaccionesSplit(periodo: string, cuenta: string): Observable<any> {
-    const periodoReporte = this.parsePeriodo(periodo);
-    const params = new HttpParams()
-      .set('account', cuenta)
-      .set('month', String(Number(periodoReporte.mesNumero)))
-      .set('year', periodoReporte.anio);
-
-    return this.http.get(`${this.apiV1Url}reports/getSplitTransactionReport`, {
-      headers: this.getCommonHeaders(),
-      params
-    });
+    return this.http.get(`${this.api}/transacciones-split`, { withCredentials: true,
+      params: new HttpParams().set('periodo', periodo).set('cuenta', cuenta) });
   }
-
   parsePeriodo(periodo: string): PeriodoReporte {
     const [anio = '', mes = ''] = periodo.trim().split(/\s+/, 2);
-    const meses: Record<string, string> = {
-      Enero: '01',
-      Febrero: '02',
-      Marzo: '03',
-      Abril: '04',
-      Mayo: '05',
-      Junio: '06',
-      Julio: '07',
-      Agosto: '08',
-      Septiembre: '09',
-      Septiempre: '09',
-      Octubre: '10',
-      Noviembre: '11',
-      Diciembre: '12'
-    };
-
-    return {
-      anio,
-      mes,
-      mesNumero: meses[mes] || ''
-    };
-  }
-
-  private listarDirectorio(folderName: string): Observable<ReporteArchivo[]> {
-    return this.http.get<ReporteArchivo[]>(`${this.documentsUrl}listFilesInDirectory`, {
-      params: new HttpParams().set('folderName', folderName)
-    });
-  }
-
-  private construirFolderReportes(periodo: string, tipoCuentaReporte: TipoCuentaReporte, guidComerce: string): string {
-    const { anio, mesNumero } = this.parsePeriodo(periodo);
-    const tipoCuenta = tipoCuentaReporte === 'ADQUIRENTE' ? 'Adquirencia' : 'Emision';
-
-    return `${guidComerce}/Reportes/${anio}/${mesNumero}/${tipoCuenta}/`;
-  }
-
-  private getStoredValue(key: string): string {
-    const directValue = localStorage.getItem(key);
-    if (directValue) return directValue;
-
-    const sessionRaw = localStorage.getItem('auth_session');
-    if (!sessionRaw) return '';
-
-    try {
-      const session = JSON.parse(sessionRaw);
-      return session?.[key] == null ? '' : String(session[key]);
-    } catch {
-      return '';
-    }
+    const meses: Record<string, string> = { Enero:'01', Febrero:'02', Marzo:'03', Abril:'04', Mayo:'05', Junio:'06', Julio:'07', Agosto:'08', Septiembre:'09', Septiempre:'09', Octubre:'10', Noviembre:'11', Diciembre:'12' };
+    return { anio, mes, mesNumero: meses[mes] || '' };
   }
 }

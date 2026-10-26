@@ -19,13 +19,13 @@ describe('ReportesService', () => {
 
   it('uses the selected account GUID for folder and file requests', () => {
     service.buscarFolderReportes('2026 Agosto', 'ADQUIRENTE', 'GUID-CUENTA').subscribe();
-    const folder = http.expectOne(request => request.url.endsWith('listFilesInDirectory'));
-    expect(folder.request.params.get('folderName')).toBe('GUID-CUENTA/Reportes/2026/08/Adquirencia/');
+    const folder = http.expectOne(request => request.url.endsWith('/api/reportes/directorio'));
+    expect(folder.request.params.get('guidComerce')).toBe('GUID-CUENTA');
     folder.flush([]);
 
     service.buscarArchivosReporte('2026 Agosto', 'ADQUIRENTE', 'EnRed', 'OTRO-GUID').subscribe();
-    const archivo = http.expectOne(request => request.url.endsWith('listFilesInDirectory'));
-    expect(archivo.request.params.get('folderName')).toBe('OTRO-GUID/Reportes/2026/08/Adquirencia/EnRed');
+    const archivo = http.expectOne(request => request.url.endsWith('/api/reportes/archivos'));
+    expect(archivo.request.params.get('reporte')).toBe('EnRed');
     archivo.flush([]);
   });
 });
