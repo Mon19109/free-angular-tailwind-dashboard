@@ -1,8 +1,6 @@
-import { obtenerNodoSesion } from '../shared/utils/nodo-sesion';
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environments';
 
 export interface FiltrosTransaccion {
   subafiliado?: string;
@@ -119,191 +117,19 @@ export interface EstadoTransaccion {
   responseDescription: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({providedIn: 'root'})
 export class TransaccionesAdquirenciaService {
-  private http = inject(HttpClient);
-  private baseUrl = environment.api.kashpay; // Tu base URLAdquirenciaAdquirencia
-  private apiV1Url = `${this.baseUrl}api/v1/`;
-  //private wsKashPayServices = environment.api.kashpay;
-  private baseUrlTicket = environment.api.voucher; // Tu base URLAdquirenciaAdquirencia
 
-
-
-  private getBearerHeaders(): HttpHeaders {
-    const token = this.getStoredToken();
-
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
-  }
-
-  private getStoredToken(): string {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession);
-        if (session?.token) return session.token;
-      } catch {
-        localStorage.removeItem('auth_session');
-      }
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-  }
-
-  // Catalogos
-
-
-
-getOperaciones(): Observable<any> {
-
-  const headers = this.getBearerHeaders();
-
-  return this.http.get(
-    `${this.apiV1Url}catTransactionType/getAll`,
-    {
-      headers
-    }
-  );
-
-}
-
-
-
- getEstadosTransaccion(): Observable<any> {
-  const headers = this.getBearerHeaders();
-
-  return this.http.get(
-    `${this.apiV1Url}catResponseCode/getAll`,
-    { headers }
-  );
-}
-
-  getSubafiliados(): Observable<any> {
-    const headers = this.getBearerHeaders();
-    const nodeID = obtenerNodoSesion();
-    return this.http.get<any>(
-      nodeID ? `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&status=0` : `${this.apiV1Url}subAffiliation/getAll`, {
-          headers: headers
-        }
-    );
-  }
-
-  getSubafiliadoById(): Observable<any> {
-    const headers = this.getBearerHeaders();
-    const nodeID = obtenerNodoSesion();
-
-    return this.http.get<any>(
-      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&status=0`, {
-          headers: headers,
-          withCredentials: true
-        }
-    );
-  }
-
-  /*getSubafiliados(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/transacciones/getSubafiliados`);
-  }*/
-
- getEntidades(nodeID: string): Observable<any> {
-  const headers = this.getBearerHeaders();
-
-  return this.http.get(
-    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4&status=0`,
-    { headers }
-  );
-}
-
-  getSucursales(nodeID: string): Observable<any> {
-    const headers = this.getBearerHeaders();
-
-    return this.http.get(
-      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5&status=0`,
-      { headers }
-    );
-  }
-
-  getCajas(nodeID: string): Observable<any> {
-    const headers = this.getBearerHeaders();
-
-    return this.http.get(
-      `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6&status=0`,
-      { headers }
-    );
-  }
-
-  // Buscar transacciones
-  buscarTransacciones(filtros: FiltrosTransaccion): Observable<any> {
-    const headers = this.getBearerHeaders();
-    const rootNodeID = this.getRootNodeID(filtros);
-    const params = new HttpParams()
-      .set('userID', localStorage.getItem('idUser') || '')
-      .set('typeOperation', filtros.operacion || '')
-      .set('amount', (filtros.monto || filtros.montoDesde || '').replace(/[$,]/g, ''))
-      .set('amountFrom', (filtros.montoDesde || '').replace(/[$,]/g, ''))
-      .set('amountTo', (filtros.montoHasta || '').replace(/[$,]/g, ''))
-      .set('email', filtros.email || '')
-      .set('responseCode', filtros.edoTransaccion || '')
-      .set('startDate', filtros.fechaInicio || '')
-      .set('endDate', filtros.fechaFin || '')
-      .set('liquidationID', '')
-      .set('page', '')
-      .set('status', filtros.edoTransaccion || '')
-      .set('searchBy', '')
-      .set('rootNodeID', rootNodeID);
-
-    return this.http.get(`${this.apiV1Url}operations/searchOperations`, { headers, params });
-  }
-
-  // Ver ticket
-  verTicket(data: TicketRequest): Observable<TicketResponse> {
-    const terminalId = String(data.terminalId ?? '');
-    const token = localStorage.getItem('token') || '';
-    const body = {
-      terminalId,
-      rrcext: data.rrcext || '',
-      authorizationNumber: data.authorizationNumber || '',
-      authorizationId: String(data.authorizationId ?? ''),
-      user: data.user || '',
-      context: String(data.context ?? '')
-    };
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      'versionApp': '3',
-      'Entity-i': 'com.sub.tecs',
-      'terminalId': terminalId,
-      'Authorization': `Bearer ${token}`,
-      'AuthorizationToken': `Bearer ${token}`
-    });
-
-    return this.http.post<TicketResponse>(`${this.baseUrlTicket}voucher`, body, { headers });
-  }
-
-  private getRootNodeID(filtros: FiltrosTransaccion): string {
-    const selectedValues = [
-      filtros.caja,
-      filtros.sucursal,
-      filtros.entidad,
-      filtros.subafiliado
-    ];
-
-    for (const value of selectedValues) {
-      const nodeID = this.getNodeID(value);
-      if (nodeID) return nodeID;
-    }
-
-    return localStorage.getItem('nodeID') || '';
-  }
-
-  private getNodeID(value?: string): string {
-    if (!value) return '';
-    const [, nodeID] = value.split('|');
-    return nodeID || value;
-  }
+ private readonly http=inject(HttpClient);
+ private readonly base='/api/transacciones-adquirencia';
+ getOperaciones():Observable<any>{return this.http.get(`${this.base}/operaciones`);}
+ getEstadosTransaccion():Observable<any>{return this.http.get(`${this.base}/estados`);}
+ getSubafiliados():Observable<any>{return this.http.get(`${this.base}/subafiliados`);}
+ getSubafiliadoById():Observable<any>{return this.http.get(`${this.base}/subafiliado-sesion`);}
+ getEntidades(nodeID:string):Observable<any>{return this.http.get(`${this.base}/entidades/${encodeURIComponent(nodeID)}`);}
+ getSucursales(nodeID:string):Observable<any>{return this.http.get(`${this.base}/sucursales/${encodeURIComponent(nodeID)}`);}
+ getCajas(nodeID:string):Observable<any>{return this.http.get(`${this.base}/cajas/${encodeURIComponent(nodeID)}`);}
+ buscarTransacciones(filtros:FiltrosTransaccion):Observable<any>{return this.http.post(`${this.base}/buscar`,filtros);}
+ verTicket(data:TicketRequest):Observable<TicketResponse>{return this.http.post<TicketResponse>(`${this.base}/ticket`,data);}
+ 
 }
