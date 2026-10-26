@@ -1,9 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
-import { environment } from '../environments/environments';
-//import { AuthService, UserSessionData } from '../services/auth.service';
 
 export interface Cuenta {
   type?: number;
@@ -19,49 +16,28 @@ export interface FormularioData {
   tarjeta: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class TarjetaService {
-  private apiUrlCuentas = environment.api.aldebaran;
+  private readonly baseUrl = '/api/tarjeta';
 
-
-  constructor(private http: HttpClient) { }
-
-
-  /**
-   * Obtiene la lista de cuentas del API
-   */
+  constructor(private http: HttpClient) {}
 
   obtenerCuentas(): Observable<Cuenta[]> {
-    return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
+    return this.http.get<Cuenta[]>(`${this.baseUrl}/cuentas`, { withCredentials: true });
   }
 
-
-  /**
-   * Envía los datos del formulario al API
-   * @param formData Datos del formulario
-   */
   enviarFormulario(formData: FormularioData): Observable<any> {
-    // Opcional: Puedes transformar los datos si es necesario
-    const datosTransformados = {
-      ...formData
-    };
-
-    return this.http.get(`${this.apiUrlCuentas}getCards?value=${formData.tarjeta}&sirioId=${formData.entidad}`);
+    return this.buscarTarjetas(formData);
   }
 
-  /**
-   * Método alternativo para enviar formulario con parámetros query
-   * @param formData Datos del formulario
-   */
   enviarFormularioComoParams(formData: FormularioData): Observable<any> {
-    let params = new HttpParams();
+    return this.buscarTarjetas(formData);
+  }
 
-    if (formData.tarjeta) params = params.set('cuenta', formData.tarjeta);
-    if (formData.entidad) params = params.set('estatus', formData.entidad);
-
-    return this.http.get(`${this.apiUrlCuentas}getCards?value=${formData.tarjeta}&sirioId=${formData.entidad}`);
-
+  private buscarTarjetas(formData: FormularioData): Observable<any> {
+    const params = new HttpParams()
+      .set('entidad', formData.entidad ?? '')
+      .set('tarjeta', formData.tarjeta ?? '');
+    return this.http.get(`${this.baseUrl}/buscar`, { params, withCredentials: true });
   }
 }
