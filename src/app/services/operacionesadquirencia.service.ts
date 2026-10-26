@@ -125,7 +125,7 @@ export class OperacionesAdquirenciaService {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': 'Basic YWRtaW46c2VjcmV0'
+      'Accept': 'application/json'
     });
   }
 
@@ -135,7 +135,7 @@ export class OperacionesAdquirenciaService {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Accept': 'application/json'
     });
   }
 
@@ -190,7 +190,7 @@ export class OperacionesAdquirenciaService {
     obtenerTiposOperacion(): Observable<any> {
 
   return this.http.get<any>(
-    `${this.apiV1Url}catOperationType/getAll`,
+    `/api/operaciones-adquirencia/tipos-operacion`,
     {
       headers: this.getBearerHeaders().set('versionApp', '3')
     }
@@ -203,13 +203,13 @@ export class OperacionesAdquirenciaService {
 
       if (nodeID) {
         return this.http.get<{ contextResponse: Subafiliado[] }>(
-          `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&status=0`,
+          `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=3`,
           { headers: this.getBearerHeaders() }
         );
       }
 
       return this.http.get<{ contextResponse: Subafiliado[] }>(
-        `${this.apiV1Url}subAffiliation/getAll`,
+        `/api/operaciones-adquirencia/subafiliados`,
         { headers: this.getBearerHeaders() }
       );
     }
@@ -218,7 +218,7 @@ export class OperacionesAdquirenciaService {
       const nodeID = obtenerNodoSesion();
 
       return this.http.get<any>(
-        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=3&status=0`,
+        `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=3`,
         { headers: this.getBearerHeaders() }
       );
     }
@@ -233,7 +233,7 @@ export class OperacionesAdquirenciaService {
   getEntidades(nodeID: string): Observable<any> {
 
   return this.http.get(
-    `${this.baseUrl}api/nodes/${nodeID}/tree?levels=4&status=0`,
+    `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=4`,
     {
       headers: this.getBearerHeaders()
     }
@@ -243,14 +243,14 @@ export class OperacionesAdquirenciaService {
   
     getSucursales(nodeID: string): Observable<any> {
       return this.http.get(
-        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=5&status=0`,
+        `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=5`,
         { headers: this.getBearerHeaders() }
       );
     }
   
     getCajas(nodeID: string): Observable<any> {
       return this.http.get(
-        `${this.baseUrl}api/nodes/${nodeID}/tree?levels=6&status=0`,
+        `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=6`,
         { headers: this.getBearerHeaders() }
       );
     }
@@ -276,7 +276,7 @@ getCajas(idTerminal:number) {
 
   obtenerStatus(): Observable<Status[]> {
 
-    return this.http.get<any>(`${this.apiAldebaran}catStatusOperations`);
+    return this.http.get<any>(`/api/operaciones-adquirencia/estatus`);
 
     
   }
@@ -310,7 +310,7 @@ getCajas(idTerminal:number) {
       .set('dateFinish', this.emptyParam(formData.fechaFin));
 
     return this.http.get(
-      `${this.apiSaldos}${encodeURIComponent(validate)}/getoperationbytypeandstatuscustom`,
+      `/api/operaciones-adquirencia/cuentas/${encodeURIComponent(validate)}/operaciones`,
       {
         headers: this.getCommonHeaders(),
         params
@@ -348,7 +348,7 @@ getCajas(idTerminal:number) {
     if (formData.fechaInicio) params = params.set('fechaInicio', formData.fechaInicio);
     if (formData.fechaFin) params = params.set('fechaFin', formData.fechaFin);
     
-    return this.http.get(`${this.apiAldebaran}/consultas`, { params });
+    return this.http.get(`/api/operaciones-adquirencia/consultas`, { params });
   }
 
   verTicket(data: TicketRequest): Observable<TicketResponse> {
@@ -368,11 +368,11 @@ getCajas(idTerminal:number) {
       'versionApp': '3',
       'Entity-i': 'com.sub.tecs',
       'terminalId': terminalId,
-      'Authorization': `Bearer ${token}`,
-      'AuthorizationToken': `Bearer ${token}`
+      'Accept': 'application/json',
+      'Accept': 'application/json'
     });
 
-    return this.http.post<TicketResponse>(`${this.baseUrlTicket}voucher`, body, { headers });
+    return this.http.post<TicketResponse>(`/api/operaciones-adquirencia/ticket`, body, { headers });
   }
 
   private emptyParam(value: unknown): string {

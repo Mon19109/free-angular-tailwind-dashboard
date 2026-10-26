@@ -53,7 +53,7 @@ export class OperacionesEmisionService {
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Accept': 'application/json'
     });
   }
 
@@ -76,17 +76,17 @@ export class OperacionesEmisionService {
    */
 
   obtenerCuentas(): Observable<Cuenta[]> {
-    return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
+    return this.http.get<any>(`/api/operaciones-emision/cuentas?fatherId=${encodeURIComponent(localStorage.getItem('issueId') || '')}`);
      //return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('entitySonID')}&level=`);
     
 
-    //return this.http.get<Cuenta[]>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
+    //return this.http.get<Cuenta[]>(`/api/operaciones-emision/cuentas?fatherId=${encodeURIComponent(localStorage.getItem('issueId') || '')}`);
   }
 
 
 obtenerConcentratorAccounts(): Observable<any> {
   return this.http.get<any>(
-    `${this.apiV1Url}account/getConcentratorAccounts?sirioId=${localStorage.getItem('entitySonID')}`,
+    `/api/operaciones-emision/cuentas-concentradoras?sirioId=${encodeURIComponent(localStorage.getItem('entitySonID') || '')}`,
     { headers: this.getBearerHeaders() }
   );
 }
@@ -99,11 +99,11 @@ obtenerConcentratorAccounts(): Observable<any> {
 obtenerEntidades(cuenta: string): Observable<any> {
 
   /* console.log(
-    `${this.apiUrlCuentas}getEntityLevels?fatherId=${cuenta}&level=`
+    `/api/operaciones-emision/entidades?fatherId=${encodeURIComponent(cuenta)}`
   ); */
 
   return this.http.get<any>(
-    `${this.apiUrlCuentas}getEntityLevels?fatherId=${cuenta}&level=`
+    `/api/operaciones-emision/entidades?fatherId=${encodeURIComponent(cuenta)}`
   );
 }
 
@@ -120,7 +120,7 @@ obtenerEntidades(cuenta: string): Observable<any> {
     const headers = this.getBearerHeaders();
 
 
-    return this.http.get<any>(`${this.apiV1Url}catOperationType/getAll`, 
+    return this.http.get<any>(`/api/operaciones-emision/tipos-operacion`, 
       {headers})
      .pipe(
         map(response => response.catOperationTypes) 
@@ -150,7 +150,7 @@ obtenerEntidades(cuenta: string): Observable<any> {
       .set('status', filtros.status || '')
       .set('searchBy', '');
 
-    return this.http.get<any>(`${this.apiV1Url}operations/searchOperations`, {
+    return this.http.get<any>(`/api/operaciones-emision/detalle`, {
       headers: this.getBearerHeaders(),
       params
     });
@@ -169,7 +169,7 @@ obtenerEntidades(cuenta: string): Observable<any> {
       .set('page', page).set('size', 10)
       .set('dateInit', formData.fechaInicio || '')
       .set('dateFinish', formData.fechaFin || '');
-    return this.http.get<any>(`${this.apiUrlOpe}${encodeURIComponent(cuenta)}/getoperationbytypeandstatuscustom`, {
+    return this.http.get<any>(`/api/operaciones-emision/cuentas/${encodeURIComponent(cuenta)}/operaciones`, {
       headers: this.getBearerHeaders(), params
     });
   }
@@ -188,6 +188,6 @@ obtenerEntidades(cuenta: string): Observable<any> {
     if (formData.fechaInicio) params = params.set('fechaInicio', formData.fechaInicio);
     if (formData.fechaFin) params = params.set('fechaFin', formData.fechaFin);
     
-    return this.http.get(`${this.apiUrl}/consultas`, { params });
+    return this.http.get(`/api/operaciones-emision/consultas`, { params });
   }
 }
