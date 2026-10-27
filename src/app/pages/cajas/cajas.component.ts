@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
@@ -17,6 +18,7 @@ import autoTable from 'jspdf-autotable';
   styleUrls: ['./cajas.component.css']
 })
 export class CajasComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   private cajasService = inject(CajasService);
 
   subafiliados: any[] = [];
@@ -90,8 +92,8 @@ export class CajasComponent implements OnInit {
   }
 
   cargarSubafiliados(): void {
-    const idRol = Number(localStorage.getItem('idRol') || 0);
-    const idContext = Number(localStorage.getItem('idContext') || 0);
+    const idRol = Number(this.sessionAuth.getSessionValue('idRol') || 0);
+    const idContext = Number(this.sessionAuth.getSessionValue('idContext') || 0);
 
     const request$: Observable<any> = idRol === 2 || !idContext
       ? this.cajasService.getSubafiliados()

@@ -1,4 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 //import { AuthService, UserSessionData } from '../../services/auth.service';
@@ -12,6 +13,7 @@ import { TarjetaService,  } from '../../services/tarjeta.service';
   styleUrls: ['./tarjeta.component.css']
 })
 export class TarjetaComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   formulario: FormGroup;
   cuentas: any[] = [];
   tarjeta: string = '';
@@ -39,11 +41,7 @@ cardNameDisplay = '';
 
  ngOnInit(): void {
 
-  const userData = localStorage.getItem('auth_session');
-
-  if (userData) {
-    this.user = JSON.parse(userData);
-  }
+  this.user = this.sessionAuth.getUserData();
 
   this.cargarDatosIniciales();
 

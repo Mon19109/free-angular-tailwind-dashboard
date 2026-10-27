@@ -2,6 +2,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { nodosDelNivelEstricto } from '../../shared/utils/niveles-operaciones';
 import { obtenerNodoSesion } from '../../shared/utils/nodo-sesion';
+import { AuthService } from '../../services/auth.service';
 import { Component, DestroyRef, OnInit, inject, signal, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +27,7 @@ declare var moment: any;
   styleUrls: ['./transaccionesAdquirencia.component.css']
 })
 export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit {
+  private readonly sessionAuth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private solicitudesNiveles: Partial<Record<4 | 5 | 6, Subscription>> = {};
   private transaccionesAdquirenciaService = inject(TransaccionesAdquirenciaService);
@@ -97,21 +99,10 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   private cargarDatosSesion() {
-    let sesion: any = {};
-    const sesionGuardada = localStorage.getItem('auth_session');
-
-    if (sesionGuardada) {
-      try {
-        sesion = JSON.parse(sesionGuardada);
-      } catch {
-        sesion = {};
-      }
-    }
-
-    this.rolId = String(sesion?.idRol ?? localStorage.getItem('idRol') ?? this.rolId);
-    this.contId = String(sesion?.idContext ?? localStorage.getItem('idContext') ?? this.contId);
-    this.entiId = String(sesion?.entitySonID ?? localStorage.getItem('entitySonID')
-      ?? sesion?.idEntity ?? localStorage.getItem('idEntity') ?? this.entiId);
+    this.rolId = this.sessionAuth.getSessionValue('idRol') || '0';
+    this.contId = this.sessionAuth.getSessionValue('idContext') || '';
+    this.entiId = this.sessionAuth.getSessionValue('entitySonID')
+      || this.sessionAuth.getSessionValue('idEntity') || '';
     this.aplicarBloqueosPorRol();
   }
 
@@ -228,7 +219,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
   
   cargarDependenciasIniciales() {
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     this.cargarSubafiliados();
 
     if (!nodeIDSesion) return;
@@ -247,7 +238,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   cargarSubafiliados() {
-    const idContextSesion = localStorage.getItem('idContext') || this.contId;
+    const idContextSesion = this.sessionAuth.getSessionValue('idContext') || '';
     if (this.rolId !== '2' || (idContextSesion && idContextSesion !== '0')) {
       this.cargarSubafiliadoSesion();
       return;
@@ -265,7 +256,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
   private cargarSubafiliadoSesion() {
     this.subafiliados.set([]);
-    if (!obtenerNodoSesion()) return;
+    if (!obtenerNodoSesion(this.sessionAuth)) return;
     this.transaccionesAdquirenciaService.getSubafiliadoById().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         const lista = nodosDelNivelEstricto(res, 3);
@@ -564,14 +555,14 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
   }
 
   private getSelectedNodeID(value?: string): string {
-    return value || obtenerNodoSesion();
+    return value || obtenerNodoSesion(this.sessionAuth);
   }
 
   private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
     if (!['3', '4', '5', '6'].includes(this.rolId)) return;
 
     this.filtros.subafiliado = '';
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const subafiliadoSesion = subafiliados.find(
       subafiliado => this.obtenerNodeId(subafiliado) === nodeIDSesion
     ) || (subafiliados.length === 1 ? subafiliados[0] : null);
@@ -585,7 +576,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (!['4', '5', '6'].includes(this.rolId)) return;
 
     this.filtros.entidad = '';
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const entidadSesion = entidades.find(
       entidad => this.obtenerNodeId(entidad) === nodeIDSesion
     ) || (entidades.length === 1 ? entidades[0] : null);
@@ -599,7 +590,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (!['5', '6'].includes(this.rolId)) return;
 
     this.filtros.sucursal = '';
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const sucursalSesion = sucursales.find(
       sucursal => this.obtenerNodeId(sucursal) === nodeIDSesion
     ) || (sucursales.length === 1 ? sucursales[0] : null);
@@ -613,7 +604,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     if (this.rolId !== '6') return;
 
     this.filtros.caja = '';
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const cajaSesion = cajas.find(
       caja => this.obtenerNodeId(caja) === nodeIDSesion
     ) || (cajas.length === 1 ? cajas[0] : null);
@@ -902,12 +893,12 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     }
 
     const ticketRequest = {
-      terminalId: transaccion.terminalId ?? transaccion.idTerminal ?? localStorage.getItem('idTerminal') ?? '',
+      terminalId: transaccion.terminalId ?? transaccion.idTerminal ?? this.sessionAuth.getSessionValue('idTerminal') ?? '',
       rrcext: transaccion.rrcext ?? transaccion.authorizationRrcext ?? '',
       authorizationNumber: transaccion.authorizationNumber ?? '',
       authorizationId: transaccion.authorizationId ?? transaccion.idOperation ?? '',
-      user: localStorage.getItem('mail') ?? '',
-      context: transaccion.context ?? transaccion.idContext ?? localStorage.getItem('idContext') ?? ''
+      user: this.sessionAuth.getSessionValue('mail') ?? '',
+      context: transaccion.context ?? transaccion.idContext ?? this.sessionAuth.getSessionValue('idContext') ?? ''
     };
 
     const ventanaTicket = window.open('', '_blank');

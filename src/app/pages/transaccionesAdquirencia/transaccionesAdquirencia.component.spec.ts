@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthService } from '../../services/auth.service';
 import { of, Subject } from 'rxjs';
 import { TransaccionesAdquirenciaComponent } from './transaccionesAdquirencia.component';
 import { TransaccionesAdquirenciaService } from '../../services/transaccionesadquirencia.service';
@@ -10,7 +11,8 @@ describe('Filtros de Transacciones Adquirencia', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj('TransaccionesAdquirenciaService', ['getSubafiliados', 'getEntidades', 'getSucursales', 'getCajas']);
     for (const method of [service.getEntidades, service.getSucursales, service.getCajas]) method.and.returnValue(of([]));
-    TestBed.configureTestingModule({ providers: [{ provide: TransaccionesAdquirenciaService, useValue: service }] });
+    TestBed.configureTestingModule({ providers: [{ provide: TransaccionesAdquirenciaService, useValue: service },
+      { provide: AuthService, useValue: { getSessionValue: () => null } }] });
     component = TestBed.runInInjectionContext(() => new TransaccionesAdquirenciaComponent());
     component.rolId = '2';
   });

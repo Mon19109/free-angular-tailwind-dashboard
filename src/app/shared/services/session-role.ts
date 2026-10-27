@@ -1,23 +1,13 @@
-export function canSendCommerceInvitation(role: number = getSessionRole()): boolean {
+import { AuthService } from '../../services/auth.service';
+
+export function canSendCommerceInvitation(role: number): boolean {
   return [3, 4, 5].includes(role);
 }
 
-export function canAddCommerceLevel(role: number = getSessionRole()): boolean {
-  return role !== 2 && role !== 6;
+export function canAddCommerceLevel(role: number): boolean {
+  return [3, 4, 5].includes(role);
 }
 
-export function getSessionRole(): number {
-  const storedRole = localStorage.getItem('idRol') ?? localStorage.getItem('IdRol');
-  if (storedRole !== null) return Number(storedRole) || 0;
-
-  for (const key of ['auth_session', 'user_data']) {
-    try {
-      const session = JSON.parse(localStorage.getItem(key) || '{}');
-      const role = session?.idRol ?? session?.IdRol;
-      if (role !== undefined && role !== null) return Number(role) || 0;
-    } catch {
-      // Continuar con la siguiente fuente de sesión.
-    }
-  }
-  return 0;
+export function getSessionRole(auth: AuthService): number {
+  return Number(auth.getSessionValue('idRol')) || 0;
 }

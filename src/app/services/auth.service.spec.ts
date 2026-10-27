@@ -15,6 +15,31 @@ describe('AuthService con BFF', () => {
     auth = TestBed.inject(AuthService); http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => { http.verify(); localStorage.removeItem('preregistro.draft'); });
+  it('lee rol y perfil del servidor sin consultar storage y descarta valores al cerrar', () => {
+    auth.actualizarSesion({ ...active(), usuario: { idRol: 3, idPerfil: 8, mail: 'actual@example.test' } });
+    const local = spyOn(localStorage, 'getItem').and.throwError('No consultar almacenamiento');
+    const session = spyOn(sessionStorage, 'getItem').and.throwError('No consultar almacenamiento');
+    expect(auth.getSessionValue('idRol')).toBe('3');
+    expect(auth.getSessionValue('idPerfil')).toBe('8');
+    expect(auth.getSessionValue('email')).toBe('actual@example.test');
+    expect(auth.getSessionValue('nodeID')).toBeNull();
+    const user = auth.getUserData();
+    user.idRol = 2;
+    expect(auth.getSessionValue('idRol')).toBe('3');
+    auth.clearSession();
+    expect(auth.getSessionValue('idRol')).toBeNull();
+    expect(local).not.toHaveBeenCalled();
+    expect(session).not.toHaveBeenCalled();
+  });
+  it('no expone datos del usuario después de vencer la sesión', () => {
+    const now = Date.now();
+    spyOn(Date, 'now').and.returnValue(now);
+    auth.actualizarSesion({ ...active(), expiresAt: now + 1000 });
+    expect(auth.getSessionValue('idRol')).toBe('2');
+    (Date.now as jasmine.Spy).and.returnValue(now + 1000);
+    expect(auth.getSessionValue('idRol')).toBeNull();
+    expect(auth.getUserData()).toEqual({});
+  });
   it('conserva el modelo, rol y perfil de /me únicamente en memoria', () => {
     const local = spyOn(localStorage, 'setItem');
     const session = spyOn(sessionStorage, 'setItem');

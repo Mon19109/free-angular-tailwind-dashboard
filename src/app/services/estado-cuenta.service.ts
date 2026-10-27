@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
@@ -14,6 +15,7 @@ export interface EstadoCuentaParams {
   providedIn: 'root'
 })
 export class EstadoCuentaService {
+  private readonly sessionAuth = inject(AuthService);
   private baseUrl = environment.api.kashpay;
   private apiV1Url = `${this.baseUrl}api/v1/`;
   private saldosUrl = environment.api.saldos;
@@ -40,22 +42,11 @@ export class EstadoCuentaService {
   }
 
   private getStoredToken(): string {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession);
-        if (session?.token) return session.token;
-      } catch {
-        localStorage.removeItem('auth_session');
-      }
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    return this.sessionAuth.getToken() || '';
   }
 
   obtenerCuentas(): Observable<any> {
-    const sirioId = localStorage.getItem('entitySonID') || '';
+    const sirioId = this.sessionAuth.getSessionValue('entitySonID') || '';
 
     return this.http.get(
       `${this.apiV1Url}account/getConcentratorAccounts?sirioId=${sirioId}`,
@@ -72,7 +63,7 @@ export class EstadoCuentaService {
 
   construirUrlDescarga(paramsData: EstadoCuentaParams): string {
     const params = new URLSearchParams({
-      idAffiliationLevel: localStorage.getItem('idRol') || '',
+      idAffiliationLevel: this.sessionAuth.getSessionValue('idRol') || '',
       tipo: paramsData.tipo,
       anio: paramsData.periodo,
       cuenta: paramsData.cuenta,

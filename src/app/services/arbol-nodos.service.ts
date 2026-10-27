@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
@@ -36,6 +37,7 @@ export interface ArbolNodoApi {
 
 @Injectable({ providedIn: 'root' })
 export class ArbolNodosService {
+  private readonly sessionAuth = inject(AuthService);
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.api.kashpay;
 
@@ -59,13 +61,6 @@ export class ArbolNodosService {
   }
 
   private obtenerToken(): string {
-    try {
-      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      if (session?.token) return String(session.token);
-    } catch {
-      // Usa llaves legacy abajo.
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    return this.sessionAuth.getToken() || '';
   }
 }

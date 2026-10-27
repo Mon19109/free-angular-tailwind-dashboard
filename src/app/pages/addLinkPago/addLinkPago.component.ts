@@ -1,4 +1,5 @@
 import { Component , inject, signal, ViewChild} from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -23,6 +24,7 @@ import { SelectComponent } from '../../shared/components/form/select/select.comp
   styleUrls: ['./addLinkPago.component.css']
 })
 export class AddLinkPagoComponent {
+  private readonly sessionAuth = inject(AuthService);
     formulario: FormGroup;
     nombre: any[] = [];
     aPaterno: any[] = [];
@@ -519,12 +521,12 @@ export class AddLinkPagoComponent {
     return {
       orderingName: `${formValues.nombre} ${formValues.aPaterno} ${formValues.aMaterno}`.trim(),
       description: formValues.concepto,
-      nameCommerce: localStorage.getItem('userName') || '',
+      nameCommerce: this.sessionAuth.getSessionValue('userName') || '',
       amount: String(formValues.monto).replace(/,/g, ''),
       alphanumericReference: formValues.refCom,
       ticketMessage: formUrl,
       orderingAcount,
-      commerceId: localStorage.getItem('entitySonID') || '',
+      commerceId: this.sessionAuth.getSessionValue('entitySonID') || '',
       dateHourTransaction: new Date().toISOString(),
       adicional: formValues.tel
     };

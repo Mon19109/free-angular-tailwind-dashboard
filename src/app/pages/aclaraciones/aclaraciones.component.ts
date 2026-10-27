@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -12,6 +13,7 @@ import { AclaracionesService } from '../../services/aclaraciones.servises';
   styleUrls: ['./aclaraciones.component.css']
 })
 export class AclaracionesComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   private readonly service = inject(AclaracionesService);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -40,7 +42,7 @@ export class AclaracionesComponent implements OnInit {
   enviado = false;
   guardada = false;
 
-  get esAdmin(): boolean { return Number(localStorage.getItem('idRol')) === 2; }
+  get esAdmin(): boolean { return Number(this.sessionAuth.getSessionValue('idRol')) === 2; }
   get cargo(): any { return this.transaccion?.chargeback; }
   get montoOriginal(): number { return Number(this.transaccion?.amount) || 0; }
   get puedeAgregarEvidencia(): boolean {
@@ -57,7 +59,7 @@ export class AclaracionesComponent implements OnInit {
 
   private cargarTransaccion(id: string): void {
     this.cargando = true;
-    this.service.obtenerTransaccion(id, this.esAdmin ? undefined : localStorage.getItem('idContext') || undefined).subscribe({
+    this.service.obtenerTransaccion(id, this.esAdmin ? undefined : this.sessionAuth.getSessionValue('idContext') || undefined).subscribe({
       next: response => {
         const datos = response?.rows ?? response?.data ?? response;
         this.transaccion = Array.isArray(datos) ? datos[0] : datos;
@@ -163,9 +165,9 @@ export class AclaracionesComponent implements OnInit {
     }
     this.guardando = true;
     this.error = '';
-    const email = localStorage.getItem('mail') || localStorage.getItem('email') || '';
+    const email = this.sessionAuth.getSessionValue('mail') || '';
     this.service.validarContrasena(email, this.contrasena,
-      localStorage.getItem('latitud') || '', localStorage.getItem('longitud') || '').subscribe({
+      this.sessionAuth.getSessionValue('latitud') || '', this.sessionAuth.getSessionValue('longitud') || '').subscribe({
       next: async response => {
         if (response?.success !== true || Number(response?.idStatus ?? 0) !== 0) {
           this.guardando = false;
@@ -181,7 +183,7 @@ export class AclaracionesComponent implements OnInit {
             authorizationPan: String(this.transaccion.card ?? ''),
             amount: this.tipo === 'DP' ? Number(this.form.controls.monto.value) : this.montoOriginal,
             observations: this.form.controls.observaciones.value || '',
-            lastUserModify: localStorage.getItem('idUser') || '',
+            lastUserModify: this.sessionAuth.getSessionValue('idUser') || '',
             idTerminalUser: Number(this.transaccion.tuuser),
             authNumber: String(this.transaccion.authorizationNumber ?? ''),
             retrievalReferenceCode: String(this.transaccion.authorizationRrcext ?? ''),

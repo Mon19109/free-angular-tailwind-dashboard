@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { saveAs } from 'file-saver';
 import { finalize, Subscription, timeout } from 'rxjs';
@@ -37,6 +38,7 @@ interface EntidadReporteDisponible {
   styleUrls: ['./reportes.component.css']
 })
 export class ReportesComponent implements OnInit, OnDestroy {
+  private readonly sessionAuth = inject(AuthService);
   private consultaSubscription?: Subscription;
   private saldoSubscription?: Subscription;
   private reporteSubscription?: Subscription;
@@ -505,11 +507,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   private obtenerIdPerfil(): number {
-    try {
-      const sesion = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      if (sesion?.idPerfil != null) return Number(sesion.idPerfil);
-    } catch { /* Consultar el valor individual de la sesión. */ }
-    return Number(localStorage.getItem('idPerfil') || 0);
+    return Number(this.sessionAuth.getSessionValue('idPerfil') || 0);
   }
 
   private debeMostrarCuenta(cuenta: any): boolean {

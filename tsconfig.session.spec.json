@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.auth.spec.json",
+  "include": [
+    "src/**/*.d.ts",
+    "src/app/services/auth.service.spec.ts",
+    "src/app/services/session-timeout.service.spec.ts",
+    "src/app/guards/auth-guard.spec.ts",
+    "src/app/pages/login/login.component.spec.ts",
+    "src/app/services/preregistro-catalogos-http.service.spec.ts",
+    "src/app/shared/utils/nodo-sesion.spec.ts",
+    "src/app/shared/services/session-role.spec.ts",
+    "src/app/shared/layout/app-sidebar/app-sidebar.component.spec.ts",
+    "src/app/pages/addBotonPago/addBotonPago.component.spec.ts",
+    "src/app/pages/aclaraciones/aclaraciones.component.spec.ts",
+    "src/app/pages/beneficiarios/beneficiarios.component.spec.ts",
+    "src/app/pages/operacionesAdquirencia/operacionesAdquirencia.component.spec.ts",
+    "src/app/pages/registroCliente/registroCliente-contexto.spec.ts",
+    "src/app/pages/registroProspectoCliente/registroProspectoCliente.component.spec.ts",
+    "src/app/pages/reportes/reportes.component.spec.ts",
+    "src/app/pages/transaccionesAdquirencia/transaccionesAdquirencia.component.spec.ts",
+    "src/app/services/consulta-comercios.service.spec.ts",
+    "src/app/services/merchant-update-data.service.spec.ts",
+    "src/app/services/operacionesadquirencia.service.spec.ts",
+    "src/app/services/operacionesemision.service.spec.ts",
+    "src/app/services/pagoDistancia.service.spec.ts",
+    "src/app/services/siprelad.service.spec.ts"
+  ]
+}

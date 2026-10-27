@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthService } from '../../services/auth.service';
 import { FormBuilder } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
@@ -12,6 +13,7 @@ describe('Monto de Aclaraciones', () => {
     TestBed.configureTestingModule({
       providers: [
         FormBuilder,
+        { provide: AuthService, useValue: { getSessionValue: () => null } },
         { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: { get: () => null } } } },
         { provide: AclaracionesService, useValue: { obtenerMotivos: () => of([]) } }
       ]

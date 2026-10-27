@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthService } from '../../services/auth.service';
 import { of, Subject } from 'rxjs';
 import { BeneficiariosService } from '../../services/beneficiarios.service';
 import { BeneficiariosComponent } from './beneficiarios.component';
@@ -11,7 +12,8 @@ describe('Confirmación de eliminación de beneficiarios', () => {
     service = jasmine.createSpyObj<BeneficiariosService>('BeneficiariosService', ['eliminarContactos']);
     service.eliminarContactos.and.returnValue(of({ success: true }));
     TestBed.configureTestingModule({
-      providers: [{ provide: BeneficiariosService, useValue: service }]
+      providers: [{ provide: BeneficiariosService, useValue: service },
+        { provide: AuthService, useValue: { getSessionValue: () => null } }]
     });
     component = TestBed.runInInjectionContext(() => new BeneficiariosComponent());
     spyOn(component, 'cargarContactos');

@@ -1,0 +1,38 @@
+DATOS DE SESIÓN SIN LOCALSTORAGE
+
+AuthService conserva en memoria únicamente la sesión confirmada por el BFF.
+getSessionValue devuelve texto o null; getUserData entrega una copia del usuario.
+Ambos dejan de entregar datos cuando vence la sesión o se limpia su estado.
+Los guards de niveles e invitaciones esperan /api/auth/me para resolver permisos.
+Los roles ausentes o desconocidos no habilitan esos permisos.
+El menú vuelve a leer rol, perfil y modelo desde la sesión actual.
+login.service.ts conserva solo una reexportación del AuthService vigente;
+no quedan consumidores del antiguo flujo de login en este repositorio.
+
+Se mantienen preferencias de tema, ubicación y borradores de captura locales.
+La eliminación de credenciales antiguas al iniciar no consulta sus valores.
+
+CONTRATO Y LÍMITES
+No se amplió safeUser: idRol, idPerfil, idBusinessModel, userName, mail, oft,
+cuenta e idStatus siguen siendo los únicos campos aceptados por AuthService.
+No se recuperan tokens de localStorage; getToken continúa devolviendo null.
+Los módulos antiguos que requieren nodeID, idContext, entitySonID, idUser,
+issueId, acquiringId u otros datos ausentes no los recuperan de copias locales.
+Para habilitar esas operaciones se requiere que el BFF resuelva el contexto y
+las credenciales en el servidor, o un contrato explícito de datos públicos.
+No se verificó el backend real ni se realizaron peticiones a servicios de negocio.
+
+VALIDACIÓN
+ng build --configuration production: correcto, con advertencias de tamaño,
+CommonJS e imports existentes.
+TypeScript de aplicación y tsconfig.session.spec.json: correctos.
+235 pruebas seleccionadas correctas con HTTP simulado y Edge Headless.
+Se actualizaron pruebas que aún esperaban rutas anteriores a la migración BFF
+y el aislamiento del temporizador de cierre de RegistroProspectoCliente.
+La compilación de todos los specs aún encuentra referencias preexistentes a
+envioPreRegistroRealizado en preRegistro.component.spec.ts, fuera de este cambio.
+
+REPRODUCIR EN POWERSHELL
+$env:CHROME_BIN = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+$sessionSpecs = (Get-Content tsconfig.session.spec.json -Raw | ConvertFrom-Json).include | Where-Object { $_ -like '*.spec.ts' } | ForEach-Object { '--include=' + $_ }
+npx ng test --watch=false --browsers=ChromeHeadless --ts-config=tsconfig.session.spec.json @sessionSpecs --progress=false --reporters=dots

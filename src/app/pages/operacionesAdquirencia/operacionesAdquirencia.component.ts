@@ -5,6 +5,7 @@ import { DetalleOperacionComponent } from '../detalleOperacion/detalle-operacion
 import { nodosDelNivelEstricto as nodosDelNivel } from '../../shared/utils/niveles-operaciones';
 import { leerPaginaOperaciones } from '../../shared/utils/pagina-operaciones';
 import { obtenerNodoSesion } from '../../shared/utils/nodo-sesion';
+import { AuthService } from '../../services/auth.service';
 import { nombreBancoPorCodigo } from '../../shared/utils/bancos';
 import { COLUMNAS_OPERACIONES, valorColumnaOperacion } from '../../shared/utils/operaciones-tabla';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -28,6 +29,7 @@ import * as XLSX from 'xlsx';
   styleUrls: ['./operacionesAdquirencia.component.css']
 })
 export class OperacionesAdquirenciaComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   readonly buscando = signal(false);
   readonly exportando = signal(false);
   readonly accionOperacion = accionOperacion;
@@ -300,7 +302,7 @@ estatus: [this.defaultEstatus, Validators.required],
   }
 
  ngOnInit(): void {
-  this.rolId = localStorage.getItem('idRol') || this.rolId;
+  this.rolId = this.sessionAuth.getSessionValue('idRol') || '0';
 
   this.estatusMultiOptions =
   this.estatusOptions.map(item => ({
@@ -367,8 +369,8 @@ estatus: [this.defaultEstatus, Validators.required],
   }
 
   private nodoBaseFiltros(): string {
-    if (Number(this.rolId) >= 4) return obtenerNodoSesion();
-    return String(this.formulario.getRawValue().cuenta || obtenerNodoSesion());
+    if (Number(this.rolId) >= 4) return obtenerNodoSesion(this.sessionAuth);
+    return String(this.formulario.getRawValue().cuenta || obtenerNodoSesion(this.sessionAuth));
   }
 
   cargarDatosIniciales(): void {
@@ -376,7 +378,7 @@ estatus: [this.defaultEstatus, Validators.required],
     this.formulario.get('cuenta')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(valor => {
       this.formulario.patchValue({ entidad: '', sucursal: '', caja: '' }, { emitEvent: false });
       this.limpiarNiveles(4);
-      const nodeID = String(valor || obtenerNodoSesion());
+      const nodeID = String(valor || obtenerNodoSesion(this.sessionAuth));
       this.cargarNivel(4, nodeID);
       this.cargarNivel(5, nodeID);
       this.cargarNivel(6, nodeID);
@@ -400,7 +402,7 @@ estatus: [this.defaultEstatus, Validators.required],
 mostrarResultados = false;
 
   cargarSubafiliados(): void {
-    const idContextSesion = localStorage.getItem('idContext') || '';
+    const idContextSesion = this.sessionAuth.getSessionValue('idContext') || '';
 
     if (this.rolId !== '2' || (idContextSesion && idContextSesion !== '0')) {
       this.cargarSubafiliadoSesion();
@@ -470,7 +472,7 @@ mostrarResultados = false;
       for (const [campo, lista] of niveles) {
         if (!this.mostrarFiltro(campo) || !formValues[campo]) continue;
         const nodo = lista.find(item => String(item.idNode ?? item.nodeID ?? item.nodeId ?? item.idEntity ?? item.idTerminal ?? item.idTerminalUser ?? item.affiliationId ?? item.id) === String(formValues[campo]));
-        const idSirio = cuentaAdquirencia(nodo) || (String(formValues[campo]) === obtenerNodoSesion()
+        const idSirio = cuentaAdquirencia(nodo) || (String(formValues[campo]) === obtenerNodoSesion(this.sessionAuth)
           ? this.opeAdquiService.obtenerCuentaSesion() : '');
         if (!idSirio || idSirio === '0') {
           this.fechaErrorMensaje = 'El nivel seleccionado no tiene una cuenta de adquirencia válida (idSirio o account) para consultar operaciones.';
@@ -582,14 +584,14 @@ mostrarResultados = false;
       dateInit: f.fechaInicio, dateFinish: f.fechaFin,
       subafiliado: f.cuenta || '0', entidad: f.entidad || '0', sucursal: f.sucursal || '0', caja: f.caja || '0',
       validate: f.idSirioConsulta || this.opeAdquiService.obtenerCuentaSesion(),
-      nodoSesion: obtenerNodoSesion()
+      nodoSesion: obtenerNodoSesion(this.sessionAuth)
     });
     window.history.replaceState(window.history.state, '', window.location.pathname + '?' + params.toString());
   }
 
   private restaurarBusqueda(): void {
     const params = new URLSearchParams(window.location.search);
-    if (params.has('nodoSesion') && params.get('nodoSesion') !== obtenerNodoSesion()) return;
+    if (params.has('nodoSesion') && params.get('nodoSesion') !== obtenerNodoSesion(this.sessionAuth)) return;
     const tipo = (params.get('type') || '').split(',').filter(Boolean);
     const estatus = (params.get('status') || '').split(',').filter(Boolean);
     if (!tipo.length || !estatus.length) return;
@@ -653,7 +655,7 @@ mostrarResultados = false;
   }
 
   private seleccionarSubafiliadoSesion(subafiliados: any[]): void {
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const propio = subafiliados.find(item => this.obtenerNodeId(item) === nodeIDSesion);
     const actual = subafiliados.find(item => this.obtenerNodeId(item) === String(this.formulario.getRawValue().cuenta));
     const seleccionado = actual || propio || (subafiliados.length === 1 ? subafiliados[0] : null);
@@ -672,7 +674,7 @@ mostrarResultados = false;
       return;
     }
 
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const existeEntidadSesion = entidades.some(
       entidad => this.obtenerNodeId(entidad) === nodeIDSesion
     );
@@ -693,7 +695,7 @@ mostrarResultados = false;
       return;
     }
 
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const existeSucursalSesion = sucursales.some(
       sucursal => this.obtenerNodeId(sucursal) === nodeIDSesion
     );
@@ -714,7 +716,7 @@ mostrarResultados = false;
       return;
     }
 
-    const nodeIDSesion = obtenerNodoSesion();
+    const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     const existeCajaSesion = cajas.some(
       caja => this.obtenerNodeId(caja) === nodeIDSesion
     );

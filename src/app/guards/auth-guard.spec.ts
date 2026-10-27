@@ -5,6 +5,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Subject } from 'rxjs';
 import { authGuard } from './auth-guard';
 import { AuthGuard } from './auth.guard';
+import { agregarNivelComercioGuard } from './agregar-nivel-comercio.guard';
+import { enviarInvitacionComercioGuard } from './enviar-invitacion-comercio.guard';
 
 describe('AuthGuard con BFF', () => {
   let http: HttpTestingController;
@@ -34,4 +36,18 @@ describe('AuthGuard con BFF', () => {
     http.expectOne('/api/auth/me').flush({}, { status: 503, statusText: 'Unavailable' });
     expect(decision).toBe('login');
   });
+  for (const guard of [agregarNivelComercioGuard, enviarInvitacionComercioGuard]) {
+    for (const role of [0, 2, 3, 6, 99]) {
+      it(`resuelve permisos con /me al entrar directamente, rol ${role}`, () => {
+        spyOn(localStorage, 'getItem').and.throwError('No consultar almacenamiento');
+        const result = TestBed.runInInjectionContext(() => guard({ data: {} } as ActivatedRouteSnapshot, {} as RouterStateSnapshot)) as import('rxjs').Observable<unknown>;
+        let decision: unknown;
+        result.subscribe(value => decision = value);
+        expect(decision).toBeUndefined();
+        http.expectOne('/api/auth/me').flush({ success: true, authenticated: true, expiresAt: Date.now() + 600000, usuario: { idRol: role } });
+        expect(decision).toBe(role === 3 ? true : 'login');
+        expect(localStorage.getItem).not.toHaveBeenCalled();
+      });
+    }
+  }
 });

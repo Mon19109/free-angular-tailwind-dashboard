@@ -1,16 +1,23 @@
 import { of, Subject, throwError } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
+import { AuthService } from '../../services/auth.service';
 import { ReportesComponent } from './reportes.component';
 import { ReporteArchivo, ReportesService } from '../../services/reportes.service';
 
 describe('ReportesComponent', () => {
   let component: ReportesComponent;
   let service: jasmine.SpyObj<ReportesService>;
+  let perfil: string | null;
 
   beforeEach(() => {
     service = jasmine.createSpyObj<ReportesService>('ReportesService', [
       'buscarFolderReportes', 'obtenerSaldo', 'buscarArchivosReporte', 'obtenerEntidades', 'obtenerCuentas'
     ]);
-    component = new ReportesComponent(service);
+    perfil = null;
+    TestBed.configureTestingModule({ providers: [{ provide: AuthService, useValue: {
+      getSessionValue: () => perfil
+    } }] });
+    component = TestBed.runInInjectionContext(() => new ReportesComponent(service));
     component.cuentas = [{ id: '123', texto: 'Cuenta Adquirente', guidComerce: 'GUID-123' }];
     component.cuentaSeleccionada = '123';
     component.guidComerceSeleccionado = 'GUID-123';
@@ -27,7 +34,7 @@ describe('ReportesComponent', () => {
     expect(component.mensaje).toContain('Selecciona');
   });
 
-  it('shows the five fixed reports and only supported returned folders', () => {
+  it('shows the four general reports and only supported returned folders without a Split profile', () => {
     service.buscarFolderReportes.and.returnValue(of([
       { name: 'EnRed' }, { name: 'Factura' }, { name: 'Comision' },
       { name: 'Conciliacion' }, { name: 'Internacionales' }, { name: 'Reserva' },
@@ -37,28 +44,29 @@ describe('ReportesComponent', () => {
     expect(service.buscarFolderReportes).toHaveBeenCalledWith('2026 Agosto', 'ADQUIRENTE', 'GUID-123');
     expect(component.reportes.map(reporte => reporte.id)).toEqual([
       'ESTADO_PDF', 'ESTADO_EXCEL', 'CORTE_DIA', 'DIARIO_TRANSACCIONES',
-      'TRANSACCIONES_SPLIT', 'EnRed', 'Factura', 'Comision', 'Conciliacion',
+      'EnRed', 'Factura', 'Comision', 'Conciliacion',
       'Internacionales', 'Reserva'
     ]);
     expect(component.mostrarReportes).toBeTrue();
     expect(component.cargando).toBeFalse();
   });
 
-  it('clears previous reports when the next query returns no rows', () => {
+  it('clears previous additional reports and preserves general reports when the next query returns no rows', () => {
     service.buscarFolderReportes.and.returnValue(of([{ name: 'EnRed' }]));
     component.consultar();
     service.buscarFolderReportes.and.returnValue(of([]));
     component.consultar();
-    expect(component.reportes).toEqual([]);
-    expect(component.mostrarReportes).toBeFalse();
-    expect(component.mensaje).toContain('No hay reportes');
+    expect(component.reportes.every(reporte => reporte.origen === 'fijo')).toBeTrue();
+    expect(component.reportes.length).toBe(4);
+    expect(component.mostrarReportes).toBeTrue();
   });
 
-  it('does not offer downloads after a failed query and allows retrying', () => {
+  it('preserves general reports after a failed additional query and allows retrying', () => {
     service.buscarFolderReportes.and.returnValue(throwError(() => new Error('Network')));
     component.consultar();
-    expect(component.reportes).toEqual([]);
-    expect(component.mostrarReportes).toBeFalse();
+    expect(component.reportes.every(reporte => reporte.origen === 'fijo')).toBeTrue();
+    expect(component.reportes.length).toBe(4);
+    expect(component.mostrarReportes).toBeTrue();
     expect(component.cargando).toBeFalse();
     expect(component.mensaje).toContain('No fue posible');
     service.buscarFolderReportes.and.returnValue(of([{ name: 'EnRed' }]));
@@ -90,7 +98,7 @@ describe('ReportesComponent', () => {
   });
 
   it('loads entities for profile 8 and requests accounts for the selected entity', () => {
-    localStorage.setItem('idPerfil', '8');
+    perfil = '8';
     service.obtenerEntidades.and.returnValue(of({ contextResponse: [
       { levelType: 3, idNode: 'SUB-1', name: 'Subafiliado', children: [
         { levelType: 4, idSirio: 'ENT-1', name: 'Entidad 1' },
@@ -110,7 +118,7 @@ describe('ReportesComponent', () => {
     component.onEntidadChange();
     expect(service.obtenerCuentas).toHaveBeenCalledWith('ENT-2');
     expect(component.cuentas.map(cuenta => cuenta.id)).toEqual(['CUENTA-1']);
-    localStorage.removeItem('idPerfil');
+    perfil = null;
   });
 
   it('clears the previous account when the entity changes', () => {

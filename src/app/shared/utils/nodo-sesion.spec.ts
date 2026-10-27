@@ -1,4 +1,5 @@
 import { obtenerNodoSesion } from './nodo-sesion';
+import { AuthService } from '../../services/auth.service';
 
 describe('Nodo de sesión', () => {
   let anteriores: Array<[string, string | null]>;
@@ -12,16 +13,19 @@ describe('Nodo de sesión', () => {
   it('prioriza el nodo de sesión sobre un cero legacy', () => {
     localStorage.setItem('auth_session', JSON.stringify({ nodeID: 83 }));
     localStorage.setItem('nodeID', '0');
-    expect(obtenerNodoSesion()).toBe('83');
+    const auth = { getSessionValue: () => '83' } as unknown as AuthService;
+    expect(obtenerNodoSesion(auth)).toBe('83');
   });
-  it('conserva el nodo legacy cuando no existe sesión nueva', () => {
+  it('ignora el nodo legacy cuando no existe en la sesión validada', () => {
     localStorage.removeItem('auth_session');
     localStorage.setItem('nodeID', '84');
-    expect(obtenerNodoSesion()).toBe('84');
+    const auth = { getSessionValue: () => null } as unknown as AuthService;
+    expect(obtenerNodoSesion(auth)).toBe('');
   });
   it('respeta el cero si procede de la sesión actual', () => {
     localStorage.setItem('auth_session', JSON.stringify({ nodeID: 0 }));
     localStorage.setItem('nodeID', '84');
-    expect(obtenerNodoSesion()).toBe('0');
+    const auth = { getSessionValue: () => '0' } as unknown as AuthService;
+    expect(obtenerNodoSesion(auth)).toBe('0');
   });
 });

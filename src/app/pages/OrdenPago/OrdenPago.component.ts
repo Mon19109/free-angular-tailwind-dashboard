@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -20,6 +21,7 @@ import { finalize } from 'rxjs';
     styleUrls: ['./OrdenPago.component.css']
 })
 export class OrdenPagoComponent implements OnInit {
+    private readonly sessionAuth = inject(AuthService);
 
     formulario!: FormGroup;
 
@@ -139,7 +141,7 @@ export class OrdenPagoComponent implements OnInit {
 
     cargarCuentas(): void {
 
-        const entitySonID = this.sesion?.entitySonID || localStorage.getItem('entitySonID');
+        const entitySonID = this.sesion?.entitySonID || this.sessionAuth.getSessionValue('entitySonID');
 
         if (!entitySonID) {
             console.warn('No hay entitySonID para cargar cuentas ordenantes');
@@ -174,9 +176,9 @@ export class OrdenPagoComponent implements OnInit {
 
         const idUser =
             this.sesion?.validate ||
-            localStorage.getItem('validate') ||
+            this.sessionAuth.getSessionValue('validate') ||
             this.sesion?.idUser ||
-            localStorage.getItem('idUser');
+            this.sessionAuth.getSessionValue('idUser');
 
         if (!idUser) {
             console.warn('No hay idUser para cargar beneficiarios');
@@ -212,17 +214,7 @@ export class OrdenPagoComponent implements OnInit {
     }
 
     private obtenerSesion(): any {
-        const rawSession = localStorage.getItem('auth_session');
-
-        if (rawSession) {
-            try {
-                return JSON.parse(rawSession);
-            } catch {
-                return null;
-            }
-        }
-
-        return null;
+        return this.sessionAuth.getUserData();
     }
 
     private normalizarLista(response: any, keys: string[]): any[] {
@@ -404,7 +396,7 @@ export class OrdenPagoComponent implements OnInit {
             return;
         }
 
-        const idRol = Number(this.sesion?.idRol ?? localStorage.getItem('idRol'));
+        const idRol = Number(this.sessionAuth.getSessionValue('idRol'));
         const importe = Number(
             String(this.formulario.value.importe ?? '0').replace(/[$,\s]/g, '')
         );
@@ -451,7 +443,7 @@ export class OrdenPagoComponent implements OnInit {
 
             tipoBeneficiario: beneficiario?.beneficiaryType || beneficiario?.typeBeneficiary || 'Persona física',
 
-            mail: this.sesion?.mail || localStorage.getItem('mail') || ''
+            mail: this.sessionAuth.getSessionValue('mail') || ''
 
             //mail: this.sesion?.mail
 
@@ -610,7 +602,7 @@ export class OrdenPagoComponent implements OnInit {
     obtenerTelefonoSesion(): string {
         const telefono = String(
             this.sesion?.tel || this.sesion?.telefono || this.sesion?.phone ||
-            localStorage.getItem('tel') || localStorage.getItem('telefono') || ''
+            this.sessionAuth.getSessionValue('tel') || ''
         );
 
         return telefono ? `terminación ${telefono.slice(-4)}` : 'registrado';
@@ -745,7 +737,7 @@ export class OrdenPagoComponent implements OnInit {
     }
 
     private obtenerGuid(): string {
-        return String(this.sesion?.validate || localStorage.getItem('validate') || '');
+        return this.sessionAuth.getSessionValue('validate') || '';
     }
 
     private obtenerBeneficiarioSeleccionado(): any {

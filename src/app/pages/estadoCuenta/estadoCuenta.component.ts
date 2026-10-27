@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { EstadoCuentaService } from '../../services/estado-cuenta.service';
@@ -11,6 +12,7 @@ import { EstadoCuentaService } from '../../services/estado-cuenta.service';
   styleUrls: ['./estadoCuenta.component.css']
 })
 export class EstadoCuentaComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   private estadoCuentaService = inject(EstadoCuentaService);
 
   cuentas: any[] = [];
@@ -129,7 +131,7 @@ export class EstadoCuentaComponent implements OnInit {
   }
 
   private debeMostrarCuenta(cuenta: any): boolean {
-    const idPerfil = Number(localStorage.getItem('idPerfil') || 0);
+    const idPerfil = Number(this.sessionAuth.getSessionValue('idPerfil') || 0);
 
     if (idPerfil === 5) {
       return true;

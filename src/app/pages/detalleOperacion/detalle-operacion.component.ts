@@ -1,4 +1,5 @@
 import { A11yModule } from '@angular/cdk/a11y';
+import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -15,6 +16,7 @@ import { fechaOperacion } from '../../shared/utils/operaciones-tabla';
   styleUrl: './detalle-operacion.component.css'
 })
 export class DetalleOperacionComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   @Input() modal = false;
   @Input() referencia = '';
   @Input() filtros: FiltrosDetalleLiquidacion = {};
@@ -68,7 +70,7 @@ export class DetalleOperacionComponent implements OnInit {
     const numero = (campo: string) => Number(acquiring[campo] ?? 0) || 0;
     const a = numero('transactionType'), b = numero('transactionSubType'), c = numero('transactionID');
     const d = numero('timestamp'), e = numero('systemTraceAuditNumber');
-    const rol = localStorage.getItem('idRol');
+    const rol = this.sessionAuth.getSessionValue('idRol');
     const comisiones: Record<string, number[]> = {
       '2': [0, 0, 0], '3': [a + b, c, d + e],
       '4': [a + b + c, d, e], '5': [a + b + c + d, e, 0],

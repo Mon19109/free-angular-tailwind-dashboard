@@ -860,22 +860,12 @@ export class RegistroClienteComponent {
 
   get esMesaDigitalSesion(): boolean {
     if (this.modoContextoBff) return false;
-    try {
-      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
-      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 2;
-    } catch {
-      return Number(localStorage.getItem('idRol') || 0) === 2;
-    }
+    return Number(this.sesionPortal.getSessionValue('idRol')) === 2;
   }
 
   get esCajaSesion(): boolean {
     if (this.modoContextoBff) return false;
-    try {
-      const sesion = JSON.parse(localStorage.getItem('auth_session') || 'null');
-      return Number(sesion?.idRol ?? localStorage.getItem('idRol') ?? 0) === 6;
-    } catch {
-      return Number(localStorage.getItem('idRol') || 0) === 6;
-    }
+    return Number(this.sesionPortal.getSessionValue('idRol')) === 6;
   }
 
   get soloConsulta(): boolean { return !this.esMesaDigitalSesion; }
@@ -2454,10 +2444,7 @@ export class RegistroClienteComponent {
     const sufijo = sufijos[documento.numero];
     if (!sufijo) return;
     const nodoId = this.nodoSeleccionado;
-    let token = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-    try {
-      token = JSON.parse(localStorage.getItem('auth_session') || '{}')?.token || token;
-    } catch { /* Usa el token de sesión legacy. */ }
+    const token = this.sesionPortal.getToken() || '';
     this.subiendoDocumento = true;
     this.preregistroDocumentosService.subirDocumentos([
       { guid, fileName: `${guid}_${sufijo}.${extension}`, file: archivo },
@@ -3465,15 +3452,7 @@ export class RegistroClienteComponent {
   }
 
   private usuarioRevision(): string {
-    try {
-      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      const correo = session?.email || session?.userName || session?.username;
-      if (correo) return String(correo);
-    } catch {
-      // Usa llaves legacy abajo.
-    }
-
-    return localStorage.getItem('email') || localStorage.getItem('userName') || '';
+    return this.sesionPortal.getSessionValue('mail') || this.sesionPortal.getSessionValue('userName') || '';
   }
 
   private normalizarTexto(valor?: string): string {

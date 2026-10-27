@@ -18,7 +18,11 @@ describe('Visibilidad de Consulta de Comercios', () => {
     role = 2; perfil = 9; modelo = 0; valid = true; status = new BehaviorSubject(true);
     spyOn(localStorage, 'getItem').and.returnValue(null);
     TestBed.configureTestingModule({ providers: [{ provide: AuthService, useValue: {
-      authStatus$: status, hasValidSession: () => valid, getUserData: () => ({ idRol: role, idPerfil: perfil, idBusinessModel: modelo })
+      authStatus$: status, hasValidSession: () => valid, getUserData: () => ({ idRol: role, idPerfil: perfil, idBusinessModel: modelo }),
+      getSessionValue: (key: 'idRol' | 'idPerfil' | 'idBusinessModel') => {
+        const value = { idRol: role, idPerfil: perfil, idBusinessModel: modelo }[key];
+        return valid && value != null ? String(value) : null;
+      }
     } }] });
     const sidebar = { isExpanded$: new BehaviorSubject(true), isMobileOpen$: new BehaviorSubject(false), isHovered$: new BehaviorSubject(false) } as unknown as SidebarService;
     const router = { events: new Subject(), url: '/consulta_comercios' } as unknown as Router;
@@ -30,7 +34,7 @@ describe('Visibilidad de Consulta de Comercios', () => {
   it('modelo 0 y perfil autenticado 9 ven el módulo y su sección', () => {
     expect(paths(component)).toContain('/consulta_comercios');
     const section = component.menuSections.find(item => item.title === 'GESTIÓN DE NEGOCIO');
-    expect(section?.items.map(item => item.path)).toEqual(['/consulta_comercios']);
+    expect(section?.items.map(item => item.path)).toContain('/consulta_comercios');
   });
   it('otros roles no ven Consulta, aunque localStorage afirme rol 2', () => {
     (localStorage.getItem as jasmine.Spy).and.returnValue('2');

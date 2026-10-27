@@ -1,4 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { UsuariosService } from '../../services/usuarios.service';
@@ -17,6 +18,7 @@ import autoTable from 'jspdf-autotable';
   styleUrls: ['./usuarios.component.css']
 })
 export class UsuariosComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   formulario: FormGroup;
   entidades: any[] = [];
   tiposOperacion: any[] = [];
@@ -801,7 +803,7 @@ export class UsuariosComponent implements OnInit {
       usuario?.contextId ??
       usuario?.affiliationId ??
       this.formulario.get('entidad')?.value ??
-      localStorage.getItem('idContext') ??
+      this.sessionAuth.getSessionValue('idContext') ??
       ''
     );
   }

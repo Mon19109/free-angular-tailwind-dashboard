@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Component, OnInit, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { finalize, Subscription } from 'rxjs';
 import { BeneficiarioForm, BeneficiariosService } from '../../services/beneficiarios.service';
@@ -16,6 +17,7 @@ type TipoResultadoEliminacion = 'exito' | 'error';
   styleUrls: ['./beneficiarios.component.css']
 })
 export class BeneficiariosComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   private beneficiariosService = inject(BeneficiariosService);
 
   vista: VistaBeneficiarios = 'lista';
@@ -407,21 +409,8 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   private obtenerIdentificadorContactos(): string {
-    const sessionRaw = localStorage.getItem('auth_session');
-
-    if (sessionRaw) {
-      try {
-        const session = JSON.parse(sessionRaw);
-        const sessionId = session?.validate || session?.idUser || session?.userId;
-        if (sessionId) return String(sessionId);
-      } catch {
-        // Se usan las llaves individuales como respaldo.
-      }
-    }
-
-    return localStorage.getItem('validate')
-      || localStorage.getItem('idUser')
-      || localStorage.getItem('userId')
+    return this.sessionAuth.getSessionValue('validate')
+      || this.sessionAuth.getSessionValue('idUser')
       || '';
   }
 
@@ -435,7 +424,7 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   private obtenerIdUser(): number {
-    return Number(localStorage.getItem('idUser') || localStorage.getItem('userId') || 0);
+    return Number(this.sessionAuth.getSessionValue('idUser') || 0);
   }
 
   private limpiarInstitucion(): void {

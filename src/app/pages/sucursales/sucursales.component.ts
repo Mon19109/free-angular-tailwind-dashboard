@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
@@ -17,6 +18,7 @@ import autoTable from 'jspdf-autotable';
   styleUrls: ['./sucursales.component.css']
 })
 export class SucursalesComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   private sucursalesService = inject(SucursalesService);
 
   subafiliados: any[] = [];
@@ -79,8 +81,8 @@ export class SucursalesComponent implements OnInit {
   }
 
   cargarSubafiliados(): void {
-    const idRol = Number(localStorage.getItem('idRol') || 0);
-    const idContext = Number(localStorage.getItem('idContext') || 0);
+    const idRol = Number(this.sessionAuth.getSessionValue('idRol') || 0);
+    const idContext = Number(this.sessionAuth.getSessionValue('idContext') || 0);
 
     const request$: Observable<any> = idRol === 2 || !idContext
       ? this.sucursalesService.getSubafiliados()

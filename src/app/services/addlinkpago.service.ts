@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 //import { AuthService, UserSessionData } from '../services/auth.service';
@@ -75,6 +76,7 @@ export interface AddLink {
   providedIn: 'root'
 })
 export class AddLinkPagoService {
+  private readonly sessionAuth = inject(AuthService);
   private http = inject(HttpClient);
   private baseUrl = '/api/addlinkpago/'; // Tu base URLAdquirenciaAdquirencia
   private crearLink = '/api/addlinkpago/'; // Tu base URLAdquirenciaAdquirencia
@@ -116,9 +118,9 @@ export class AddLinkPagoService {
         : fechaVenNormalizada;
 
       const datosTransformados = {
-        user: localStorage.getItem('mail') || '',
+        user: this.sessionAuth.getSessionValue('mail') || '',
         amount: Number(String(formData.monto ?? '').replace(/,/g, '')),
-        sirioID: localStorage.getItem('entitySonID') || '',
+        sirioID: this.sessionAuth.getSessionValue('entitySonID') || '',
         paymentType: 1,
         retrievalReferenceCode: String(Math.floor(Date.now() / 1000)),
         currency: '484',
@@ -147,7 +149,7 @@ export class AddLinkPagoService {
           urlImage: ''
         },
         otherAmount: 0.0,
-        orderingAccount: localStorage.getItem('cuenta') || '',
+        orderingAccount: this.sessionAuth.getSessionValue('cuenta') || '',
         payPhone: formData.tel,
         payEmail: formData.email,
         referenceOne: formData.ref1,

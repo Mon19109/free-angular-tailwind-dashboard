@@ -29,7 +29,13 @@ export class AuthService {
   obtenerIp(): Observable<string> { return of(''); }
   hasValidSession(): boolean { return this.session?.authenticated === true && (this.session.expiresAt ?? 0) > Date.now(); }
   getSessionExpiry(): number { return this.session?.expiresAt ?? 0; }
-  getUserData(): any { return this.session?.usuario ?? {}; }
+  getUserData(): any { return this.hasValidSession() ? { ...this.session?.usuario } : {}; }
+  /** Lee únicamente el usuario confirmado por el servidor, sin almacenamiento persistente. */
+  getSessionValue(key: string): string | null {
+    const aliases: Record<string, string> = { IdRol: 'idRol', email: 'mail', username: 'userName' };
+    const value = this.getUserData()[aliases[key] ?? key];
+    return typeof value === 'string' || typeof value === 'number' ? String(value) : null;
+  }
   getToken(): string | null { return null; }
   getRefreshToken(): string | null { return null; }
   clearSession(): void {

@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
@@ -33,6 +34,7 @@ export interface AltaNivelComercioPayload {
 
 @Injectable({ providedIn: 'root' })
 export class AgregarNivelComercioService {
+  private readonly sessionAuth = inject(AuthService);
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.api.KashpayCoreAPI;
 
@@ -68,13 +70,6 @@ export class AgregarNivelComercioService {
   }
 
   private obtenerToken(): string {
-    try {
-      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      if (session?.token) return String(session.token);
-    } catch {
-      // Fallback a llaves legacy.
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || environment.api.BEARER_TOKEN || '';
+    return this.sessionAuth.getToken() || '';
   }
 }

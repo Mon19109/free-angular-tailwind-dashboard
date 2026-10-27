@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
@@ -16,6 +17,7 @@ export interface BusquedaPagoDistanciaData {
 
 @Injectable({ providedIn: 'root' })
 export class PagoDistanciaService {
+  private readonly sessionAuth = inject(AuthService);
   private readonly bffUrl = '/api/pago-distancia';
   constructor(private http: HttpClient) {}
 
@@ -23,7 +25,7 @@ export class PagoDistanciaService {
     // Preserve original public method; BFF builds the upstream search payload.
     return this.http.post<any>(`${this.bffUrl}/buscar-ordenes`, {
       ...formData,
-      sirioID: localStorage.getItem('entitySonID') || ''
+      sirioID: this.sessionAuth.getSessionValue('entitySonID') || ''
     }, {
       context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
     });

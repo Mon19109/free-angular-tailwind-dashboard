@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthService } from '../../services/auth.service';
 import { of, Subject } from 'rxjs';
 import { OperacionesAdquirenciaComponent } from './operacionesAdquirencia.component';
 import { OperacionesAdquirenciaService } from '../../services/operacionesadquirencia.service';
@@ -28,6 +29,7 @@ describe('Niveles de Operaciones adquirencia', () => {
     service.obtenerStatus.and.returnValue(of([]));
     service.enviarFormulario.and.returnValue(of({ operations: [{ id: 1 }], totalItems: 21 }));
     TestBed.configureTestingModule({ imports: [OperacionesAdquirenciaComponent], providers: [
+      { provide: AuthService, useValue: { getSessionValue: (key: string) => ({ nodeID: '83', idRol: '3' } as Record<string, string>)[key] ?? null } },
       { provide: OperacionesAdquirenciaService, useValue: service }
     ] });
     component = TestBed.createComponent(OperacionesAdquirenciaComponent).componentInstance;

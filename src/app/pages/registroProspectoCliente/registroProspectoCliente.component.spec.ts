@@ -1,4 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
+import { AuthService } from '../../services/auth.service';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
@@ -23,7 +24,12 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(async () => {
+    http.verify();
+    // cerrarPagina programa la salida a los 100 ms. Mantener los spies activos
+    // hasta resolver ese callback evita navegar el navegador de pruebas.
+    await new Promise(resolve => window.setTimeout(resolve, 110));
+  });
 
   it('guarda En Red desde consulta con el GUID del GET sin abrir accesos', () => {
     component.modoInterno = true;
@@ -146,7 +152,8 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
         { id: 'caja', nombre: 'Caja', nivel: 'caja', idSirio: 'CAJ003', levelType: 6 }]
     }];
     component.nodoInterno = 'entidad';
-    spyOn(localStorage, 'getItem').and.callFake(key => key === 'token' ? 'sesion-interna' : null);
+    spyOn(TestBed.inject(AuthService), 'getToken').and.returnValue('sesion-interna');
+    spyOn(localStorage, 'getItem').and.throwError('No leer storage');
     component.ngOnChanges();
     component.ngOnInit();
     const cuenta = http.expectOne(req => req.url.endsWith('account/get'));
@@ -260,7 +267,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   }
 
   function completarSeguimiento() {
-    const request = http.expectOne(`${environment.api.KashpayCoreAPI}prospect/follow_up_link`);
+    const request = http.expectOne('/api/seguimiento-prospecto/completar');
     expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual({ url: 'link-prospecto', statusDescription: 'COMPLETED' });
     expect(request.request.headers.has('Authorization')).toBeFalse();

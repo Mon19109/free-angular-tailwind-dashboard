@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
@@ -17,12 +18,13 @@ import { DatePickerComponent } from '../../shared/components/form/date-picker/da
   styleUrls: ['./pagoDistancia.component.css']
 }) 
 export class PagoDistanciaComponent {
+  private readonly sessionAuth = inject(AuthService);
   private readonly formatoMoneda = new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN'
   });
   formulario: FormGroup;
-  readonly idRol = Number(localStorage.getItem('idRol') || 0);
+  get idRol() { return Number(this.sessionAuth.getSessionValue('idRol') || 0); }
   readonly mostrarCrearLink = [5, 6].includes(this.idRol);
   readonly mostrarBotonPago = [4, 5, 6].includes(this.idRol);
   ordenes: any[] = [];
@@ -43,7 +45,6 @@ export class PagoDistanciaComponent {
 
   private  pagoDistanciaService = inject(PagoDistanciaService);
 
-  readonly sesionVar = localStorage;
   
   constructor(
     private fb: FormBuilder

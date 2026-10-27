@@ -1,4 +1,5 @@
 import { canAddCommerceLevel, getSessionRole } from '../../shared/services/session-role';
+import { AuthService } from '../../services/auth.service';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
@@ -51,7 +52,8 @@ export class AgregarNivelComercioComponent implements OnInit {
   private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly route = inject(ActivatedRoute);
 
-  readonly idRol = getSessionRole();
+  private readonly auth = inject(AuthService);
+  get idRol() { return getSessionRole(this.auth); }
   cargando = false;
   enviando = false;
   archivosInvalidos = false;

@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
@@ -38,11 +39,11 @@ export interface FormularioData {
   providedIn: 'root'
 })
 export class OperacionesEmisionService {
+  private readonly sessionAuth = inject(AuthService);
   private apiUrl = environment.api.kashpay; // Reemplazar con tu URL base
   private apiV1Url = `${this.apiUrl}api/v1/`;
   private apiUrlCuentas = environment.api.aldebaran;
   private apiUrlOpe = environment.api.saldos; // Reemplazar con tu URL base
-  //private cuen = localStorage.getItem('issueId');
 
   
   constructor(private http: HttpClient) { }
@@ -57,35 +58,22 @@ export class OperacionesEmisionService {
   }
 
   private getStoredToken(): string {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession);
-        if (session?.token) return session.token;
-      } catch {
-        localStorage.removeItem('auth_session');
-      }
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    return this.sessionAuth.getToken() || '';
   }
   /**
    * Obtiene la lista de cuentas del API
    */
 
   obtenerCuentas(): Observable<Cuenta[]> {
-    return this.http.get<any>(`/api/operaciones-emision/cuentas?fatherId=${encodeURIComponent(localStorage.getItem('issueId') || '')}`);
-     //return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('entitySonID')}&level=`);
+    return this.http.get<any>(`/api/operaciones-emision/cuentas?fatherId=${encodeURIComponent(this.sessionAuth.getSessionValue('issueId') || '')}`);
     
 
-    //return this.http.get<Cuenta[]>(`/api/operaciones-emision/cuentas?fatherId=${encodeURIComponent(localStorage.getItem('issueId') || '')}`);
   }
 
 
 obtenerConcentratorAccounts(): Observable<any> {
   return this.http.get<any>(
-    `/api/operaciones-emision/cuentas-concentradoras?sirioId=${encodeURIComponent(localStorage.getItem('entitySonID') || '')}`,
+    `/api/operaciones-emision/cuentas-concentradoras?sirioId=${encodeURIComponent(this.sessionAuth.getSessionValue('entitySonID') || '')}`,
     { headers: this.getBearerHeaders() }
   );
 }
@@ -133,8 +121,8 @@ obtenerEntidades(cuenta: string): Observable<any> {
   obtenerDetalleOperacion(validate: string, filtros: FiltrosDetalleLiquidacion = {}): Observable<any> {
     // Mismo contrato de búsqueda usado por Transacciones Adquirencia.
     const params = new HttpParams()
-      .set('userID', localStorage.getItem('idUser') || '')
-      .set('rootNodeID', localStorage.getItem('nodeID') || '')
+      .set('userID', this.sessionAuth.getSessionValue('idUser') || '')
+      .set('rootNodeID', this.sessionAuth.getSessionValue('nodeID') || '')
       .set('liquidationID', validate.trim())
       .set('typeOperation', filtros.type || '10008')
       .set('type', filtros.type || '10008')
@@ -161,7 +149,7 @@ obtenerEntidades(cuenta: string): Observable<any> {
    * @param formData Datos del formulario
    */
   enviarFormulario(formData: FormularioData, page = 0): Observable<any> {
-    const cuenta = formData.cuenta || localStorage.getItem('issueId') || '';
+    const cuenta = formData.cuenta || this.sessionAuth.getSessionValue('issueId') || '';
     const params = new HttpParams()
       .set('type', String(formData.tipoOperacion ?? ''))
       .set('status', String(formData.estatus ?? ''))

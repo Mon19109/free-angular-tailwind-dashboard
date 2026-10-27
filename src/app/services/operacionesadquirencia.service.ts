@@ -1,5 +1,6 @@
 import { obtenerNodoSesion } from '../shared/utils/nodo-sesion';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, EMPTY, expand, reduce, throwError } from 'rxjs';
 import { leerPaginaOperaciones } from '../shared/utils/pagina-operaciones';
@@ -111,12 +112,12 @@ export function cuentaAdquirencia(nodo: any): string {
   providedIn: 'root'
 })
 export class OperacionesAdquirenciaService {
+  private readonly sessionAuth = inject(AuthService);
   private apiAldebaran = environment.api.aldebaran;
   private baseUrl = environment.api.kashpay;
   private apiSaldos = environment.api.saldos;
   private baseUrlTicket = environment.api.voucher;
   private apiV1Url = `${this.baseUrl}api/v1/`;
-  //private cuen = localStorage.getItem('issueId');
 
   
   constructor(private http: HttpClient) { }
@@ -138,18 +139,7 @@ export class OperacionesAdquirenciaService {
   }
 
   private getStoredToken(): string {
-    const rawSession = localStorage.getItem('auth_session');
-
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession);
-        if (session?.token) return session.token;
-      } catch {
-        localStorage.removeItem('auth_session');
-      }
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    return this.sessionAuth.getToken() || '';
   }
   /**
    * Obtiene la lista de cuentas del API
@@ -158,7 +148,7 @@ export class OperacionesAdquirenciaService {
   /*obtenerCuentas(): Observable<Cuenta[]> {
     //const headers = this.getCommonHeaders();
     
-    return this.http.get<any>(`${this.apiAldebaran}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
+    return this.http.get<any>(`${this.apiAldebaran}getEntityLevels?fatherId=${this.sessionAuth.getSessionValue('issueId') || ''}&level=`);
         
   }*/
 
@@ -197,7 +187,7 @@ export class OperacionesAdquirenciaService {
 }
 
   getSubafiliados(): Observable<{ contextResponse: Subafiliado[] }> {
-      const nodeID = obtenerNodoSesion();
+      const nodeID = obtenerNodoSesion(this.sessionAuth);
 
       if (nodeID) {
         return this.http.get<{ contextResponse: Subafiliado[] }>(
@@ -213,7 +203,7 @@ export class OperacionesAdquirenciaService {
     }
   
     getSubafiliadoById(): Observable<any> {
-      const nodeID = obtenerNodoSesion();
+      const nodeID = obtenerNodoSesion(this.sessionAuth);
 
       return this.http.get<any>(
         `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=3`,
@@ -284,13 +274,7 @@ getCajas(idTerminal:number) {
    * @param formData Datos del formulario
    */
   obtenerCuentaSesion(): string {
-    try {
-      const session = JSON.parse(localStorage.getItem('auth_session') || 'null');
-      if (session) return cuentaAdquirencia({ acquiringId: session.acquiringId });
-    } catch {
-      // Sesiones anteriores a auth_session.
-    }
-    return cuentaAdquirencia({ acquiringId: localStorage.getItem('acquiringId') });
+    return cuentaAdquirencia({ acquiringId: this.sessionAuth.getSessionValue('acquiringId') });
   }
 
   enviarFormulario(formData: FormularioData, page = 0): Observable<any> {

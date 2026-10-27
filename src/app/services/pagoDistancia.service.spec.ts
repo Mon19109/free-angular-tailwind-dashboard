@@ -19,7 +19,8 @@ describe('PagoDistanciaService BFF', () => {
     const request = http.expectOne('/api/pago-distancia/buscar-ordenes');
     expect(request.request.method).toBe('POST');
     expect(request.request.headers.has('Authorization')).toBeFalse();
-    expect(request.request.body).toEqual({ filtro: 'Monto', busqueda: '100', fechaCreacion: '2026-10-24', sirioID: 'SIRIO-9' });
+    expect(request.request.body).toEqual({ filtro: 'Monto', busqueda: '100', fechaCreacion: '2026-10-24', sirioID: '' });
+    expect(localStorage.getItem).not.toHaveBeenCalled();
     request.flush({ rows: [] });
   });
 });

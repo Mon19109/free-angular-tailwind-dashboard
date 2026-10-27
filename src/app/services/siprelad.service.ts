@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { Observable, map } from 'rxjs';
 import { environment } from '../environments/environments';
 
@@ -21,6 +22,7 @@ interface SipreladContexto {
   providedIn: 'root'
 })
 export class SipreladService {
+  private readonly sessionAuth = inject(AuthService);
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.api.SipreladServices}`;
 
@@ -47,14 +49,7 @@ export class SipreladService {
   }
 
   private obtenerToken(): string {
-    try {
-      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      if (session?.token) return String(session.token);
-    } catch {
-      // Usa llaves legacy abajo.
-    }
-
-    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    return this.sessionAuth.getToken() || '';
   }
 
   private normalizarResultados(respuesta: unknown): SipreladResultado[] {

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-add-boton-pago',
@@ -9,6 +10,7 @@ import { Component, OnInit } from '@angular/core';
   styleUrl: './addBotonPago.component.css'
 })
 export class AddBotonPagoComponent implements OnInit {
+  private readonly sessionAuth = inject(AuthService);
   botonSeleccionado = '';
   mostrarDetalle = false;
   urlNegocio = '';
@@ -33,25 +35,8 @@ export class AddBotonPagoComponent implements OnInit {
   }
 
   private getSessionValue(...keys: string[]): string {
-    for (const sessionKey of ['auth_session', 'user_data']) {
-      const rawSession = localStorage.getItem(sessionKey);
-      if (!rawSession) continue;
-
-      try {
-        const session = JSON.parse(rawSession);
-        for (const key of keys) {
-          const value = session?.[key];
-          if (value !== undefined && value !== null && String(value).trim()) {
-            return String(value).trim();
-          }
-        }
-      } catch {
-        // Si la sesión no es válida, se consultan las claves individuales.
-      }
-    }
-
     for (const key of keys) {
-      const value = localStorage.getItem(key);
+      const value = this.sessionAuth.getSessionValue(key);
       if (value?.trim()) return value.trim();
     }
 

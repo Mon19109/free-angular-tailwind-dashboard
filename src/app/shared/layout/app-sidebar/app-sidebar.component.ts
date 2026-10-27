@@ -49,9 +49,9 @@ type MenuSection = {
 export class AppSidebarComponent {
   private readonly auth = inject(AuthService);
 
-  private readonly idBusinessModel = this.getSessionNumber('idBusinessModel');
-  private readonly idPerfil = this.getSessionNumber('idPerfil');
-  private readonly idRol = getSessionRole();
+  private get idBusinessModel() { return this.getSessionNumber('idBusinessModel'); }
+  private get idPerfil() { return this.getSessionNumber('idPerfil'); }
+  private get idRol() { return getSessionRole(this.auth); }
 
  panelPrincipalItems: NavItem[] = [
     {
@@ -366,6 +366,7 @@ export class AppSidebarComponent {
       return this.auth.hasValidSession() && [2, 3, 4, 5, 6].includes(Number(user.idRol))
         && modeloPermitido;
     }
+    if (!this.auth.hasValidSession()) return false;
     if (!access) return true;
     if (access === 'enviarInvitacionComercio') return canSendCommerceInvitation(this.idRol);
     if (access === 'agregarNivelComercio') return canAddCommerceLevel(this.idRol);
@@ -394,22 +395,7 @@ export class AppSidebarComponent {
   }
 
   private getSessionNumber(key: 'idBusinessModel' | 'idPerfil' | 'idRol'): number {
-    const storedValue = localStorage.getItem(key);
-    if (storedValue !== null) return Number(storedValue) || 0;
-
-    for (const sessionKey of ['auth_session', 'user_data']) {
-      const rawSession = localStorage.getItem(sessionKey);
-      if (!rawSession) continue;
-
-      try {
-        const value = JSON.parse(rawSession)?.[key];
-        if (value !== undefined && value !== null) return Number(value) || 0;
-      } catch {
-        // Se ignora una sesión inválida y se usa el valor predeterminado.
-      }
-    }
-
-    return 0;
+    return Number(this.auth.getSessionValue(key)) || 0;
   }
 
   

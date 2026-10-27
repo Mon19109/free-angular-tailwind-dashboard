@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { AuthService } from './auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../environments/environments';
@@ -7,6 +8,7 @@ import { environment } from '../environments/environments';
   providedIn: 'root'
 })
 export class NuevoLinkPagoService {
+  private readonly sessionAuth = inject(AuthService);
   private readonly apiUrl = environment.api.linkpago;
 
   constructor(private http: HttpClient) { }
@@ -90,7 +92,7 @@ export class NuevoLinkPagoService {
 
   private getHeaders(): HttpHeaders {
     return new HttpHeaders({
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${this.sessionAuth.getToken() || ''}`,
       'versionApp': '3',
       'Entity-i': 'com.onsigna',
       'Content-Type': 'application/json'

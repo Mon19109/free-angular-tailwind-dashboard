@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthService } from './auth.service';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { MerchantUpdateDataService } from './merchant-update-data.service';
@@ -21,7 +22,9 @@ describe('MerchantUpdateDataService', () => {
   });
   it('usa PUT, el environment y el bearer actual de sesión', () => {
     for (const token of ['sesion-uno', 'sesion-dos']) {
-      localStorage.setItem('auth_session', JSON.stringify({ token }));
+      const getToken = TestBed.inject(AuthService).getToken;
+      if (!jasmine.isSpy(getToken)) spyOn(TestBed.inject(AuthService), 'getToken').and.returnValue(token);
+      else (getToken as jasmine.Spy).and.returnValue(token);
       const payload = { commerceGuid: 'nodo-seleccionado', nameCommerce: 'Nombre actualizado' };
       service.actualizar(payload).subscribe();
       const req = http.expectOne(`${environment.api.KashpayCoreAPI}merchant/updateData`);
@@ -33,13 +36,16 @@ describe('MerchantUpdateDataService', () => {
     }
   });
   it('no envía sin sesión', () => {
+    localStorage.setItem('token', 'token-local-no-confiable');
+    spyOn(localStorage, 'getItem').and.throwError('No leer storage');
     const error = jasmine.createSpy('error');
     service.actualizar({ commerceGuid: 'comercio' }).subscribe({ error });
     expect(error).toHaveBeenCalled();
     http.expectNone(() => true);
+    expect(localStorage.getItem).not.toHaveBeenCalled();
   });
   it('propaga el rechazo del servicio aunque HTTP sea 200', () => {
-    localStorage.setItem('token', 'sesion');
+    spyOn(TestBed.inject(AuthService), 'getToken').and.returnValue('sesion');
     const error = jasmine.createSpy('error');
     service.actualizar({ commerceGuid: 'comercio' }).subscribe({ error });
     http.expectOne(`${environment.api.KashpayCoreAPI}merchant/updateData`).flush({ success: false, message: 'No actualizado' });

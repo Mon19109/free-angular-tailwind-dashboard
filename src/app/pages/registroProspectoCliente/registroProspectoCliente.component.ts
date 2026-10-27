@@ -2,6 +2,7 @@ import { environment } from '../../environments/environments';
 import { CommonModule } from '@angular/common';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
 import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import {
   AbstractControl,
   FormBuilder,
@@ -70,6 +71,7 @@ interface NodoProspecto {
   styleUrls: ['../login/login.component.css', '../registroCliente/registroCliente.component.css', './registroProspectoCliente.component.css']
 })
 export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
+  private readonly sessionAuth = inject(AuthService);
   @Input() modoInterno = false;
   @Input() soloLiquidacion = false;
   @Output() liquidacionGuardada = new EventEmitter<string>();
@@ -1386,15 +1388,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private obtenerBearerConsulta(): string {
     if (!this.modoInterno && this.link) return this.prospectoBearerToken;
 
-    try {
-      const session = JSON.parse(localStorage.getItem('auth_session') || '{}');
-      if (session?.token) return String(session.token);
-    } catch {
-      // Usa las llaves individuales como respaldo.
-    }
-
-    return localStorage.getItem('token')
-      || localStorage.getItem('auth_token')
+    return this.sessionAuth.getToken()
       || (this.modoInterno ? '' : this.prospectoBearerToken);
   }
 
