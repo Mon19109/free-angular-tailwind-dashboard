@@ -1,7 +1,6 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environments';
 
 export interface AclaracionPayload {
   idOperation: string;
@@ -20,44 +19,24 @@ export interface AclaracionPayload {
 @Injectable({ providedIn: 'root' })
 export class AclaracionesService {
   private readonly http = inject(HttpClient);
-  private readonly api = `${environment.api.kashpay}api/v1/`;
-
-  private get headers(): HttpHeaders {
-    let token = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-    const session = localStorage.getItem('auth_session');
-    if (session) {
-      try { token = JSON.parse(session)?.token || token; } catch { /* Usa el token disponible. */ }
-    }
-    return new HttpHeaders({ Authorization: `Bearer ${token}`, versionApp: '3' });
-  }
+  private readonly api = '/api/aclaraciones';
+  private readonly options = { withCredentials: true };
 
   obtenerTransaccion(id: string, idContext?: string): Observable<any> {
     let params = new HttpParams().set('id', id);
     if (idContext) params = params.set('idContext', idContext);
-    return this.http.get(`${this.api}operations/getTransactionById`, { headers: this.headers, params });
+    return this.http.get(`${this.api}/transaccion`, { ...this.options, params });
   }
-
   obtenerMotivos(tipo: 'D' | 'DP' | 'CC'): Observable<any> {
-    const params = new HttpParams().set('idTransactionType', tipo);
-    return this.http.get(`${this.api}clarification/getClarificationCatalog`, { headers: this.headers, params });
+    return this.http.get(`${this.api}/motivos`, { ...this.options, params: new HttpParams().set('tipo', tipo) });
   }
-
   guardar(payload: AclaracionPayload): Observable<any> {
-    return this.http.post(`${this.api}clarification/saveClarification`, payload, {
-      headers: this.headers.set('bearerToken', this.headers.get('Authorization') || '')
-    });
+    return this.http.post(`${this.api}/guardar`, payload, this.options);
   }
-
   agregarEvidencias(idClarification: number, idOperation: string, files: string[]): Observable<any> {
-    return this.http.put(`${this.api}clarification/updateClarification`, {
-      idClarification, idOperation, files
-    }, { headers: this.headers });
+    return this.http.put(`${this.api}/evidencias`, { idClarification, idOperation, files }, this.options);
   }
-
   validarContrasena(email: string, password: string, latitud: string, longitud: string): Observable<any> {
-    return this.http.post(`${this.api}user/login`, {
-      email, password,
-      device: { os: 'WEB', latitude: latitud, longitude: longitud }
-    }, { headers: this.headers });
+    return this.http.post(`${this.api}/validar-contrasena`, { email, password, latitud, longitud }, this.options);
   }
 }
