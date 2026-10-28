@@ -293,6 +293,7 @@ describe('Registro Cliente con contexto BFF', () => {
     fixture.componentInstance.nodoSeleccionado = ref;
     fixture.componentInstance.seccionAbierta = 'documentos';
     fixture.componentInstance.documentosProspecto = [{ ref: other, name: 'Documento real', status: 'IN_REVIEW' }];
+    (fixture.componentInstance as any).observacionesInternasCargadasBff = true;
     const auth = TestBed.inject(AuthService);
     for (const role of [1, 3, 4, 5, 6, undefined, null, 'invalid', 2]) {
       auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
@@ -301,7 +302,13 @@ describe('Registro Cliente con contexto BFF', () => {
       expect(!!group).toBe(role === 2);
       if (group) expect(group.querySelector('button').disabled).toBeTrue();
       expect(fixture.nativeElement.querySelectorAll('.mesa-table-head > span').length).toBe(role === 2 ? 5 : 4);
-      if (role !== 2) expect(fixture.nativeElement.querySelector('.mesa-register-action')).toBeNull();
+      if (role !== 2) {
+        expect(fixture.nativeElement.querySelector('.mesa-register-action')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.mesa-observations')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.mesa-switch')).toBeNull();
+      } else {
+        expect(fixture.nativeElement.querySelector('input[type=email]').readOnly).toBeTrue();
+      }
     }
   });
 
@@ -533,7 +540,7 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(fixture.nativeElement.textContent).toContain('Enviar Notificación');
   });
 
-  it('muestra notas autorizadas en consulta sin habilitar escrituras ni destinatarios', () => {
+  it('oculta campos administrativos de observaciones incluso con notas cargadas para otros roles', () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     const fixture = TestBed.createComponent(RegistroClienteComponent);
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
@@ -544,9 +551,8 @@ describe('Registro Cliente con contexto BFF', () => {
     (view as any).observacionesInternasCargadasBff = true;
     fixture.detectChanges();
     const inputs = fixture.nativeElement.querySelectorAll('.mesa-observations input');
-    expect(inputs.length).toBe(3);
-    expect(inputs[1].value).toBe('Nota autorizada por el servidor');
-    for (const input of inputs) expect(input.readOnly).toBeTrue();
+    expect(inputs.length).toBe(0);
+    expect(fixture.nativeElement.querySelector('.mesa-observations')).toBeNull();
     expect(fixture.nativeElement.querySelector('.mesa-register-action')).toBeNull();
     view.guardarRevisionDocumentos(); view.enviarNotificacionMesaDigital();
     http.expectNone(r => ['PUT', 'POST'].includes(r.method));
@@ -626,6 +632,24 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.registrandoCliente).toBeFalse();
     expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
   });
+
+  for (const status of [400, 409, 502]) {
+    it(`no interpreta HTTP ${status} como duplicado ni muestra mensajes crudos o reintenta el registro`, () => {
+      cargarRevision();
+      (component as any).registroPermitidoBff = true;
+      component.documentosProspecto[0].status = 'APPROVED';
+      component.registrarClienteProspecto();
+      const request = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/registrar`);
+      request.flush({ success: false, code: 'COMERCIOS_REVIEW_UNAVAILABLE',
+        message: 'PRIVATE_PROVIDER_MESSAGE', error: { message: 'PRIVATE_PROVIDER_MESSAGE' } },
+        { status, statusText: 'Failure' });
+      expect(component.registrandoCliente).toBeFalse();
+      expect(component.mensajeObservacionesCliente).toContain('No fue posible registrar el cliente.');
+      expect(component.mensajeObservacionesCliente).not.toContain('PRIVATE_PROVIDER_MESSAGE');
+      expect(component.mensajeObservacionesCliente).not.toContain('ya cuenta');
+      http.expectNone(r => r.method === 'POST');
+    });
+  }
 
   it('sin permiso de registro no activa, aunque se invoque el método directamente', () => {
     cargarRevision();
