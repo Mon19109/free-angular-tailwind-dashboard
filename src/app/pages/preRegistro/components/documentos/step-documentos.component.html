@@ -62,6 +62,9 @@
       }
     </div>
 
+    @if (estadoConsultaDocumentos === 'loading') { <p role="status">Consultando documentos...</p> }
+    @if (estadoConsultaDocumentos === 'empty') { <p role="status">No hay documentos disponibles</p> }
+    @if (estadoConsultaDocumentos === null || estadoConsultaDocumentos === 'ready') {
     <div class="mesa-results">
       <span><i class="fa-solid fa-folder-open"></i> Documentos Totales: <strong>{{ documentos.length }}</strong></span>
       <span>Aprobados: <strong>{{ documentosAprobados }}</strong></span>
@@ -116,6 +119,8 @@
       }
     </div>
 
+    }
+
     @if (mostrarAccionesAdministrativas && (!soloConsulta || mostrarObservacionesConsulta)) {
     <div class="mesa-observations">
       <label>
@@ -137,7 +142,7 @@
       <label class="mesa-email-field">
         <span>Enviar por Email</span>
         <div class="mesa-email-control">
-          <input maxlength="100"
+          <input [attr.maxlength]="emailMaxLength"
             type="email"
             placeholder="Email del Cliente"
             autocomplete="email"

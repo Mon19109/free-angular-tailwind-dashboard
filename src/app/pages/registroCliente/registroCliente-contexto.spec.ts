@@ -475,13 +475,13 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.documentosProspecto[0].status).toBe('REJECTED');
   });
 
-  it('envía solo observations, evita duplicados y conserva el comentario ante error', () => {
+  it('envía el correo editado y observaciones, evita duplicados y conserva el comentario ante error', () => {
     cargarRevision(); component.observacionesClienteMesaDigital = 'Revisar documento';
     component.emailNotificacionMesaDigital = 'no-enviar@example.test';
     component.enviarNotificacionMesaDigital(); component.enviarNotificacionMesaDigital();
     const req = http.expectOne(r => r.method === 'POST');
     expect(req.request.url).toBe(`/api/comercios/${ref}/nodos/${ref}/documentos/observaciones`);
-    expect(req.request.body).toEqual({ observations: 'Revisar documento' });
+    expect(req.request.body).toEqual({ observations: 'Revisar documento', email: 'no-enviar@example.test' });
     expect(req.request.headers.get('X-Portal-Request')).toBe('1'); expect(req.request.withCredentials).toBeTrue();
     req.flush({}, { status: 502, statusText: 'Backend error' });
     expect(component.observacionesClienteMesaDigital).toBe('Revisar documento');
@@ -508,6 +508,85 @@ describe('Registro Cliente con contexto BFF', () => {
     component.guardarRevisionDocumentos(); http.expectNone(r => r.method === 'PUT');
   });
 
+  it('permite capturar correo vacío y rechaza formatos inválidos y cajas sin enviar', () => {
+    cargarRevision({reviewDocuments:true,sendObservations:true,notificationEmail:null as any});
+    component.observacionesClienteMesaDigital = 'Comentario';
+    expect(component.puedeNotificarBff).toBeTrue();
+    for (const email of ['', 'invalid', 'one@example.test,two@example.test', 'x\r\n@example.test', 'a'.repeat(65)+'@example.test', 'x@'+'a'.repeat(250)+'.com']) {
+      component.emailNotificacionMesaDigital = email;
+      component.enviarNotificacionMesaDigital();
+      http.expectNone(r => r.method === 'POST');
+    }
+    component.emailNotificacionMesaDigital = 'nuevo@example.test';
+    const nivel = spyOnProperty(component, 'nivelSeleccionado', 'get').and.returnValue('caja');
+    component.enviarNotificacionMesaDigital(); http.expectNone(r => r.method === 'POST');
+    nivel.and.returnValue('entidad');
+    component.enviarNotificacionMesaDigital();
+    const req = http.expectOne(r => r.method === 'POST');
+    expect(req.request.body).toEqual({email:'nuevo@example.test',observations:'Comentario'});
+    req.flush({success:true});
+  });
+
+  it('solo presenta filas y estadísticas confirmadas; distingue carga, vacío y errores', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({...response(),capabilities:{tree:true}});
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({success:true,tree:[{ref,name:'Entidad',levelType:4,depth:0}]});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({success:true,information:{nameCommerce:'Entidad'}});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({success:true,pld:[]});
+    const view = fixture.componentInstance; view.seccionAbierta = 'documentos';
+    const docsUrl = `/api/comercios/${ref}/nodos/${ref}/documentos`;
+    fixture.detectChanges(); expect(view.estadoDocumentosBff).toBe('loading');
+    expect(fixture.nativeElement.querySelector('.mesa-results')).toBeNull();
+    http.expectOne(docsUrl).flush({success:true,documents:[
+      {ref:'doc-a',name:'Acta real',status:'APPROVED'}, {ref:'doc-b',name:'Otro real',status:'REJECTED'},
+      {ref:'doc-c',name:'Pendiente real',status:'IN_REVIEW'}, {ref:'doc-d',name:'Sin estado',status:null}]});
+    fixture.detectChanges(); expect(view.documentosVisibles.length).toBe(4);
+    expect(fixture.nativeElement.querySelectorAll('.mesa-row').length).toBe(4);
+    const summary = fixture.nativeElement.querySelector('.mesa-results').textContent;
+    expect(summary).toContain('Documentos Totales: 4'); expect(summary).toContain('Aprobados: 1');
+    expect(summary).toContain('Rechazados: 1'); expect(summary).toContain('Pendientes: 1');
+    for (const status of [400,401,403,404,500,502,503,0,-1]) {
+      (view as any).consultarDocumentosProspecto(); fixture.detectChanges();
+      expect(view.documentosVisibles).toEqual([]); expect(fixture.nativeElement.querySelector('.mesa-results')).toBeNull();
+      const req = http.expectOne(docsUrl);
+      if (status > 0) req.flush({}, {status,statusText:'Failure'});
+      else if (status === 0) req.error(new ProgressEvent('timeout'));
+      else req.flush({success:true,documents:[{}]});
+      fixture.detectChanges(); expect(view.estadoDocumentosBff).toBe('error');
+      expect(view.documentosVisibles).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.mesa-results')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.mesa-row')).toBeNull();
+      expect(view.errorDocumentosProspecto).toBe(status === 403 ? 'No tienes autorización para consultar los documentos' : 'No fue posible consultar los documentos');
+      expect(fixture.nativeElement.textContent).not.toContain('No hay documentos disponibles');
+    }
+    (view as any).consultarDocumentosProspecto(); http.expectOne(docsUrl).flush({success:true,documents:[]});
+    fixture.detectChanges(); expect(view.estadoDocumentosBff).toBe('empty');
+    expect(fixture.nativeElement.textContent).toContain('No hay documentos disponibles');
+    expect(fixture.nativeElement.querySelector('.mesa-results')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.mesa-table')).toBeNull();
+    expect(view.documentosVisibles).toEqual([]);
+  });
+
+  it('limpia documentos confirmados al cambiar de nodo y cancela la respuesta pendiente anterior', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({...response(),capabilities:{tree:true}});
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({success:true,tree:[
+      {ref,name:'Entidad',levelType:4,depth:0},{ref:other,name:'Sucursal',levelType:5,depth:1}]});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({success:true,information:{nameCommerce:'Entidad'}});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,documents:[{ref:'doc',name:'Anterior',status:'APPROVED'}]});
+    expect(component.documentosVisibles.length).toBe(1);
+    component.seleccionarNodo(component.arbol[0].hijos![0]);
+    expect(component.documentosVisibles).toEqual([]); expect(component.estadoDocumentosBff).toBe('loading');
+    const pending = http.expectOne(`/api/comercios/${ref}/nodos/${other}/documentos`);
+    const pendingAccount = http.expectOne(`/api/comercios/${ref}/nodos/${other}/informacion-general`);
+    component.seleccionarNodo(component.arbol[0]);
+    expect(pending.cancelled).toBeTrue(); expect(pendingAccount.cancelled).toBeTrue();
+    expect(component.documentosVisibles).toEqual([]);
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({success:true,information:{nameCommerce:'Entidad'}});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,documents:[]});
+    expect(component.documentosVisibles).toEqual([]); expect(component.estadoDocumentosBff).toBe('empty');
+  });
+
   it('permite revisar con permiso BFF aunque no incluya observaciones internas', () => {
     cargarRevision();
     (component as any).consultarDocumentosProspecto();
@@ -522,7 +601,7 @@ describe('Registro Cliente con contexto BFF', () => {
     write.flush({success:false});
   });
 
-  it('restaura controles de revisión y deja el destinatario en solo lectura', () => {
+  it('restaura controles y permite editar el destinatario autorizado sin modificar los datos del comercio', () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     const fixture = TestBed.createComponent(RegistroClienteComponent);
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
@@ -535,7 +614,13 @@ describe('Registro Cliente con contexto BFF', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.mesa-observations')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.mesa-switch button').disabled).toBeFalse();
-    expect(fixture.nativeElement.querySelector('input[type=email]').readOnly).toBeTrue();
+    const input = fixture.nativeElement.querySelector('input[type=email]') as HTMLInputElement;
+    expect(input.readOnly).toBeFalse();
+    expect(input.maxLength).toBe(254);
+    const before = view.datosForm.getRawValue();
+    input.value = 'alternativo@example.test'; input.dispatchEvent(new Event('input'));
+    expect(view.emailNotificacionMesaDigital).toBe('alternativo@example.test');
+    expect(view.datosForm.getRawValue()).toEqual(before);
     expect(fixture.nativeElement.textContent).toContain('Guardar Borrador');
     expect(fixture.nativeElement.textContent).toContain('Enviar Notificación');
   });
@@ -742,7 +827,7 @@ describe('Registro Cliente con contexto BFF', () => {
     write.flush({success:false});
     component.observacionesClienteMesaDigital='Revisar'; component.enviarNotificacionMesaDigital();
     const send=http.expectOne(r=>r.method==='POST');
-    expect(send.request.body).toEqual({observations:'Revisar'}); send.flush({success:true});
+    expect(send.request.body).toEqual({observations:'Revisar',email:'cuenta@example.test'}); send.flush({success:true});
   });
 
   it('mantiene permisos independientes y los revoca al recargar, sin nodo o sin sesión', () => {
@@ -783,7 +868,7 @@ describe('Registro Cliente con contexto BFF', () => {
     view.observacionesClienteMesaDigital='Comentario autorizado'; fixture.detectChanges();
     const send=find('Enviar Notificación'); expect(send.disabled).toBeFalse(); send.click();
     const notification=http.expectOne(r=>r.method==='POST');
-    expect(notification.request.body).toEqual({observations:'Comentario autorizado'}); notification.flush({success:true});
+    expect(notification.request.body).toEqual({observations:'Comentario autorizado',email:'cuenta@example.test'}); notification.flush({success:true});
   });
 
 });
