@@ -178,6 +178,7 @@
             <app-step-documentos
               *ngIf="seccion.id === 'documentos'"
               [class.revision-no-autorizada]="!puedeVerRevisionDocumental"
+              [mostrarAccionesAdministrativas]="puedeVerRevisionDocumental"
               [soloConsulta]="documentacionSoloConsulta"
               [mostrarObservacionesConsulta]="mostrarObservacionesConsultaBff"
               [permitirRevision]="!modoContextoBff || puedeRevisarDocumentosBff"

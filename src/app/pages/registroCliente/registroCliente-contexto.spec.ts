@@ -260,7 +260,7 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     const auth = TestBed.inject(AuthService);
     for (const role of [2, 3, 4, 5, 6]) {
-      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
       expect(component.puedeVerRevisionDocumental).toBe(role === 2);
       expect(component.documentacionSoloConsulta).toBeTrue();
       const doc = { numero: 1, nombre: 'Acta', obligatorio: false, estatusRevision: 'IN_REVIEW' as const };
@@ -286,7 +286,7 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectNone(request => true);
   });
 
-  it('oculta validación en el DOM para roles 3–6 sin alterar el componente de prerregistro', () => {
+  it('no crea controles administrativos para roles distintos de 2 sin alterar prerregistro', () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     const fixture = TestBed.createComponent(RegistroClienteComponent);
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
@@ -294,15 +294,14 @@ describe('Registro Cliente con contexto BFF', () => {
     fixture.componentInstance.seccionAbierta = 'documentos';
     fixture.componentInstance.documentosProspecto = [{ ref: other, name: 'Documento real', status: 'IN_REVIEW' }];
     const auth = TestBed.inject(AuthService);
-    for (const role of [3, 4, 5, 6, 2]) {
-      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+    for (const role of [1, 3, 4, 5, 6, undefined, null, 'invalid', 2]) {
+      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
       fixture.detectChanges();
       const group = fixture.nativeElement.querySelector('.mesa-switch');
-      expect(group).not.toBeNull();
-      expect(getComputedStyle(group).display === 'none').toBe(role !== 2);
-      expect(group.querySelector('button').disabled).toBeTrue();
-      const header = fixture.nativeElement.querySelector('.mesa-table-head > span:last-child');
-      expect(getComputedStyle(header).display === 'none').toBe(role !== 2);
+      expect(!!group).toBe(role === 2);
+      if (group) expect(group.querySelector('button').disabled).toBeTrue();
+      expect(fixture.nativeElement.querySelectorAll('.mesa-table-head > span').length).toBe(role === 2 ? 5 : 4);
+      if (role !== 2) expect(fixture.nativeElement.querySelector('.mesa-register-action')).toBeNull();
     }
   });
 
@@ -343,7 +342,7 @@ describe('Registro Cliente con contexto BFF', () => {
     const auth = TestBed.inject(AuthService);
     const modal = spyOn(component as any, 'mostrarModalRegistro');
     for (const role of [2, 3, 4, 5, 6]) {
-      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      auth.actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
       const before = component.datosForm.getRawValue();
       component.editarDatosNodo();
       component.guardarDatosNodo();
@@ -421,6 +420,33 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
       documents: [{ ref: other, name: 'Acta', status: 'IN_REVIEW' }], internalObservations: 'Nota existente', permissions });
   }
+
+  it('rechaza métodos administrativos con otro rol aunque conserve permisos BFF previos', () => {
+    cargarRevision();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({ success: true, rows: [] });
+    (component as any).edicionAutorizadaBff = true;
+    (component as any).registroPermitidoBff = true;
+    component.observacionesClienteMesaDigital = 'Comentario';
+    const auth = TestBed.inject(AuthService);
+    // Incluye valores malformados recibidos en tiempo de ejecución.
+    for (const role of [1, 3, 4, 5, 6, undefined, null, 'invalid', [2]]) {
+      auth.actualizarSesion({ success: true, authenticated: true,
+        expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
+      const doc = component.documentosVisibles[0];
+      const before = doc.estatusRevision;
+      component.actualizarEstatusDocumento(doc, 'APPROVED');
+      component.editarDatosNodo();
+      component.guardarDatosNodo();
+      component.guardarRevisionDocumentos();
+      component.enviarNotificacionMesaDigital();
+      component.registrarClienteProspecto();
+      component.finalizar();
+      expect(doc.estatusRevision).toBe(before);
+      expect(component.editandoDatosNodo).toBeFalse();
+      expect(component.puedeVerRevisionDocumental).toBeFalse();
+      http.expectNone(request => true);
+    }
+  });
 
   it('conserva notas existentes y persiste aprobación/rechazo con referencias, luego recarga', () => {
     cargarRevision();
@@ -554,7 +580,7 @@ describe('Registro Cliente con contexto BFF', () => {
     const view = fixture.componentInstance;
     view.seccionAbierta = 'datos';
     for (const role of [2, 3, 4, 5, 6]) {
-      TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
       fixture.detectChanges();
       const button = Array.from(fixture.nativeElement.querySelectorAll('button')).find((b: any) => b.textContent.trim() === 'Editar datos') as HTMLButtonElement | undefined;
       expect(!!button).toBe(role === 2);

@@ -1666,13 +1666,6 @@
 }
 
 /* Solo afecta esta pantalla; el componente compartido de prerregistro no cambia. */
-:host ::ng-deep app-step-documentos.revision-no-autorizada .mesa-switch {
-  display: none;
-}
-
-:host ::ng-deep app-step-documentos.revision-no-autorizada .mesa-table-head > span:last-child {
-  display: none;
-}
 :host ::ng-deep app-step-documentos.revision-no-autorizada .mesa-table-head,
 :host ::ng-deep app-step-documentos.revision-no-autorizada .mesa-row {
   grid-template-columns: 52px minmax(360px, 1.7fr) minmax(110px, 0.55fr) minmax(116px, 0.55fr);

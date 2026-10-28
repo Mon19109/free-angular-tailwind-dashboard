@@ -17,6 +17,7 @@ export class StepDocumentosComponent implements OnChanges {
   @Input() textoFinalizar = 'Enviar preregistro';
   @Input() mostrarMesaDigital = false;
   @Input() soloConsulta = false;
+  @Input() mostrarAccionesAdministrativas = true;
   @Input() mostrarObservacionesConsulta = false;
   @Input() permitirRevision = true;
   @Input() permitirNotificacion = true;
@@ -100,7 +101,7 @@ export class StepDocumentosComponent implements OnChanges {
   }
 
   validarDocumento(documento: DocumentoRequerido, estado: 'cumple' | 'no-cumple'): void {
-    if (this.soloConsulta || !this.permitirRevision) return;
+    if (!this.mostrarAccionesAdministrativas || this.soloConsulta || !this.permitirRevision) return;
     this.validacionesMesaDigital[documento.numero] = estado;
     this.validarArchivo.emit({
       documento,

@@ -262,8 +262,9 @@ export class RegistroClienteComponent {
   accesosDisponiblesBff: boolean | null = null;
   private readonly sesionPortal = inject(AuthService);
   get puedeVerRevisionDocumental(): boolean {
+    const role = this.sesionPortal.getUserData()?.idRol;
     return this.modoContextoBff ? this.sesionPortal.hasValidSession()
-      && Number(this.sesionPortal.getUserData()?.idRol) === 2 : this.esMesaDigitalSesion;
+      && (role === 2 || role === '2') : this.esMesaDigitalSesion;
   }
   pldID = '';
   private pldPorNodo: Record<string, string> = {};
@@ -860,7 +861,8 @@ export class RegistroClienteComponent {
 
   get esMesaDigitalSesion(): boolean {
     if (this.modoContextoBff) return false;
-    return Number(this.sesionPortal.getSessionValue('idRol')) === 2;
+    const role = this.sesionPortal.getUserData()?.idRol;
+    return this.sesionPortal.hasValidSession() && (role === 2 || role === '2');
   }
 
   get esCajaSesion(): boolean {
