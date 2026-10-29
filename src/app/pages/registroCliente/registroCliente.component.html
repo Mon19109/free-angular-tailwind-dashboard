@@ -172,7 +172,7 @@
               </ng-container>
             </div>
 
-            <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos'" role="status">{{ codigoRevisionBff ? ('Revisión no disponible: ' + codigoRevisionBff) : (documentacionSoloConsulta ? 'Revisión documental no autorizada para este nodo.' : 'Los cambios de validación se guardan mediante Guardar Borrador. El destinatario de las observaciones es el correo registrado del comercio.') }}</p>
+            <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos'" role="status">{{ codigoRevisionBff ? ('Revisión no disponible: ' + codigoRevisionBff) : (documentacionSoloConsulta ? 'Revisión documental no autorizada para este nodo.' : 'Los cambios de validación se guardan mediante Guardar Borrador. El correo indicado se utiliza solo para esta notificación; no modifica el correo registrado.') }}</p>
             <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos' && codigoNotificacionBff" role="status">Envío no disponible: {{ codigoNotificacionBff }}</p>
             <p *ngIf="modoContextoBff && seccion.id === 'documentos' && mensajeObservacionesCliente" role="alert">{{ mensajeObservacionesCliente }}</p>
             <app-step-documentos
@@ -183,8 +183,10 @@
               [mostrarObservacionesConsulta]="mostrarObservacionesConsultaBff"
               [permitirRevision]="!modoContextoBff || puedeRevisarDocumentosBff"
               [permitirNotificacion]="!modoContextoBff || puedeNotificarBff"
-              [emailSoloLectura]="modoContextoBff"
+              [emailSoloLectura]="modoContextoBff && !puedeNotificarBff"
+              [emailMaxLength]="modoContextoBff ? 254 : 100"
               [documentos]="documentosVisibles"
+              [estadoConsultaDocumentos]="modoContextoBff ? estadoDocumentosBff : null"
               [permitirAgregarDocumento]="esMesaDigitalSesion && !!commerceID && !cargandoDocumentosProspecto && !cargandoCuentaComercio"
               [documentosDisponibles]="documentosDisponiblesParaSubir"
               [subiendoDocumento]="subiendoDocumento"
@@ -255,7 +257,7 @@
       <p>{{ modalRegistro.mensaje }}</p>
     </div>
     <footer class="registro-modal-footer">
-      <button type="button" class="button primary registro-modal-ok" (click)="cerrarModalRegistro()" autofocus>OK</button>
+      <button type="button" class="button primary registro-modal-ok" (click)="cerrarModalRegistro()" autofocus>{{ botonModalRegistro }}</button>
     </footer>
   </section>
 </div>

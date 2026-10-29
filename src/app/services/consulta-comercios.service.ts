@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface ConsultaComerciosFiltros {
@@ -149,7 +149,16 @@ export class ConsultaComerciosService {
   }
 
   consultarDocumentosNodo(ref: string, nodeRef: string): Observable<ComercioDocumentosResponse> {
-    return this.http.get<ComercioDocumentosResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos`, { withCredentials: true });
+    return this.http.get<ComercioDocumentosResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos`, { withCredentials: true }).pipe(map(response => {
+      if (response?.success !== true || !Array.isArray(response.documents) ||
+          response.documents.some(row => !row || typeof row !== 'object' || Array.isArray(row) ||
+            typeof row.ref !== 'string' || !row.ref.trim() ||
+            [row.name, row.documentType, row.status].some(value => value != null && typeof value !== 'string')) ||
+          new Set(response.documents.map(row => row.ref)).size !== response.documents.length) {
+        throw new Error('Respuesta documental inválida');
+      }
+      return response;
+    }));
   }
 
   guardarRevisionNodo(ref: string, nodeRef: string, documents: Array<{ ref: string; status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW' }>, internalObservations: string | null): Observable<{ success: boolean }> {
@@ -162,9 +171,9 @@ export class ConsultaComerciosService {
       {}, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
-  enviarObservacionesNodo(ref: string, nodeRef: string, observations: string): Observable<{ success: boolean }> {
+  enviarObservacionesNodo(ref: string, nodeRef: string, observations: string, email: string): Observable<{ success: boolean }> {
     return this.http.post<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/observaciones`,
-      { observations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
+      { observations, email }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
   archivoNodoUrl(ref: string, nodeRef: string, documentRef: string): string {

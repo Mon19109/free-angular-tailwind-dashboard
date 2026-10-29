@@ -291,8 +291,16 @@ export class RegistroClienteComponent {
   enviandoNotificacionMesaDigital = false;
   registrandoCliente = false;
   errorDocumentosProspecto = '';
+  private documentosBffConsultados = false;
+  get estadoDocumentosBff(): 'idle' | 'loading' | 'error' | 'empty' | 'ready' {
+    if (this.cargandoDocumentosProspecto) return 'loading';
+    if (this.errorDocumentosProspecto) return 'error';
+    if (this.documentosProspecto.length) return 'ready';
+    return this.documentosBffConsultados ? 'empty' : 'idle';
+  }
   mensajeObservacionesCliente = '';
   mensajeRegistroCliente = '';
+  botonModalRegistro = 'OK';
   modalRegistro = {
     visible: false,
     tipo: 'success' as 'success' | 'error',
@@ -560,6 +568,7 @@ export class RegistroClienteComponent {
     this.cargandoSiprelad = false;
     this.documentosProspecto = [];
     this.documentosProspectoPorNodo = {};
+    this.documentosBffConsultados = false;
     this.cargandoDocumentosProspecto = false;
     this.errorDocumentosProspecto = '';
     this.observacionesInternasMesaDigital = '';
@@ -637,7 +646,15 @@ export class RegistroClienteComponent {
       const code = error?.error?.code;
       const detalle = typeof code === 'string' && /^COMERCIOS_[A-Z_]{1,80}$/.test(code) ? `${texto} Código: ${code}.` : texto;
       if (tipo === 'pld') { this.cargandoSiprelad = false; this.resultadosSiprelad = []; this.resultadoSiprelad = detalle; }
-      else { this.cargandoDocumentosProspecto = false; this.documentosProspecto = []; this.errorDocumentosProspecto = detalle; }
+      else {
+        this.cargandoDocumentosProspecto = false;
+        this.documentosProspecto = [];
+        this.documentosBffConsultados = false;
+        delete this.documentosProspectoPorNodo[nodeRef];
+        this.errorDocumentosProspecto = error?.status === 403
+          ? 'No tienes autorización para consultar los documentos'
+          : 'No fue posible consultar los documentos';
+      }
     };
     if (tipo === 'pld') {
       this.consultaPldBff?.unsubscribe();
@@ -657,6 +674,9 @@ export class RegistroClienteComponent {
       });
     } else {
       this.consultaDocumentosBff?.unsubscribe();
+      this.documentosProspecto = [];
+      this.documentosBffConsultados = false;
+      delete this.documentosProspectoPorNodo[nodeRef];
       if (this.nivelSeleccionado === 'caja') return;
       this.revisionPermitidaBff = false;
       this.registroPermitidoBff = false;
@@ -674,6 +694,7 @@ export class RegistroClienteComponent {
           this.documentosProspecto = this.documentosDesdeRespuesta({ documents: respuesta.documents.map(row => ({
             ref: row.ref, name: row.name ?? '', documentType: row.documentType ?? '', status: row.status ?? ''
           })) });
+          this.documentosBffConsultados = true;
           ++this.versionDocumentosBff;
           this.observacionesInternasCargadasBff = Object.hasOwn(respuesta, 'internalObservations')
             && (respuesta.internalObservations === null || typeof respuesta.internalObservations === 'string');
@@ -936,7 +957,7 @@ export class RegistroClienteComponent {
       && !this.guardandoRevisionDocumentos && !this.errorDocumentosProspecto && this.documentosProspecto.length > 0;
   }
   get puedeNotificarBff(): boolean {
-    return this.modoContextoBff && this.puedeVerRevisionDocumental && this.notificacionPermitidaBff
+    return this.modoContextoBff && this.nivelSeleccionado !== 'caja' && this.puedeVerRevisionDocumental && this.notificacionPermitidaBff
       && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto && !this.enviandoNotificacionMesaDigital;
   }
 
@@ -993,6 +1014,10 @@ export class RegistroClienteComponent {
   }
 
   get documentosVisibles(): DocumentoRequerido[] {
+    if (this.modoContextoBff) {
+      if (this.cargandoDocumentosProspecto || this.errorDocumentosProspecto) return [];
+      return this.documentosProspecto.map((documento, index) => this.documentoRequeridoDesdeProspecto(documento, index));
+    }
     if (this.esNodoExistente && this.documentosProspecto.length) {
       return this.documentosProspecto
         .map((documentoProspecto, index) => this.documentoRequeridoDesdeProspecto(documentoProspecto, index))
@@ -2225,6 +2250,13 @@ export class RegistroClienteComponent {
     return this.datosForm.controls.municipioComercial.value?.trim() || '';
   }
 
+  private mensajeErrorRegistroBff(error: { status?: number; error?: { code?: unknown } }): string {
+    if (error?.status === 409 && error.error?.code === 'COMERCIOS_REGISTER_CONFLICT') {
+      return 'El proveedor reportó un conflicto al registrar el cliente. No se confirmó el registro.';
+    }
+    return `No fue posible registrar el cliente. ${this.codigoBffSeguro(error?.error?.code)}`.trim();
+  }
+
   private registrarClienteBff(): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
@@ -2245,7 +2277,19 @@ export class RegistroClienteComponent {
       error: error => {
         if (!vigente()) return;
         this.registrandoCliente = false;
-        this.mensajeObservacionesCliente = `No fue posible registrar el cliente. ${this.codigoBffSeguro(error.error?.code)}`.trim();
+        const mensajeAprobado = 'El prospecto ya cuenta con un enlace activo, verifique o reporte al Administrador.';
+        if (
+  error.status === 409 &&
+  error.error?.success === false &&
+  (
+    error.error?.code === '4002' ||
+    error.error?.code === 'COMERCIOS_REGISTER_CONFLICT'
+  )
+) {
+  this.mostrarModalRegistro('error', 'Error al registrar cliente', mensajeAprobado, 'Aceptar');
+  return;
+}
+        this.mensajeObservacionesCliente = this.mensajeErrorRegistroBff(error);
       }
     });
   }
@@ -2302,7 +2346,8 @@ export class RegistroClienteComponent {
     this.modalRegistro.visible = false;
   }
 
-  private mostrarModalRegistro(tipo: 'success' | 'error', titulo: string, mensaje: string): void {
+  private mostrarModalRegistro(tipo: 'success' | 'error', titulo: string, mensaje: string, boton = 'OK'): void {
+    this.botonModalRegistro = boton;
     this.modalRegistro = { visible: true, tipo, titulo, mensaje };
   }
 
@@ -2584,6 +2629,11 @@ export class RegistroClienteComponent {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
     if (!ref || !this.puedeNotificarBff) return;
+    const email = this.emailNotificacionMesaDigital.trim();
+    if (!email || email.length > 254 || /[\u0000-\u001f\u007f]/.test(email) ||
+        !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(email) || email.split('@')[0].length > 64) {
+      this.mostrarModalRegistro('error', 'Correo inválido', 'Captura un solo correo válido de hasta 254 caracteres.'); return;
+    }
     const observations = this.observacionesClienteMesaDigital.trim();
     if (!observations || observations.length > 4096) {
       this.mostrarModalRegistro('error', 'Datos incompletos', 'Captura observaciones de hasta 4096 caracteres.'); return;
@@ -2592,7 +2642,7 @@ export class RegistroClienteComponent {
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
     this.enviandoNotificacionMesaDigital = true;
     this.mensajeObservacionesCliente = '';
-    this.contextoService.enviarObservacionesNodo(ref, nodeRef, observations).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.contextoService.enviarObservacionesNodo(ref, nodeRef, observations, email).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         if (!vigente()) return;
         this.enviandoNotificacionMesaDigital = false;
@@ -3268,6 +3318,18 @@ export class RegistroClienteComponent {
   }
 
   private documentoRequeridoDesdeProspecto(documentoProspecto: DocumentoProspectoApi, index: number): DocumentoRequerido {
+    if (this.modoContextoBff) {
+      const status = documentoProspecto.status;
+      const reconocido = status === 'APPROVED' || status === 'REJECTED' || status === 'IN_REVIEW';
+      return { numero: 100 + index, obligatorio: false,
+        nombre: typeof documentoProspecto['name'] === 'string' && documentoProspecto['name'].trim()
+          ? documentoProspecto['name'] : 'Nombre no disponible',
+        archivoId: String(documentoProspecto['ref']),
+        archivoNombre: typeof documentoProspecto['name'] === 'string' ? documentoProspecto['name'] : undefined,
+        archivoUrl: this.contextoService.archivoNodoUrl(this.contextoBff?.commerce.ref || '', this.nodoSeleccionado, String(documentoProspecto['ref'])),
+        estado: reconocido ? this.traducirEstatusDocumento(status) : status || 'No disponible',
+        estatusRevision: reconocido ? status : undefined };
+    }
     const nombre = this.nombreDocumentoDesdeProspecto(documentoProspecto);
     const documentoCatalogo = this.documentoCatalogoDesdeProspecto(documentoProspecto, nombre);
 

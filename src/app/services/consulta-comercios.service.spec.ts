@@ -33,4 +33,33 @@ describe('Consulta de comercios BFF', () => {
     expect(status).toBe(403);
     http.expectNone(request => request.url !== '/api/comercios/buscar');
   });
+  it('acepta solo listas documentales válidas, incluida la lista vacía', () => {
+    for (const documents of [[], [{ ref: 'doc', name: 'Acta', status: 'APPROVED', documentType: null }]]) {
+      let result: unknown;
+      service.consultarDocumentosNodo('commerce','node').subscribe(value => result = value.documents);
+      const req = http.expectOne('/api/comercios/commerce/nodos/node/documentos');
+      expect(req.request.withCredentials).toBeTrue();
+      req.flush({success:true,documents}); expect(result).toEqual(documents);
+    }
+  });
+  it('rechaza respuestas inválidas sin emitir una lista vacía', () => {
+    for (const body of [null, {}, {success:false,documents:[]}, {success:true}, {success:true,documents:{}},
+      {success:true,documents:[null]}, {success:true,documents:[{}]},
+      {success:true,documents:[{ref:'x',status:123}]}, {success:true,documents:[{ref:'x'},{ref:'x'}]}]) {
+      const next = jasmine.createSpy('next'), error = jasmine.createSpy('error');
+      service.consultarDocumentosNodo('commerce','node').subscribe({next,error});
+      http.expectOne('/api/comercios/commerce/nodos/node/documentos').flush(body);
+      expect(next).not.toHaveBeenCalled(); expect(error).toHaveBeenCalled();
+    }
+  });
+  it('propaga errores HTTP y red sin respuestas de sustitución', () => {
+    for (const status of [400,401,403,404,500,502,503,0,-1]) {
+      const next = jasmine.createSpy('next'), error = jasmine.createSpy('error');
+      service.consultarDocumentosNodo('commerce','node').subscribe({next,error});
+      const req = http.expectOne('/api/comercios/commerce/nodos/node/documentos');
+      if (status > 0) req.flush({}, {status,statusText:'Failure'}); else req.error(new ProgressEvent(status === 0 ? 'timeout' : 'error'));
+      expect(next).not.toHaveBeenCalled(); expect(error.calls.mostRecent().args[0].status).toBe(Math.max(0,status));
+    }
+  });
+
 });

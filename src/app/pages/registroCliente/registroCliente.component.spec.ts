@@ -7,6 +7,15 @@ import { RegistroClienteComponent } from './registroCliente.component';
 import { RegistroProspectoClienteComponent } from '../registroProspectoCliente/registroProspectoCliente.component';
 
 describe('RegistroCliente: pasos finales internos', () => {
+  it('registro BFF muestra conflicto controlado sin reproducir mensajes privados del proveedor', () => {
+    const component = Object.create(RegistroClienteComponent.prototype) as any;
+    expect(component.mensajeErrorRegistroBff({status:409,error:{code:'COMERCIOS_REGISTER_CONFLICT',message:'PRIVATE'}}))
+      .toBe('El proveedor reportó un conflicto al registrar el cliente. No se confirmó el registro.');
+    expect(component.mensajeErrorRegistroBff({status:502,error:{message:'PRIVATE'}})).not.toContain('PRIVATE');
+    expect(component.mensajeErrorRegistroBff({status:502,error:{code:'COMERCIOS_REGISTER_CONFLICT'}}))
+      .not.toContain('El proveedor reportó');
+  });
+
   for (const esProspecto of [true, false]) {
     it(`consulta el árbol ${esProspecto ? 'sin status para prospectos' : 'con status 0 para otros comercios'}`, () => {
       const component = pantalla(false);

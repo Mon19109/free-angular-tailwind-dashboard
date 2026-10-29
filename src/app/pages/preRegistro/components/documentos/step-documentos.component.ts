@@ -10,6 +10,7 @@ import { SipreladResultado } from '../../../../services/siprelad.service';
     styleUrls: ['../../preRegistro.component.css']
 })
 export class StepDocumentosComponent implements OnChanges {
+ @Input() estadoConsultaDocumentos: 'idle' | 'loading' | 'error' | 'empty' | 'ready' | null = null;
  @Input() documentos: DocumentoRequerido[] = [];
   @Input() documentosCargados = 0;
   @Input() documentosPendientes = 0;
@@ -22,6 +23,7 @@ export class StepDocumentosComponent implements OnChanges {
   @Input() permitirRevision = true;
   @Input() permitirNotificacion = true;
   @Input() emailSoloLectura = false;
+  @Input() emailMaxLength = 100;
   @Input() mostrarMismaDocumentacionEntidad = false;
   @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
@@ -92,10 +94,12 @@ export class StepDocumentosComponent implements OnChanges {
   }
 
   get documentosSinValidar(): number {
+    if (this.estadoConsultaDocumentos !== null) return this.documentos.filter(documento => documento.estatusRevision === 'IN_REVIEW').length;
     return Math.max(this.documentos.length - this.documentosValidados, 0);
   }
 
   get estadoGeneralMesaDigital(): string {
+    if (this.estadoConsultaDocumentos !== null && this.documentos.some(documento => !documento.estatusRevision)) return 'No disponible';
     if (this.documentosSinValidar > 0) return 'En Revisión';
     return this.documentosRechazados > 0 ? 'Con Rechazos' : 'Aprobado';
   }
