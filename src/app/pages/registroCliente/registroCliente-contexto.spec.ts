@@ -587,6 +587,61 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.documentosVisibles).toEqual([]); expect(component.estadoDocumentosBff).toBe('empty');
   });
 
+  for (const outcome of [200,409,500,502,503,'network','timeout','false','invalid'] as const) {
+    it(`notificación ${outcome}: popup correcto, sin mensajes técnicos, duplicados ni reintento automático`, () => {
+      http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+      TestBed.inject(AuthService).actualizarSesion({success:true,authenticated:true,expiresAt:Date.now()+60000,usuario:{idRol:2}});
+      const fixture=TestBed.createComponent(RegistroClienteComponent);
+      http.expectOne(`/api/comercios/${ref}/contexto`).flush({...response(),capabilities:{tree:true}});
+      http.expectOne(`/api/comercios/${ref}/arbol`).flush({success:true,tree:[{ref,name:'Entidad',levelType:4,depth:0}]});
+      http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({success:true,information:{nameCommerce:'Entidad'}});
+      http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({success:true,pld:[]});
+      http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,documents:[{ref:other,name:'Acta',status:'IN_REVIEW'}],
+        permissions:{reviewDocuments:false,sendObservations:true,notificationEmail:'cuenta@example.test'}});
+      const view=fixture.componentInstance;view.seccionAbierta='documentos';
+      view.observacionesClienteMesaDigital='Comentario conservado';view.emailNotificacionMesaDigital='alternativo@example.test';
+      const accountBefore=view.datosForm.getRawValue();
+      fixture.detectChanges();
+      const send=Array.from(fixture.nativeElement.querySelectorAll('button')).find((b:any)=>b.textContent.includes('Enviar Notificación')) as HTMLButtonElement;
+      expect(send.disabled).toBeFalse();send.click();fixture.detectChanges();
+      expect(send.disabled).toBeTrue();view.enviarNotificacionMesaDigital();
+      const request=http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos/observaciones`);
+      expect(request.request.body).toEqual({email:'alternativo@example.test',observations:'Comentario conservado'});
+      if(outcome===200) request.flush({success:true});
+      else if(typeof outcome==='number') request.flush({code:'COMERCIOS_REVIEW_UNAVAILABLE',message:'PRIVATE_PROVIDER_TEXT'},{status:outcome,statusText:'Failure'});
+      else if(outcome==='network' || outcome==='timeout') request.error(new ProgressEvent(outcome==='network'?'error':'timeout'));
+      else request.flush(outcome==='false'?{success:false}:{});
+      fixture.detectChanges();
+      const success=outcome===200;
+      expect(view.modalRegistro).toEqual({visible:true,tipo:success?'success':'error',
+        titulo:success?'Operación exitosa':'No fue posible enviar la notificación',
+        mensaje:success?'Notificación enviada correctamente.':'Estamos teniendo complicaciones para atender tu solicitud. Por favor, inténtalo más tarde.'});
+      const modal=fixture.nativeElement.querySelector('.registro-modal-backdrop');
+      expect(!!modal.querySelector('.registro-modal-icon.error')).toBe(!success);
+      expect(modal.querySelector('button').textContent.trim()).toBe(success?'OK':'Entendido');
+      expect(fixture.nativeElement.textContent).not.toContain('COMERCIOS_REVIEW_UNAVAILABLE');
+      expect(fixture.nativeElement.textContent).not.toContain('PRIVATE_PROVIDER_TEXT');
+      expect(view.mensajeObservacionesCliente).toBe('');
+      expect(view.enviandoNotificacionMesaDigital).toBeFalse();
+      expect(view.observacionesClienteMesaDigital).toBe(success?'':'Comentario conservado');
+      expect(view.datosForm.getRawValue()).toEqual(accountBefore);
+      http.expectNone(r=>r.method==='POST');
+      modal.querySelector('button').click();fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.registro-modal-backdrop')).toBeNull();
+    });
+  }
+
+  for (const status of ['APPROVED','REJECTED','IN_REVIEW']) {
+    it(`notifica documentos ${status} sin permiso de revisión ni guardar borrador`, () => {
+      cargarRevision({reviewDocuments:false,sendObservations:true,notificationEmail:'cuenta@example.test'});
+      component.documentosProspecto[0].status=status;
+      expect(component.puedeNotificarBff).toBeTrue();expect(component.puedeRevisarDocumentosBff).toBeFalse();
+      component.observacionesClienteMesaDigital='Nota';component.enviarNotificacionMesaDigital();
+      http.expectOne(r=>r.method==='POST').flush({success:true});
+      http.expectNone(r=>r.method==='PUT');
+    });
+  }
+
   it('permite revisar con permiso BFF aunque no incluya observaciones internas', () => {
     cargarRevision();
     (component as any).consultarDocumentosProspecto();

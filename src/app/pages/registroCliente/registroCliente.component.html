@@ -173,7 +173,6 @@
             </div>
 
             <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos'" role="status">{{ codigoRevisionBff ? ('Revisión no disponible: ' + codigoRevisionBff) : (documentacionSoloConsulta ? 'Revisión documental no autorizada para este nodo.' : 'Los cambios de validación se guardan mediante Guardar Borrador. El correo indicado se utiliza solo para esta notificación; no modifica el correo registrado.') }}</p>
-            <p *ngIf="modoContextoBff && puedeVerRevisionDocumental && seccion.id === 'documentos' && codigoNotificacionBff" role="status">Envío no disponible: {{ codigoNotificacionBff }}</p>
             <p *ngIf="modoContextoBff && seccion.id === 'documentos' && mensajeObservacionesCliente" role="alert">{{ mensajeObservacionesCliente }}</p>
             <app-step-documentos
               *ngIf="seccion.id === 'documentos'"

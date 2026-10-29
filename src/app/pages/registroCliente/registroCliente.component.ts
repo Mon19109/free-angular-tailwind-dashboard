@@ -2640,13 +2640,18 @@ export class RegistroClienteComponent {
     }
     const generation = this.consultaCuentaActual;
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
+    const mostrarErrorEnvio = () => {
+      this.mensajeObservacionesCliente = '';
+      this.mostrarModalRegistro('error', 'No fue posible enviar la notificación',
+        'Estamos teniendo complicaciones para atender tu solicitud. Por favor, inténtalo más tarde.', 'Entendido');
+    };
     this.enviandoNotificacionMesaDigital = true;
     this.mensajeObservacionesCliente = '';
     this.contextoService.enviarObservacionesNodo(ref, nodeRef, observations, email).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         if (!vigente()) return;
         this.enviandoNotificacionMesaDigital = false;
-        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El envío no fue confirmado.'; return; }
+        if (response?.success !== true) { mostrarErrorEnvio(); return; }
         this.observacionesClienteMesaDigital = '';
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Notificación enviada correctamente.');
       },
@@ -2655,7 +2660,7 @@ export class RegistroClienteComponent {
         this.enviandoNotificacionMesaDigital = false;
         if ([401, 403, 409, 422].includes(error.status)) this.notificacionPermitidaBff = false;
         this.codigoNotificacionBff = this.codigoBffSeguro(error.error?.code);
-        this.mensajeObservacionesCliente = `No fue posible enviar la notificación. ${this.codigoNotificacionBff}`.trim();
+        mostrarErrorEnvio();
       }
     });
   }
