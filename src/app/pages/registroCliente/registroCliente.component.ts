@@ -2278,11 +2278,17 @@ export class RegistroClienteComponent {
         if (!vigente()) return;
         this.registrandoCliente = false;
         const mensajeAprobado = 'El prospecto ya cuenta con un enlace activo, verifique o reporte al Administrador.';
-        if (error.status === 409 && error.error?.success === false && error.error?.code === '4002'
-            && error.error?.message === mensajeAprobado) {
-          this.mostrarModalRegistro('error', 'Error al registrar cliente', error.error.message, 'Aceptar');
-          return;
-        }
+        if (
+  error.status === 409 &&
+  error.error?.success === false &&
+  (
+    error.error?.code === '4002' ||
+    error.error?.code === 'COMERCIOS_REGISTER_CONFLICT'
+  )
+) {
+  this.mostrarModalRegistro('error', 'Error al registrar cliente', mensajeAprobado, 'Aceptar');
+  return;
+}
         this.mensajeObservacionesCliente = this.mensajeErrorRegistroBff(error);
       }
     });
