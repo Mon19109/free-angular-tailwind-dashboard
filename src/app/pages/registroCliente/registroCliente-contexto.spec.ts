@@ -741,6 +741,45 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectNone(r => r.method === 'PUT');
   });
 
+  for (const role of [2, '2']) it(`rol ${typeof role}: carga en consulta y recupera Editar al cancelar sin activar edición automática`, () => {
+    const diagnostico = spyOn(console, 'info');
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Entidad', levelType: 4, depth: 0 }] });
+    const view = fixture.componentInstance;
+    view.alternarSeccion('datos');
+    fixture.detectChanges();
+    const editButton = (): HTMLButtonElement | undefined => Array.from(fixture.nativeElement.querySelectorAll('button'))
+      .find((button: any) => button.textContent.trim() === 'Editar datos') as HTMLButtonElement | undefined;
+    expect(editButton()?.disabled).toBeTrue();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true,
+      information: { nameCommerce: 'Entidad' },
+      permissions: { editInformation: true, editFields: ['nombreComercial', 'correoComercial'] } });
+    fixture.detectChanges();
+    expect(view.editandoDatosNodo).toBeFalse();
+    expect(diagnostico).toHaveBeenCalledOnceWith('[RegistroCliente:editar-datos:v1]', {
+      modoContextoBff: true, seccionDatosAbierta: true, mostrarEditarDatosNodo: true,
+      editandoDatosNodo: false, idRol: role, edicionAutorizadaBff: true,
+      'permissions.editInformation': true
+    });
+    expect(editButton()?.disabled).toBeFalse();
+    editButton()!.click(); fixture.detectChanges();
+    expect(editButton()).toBeUndefined();
+    expect(view.datosForm.controls.correoComercial.enabled).toBeTrue();
+    expect(view.datosForm.controls.razonSocial.disabled).toBeTrue();
+    view.cancelarEdicionDatosNodo(); fixture.detectChanges();
+    expect(view.editandoDatosNodo).toBeFalse();
+    expect(view.datosForm.disabled).toBeTrue();
+    expect(editButton()?.disabled).toBeFalse();
+    view.alternarSeccion('datos'); fixture.detectChanges();
+    expect(editButton()).toBeUndefined();
+    view.alternarSeccion('datos'); fixture.detectChanges();
+    expect(editButton()?.disabled).toBeFalse();
+    http.expectNone(request => ['POST', 'PUT'].includes(request.method));
+  });
+
   it('rol 2 ve Editar aun con guardado denegado; otros roles no lo ven', () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     const fixture = TestBed.createComponent(RegistroClienteComponent);

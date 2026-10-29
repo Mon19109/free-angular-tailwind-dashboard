@@ -145,6 +145,11 @@ export class RegistroClienteComponent {
     this.datosForm.patchValue(this.datosAntesEdicion, { emitEvent: false });
     this.editandoDatosNodo = false;
     this.datosForm.markAsPristine();
+    if (this.modoContextoBff) {
+      this.datosForm.disable({ emitEvent: false });
+      this.mensajeActualizacionDatos = '';
+      return;
+    }
     this.actualizarModoEdicionNodo(this.nodoSeleccionado);
     this.mensajeActualizacionDatos = '';
     this.editarDatosNodo();
@@ -617,6 +622,20 @@ export class RegistroClienteComponent {
         const tipos: Record<string, string> = { entidad: 'Empresa Grupo', sucursal: 'Sucursales de Grupo',
           caja: 'Cuenta Terminal', 'sub-afiliado': 'Empresa Holding' };
         this.pintarCuentaComercio(cuenta, tipos[this.nivelSeleccionado] || '');
+        // Diagnóstico temporal: solo estado de visibilidad, nunca datos del nodo o de la cuenta.
+        const rolDiagnostico = this.sesionPortal.getUserData()?.idRol;
+        console.info('[RegistroCliente:editar-datos:v1]', {
+          modoContextoBff: this.modoContextoBff,
+          seccionDatosAbierta: this.seccionAbierta === 'datos',
+          mostrarEditarDatosNodo: this.mostrarEditarDatosNodo,
+          editandoDatosNodo: this.editandoDatosNodo,
+          idRol: typeof rolDiagnostico === 'number' && Number.isSafeInteger(rolDiagnostico)
+            ? rolDiagnostico : typeof rolDiagnostico === 'string' && /^\d{1,2}$/.test(rolDiagnostico)
+              ? rolDiagnostico : null,
+          edicionAutorizadaBff: this.edicionAutorizadaBff,
+          'permissions.editInformation': typeof respuesta.permissions?.editInformation === 'boolean'
+            ? respuesta.permissions.editInformation : null
+        });
       },
       error: error => {
         if (!vigente()) return;
