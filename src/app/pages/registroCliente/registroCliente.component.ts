@@ -104,6 +104,23 @@ export class RegistroClienteComponent {
   editandoDatosNodo = false;
   guardandoDatosNodo = false;
   mensajeActualizacionDatos = '';
+  private cambiosNoConfirmados: Record<string, unknown> | null = null;
+  get hayCambiosNoConfirmados(): boolean { return this.cambiosNoConfirmados !== null; }
+
+  recuperarCambiosNoConfirmados(): void {
+    if (!this.puedeEditarDatosNodo || this.guardandoDatosNodo || !this.cambiosNoConfirmados) return;
+    if (!this.editandoDatosNodo) this.editarDatosNodo();
+    const cambios = Object.fromEntries(Object.entries(this.cambiosNoConfirmados)
+      .filter(([campo]) => this.camposEdicionBff.includes(campo)));
+    this.datosForm.patchValue(cambios, { emitEvent: false });
+    this.datosForm.markAsDirty();
+    this.mensajeActualizacionDatos = 'Captura recuperada para revisión. No está confirmada como guardada; pulsa Actualizar datos para enviarla.';
+  }
+
+  volverAConsultarGuardado(): void {
+    if (!this.puedeVerRevisionDocumental || this.cargandoCuentaComercio || this.guardandoDatosNodo || !this.cambiosNoConfirmados) return;
+    this.consultarCuentaNodoBff(this.cambiosNoConfirmados);
+  }
 
   private camposEdicionBff: string[] = [];
   private edicionAutorizadaBff = false;
@@ -229,9 +246,8 @@ export class RegistroClienteComponent {
         if (response?.success !== true) { this.mensajeActualizacionDatos = 'La actualización no fue confirmada.'; return; }
         this.editandoDatosNodo = false;
         this.datosForm.disable({ emitEvent: false });
-        this.mensajeActualizacionDatos = 'Datos actualizados correctamente.';
-        this.mostrarModalRegistro('success', 'Actualización exitosa', 'Se actualizó de forma correcta.');
-        this.consultarCuentaComercio();
+        this.mensajeActualizacionDatos = 'Verificando los datos guardados…';
+        this.consultarCuentaNodoBff(cambios);
       },
       error: error => {
         if (!vigente()) return;
@@ -539,6 +555,9 @@ export class RegistroClienteComponent {
   private consultaDocumentosBff?: Subscription;
 
   private limpiarDetalleBff(): void {
+    this.subiendoDocumento = false;
+    this.mensajeCargaDocumento = '';
+    this.cambiosNoConfirmados = null;
     this.registrandoCliente = false;
     this.revisionPermitidaBff = false;
     this.registroPermitidoBff = false;
@@ -586,14 +605,18 @@ export class RegistroClienteComponent {
     this.contextoSeleccionado = { idComercio: '', email: '', nivel: '', nombreComercial: '', rfc: '' };
   }
 
-  private consultarCuentaNodoBff(): void {
+  private consultarCuentaNodoBff(cambiosEsperados?: Record<string, unknown>): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
     if (!ref || !nodeRef || !this.buscarNodo(this.arbolServicio, nodeRef)) return;
+    if (cambiosEsperados) this.cambiosNoConfirmados = structuredClone(cambiosEsperados);
     this.consultaCuentaBff?.unsubscribe();
+    this.editandoDatosNodo = false;
+    this.datosForm.disable({ emitEvent: false });
     const consulta = ++this.consultaCuentaActual;
     this.cargandoCuentaComercio = true;
     this.errorCuentaComercio = '';
+    if (cambiosEsperados) this.mensajeActualizacionDatos = 'Verificando los datos guardados…';
     const vigente = () => consulta === this.consultaCuentaActual
       && this.nodoSeleccionado === nodeRef && this.contextoBff?.commerce.ref === ref;
     this.consultaCuentaBff = this.contextoService.consultarInformacionNodo(ref, nodeRef).pipe(
@@ -604,11 +627,13 @@ export class RegistroClienteComponent {
         this.cargandoCuentaComercio = false;
         if (respuesta?.success !== true || !respuesta.information || typeof respuesta.information !== 'object'
           || Array.isArray(respuesta.information)) {
+          if (cambiosEsperados) this.mensajeActualizacionDatos = 'No fue posible confirmar el guardado mediante la consulta posterior.';
           this.errorCuentaComercio = 'Respuesta de información general no válida.';
           return;
         }
         const cuenta = respuesta.information;
         if (!Object.values(cuenta).some(value => value !== null && value !== '' && value !== undefined)) {
+          if (cambiosEsperados) this.mensajeActualizacionDatos = 'No fue posible confirmar el guardado mediante la consulta posterior.';
           this.errorCuentaComercio = 'No hay información general disponible para este nodo.';
           return;
         }
@@ -621,25 +646,28 @@ export class RegistroClienteComponent {
         // El nivel procede del árbol autorizado, no de una posible entidad padre.
         const tipos: Record<string, string> = { entidad: 'Empresa Grupo', sucursal: 'Sucursales de Grupo',
           caja: 'Cuenta Terminal', 'sub-afiliado': 'Empresa Holding' };
+        // La verificación nunca debe reutilizar la captura local como evidencia del GET.
+        if (cambiosEsperados) this.datosForm.reset({}, { emitEvent: false });
         this.pintarCuentaComercio(cuenta, tipos[this.nivelSeleccionado] || '');
-        // Diagnóstico temporal: solo estado de visibilidad, nunca datos del nodo o de la cuenta.
-        const rolDiagnostico = this.sesionPortal.getUserData()?.idRol;
-        console.info('[RegistroCliente:editar-datos:v1]', {
-          modoContextoBff: this.modoContextoBff,
-          seccionDatosAbierta: this.seccionAbierta === 'datos',
-          mostrarEditarDatosNodo: this.mostrarEditarDatosNodo,
-          editandoDatosNodo: this.editandoDatosNodo,
-          idRol: typeof rolDiagnostico === 'number' && Number.isSafeInteger(rolDiagnostico)
-            ? rolDiagnostico : typeof rolDiagnostico === 'string' && /^\d{1,2}$/.test(rolDiagnostico)
-              ? rolDiagnostico : null,
-          edicionAutorizadaBff: this.edicionAutorizadaBff,
-          'permissions.editInformation': typeof respuesta.permissions?.editInformation === 'boolean'
-            ? respuesta.permissions.editInformation : null
-        });
+        if (cambiosEsperados) {
+          const recibidos = this.datosForm.getRawValue() as Record<string, unknown>;
+          const confirmado = Object.entries(cambiosEsperados).every(([campo, valor]) => recibidos[campo] === valor);
+          this.mensajeActualizacionDatos = confirmado
+            ? 'Datos actualizados correctamente.'
+            : 'No fue posible confirmar todos los cambios. Se muestran los datos devueltos por el servicio.';
+          if (confirmado) {
+            this.cambiosNoConfirmados = null;
+            this.mostrarModalRegistro('success', 'Actualización exitosa', 'Se actualizó de forma correcta.');
+          }
+        }
+        const mensajeVerificacion = this.mensajeActualizacionDatos;
+        this.editarDatosNodo();
+        this.mensajeActualizacionDatos = mensajeVerificacion;
       },
       error: error => {
         if (!vigente()) return;
         this.cargandoCuentaComercio = false;
+        if (cambiosEsperados) this.mensajeActualizacionDatos = 'No fue posible confirmar el guardado mediante la consulta posterior.';
         this.errorCuentaComercio = error.status === 401
           ? 'La sesión expiró. Vuelve a iniciar sesión.'
           : error.status === 403 ? 'No tienes permiso para consultar este nodo.'
@@ -2382,15 +2410,23 @@ export class RegistroClienteComponent {
     const cargados = new Set(this.documentosProspecto.map(documento =>
       this.documentoCatalogoDesdeProspecto(documento, this.nombreDocumentoDesdeProspecto(documento))?.numero
     ));
-    return this.documentos.filter(documento => !cargados.has(documento.numero));
+    return this.documentos.filter(documento => !cargados.has(documento.numero)
+      && (!this.modoContextoBff || documento.numero <= 14));
+  }
+
+  get puedeSubirDocumentoBff(): boolean {
+    return this.modoContextoBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
+      && this.nivelSeleccionado !== 'caja' && !!this.contextoBff?.commerce.ref && !!this.nodoSeleccionado
+      && this.documentosBffConsultados && !this.errorDocumentosProspecto
+      && !this.cargandoDocumentosProspecto && !this.cargandoCuentaComercio && !this.guardandoRevisionDocumentos;
   }
 
   subirDocumentoFaltante({ archivo, documento }: { archivo: File; documento: DocumentoRequerido }): void {
-    if (this.modoContextoBff) return;
-    if (!this.esMesaDigitalSesion || this.subiendoDocumento || this.cargandoDocumentosProspecto || this.cargandoCuentaComercio) return;
+    if (this.modoContextoBff ? !this.puedeSubirDocumentoBff : !this.esMesaDigitalSesion) return;
+    if (this.subiendoDocumento || this.cargandoDocumentosProspecto || this.cargandoCuentaComercio) return;
     this.mensajeCargaDocumento = '';
     const guid = this.commerceID?.trim();
-    if (!guid || guid === 'ND') {
+    if (!this.modoContextoBff && (!guid || guid === 'ND')) {
       this.mensajeCargaDocumento = 'No se encontró el identificador del comercio para subir el documento.';
       return;
     }
@@ -2402,6 +2438,32 @@ export class RegistroClienteComponent {
       : { pdf: 'application/pdf' };
     if (!tipos[extension] || (archivo.type && archivo.type !== tipos[extension]) || archivo.size <= 0 || archivo.size > 10 * 1024 * 1024) {
       this.mensajeCargaDocumento = `Selecciona un archivo ${esImagen ? 'PNG o JPG' : 'PDF'} válido, de máximo 10 MB.`;
+      return;
+    }
+    if (this.modoContextoBff) {
+      const ref = this.contextoBff!.commerce.ref;
+      const nodeRef = this.nodoSeleccionado;
+      const generation = this.consultaCuentaActual;
+      const vigente = () => ref === this.contextoBff?.commerce.ref && nodeRef === this.nodoSeleccionado && generation === this.consultaCuentaActual;
+      this.subiendoDocumento = true;
+      this.contextoService.subirDocumentoNodo(ref, nodeRef, archivo, documento.numero).pipe(
+        takeUntilDestroyed(this.destroyRef), finalize(() => { if (vigente()) this.subiendoDocumento = false; })
+      ).subscribe({
+        next: respuesta => {
+          if (!vigente()) return;
+          if (respuesta?.success !== true || respuesta.uploaded !== 1) {
+            this.mensajeCargaDocumento = 'La carga del documento no fue confirmada.';
+            return;
+          }
+          this.mensajeCargaDocumento = 'Documento subido correctamente.';
+          this.consultarDocumentosProspecto();
+        },
+        error: error => {
+          if (!vigente()) return;
+          this.mensajeCargaDocumento = error.status === 403 ? 'No tienes autorización para subir documentos a este nodo.'
+            : 'No fue posible subir el documento. Intenta nuevamente.';
+        }
+      });
       return;
     }
     const sufijos: Record<number, string> = {

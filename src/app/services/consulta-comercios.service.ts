@@ -161,6 +161,15 @@ export class ConsultaComerciosService {
     }));
   }
 
+  subirDocumentoNodo(ref: string, nodeRef: string, archivo: File, numeroDocumento: number): Observable<{ success: boolean; uploaded: number }> {
+    const body = new FormData();
+    body.append('documentos', JSON.stringify([{ numeroDocumento }]));
+    body.append('files', archivo);
+    return this.http.post<{ success: boolean; uploaded: number }>(
+      `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos`, body,
+      { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
+  }
+
   guardarRevisionNodo(ref: string, nodeRef: string, documents: Array<{ ref: string; status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW' }>, internalObservations: string | null): Observable<{ success: boolean }> {
     return this.http.put<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/revision`,
       { documents, internalObservations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });

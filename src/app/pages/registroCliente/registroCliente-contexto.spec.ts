@@ -423,7 +423,7 @@ describe('Registro Cliente con contexto BFF', () => {
     write.flush({ success: true });
     http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ ...result, information: { nameCommerce: 'Nuevo' } });
     expect(component.datosForm.controls.nombreComercial.value).toBe('Nuevo');
-    expect(component.editandoDatosNodo).toBeFalse();
+    expect(component.editandoDatosNodo).toBeTrue();
   });
 
   it('no mezcla una respuesta de guardado con otro nodo ni concede edición por rol solo', () => {
@@ -449,6 +449,73 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
       documents: [{ ref: other, name: 'Acta', status: 'IN_REVIEW' }], internalObservations: 'Nota existente', permissions });
   }
+
+  it('carga un documento con multipart y referencias opacas, sin doble envío, y recarga la lista', () => {
+    cargarRevision();
+    const documento = component.documentosDisponiblesParaSubir.find(doc => doc.numero === 1)!;
+    const archivo = new File(['%PDF-1.4\nfixture'], 'comprobante.pdf', { type: 'application/pdf' });
+    expect(component.puedeSubirDocumentoBff).toBeTrue();
+    component.subirDocumentoFaltante({ archivo, documento });
+    component.subirDocumentoFaltante({ archivo, documento });
+    const upload = http.expectOne(request => request.method === 'POST');
+    expect(upload.request.url).toBe(`/api/comercios/${ref}/nodos/${ref}/documentos`);
+    expect(upload.request.withCredentials).toBeTrue();
+    expect(upload.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(upload.request.headers.has('Authorization')).toBeFalse();
+    expect(upload.request.headers.has('Content-Type')).toBeFalse();
+    const body = upload.request.body as FormData;
+    expect(body.get('documentos')).toBe(JSON.stringify([{ numeroDocumento: 1 }]));
+    expect(body.get('files')).toBe(archivo);
+    expect(body.has('guid')).toBeFalse();
+    expect(body.has('nodeID')).toBeFalse();
+    upload.flush({ success: true, uploaded: 1 });
+    expect(component.subiendoDocumento).toBeFalse();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
+      documents: [{ ref: other, name: 'Comprobante de domicilio', documentType: 'COMP_DOM', status: 'IN_REVIEW' }],
+      permissions: { reviewDocuments: true, sendObservations: false, notificationEmail: null } });
+    expect(component.documentosProspecto.length).toBe(1);
+    expect(component.documentosDisponiblesParaSubir.some(doc => doc.numero === 1)).toBeFalse();
+  });
+
+  it('muestra Agregar documento solo al rol 2 con permiso y lectura válidos', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    component = fixture.componentInstance;
+    cargarRevision(); component.seccionAbierta = 'documentos';
+    for (const role of [2, 3, 1]) {
+      TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role } });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent.includes('Agregar documento')).toBe(role === 2);
+    }
+  });
+
+  for (const outcome of [403, 502, 'invalid', 'stale']) it(`carga documental: ${outcome} no confirma ni actualiza otro nodo`, () => {
+    cargarRevision();
+    component.subirDocumentoFaltante({ archivo: new File(['%PDF'], 'doc.pdf', { type: 'application/pdf' }), documento: component.documentosDisponiblesParaSubir[0] });
+    const upload = http.expectOne(request => request.method === 'POST');
+    if (outcome === 'stale') (component as any).limpiarDetalleBff();
+    if (typeof outcome === 'number') upload.flush({}, { status: outcome, statusText: 'Unavailable' });
+    else upload.flush(outcome === 'invalid' ? { success: true } : { success: true, uploaded: 1 });
+    expect(component.mensajeCargaDocumento).not.toContain('correctamente');
+    expect(component.subiendoDocumento).toBeFalse();
+    http.expectNone(request => request.method === 'GET' && request.url.endsWith('/documentos'));
+  });
+
+  it('no carga documentos sin permiso ni archivos inválidos o tipos fuera del contrato', () => {
+    cargarRevision();
+    const documento = component.documentosDisponiblesParaSubir[0];
+    for (const archivo of [new File([], 'vacio.pdf', { type: 'application/pdf' }), new File(['text'], 'texto.txt', { type: 'text/plain' })]) {
+      component.subirDocumentoFaltante({ archivo, documento });
+    }
+    const archivo = new File(['%PDF'], 'doc.pdf', { type: 'application/pdf' });
+    component.subirDocumentoFaltante({ archivo, documento: { ...documento, numero: 15 } });
+    (component as any).revisionPermitidaBff = false;
+    component.subirDocumentoFaltante({ archivo, documento });
+    (component as any).revisionPermitidaBff = true;
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 3 } });
+    component.subirDocumentoFaltante({ archivo, documento });
+    http.expectNone(request => request.method === 'POST');
+  });
 
   it('rechaza métodos administrativos con otro rol aunque conserve permisos BFF previos', () => {
     cargarRevision();
@@ -722,27 +789,7 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(fixture.nativeElement.querySelector('.mesa-observations')).toBeNull();
   });
 
-  it('renderiza Editar datos sin permisos documentales y lo retira al denegar edición', () => {
-    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
-    const fixture = TestBed.createComponent(RegistroClienteComponent);
-    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
-    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
-    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Entidad', levelType: 4, depth: 0 }] });
-    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true, information: { nameCommerce: 'Entidad' }, permissions: { editInformation: true, editFields: ['nombreComercial'] } });
-    const view = fixture.componentInstance;
-    view.seccionAbierta = 'datos'; fixture.detectChanges();
-    const edit = Array.from(fixture.nativeElement.querySelectorAll('button')).find((b: any) => b.textContent.trim() === 'Editar datos') as HTMLButtonElement;
-    expect(edit).toBeTruthy(); edit.click(); fixture.detectChanges();
-    expect(view.datosForm.controls.nombreComercial.enabled).toBeTrue();
-    expect(view.datosForm.controls.razonSocial.disabled).toBeTrue();
-    (view as any).edicionAutorizadaBff = false;
-    view.guardarDatosNodo(); fixture.detectChanges();
-    expect(view.puedeEditarDatosNodo).toBeFalse();
-    http.expectNone(r => r.method === 'PUT');
-  });
-
-  for (const role of [2, '2']) it(`rol ${typeof role}: carga en consulta y recupera Editar al cancelar sin activar edición automática`, () => {
-    const diagnostico = spyOn(console, 'info');
+  for (const role of [2, '2', 3]) it(`edición directa autorizada para rol ${role} (${typeof role})`, () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
     const fixture = TestBed.createComponent(RegistroClienteComponent);
@@ -750,52 +797,86 @@ describe('Registro Cliente con contexto BFF', () => {
     http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Entidad', levelType: 4, depth: 0 }] });
     const view = fixture.componentInstance;
     view.alternarSeccion('datos');
-    fixture.detectChanges();
-    const editButton = (): HTMLButtonElement | undefined => Array.from(fixture.nativeElement.querySelectorAll('button'))
-      .find((button: any) => button.textContent.trim() === 'Editar datos') as HTMLButtonElement | undefined;
-    expect(editButton()?.disabled).toBeTrue();
-    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true,
-      information: { nameCommerce: 'Entidad' },
-      permissions: { editInformation: true, editFields: ['nombreComercial', 'correoComercial'] } });
-    fixture.detectChanges();
-    expect(view.editandoDatosNodo).toBeFalse();
-    expect(diagnostico).toHaveBeenCalledOnceWith('[RegistroCliente:editar-datos:v1]', {
-      modoContextoBff: true, seccionDatosAbierta: true, mostrarEditarDatosNodo: true,
-      editandoDatosNodo: false, idRol: role, edicionAutorizadaBff: true,
-      'permissions.editInformation': true
-    });
-    expect(editButton()?.disabled).toBeFalse();
-    editButton()!.click(); fixture.detectChanges();
-    expect(editButton()).toBeUndefined();
-    expect(view.datosForm.controls.correoComercial.enabled).toBeTrue();
-    expect(view.datosForm.controls.razonSocial.disabled).toBeTrue();
-    view.cancelarEdicionDatosNodo(); fixture.detectChanges();
-    expect(view.editandoDatosNodo).toBeFalse();
     expect(view.datosForm.disabled).toBeTrue();
-    expect(editButton()?.disabled).toBeFalse();
-    view.alternarSeccion('datos'); fixture.detectChanges();
-    expect(editButton()).toBeUndefined();
-    view.alternarSeccion('datos'); fixture.detectChanges();
-    expect(editButton()?.disabled).toBeFalse();
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true,
+      information: { nameCommerce: 'Entidad' }, permissions: { editInformation: true, editFields: ['nombreComercial', 'correoComercial'] } });
+    fixture.detectChanges();
+    expect(view.editandoDatosNodo).toBe(Number(role) === 2);
+    expect(view.datosForm.controls.correoComercial.enabled).toBe(Number(role) === 2);
+    expect(view.datosForm.controls.razonSocial.disabled).toBeTrue();
+    expect(fixture.nativeElement.textContent).not.toContain('Editar datos');
+    if (Number(role) === 2) expect(fixture.nativeElement.textContent).toContain('Actualizar datos');
     http.expectNone(request => ['POST', 'PUT'].includes(request.method));
   });
 
-  it('rol 2 ve Editar aun con guardado denegado; otros roles no lo ven', () => {
-    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
-    const fixture = TestBed.createComponent(RegistroClienteComponent);
-    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
-    const view = fixture.componentInstance;
-    view.seccionAbierta = 'datos';
-    for (const role of [2, 3, 4, 5, 6]) {
-      TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: role as any } });
-      fixture.detectChanges();
-      const button = Array.from(fixture.nativeElement.querySelectorAll('button')).find((b: any) => b.textContent.trim() === 'Editar datos') as HTMLButtonElement | undefined;
-      expect(!!button).toBe(role === 2);
-      if (button) { expect(button.disabled).toBeTrue(); button.click(); }
-      view.guardarDatosNodo();
+  for (const outcome of ['persistido', 'anterior', 'error']) it(`verifica yCalleComercial mediante GET posterior: ${outcome}`, () => {
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [{ ref, name: 'Entidad', levelType: 4, depth: 0 }] });
+    const result = (value: string) => ({ success: true, information: { nameCommerce: 'Entidad', commerceAddress: [{ addressType: 'DC', andStreet: value }] },
+      permissions: { editInformation: true, editFields: ['yCalleComercial'] } });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush(result('calle 2'));
+    const popup = spyOn(component as any, 'mostrarModalRegistro');
+    component.datosForm.controls.yCalleComercial.setValue('calle 22');
+    component.guardarDatosNodo();
+    const write = http.expectOne(request => request.method === 'PUT');
+    expect(write.request.body).toEqual({ cambios: { yCalleComercial: 'calle 22' } });
+    write.flush({ success: true });
+    expect(popup).not.toHaveBeenCalled();
+    expect(component.datosForm.disabled).toBeTrue();
+    const read = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`);
+    if (outcome === 'error') read.flush({}, { status: 502, statusText: 'Unavailable' });
+    else read.flush(result(outcome === 'persistido' ? 'calle 22' : 'calle 2'));
+    if (outcome === 'persistido') {
+      expect(component.hayCambiosNoConfirmados).toBeFalse();
+      expect(popup).toHaveBeenCalledTimes(1);
+      expect(component.datosForm.controls.yCalleComercial.value).toBe('calle 22');
+    } else {
+      expect(popup).not.toHaveBeenCalled();
+      expect(component.mensajeActualizacionDatos).toContain('No fue posible confirmar');
+      if (outcome === 'anterior') expect(component.datosForm.controls.yCalleComercial.value).toBe('calle 2');
+      expect(component.hayCambiosNoConfirmados).toBeTrue();
+      if (outcome === 'error') {
+        component.recuperarCambiosNoConfirmados();
+        expect(component.datosForm.disabled).toBeTrue();
+        component.volverAConsultarGuardado();
+        http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush(result('calle 2'));
+      }
+      component.recuperarCambiosNoConfirmados();
+      expect(component.datosForm.controls.yCalleComercial.value).toBe('calle 22');
+      expect(component.mensajeActualizacionDatos).toContain('No está confirmada');
+      expect(popup).not.toHaveBeenCalled();
+      component.guardarDatosNodo();
+      const retry = http.expectOne(request => request.method === 'PUT');
+      expect(retry.request.body).toEqual({ cambios: { yCalleComercial: 'calle 22' } });
+      retry.flush({ success: true });
+      http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush(result('calle 22'));
+      expect(component.hayCambiosNoConfirmados).toBeFalse();
+      expect(popup).toHaveBeenCalledTimes(1);
     }
-    expect(view.editandoDatosNodo).toBeFalse();
-    http.expectNone(r => r.method === 'PUT');
+    http.expectNone(request => request.method === 'PUT');
+  });
+
+  it('cancela la verificación y elimina la captura recuperable al cambiar de sucursal', () => {
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [
+      { ref, name: 'Entidad', levelType: 4, depth: 0 }, { ref: other, name: 'Sucursal', levelType: 5, depth: 1 }
+    ] });
+    const result = { success: true, information: { nameCommerce: 'Entidad' }, permissions: { editInformation: true, editFields: ['nombreComercial'] } };
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush(result);
+    component.datosForm.controls.nombreComercial.setValue('Captura anterior');
+    component.guardarDatosNodo();
+    http.expectOne(request => request.method === 'PUT').flush({ success: true });
+    const pending = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`);
+    expect(component.hayCambiosNoConfirmados).toBeTrue();
+    component.seleccionarNodo((component as any).buscarNodo(component.arbol, other));
+    expect(pending.cancelled).toBeTrue();
+    expect(component.hayCambiosNoConfirmados).toBeFalse();
+    http.expectOne(`/api/comercios/${ref}/nodos/${other}/informacion-general`).flush({ ...result, information: { nameCommerce: 'Sucursal' } });
+    component.recuperarCambiosNoConfirmados();
+    expect(component.datosForm.controls.nombreComercial.value).toBe('Sucursal');
+    http.expectNone(request => request.method === 'PUT');
   });
 
   it('muestra el motivo de destinatario denegado y lo limpia al cambiar de nodo', () => {
