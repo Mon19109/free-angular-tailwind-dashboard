@@ -1,7 +1,7 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, of, shareReplay, switchMap } from 'rxjs';
-import { environment } from '../environments/environments';
+
 
 export interface UbicacionPago {
   latitud: string;
@@ -25,61 +25,25 @@ export interface AltaTarjeta {
 @Injectable({ providedIn: 'root' })
 export class PagarLinkPagoService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = environment.api.linkpago;
-  private readonly transactionUrl = environment.api.voucher;
-  // Equivale a WS_CARDS + CTXT_CARDS del servicio anterior.
-  private readonly cardsUrl = environment.api.card+'api/v1/';
+  private readonly bff = '/api/pagar-voucher';
   private ubicacionPrecargada?: Observable<UbicacionPago>;
 
-  private get cardsHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      Authorization: `Bearer ${environment.bearerTokens.portal}`,
-      'Entity-i': 'com.onsigna',
-      versionApp: '3'
-    });
-  }
-
   agregarTarjeta(tarjeta: AltaTarjeta): Observable<any> {
-    return this.http.post(`${this.cardsUrl}tokenization/add`, {
-      enrollmentRequest: {
-        orderInformation: {
-          billTo: {
-            firstName: tarjeta.firstName,
-            lastName: tarjeta.lastName,
-            email: tarjeta.email,
-            postalCode: tarjeta.postalCode,
-            address1: tarjeta.address,
-            locality: tarjeta.locality,
-            country: tarjeta.country
-          }
-        },
-        paymentInformation: {
-          card: {
-            number: tarjeta.number.replace(/\D/g, ''),
-            expirationMonth: tarjeta.expirationMonth,
-            expirationYear: tarjeta.expirationYear
-          }
-        }
-      },
-      customerRequest: {
-        buyerInformation: { merchantCustomerID: tarjeta.merchantCustomerID }
-      }
-    }, { headers: this.cardsHeaders });
+    return this.http.post(`${this.bff}/tarjetas`, tarjeta, { withCredentials: true });
   }
 
   obtenerDetalleTarjeta(merchanID: string, cardToken: string): Observable<any> {
-    const params = new HttpParams().set('merchanID', merchanID).set('cardToken', cardToken);
-    return this.http.get(`${this.cardsUrl}tokenization/getTokenDetail`, { headers: this.cardsHeaders, params });
+    return this.http.get(`${this.bff}/tarjetas/detalle`, {
+      params: new HttpParams().set('merchanID', merchanID).set('cardToken', cardToken), withCredentials: true
+    });
   }
 
   obtenerCliente(customerIdentifier: string): Observable<any> {
-    const params = new HttpParams().set('customerIdentifier', customerIdentifier);
-    return this.http.get(`${this.cardsUrl}customer`, { headers: this.cardsHeaders, params });
+    return this.http.get(`${this.bff}/cliente`, { params: { customerIdentifier }, withCredentials: true });
   }
 
   obtenerTarjetas(merchanID: string): Observable<any> {
-    const params = new HttpParams().set('merchanID', merchanID);
-    return this.http.get(`${this.cardsUrl}tokenization/getTokens`, { headers: this.cardsHeaders, params });
+    return this.http.get(`${this.bff}/tarjetas`, { params: { merchanID }, withCredentials: true });
   }
 
   obtenerIp(): Observable<{ ip: string }> {
@@ -87,36 +51,15 @@ export class PagarLinkPagoService {
   }
 
   obtenerOrden(referencia: string): Observable<any> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
-      'Entity-i': 'com.onsigna',
-      'versionApp': '3',
-      'Content-Type': 'application/json'
-    });
-    return this.http.get(`${this.apiUrl}order/${referencia}`, { headers });
+    return this.http.get(`${this.bff}/orden/${encodeURIComponent(referencia)}`, { withCredentials: true });
   }
 
   obtenerBalance(sirioId: string): Observable<any> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
-      'Entity-i': 'com.onsigna',
-      'versionApp': '3',
-      'SonEntity-i': sirioId
-    });
-    return this.http.get(`${environment.api.saldos}getBalance/${sirioId}`, { headers });
+    return this.http.get(`${this.bff}/balance/${encodeURIComponent(sirioId)}`, { withCredentials: true });
   }
 
   validarBin(bin: string, amount: number): Observable<any> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
-      'Entity-i': 'com.onsigna',
-      'Content-Type': 'application/json'
-    });
-    const params = new HttpParams()
-      .set('bin', bin)
-      .set('amount', String(amount));
-
-    return this.http.get(`${this.apiUrl}order/catalogs/msi`, { headers, params });
+    return this.http.get(`${this.bff}/msi`, { params: { bin, amount: String(amount) }, withCredentials: true });
   }
 
   precargarUbicacion(): Observable<UbicacionPago> {
@@ -125,11 +68,6 @@ export class PagarLinkPagoService {
   }
 
   procesarTransaccion(payload: Record<string, unknown>): Observable<any> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${environment.bearerTokens.portal}`,
-      'Content-Type': 'application/json'
-    });
-
     return (this.ubicacionPrecargada ?? of({ latitud: '', longitud: '' })).pipe(
       switchMap(ubicacion => {
         const itInformation = payload['itInformation'];
@@ -149,9 +87,9 @@ export class PagarLinkPagoService {
         /* console.log('*BODY* :: ',payloadConUbicacion); */
 
         return this.http.post(
-          `${this.transactionUrl}processTransaction`,
+          `${this.bff}/transaccion`,
           payloadConUbicacion,
-          { headers }
+          { withCredentials: true }
         );
       })
     );
