@@ -300,6 +300,7 @@ export class RegistroClienteComponent {
   }
   mensajeObservacionesCliente = '';
   mensajeRegistroCliente = '';
+  botonModalRegistro = 'OK';
   modalRegistro = {
     visible: false,
     tipo: 'success' as 'success' | 'error',
@@ -2249,6 +2250,13 @@ export class RegistroClienteComponent {
     return this.datosForm.controls.municipioComercial.value?.trim() || '';
   }
 
+  private mensajeErrorRegistroBff(error: { status?: number; error?: { code?: unknown } }): string {
+    if (error?.status === 409 && error.error?.code === 'COMERCIOS_REGISTER_CONFLICT') {
+      return 'El proveedor reportó un conflicto al registrar el cliente. No se confirmó el registro.';
+    }
+    return `No fue posible registrar el cliente. ${this.codigoBffSeguro(error?.error?.code)}`.trim();
+  }
+
   private registrarClienteBff(): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
@@ -2269,7 +2277,13 @@ export class RegistroClienteComponent {
       error: error => {
         if (!vigente()) return;
         this.registrandoCliente = false;
-        this.mensajeObservacionesCliente = `No fue posible registrar el cliente. ${this.codigoBffSeguro(error.error?.code)}`.trim();
+        const mensajeAprobado = 'El prospecto ya cuenta con un enlace activo, verifique o reporte al Administrador.';
+        if (error.status === 409 && error.error?.success === false && error.error?.code === '4002'
+            && error.error?.message === mensajeAprobado) {
+          this.mostrarModalRegistro('error', 'Error al registrar cliente', error.error.message, 'Aceptar');
+          return;
+        }
+        this.mensajeObservacionesCliente = this.mensajeErrorRegistroBff(error);
       }
     });
   }
@@ -2326,7 +2340,8 @@ export class RegistroClienteComponent {
     this.modalRegistro.visible = false;
   }
 
-  private mostrarModalRegistro(tipo: 'success' | 'error', titulo: string, mensaje: string): void {
+  private mostrarModalRegistro(tipo: 'success' | 'error', titulo: string, mensaje: string, boton = 'OK'): void {
+    this.botonModalRegistro = boton;
     this.modalRegistro = { visible: true, tipo, titulo, mensaje };
   }
 

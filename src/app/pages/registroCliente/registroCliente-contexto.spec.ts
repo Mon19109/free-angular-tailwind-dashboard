@@ -2,7 +2,7 @@ import { AuthService } from '../../services/auth.service';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { RegistroClienteComponent } from './registroCliente.component';
 
@@ -735,6 +735,47 @@ describe('Registro Cliente con contexto BFF', () => {
       http.expectNone(r => r.method === 'POST');
     });
   }
+
+  it('REGISTER 409/4002 reutiliza el popup de error con Aceptar sin navegar ni reintentar', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    TestBed.inject(AuthService).actualizarSesion({success:true,authenticated:true,expiresAt:Date.now()+60000,usuario:{idRol:2}});
+    const fixture=TestBed.createComponent(RegistroClienteComponent);
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({...response(),capabilities:{tree:true}});
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({success:true,tree:[{ref,name:'Entidad',levelType:4,depth:0}]});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({success:true,information:{nameCommerce:'Entidad'}});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({success:true,pld:[]});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,documents:[{ref:other,name:'Acta',status:'APPROVED'}],
+      permissions:{reviewDocuments:true,sendObservations:false,registerClient:true,notificationEmail:null}});
+    const navigate=spyOn(TestBed.inject(Router),'navigate');
+    const navigateByUrl=spyOn(TestBed.inject(Router),'navigateByUrl');
+    const view=fixture.componentInstance;
+    view.registrarClienteProspecto();
+    const req=http.expectOne(`/api/comercios/${ref}/nodos/${ref}/registrar`);
+    const message='El prospecto ya cuenta con un enlace activo, verifique o reporte al Administrador.';
+    req.flush({success:false,code:'4002',message},{status:409,statusText:'Conflict'});
+    fixture.detectChanges();
+    expect(view.modalRegistro).toEqual({visible:true,tipo:'error',titulo:'Error al registrar cliente',mensaje:message});
+    const modal=fixture.nativeElement.querySelector('.registro-modal-backdrop');
+    expect(modal.querySelector('.registro-modal-icon.error')).not.toBeNull();
+    expect(modal.querySelector('h2').textContent).toBe('Error al registrar cliente');
+    expect(modal.querySelector('p').textContent).toBe(message);
+    const button=modal.querySelector('button');expect(button.textContent.trim()).toBe('Aceptar');
+    expect(view.registrandoCliente).toBeFalse();
+    expect(navigate).not.toHaveBeenCalled();expect(navigateByUrl).not.toHaveBeenCalled();
+    http.expectNone(r=>r.method==='POST');
+    button.click();fixture.detectChanges();expect(view.modalRegistro.visible).toBeFalse();
+  });
+
+  it('código desconocido o mensaje no aprobado no abre popup ni publica texto del proveedor', () => {
+    cargarRevision();(component as any).registroPermitidoBff=true;component.documentosProspecto[0].status='APPROVED';
+    for (const code of ['OTHER','4002']) {
+      component.registrarClienteProspecto();
+      http.expectOne(`/api/comercios/${ref}/nodos/${ref}/registrar`).flush({success:false,code,message:'PRIVATE_PROVIDER_TEXT'},{status:409,statusText:'Conflict'});
+      expect(component.modalRegistro.visible).toBeFalse();
+      expect(component.mensajeObservacionesCliente).not.toContain('PRIVATE_PROVIDER_TEXT');
+      http.expectNone(r=>r.method==='POST');
+    }
+  });
 
   it('sin permiso de registro no activa, aunque se invoque el método directamente', () => {
     cargarRevision();
