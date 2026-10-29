@@ -31,6 +31,28 @@ describe('Registro Cliente con contexto BFF', () => {
     }
     http.verify();
   });
+  it('entrada sin ref no activa legacy ni usa IDs privados o almacenamiento local', () => {
+    const pending = http.expectOne(`/api/comercios/${ref}/contexto`);
+    params.next(convertToParamMap({ nodeID: other, commerceID: other, pldID: other, id: other }));
+    expect(pending.cancelled).toBeTrue();
+    (TestBed.inject(ActivatedRoute).snapshot as any).queryParamMap = params.value;
+    const legacyEntry = TestBed.runInInjectionContext(() => new RegistroClienteComponent());
+    expect(legacyEntry.modoContextoBff).toBeTrue();
+    expect(legacyEntry.contextoBff).toBeNull();
+    expect(legacyEntry.errorContexto).toContain('Referencia no válida');
+    for (const method of ['consultarArbolEdicion', 'consultarCuentaComercio', 'consultarResultadoSiprelad', 'consultarDocumentosProspecto']) {
+      (legacyEntry as any)[method]();
+    }
+    http.expectNone(() => true);
+    expect(localStorage.getItem).not.toHaveBeenCalled();
+    params.next(convertToParamMap({ ref: other }));
+    for (const request of http.match(`/api/comercios/${other}/contexto`)) {
+      expect(request.request.headers.has('Authorization')).toBeFalse();
+      expect(request.request.params.keys()).toEqual([]);
+      request.flush(response(other));
+    }
+    expect(legacyEntry.contextoBff?.commerce.ref).toBe(other);
+  });
   it('reutiliza formularios con datos del contexto y no ejecuta servicios legacy', () => {
     const request = http.expectOne(`/api/comercios/${ref}/contexto`);
     expect(request.request.withCredentials).toBeTrue();

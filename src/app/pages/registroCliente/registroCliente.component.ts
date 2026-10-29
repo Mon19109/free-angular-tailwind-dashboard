@@ -521,7 +521,8 @@ export class RegistroClienteComponent {
   pendienteRevisionEdicion = false;
   habilitarMesaDigitalEdicion = false;
 
-  readonly modoContextoBff = this.route.snapshot.queryParamMap.has('ref');
+  // Registro Cliente only accepts session-bound references from Consulta Comercios.
+  readonly modoContextoBff = true;
   private readonly contextoService = inject(ConsultaComerciosService);
   private readonly destroyRef = inject(DestroyRef);
   contextoBff: ComercioContexto | null = null;
@@ -758,105 +759,7 @@ export class RegistroClienteComponent {
   }
 
   constructor() {
-    if (this.modoContextoBff) {
-      this.cargarContextoBff();
-      return;
-    }
-    const params = this.route.snapshot.queryParamMap;
-    this.mostrarMesaDigitalProspecto = params.get('esProspecto') === 'true';
-    this.pendienteRevisionEdicion = params.get('pendienteRevision') === 'true';
-    this.habilitarMesaDigitalEdicion = this.esMesaDigitalSesion
-      && (this.pendienteRevisionEdicion || params.get('habilitarMesaDigital') === 'true');
-    const emailComercioServicio = this.correoParametro(params.get('email')) || this.correoParametro(params.get('correo'));
-    this.comercioSeleccionado = {
-      idComercio: params.get('entitySonID') || params.get('id') || '',
-      nivel: params.get('nivel') ?? 'Sucursal',
-      nombreComercial: params.get('nombre') ?? '',
-      rfc: params.get('rfc') ?? '',
-      correo: emailComercioServicio,
-      telefono: params.get('telefono') ?? ''
-    };
-    this.pldID = params.get('pldID') ?? '';
-    this.commerceID = params.get('commerceID') ?? '';
-    this.commerceGuidRaizRegistro = this.commerceID;
-    this.nodeIDEdicion = params.get('nodeID') ?? '';
-    this.emailNotificacionMesaDigital = this.comercioSeleccionado.correo;
-    this.contextoSeleccionado = {
-      idComercio: this.comercioSeleccionado.idComercio,
-      email: this.comercioSeleccionado.correo,
-      nivel: this.comercioSeleccionado.nivel,
-      nombreComercial: this.comercioSeleccionado.nombreComercial,
-      rfc: this.comercioSeleccionado.rfc
-    };
-    this.entidades = this.numeroParametro(params.get('entidades'), 2);
-    this.sucursalesBase = this.numeroParametro(params.get('sucursales'), 3);
-    this.cajasBase = this.numeroParametro(params.get('cajas'), 2);
-    this.cargarEstadoRegistroLocal();
-    if (!this.nodeIDEdicion) {
-      this.inicializarEstructuraFake();
-    }
-
-    this.nodoSeleccionado = this.nodeIDEdicion || params.get('selectedNode') || this.nodoInicialPorNivel(this.comercioSeleccionado.nivel);
-    if (this.pldID && this.pldID !== 'ND') this.pldPorNodo[this.nodoSeleccionado] = this.pldID;
-    const nivel = this.comercioSeleccionado.nivel || 'Sucursal';
-    const tipo = nivel === 'Caja' ? 'Cuenta Terminal' : nivel === 'Entidad' ? 'Empresa Grupo' : nivel === 'Sub Afiliado' ? 'Empresa Holding' : 'Sucursales de Grupo';
-    this.tiposComercio = this.tiposComercioPorNivel[nivel] ?? [];
-    this.comercioForm.patchValue({ nivel, tipoComercio: this.nodeIDEdicion ? '' : tipo }, { emitEvent: false });
-    this.datosForm.patchValue({
-      nombreComercial: this.comercioSeleccionado.nombreComercial,
-      razonSocial: this.comercioSeleccionado.nombreComercial,
-      rfc: this.comercioSeleccionado.rfc,
-      correo: this.comercioSeleccionado.correo,
-      telefono: this.comercioSeleccionado.telefono
-    }, { emitEvent: false });
-
-    this.comercioForm.controls.nivel.valueChanges.subscribe(nuevoNivel => {
-      this.tiposComercio = this.tiposComercioPorNivel[nuevoNivel] ?? [];
-      this.comercioForm.controls.tipoComercio.setValue('', { emitEvent: false });
-      if (['Referenciador', 'Comisionista'].includes(nuevoNivel)) {
-        this.comercioForm.controls.tipoComercio.clearValidators();
-      } else {
-        this.comercioForm.controls.tipoComercio.setValidators([Validators.required]);
-      }
-      this.comercioForm.controls.tipoComercio.updateValueAndValidity({ emitEvent: false });
-      this.actualizarValidadoresDatos();
-    });
-    this.comercioForm.controls.tipoComercio.valueChanges.subscribe(() => {
-      this.actualizarValidadoresDatos();
-      this.actualizarValidadoresAccesosRegistro();
-    });
-    this.liquidacionForm.controls.tipoPersonaBeneficiario.valueChanges.subscribe(tipo => {
-      this.tipoPersonaBeneficiario = tipo as TipoPersonaBeneficiario;
-      this.actualizarValidadoresBeneficiario(tipo as TipoPersonaBeneficiario);
-    });
-    this.liquidacionForm.controls.cuentaFueraRed.valueChanges.subscribe(() => {
-      this.actualizarEstadoLiquidacionRegistro();
-      this.asegurarUsuarioAccesoActivo();
-      this.actualizarValidadoresAccesosRegistro();
-    });
-    this.liquidacionForm.controls.beneficiarioIgualComercio.valueChanges.subscribe(valor => {
-      this.datosBeneficiarioIgualComercio = valor;
-      if (valor) {
-        this.sincronizarBeneficiarioDesdeComercio();
-      } else {
-        this.limpiarDatosBeneficiarioLiquidacion();
-      }
-    });
-    this.datosForm.controls.mismoDomicilio.valueChanges.subscribe(valor => {
-      if (valor) this.copiarDomicilioFiscal();
-    });
-    this.actualizarValidadoresDatos();
-    this.actualizarEstadoLiquidacionRegistro();
-    this.asegurarUsuarioAccesoActivo();
-    this.actualizarValidadoresAccesosRegistro();
-    if (!this.nodeIDEdicion) {
-      this.seleccionarNodoPorId(this.nodoSeleccionado);
-    }
-    this.actualizarModoEdicionNodo(this.nodoSeleccionado);
-    this.consultarResultadoSiprelad();
-    this.consultarDocumentosProspecto();
-    this.consultarCuentaComercio();
-    this.consultarArbolEdicion();
+    this.cargarContextoBff();
   }
 
   get arbol(): NodoRegistro[] {
