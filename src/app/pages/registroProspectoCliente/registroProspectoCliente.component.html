@@ -1,4 +1,12 @@
 <div class="registro-shell" [class.internal-registration]="modoInterno">
+  @if (registroFinalizado && !modoInterno) {
+  <div class="token-modal-backdrop">
+    <div class="token-modal" role="dialog" aria-modal="true" aria-label="Registro finalizado">
+      <div class="token-modal-body"><p>El registro ya está finalizado.</p></div>
+      <button type="button" class="button primary" (click)="cerrarPagina()">Aceptar</button>
+    </div>
+  </div>
+  }
   @if (errorProspecto) {
   <div class="token-modal-backdrop">
     <div class="token-modal" role="alertdialog" aria-modal="true" aria-labelledby="prospect-error-message">

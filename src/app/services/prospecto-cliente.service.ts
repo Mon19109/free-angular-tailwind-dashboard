@@ -7,6 +7,8 @@ import { HttpContext } from '@angular/common/http';
 import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
 export interface ProspectoClienteResponse {
   success?: boolean;
+  smsValidated?: boolean;
+  registration?: { status: 'PENDING' | 'PARTIAL' | 'COMPLETED' | 'UNVERIFIED'; liquidationComplete: boolean | null; platformComplete: boolean | null };
   message?: string;
   error?: { name?: string; message?: string; code?: string };
   accountResponse?: ProspectoCliente;

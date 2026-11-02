@@ -7,6 +7,13 @@ import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
 export class SeguimientoProspectoService {
   private readonly http = inject(HttpClient);
 
+  guardarAccesos(nodeRef: string, users: Array<{kind: string; name: string; paternalSurname: string; maternalSurname: string; email: string; phoneNumber: string}>): Observable<{success: boolean; registration?: {status: string}}> {
+    return this.http.post<{success: boolean; registration?: {status: string}}>(
+      `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/accesos`, { users },
+      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH_TOKEN, true), headers: { 'X-Portal-Request': '1' } }
+    ).pipe(map(response => { if (response?.success !== true) throw new Error('No fue posible confirmar los accesos.'); return response; }));
+  }
+
   renovarAcceso(): Observable<unknown> {
   return this.http.post(
     '/api/seguimiento-prospecto/renovar',
