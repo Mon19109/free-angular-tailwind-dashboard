@@ -1,12 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../environments/environments';
 
 export interface EnviarInvitacionComercioRequest {
   email: string;
   name: string;
-  affiliationNumber: string;
 }
 
 @Injectable({
@@ -14,9 +12,12 @@ export interface EnviarInvitacionComercioRequest {
 })
 export class EnviarInvitacionComercioService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${environment.api.kashpay}api/v1/commerce/sendingPre_registrationLink`;
+  private readonly url = '/api/invitaciones/comercio';
 
-  enviarInvitacion(payload: EnviarInvitacionComercioRequest): Observable<any> {
-    return this.http.post<any>(this.url, payload);
+  enviarInvitacion(payload: EnviarInvitacionComercioRequest): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(this.url, { email: payload.email, name: payload.name }, {
+      withCredentials: true,
+      headers: { 'X-Portal-Request': '1' }
+    });
   }
 }
