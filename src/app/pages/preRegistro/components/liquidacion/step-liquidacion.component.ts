@@ -32,6 +32,8 @@ export class StepLiquidacionComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   @Input() preregistroPublico = false;
+  // Seguimiento migra giros sin cambiar los contratos de los demás catálogos.
+  @Input() girosPublicos = false;
   @Input() form!: FormGroup;
   @Input() tiposCuenta: string[] = [];
   @Input() beneficiarioIgualComercio = false;
@@ -283,7 +285,7 @@ export class StepLiquidacionComponent implements OnInit {
 
     this.cargandoGiros = true;
     this.errorGiros = '';
-    this.preRegistroService.getGirosByFamily(family, this.preregistroPublico).subscribe({
+    this.preRegistroService.getGirosByFamily(family, this.preregistroPublico || this.girosPublicos).subscribe({
       next: response => {
         this.girosBusqueda = this.normalizarGiros(response);
         this.cargandoGiros = false;

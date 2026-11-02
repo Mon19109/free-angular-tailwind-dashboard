@@ -1,4 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
+import { StepLiquidacionComponent } from '../preRegistro/components/liquidacion/step-liquidacion.component';
 import { AuthService } from '../../services/auth.service';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
@@ -29,6 +30,21 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     // cerrarPagina programa la salida a los 100 ms. Mantener los spies activos
     // hasta resolver ese callback evita navegar el navegador de pruebas.
     await new Promise(resolve => window.setTimeout(resolve, 110));
+  });
+
+  it('busca giros del seguimiento en el catálogo BFF sin cambiar otros catálogos', () => {
+    const step = TestBed.runInInjectionContext(() => new StepLiquidacionComponent());
+    step.form = component.liquidacionForm;
+    step.form.patchValue({ tipoPersonaBeneficiario: 'moral' });
+    step.habilitarBusquedasCatalogo = true;
+    step.girosPublicos = true;
+    expect(step.preregistroPublico).toBeFalse();
+    (step as any).buscarGirosComerciales('780');
+    const request = http.expectOne('/preregistro/giros?family=780');
+    expect(request.request.headers.has('Authorization')).toBeFalse();
+    request.flush({ data: [{ giro: 780, descripcion: 'Giro público' }] });
+    expect(step.cargandoGiros).toBeFalse();
+    expect(step.girosBusqueda.length).toBe(1);
   });
 
   it('guarda En Red desde consulta con el GUID del GET sin abrir accesos', () => {
@@ -222,10 +238,25 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component.liquidacionCompleta).toBeTrue();
   });
 
+  for (const response of [null, {}, { success: false }, { success: 'true' }, { success: true }]) {
+    it(`SMS exige confirmación booleana explícita: ${JSON.stringify(response)}`, () => {
+      component.cargando = false;
+      component.prospecto = { commerceGuid: 'fixture-guid' };
+      component.tokenValue = '123456';
+      const read = spyOn(component, 'consultarCuentaComercio');
+      component.validarTokenSms();
+      http.expectOne(req => req.url === '/api/seguimiento-prospecto/validar-sms').flush(response);
+      const confirmed = response?.success === true;
+      expect((component as any).tokenSmsValidado).toBe(confirmed);
+      expect(read.calls.count()).toBe(confirmed ? 1 : 0);
+      if (!confirmed) expect(component.tokenErrorMessage).toContain('No fue posible confirmar');
+    });
+  }
+
   for (const status of [200, 400]) {
     it(`muestra el mensaje del prospecto y oculta SMS cuando el enlace falla con HTTP ${status}`, () => {
       component['cargarProspecto']();
-      const request = http.expectOne(req => req.url === `${environment.api.KashpayCoreAPI}prospect`);
+      const request = http.expectOne(req => req.url === '/api/seguimiento-prospecto/prospecto');
       const message = 'Enlace ya fue completado, verifique o reporte al Administrador.';
       request.flush({ success: false, error: { name: '', message, code: '4005' } }, { status, statusText: status === 200 ? 'OK' : 'Bad Request' });
       expect(component.errorProspecto).toBe(message);
@@ -269,7 +300,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   function completarSeguimiento() {
     const request = http.expectOne('/api/seguimiento-prospecto/completar');
     expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual({ url: 'link-prospecto', statusDescription: 'COMPLETED' });
+    expect(request.request.body).toEqual({});
     expect(request.request.headers.has('Authorization')).toBeFalse();
     return request;
   }
@@ -833,7 +864,7 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     completarSeguimiento().flush({ success: false });
     expect(component.accesosCompletos).toBeFalse();
     component.finalizar();
-    completarSeguimiento().flush(null);
+    completarSeguimiento().flush({ success: true });
     expect(component.accesosCompletos).toBeTrue();
     expect(component.modalAccesos).toBe('Sucursal');
     component.finalizar();
@@ -934,12 +965,12 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
   it('precarga el giro de persona moral por businessActivityCode', () => {
     component.cuentaComercio = { typePerson: 'PM', businessActivityCode: '780' };
     component['cargarFormulariosDesdeGet']();
-    const giro = http.expectOne(request => request.url.endsWith('/getGirosByFamily'));
+    const giro = http.expectOne(request => request.url === '/preregistro/giros');
     expect(giro.request.params.get('family')).toBe('780');
-    giro.flush({ data: { rows: [
+    giro.flush({ data: [
       { giro: 781, descripcion: 'Otro giro' },
       { giro: 780, descripcion: 'WYNN LAS VEGAS' }
-    ] } });
+    ] });
     expect(component.liquidacionForm.controls.tipoPersonaBeneficiario.value).toBe('moral');
     expect(component.liquidacionForm.controls.giro.value).toBe(780);
     expect(component.liquidacionForm.controls.giroBeneficiario.value).toBe('WYNN LAS VEGAS');

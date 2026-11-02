@@ -1,8 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { environment } from '../environments/environments';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
 
+
+import { HttpContext } from '@angular/common/http';
+import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
 export interface ProspectoClienteResponse {
   success?: boolean;
   message?: string;
@@ -35,53 +37,39 @@ export interface ProspectoClienteCapturaPayload {
   accesos: Record<string, unknown>;
 }
 
-export interface ValidarTokenSmsPayload {
-  commerceGuid: string;
-  id: string;
-  observations: string;
-}
+export interface ValidarTokenSmsPayload { tokenSms: string; }
 
 @Injectable({ providedIn: 'root' })
 export class ProspectoClienteService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = environment.api.KashpayCoreAPI;
-   private readonly apiUrl2 = environment.api.kashpay;
 
-  obtenerProspecto(prospectId: string, link: string): Observable<ProspectoClienteResponse> {
-    let params = new HttpParams().set('link', link);
-    if (prospectId) params = params.set('prospectId', prospectId);
 
-    return this.http.get<ProspectoClienteResponse>(
-      `${this.apiUrl}prospect`,
-      { params, headers: this.headers() }
-    );
-  }
+ obtenerProspecto(
+  _prospectId: string,
+  link: string
+): Observable<ProspectoClienteResponse> {
+  const params = new HttpParams().set('link', link);
+
+  return this.http.get<ProspectoClienteResponse>(
+    '/api/seguimiento-prospecto/prospecto',
+    {
+      params,
+      withCredentials: true,
+      context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
+    }
+  );
+}
 
   guardarCapturaCliente(payload: ProspectoClienteCapturaPayload): Observable<unknown> {
-    return this.http.post(
-      `${this.apiUrl}prospect`,
-      payload,
-      { headers: this.headers() }
-    );
+    // No hay un contrato público autorizado para esta escritura; nunca usar un Bearer fijo como permiso.
+    return throwError(() => new Error('La captura pública requiere una operación autorizada del BFF.'));
   }
 
   validarTokenSms(payload: ValidarTokenSmsPayload): Observable<unknown> {
-    return this.http.post(
-      //`${this.apiUrl}prospect/validateTokenSms`,
-       `${this.apiUrl2}api/commerce/validateOperationWithSMSToken`,
-      payload,
-      { headers: this.headers() }
-    );
-  }
-
-  private headers(): HttpHeaders {
-    return new HttpHeaders({
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      versionApp: '3',
-      //Authorization: `Bearer ${this.obtenerToken()}`
-      Authorization: `Bearer ${environment.bearerTokens.portal}`
-        });
+    return this.http.post('/api/seguimiento-prospecto/validar-sms',
+      { tokenSms: payload.tokenSms },
+      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
+        headers: { 'X-Portal-Request': '1' } });
   }
 
 }

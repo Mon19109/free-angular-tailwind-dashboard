@@ -1,7 +1,6 @@
-import { environment } from '../../environments/environments';
 import { CommonModule } from '@angular/common';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
-import { Component, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import {
   AbstractControl,
@@ -13,7 +12,8 @@ import {
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { concatMap, finalize, from, of, switchMap, tap, throwError, toArray } from 'rxjs';
+import { concatMap, finalize, from, interval, of, switchMap, tap, throwError, toArray } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -72,6 +72,7 @@ interface NodoProspecto {
 })
 export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private readonly sessionAuth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   @Input() modoInterno = false;
   @Input() soloLiquidacion = false;
   @Output() liquidacionGuardada = new EventEmitter<string>();
@@ -91,7 +92,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     if (this.nodoInterno) this.seleccionarNodo(this.nodoInterno);
   }
 
-  readonly prospectoBearerToken = environment.bearerTokens.portal;
+  get prospectoBearerToken(): string { return this.modoInterno ? this.sessionAuth.getToken() || '' : ''; }
   private readonly fb = inject(FormBuilder);
   private readonly registroAccesosService = inject(RegistroAccesosService);
   private readonly seguimientoProspectoService = inject(SeguimientoProspectoService);
@@ -106,7 +107,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private readonly cuentaComercioService = inject(CuentaComercioService);
   private readonly arbolNodosService = inject(ArbolNodosService);
   private readonly documentosService = inject(DocumentosProspectoService);
-  private readonly prospectIdStorageKey = 'kashpay.registro_prospecto.prospectId';
 
   readonly tiposCuenta = ['CLABE', 'Tarjeta'];
   private readonly usuariosBase: UsuarioAccesoConfig[] = [
@@ -235,6 +235,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   tokenErrorMessage = '';
   validandoToken = false;
   private tokenSmsValidado = false;
+  private renovacionSeguimientoIniciada = false;
   readonly mostrarSoloPasosFinales = true;
   seccionInformativaAbierta: 'comercio' | 'datos' | 'documentos' | null = 'comercio';
   cargandoDocumentos = false;
@@ -280,15 +281,11 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       const params = this.route.snapshot.queryParamMap;
       const pathLink = this.route.snapshot.paramMap.get('link') || '';
       this.prospectId = params.get('prospectId')
-        || params.get('prospect')
-        || params.get('id')
-        || localStorage.getItem(this.prospectIdStorageKey)
-        || '';
-      this.link = params.get('link') || pathLink;
+  || params.get('prospect')
+  || params.get('id')
+  || '';
 
-      if (params.get('prospectId') || params.get('prospect') || params.get('id')) {
-        localStorage.setItem(this.prospectIdStorageKey, this.prospectId);
-      }
+this.link = params.get('link') || pathLink;
     }
 
     this.liquidacionForm.controls.cuentaFueraRed.valueChanges
@@ -317,6 +314,39 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     this.cargarProspecto();
   }
 
+ private iniciarRenovacionSeguimiento(): void {
+  if (this.modoInterno || this.renovacionSeguimientoIniciada) return;
+
+  this.renovacionSeguimientoIniciada = true;
+
+  interval(5 * 60 * 1000)
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe(() => {
+      if (!this.tokenSmsValidado) return;
+
+     this.seguimientoProspectoService.renovarAcceso().subscribe({
+  error: (error) => {
+    // Un error temporal de conexión no debe cerrar el formulario.
+    if (error.status === 0 || error.status >= 500) {
+      console.warn('No fue posible renovar el acceso. Se intentará nuevamente.');
+      return;
+    }
+
+    // Solo exigir otro SMS cuando el BFF rechace la autorización.
+    if (
+      error.status === 401 ||
+      (error.status === 403 &&
+        error.error?.code === 'SEGUIMIENTO_SMS_REQUIRED')
+    ) {
+      this.tokenSmsValidado = false;
+      this.showTokenModal = true;
+      this.tokenErrorMessage =
+        'Tu acceso terminó. Valida nuevamente tu SMS.';
+    }
+  }
+});
+    });
+}
   validarTokenSms(): void {
     if (this.validandoToken || this.cargando || this.errorProspecto) return;
     const token = this.tokenValue.trim();
@@ -326,37 +356,27 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     }
 
     this.validandoToken = true;
+    this.tokenSmsValidado = false;
     this.tokenErrorMessage = '';
     this.prospectoService.validarTokenSms({
-      commerceGuid: this.texto(this.prospecto?.commerceGuid)
-        || this.texto(this.prospecto?.guidCommerce)
-        || this.prospectId,
-      id: '20001',
-      observations: token
+      tokenSms: token
     }).pipe(
       finalize(() => this.validandoToken = false)
     ).subscribe({
       next: (resp: any) => {
-        if (resp?.success === false) {
-          this.tokenErrorMessage = resp?.error?.message || resp?.message || 'El token capturado no es válido.';
+        if (resp?.success !== true) {
+          this.tokenErrorMessage = 'No fue posible confirmar la validación del token.';
           return;
         }
 
-        this.showTokenModal = false;
-        this.tokenSmsValidado = true;
-        if (this.prospecto) this.consultarCuentaComercio();
+       this.showTokenModal = false;
+this.tokenSmsValidado = true;
+this.iniciarRenovacionSeguimiento();
+if (this.prospecto) this.consultarCuentaComercio();
         else this.cargarProspecto();
       },
       error: (error: unknown) => {
-        const errorResponse = error as {
-          error?: {
-            error?: { message?: string };
-            message?: string;
-          };
-        };
-        this.tokenErrorMessage = errorResponse.error?.error?.message
-          || errorResponse.error?.message
-          || 'No fue posible validar el token.';
+        this.tokenErrorMessage = 'No fue posible validar el token. Inténtalo nuevamente.';
       }
     });
   }
@@ -375,7 +395,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   continuarLiquidacion(): void {
-    if (!this.nodoRequiereAccesos || this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
+  if (!this.nodoRequiereAccesos || this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
     if (this.liquidacionCompleta) {
       this.abrirAccesos();
       return;
@@ -396,7 +416,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       return;
     }
     const guid = this.texto(this.cuentaComercio?.['commerceGuid']).trim();
-    if (!guid) {
+    //if (!guid) {
+    if (this.modoInterno && !guid) {
       this.error = 'No se encontró el identificador del comercio para subir los documentos.';
       return;
     }
@@ -408,9 +429,10 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     const tipo = datos.tipoPersonaBeneficiario === 'moral' ? 'PM' : 'PF';
     const nombre = (tipo === 'PM' ? [datos.nombreBeneficiario] : [datos.nombreBeneficiario, datos.apellidoPaternoBeneficiario, datos.apellidoMaternoBeneficiario]).filter(Boolean).join(' ').trim();
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
-    const sirioId = nodo?.idSirio?.trim();
-
-    if (!sirioId) {
+    //const sirioId = nodo?.idSirio?.trim();
+    const sirioId = nodo?.idSirio?.trim() ?? '';
+    //if (!sirioId) {
+    if (this.modoInterno && !sirioId) {
       this.error = 'No se encontró el idSirio del nodo seleccionado para registrar la cuenta de liquidación.';
       return;
     }
@@ -445,6 +467,69 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
         typeAccount: tipo
       }
     };
+
+ if (!this.modoInterno) {
+      const nodeRef = this.nodoSeleccionado.trim();
+
+      if (!nodeRef) {
+        this.error = 'Selecciona un nodo válido para registrar la liquidación.';
+        return;
+      }
+
+      const carta = this.cartaLiquidacionArchivo;
+      const caratula = this.caratulaEdcArchivo;
+
+      if (!carta || !caratula) {
+        this.error = 'Adjunta los dos documentos PDF.';
+        return;
+      }
+const formData = new FormData();
+      formData.append('nodeRef', nodeRef);
+      formData.append(
+        'dispersionAccount',
+        datos.cuentaFueraRed === 'otros-bancos-en-red'
+          ? 'OTHER_BANK_AND_NETWORK'
+          : 'OTHER_BANK'
+      );
+
+      const {
+        identifier,
+        typeRegister,
+        typeTransfer,
+        show,
+        ...datosLiquidacion
+      } = payload;
+
+      formData.append('datosLiquidacion', JSON.stringify(datosLiquidacion));
+      formData.append('cartaLiquidacion', carta);
+      formData.append('caratulaEstadoCuenta', caratula);
+
+      this.error = '';
+      this.guardandoLiquidacion = true;
+
+      this.seguimientoProspectoService.guardarLiquidacion(formData)
+        .pipe(finalize(() => this.guardandoLiquidacion = false))
+       .subscribe({
+  next: (respuesta) => {
+    const resultado = respuesta as { success?: boolean };
+
+    if (resultado?.success !== true) {
+      this.error = 'El BFF no confirmó el registro de liquidación.';
+      return;
+    }
+
+    this.liquidacionRegistrada = true;
+    this.modalLiquidacion = 'guardada';
+  },
+          error: () => {
+            this.error =
+              'No fue posible completar la liquidación. Ocurrió un problema al procesar la información. Por favor, contacta al administrador para verificar el estado de tu solicitud antes de volver a intentarlo.';
+          }
+        });
+
+      return;
+    }
+
     this.error = '';
     this.guardandoLiquidacion = true;
     const documentos = this.documentosLiquidacionSubidos ? of([]) : this.preregistroDocumentosService.subirDocumentos([
@@ -482,8 +567,52 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   aceptarModalLiquidacion(): void {
+ if (!this.modoInterno && this.modalLiquidacion === 'guardada') {
+  if (!this.liquidacionRegistrada || this.guardandoLiquidacion) {
+    this.error = 'La liquidación todavía no está confirmada.';
+    return;
+  }
+
+  this.modalLiquidacion = null;
+  this.abrirAccesos();
+  return;
+}
     if (!this.nodoRequiereAccesos || !this.modalLiquidacion || this.guardandoLiquidacion) return;
     if (this.modalLiquidacion === 'en-red') {
+      if (!this.modoInterno) {
+  const nodeRef = this.nodoSeleccionado.trim();
+
+  if (!nodeRef || !this.liquidacionConsultada || this.guardandoLiquidacion) {
+    this.error = 'No se puede configurar la dispersión del nodo seleccionado.';
+    return;
+  }
+
+  this.error = '';
+  this.guardandoLiquidacion = true;
+
+  this.seguimientoProspectoService.guardarDispersionEnRed(nodeRef)
+  .pipe(finalize(() => this.guardandoLiquidacion = false))
+  .subscribe({
+    next: (respuesta) => {
+      const resultado = respuesta as { success?: boolean };
+
+      if (resultado?.success !== true) {
+        this.error = 'El BFF no confirmó la configuración de dispersión.';
+        return;
+      }
+
+      this.liquidacionRegistrada = true;
+      this.modalLiquidacion = null;
+      this.abrirAccesos();
+    },
+      error: () => {
+        this.error =
+          'No fue posible confirmar la dispersión. Contacta al administrador antes de volver a intentarlo.';
+      }
+    });
+
+  return;
+}
       const guid = this.texto(this.cuentaComercio?.['commerceGuid']).trim();
       if (!guid) {
         this.error = 'No se encontró el identificador del comercio en el resumen.';
@@ -641,6 +770,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   finalizar(): void {
+    if (this.bloquearOperacionPublicaPendiente()) return;
     if (this.errorProspecto || this.guardandoLiquidacion || !this.nodoRequiereAccesos || this.guardando || this.accesosCompletos) return;
     this.error = '';
     const link = this.link.trim();
@@ -743,8 +873,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       finalize(() => this.cargando = false)
     ).subscribe({
       next: resp => {
-        if (resp?.success === false) {
-          this.mostrarErrorProspecto(resp.error?.message || resp.message || 'No fue posible validar el link del prospecto.');
+        if (resp?.success !== true || !resp.accountResponse || typeof resp.accountResponse !== 'object') {
+          this.mostrarErrorProspecto(resp?.error?.message || resp?.message || 'No fue posible validar el link del prospecto.');
           return;
         }
         this.prospecto = resp?.accountResponse ?? null;
@@ -951,8 +1081,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
       && this.liquidacionForm.controls[campoId].value === codigo
       && this.liquidacionForm.controls[campoDescripcion].value === descripcionInicial;
     const consulta = tipo === 'moral'
-      ? this.preRegistroService.getGirosByFamily(String(codigo))
-      : this.actividadesService.getActividades();
+      ? this.preRegistroService.getGirosByFamily(String(codigo), !this.modoInterno)
+      : this.actividadesService.getActividades(!this.modoInterno);
     consulta.subscribe({
       next: respuesta => {
         if (!sigueVigente()) return;
@@ -1002,14 +1132,27 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   }
 
   private consultarDocumentos(commerceId: string): void {
-    if (!commerceId) return;
+    if (this.bloquearOperacionPublicaPendiente()) return;
+    if (!commerceId && !(this.link && !this.modoInterno)) return;
     this.cargandoDocumentos = true;
     const nodoId = this.nodoSeleccionado;
-    this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta()).pipe(
+    (this.link && !this.modoInterno
+  ? this.seguimientoProspectoService.consultarDocumentos()
+  : this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta())
+).pipe(
       finalize(() => { if (this.nodoSeleccionado === nodoId) this.cargandoDocumentos = false; })
     ).subscribe({
-      next: respuesta => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = respuesta.legalDocuments || respuesta.documents || []; },
-      error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = []; }
+      next: respuesta => {
+  if (this.nodoSeleccionado !== nodoId) return;
+
+  const datos = respuesta as {
+    legalDocuments?: DocumentoProspectoApi[];
+    documents?: DocumentoProspectoApi[];
+  };
+
+  this.documentosProspecto = datos.legalDocuments || datos.documents || [];
+},
+error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = []; }
     });
   }
 
@@ -1023,6 +1166,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   validarArchivo(_documento: DocumentoRequerido, _estado: 'APPROVED' | 'REJECTED'): void {}
 
   verDocumentoProspecto(documento: DocumentoRequerido): void {
+    if (this.bloquearOperacionPublicaPendiente()) return;
     if (documento.s3Key) {
       this.documentosService.consultarUrlArchivo(documento.s3Key, this.obtenerBearerConsulta()).subscribe(url => window.open(url, '_blank', 'noopener'));
       return;
@@ -1105,6 +1249,75 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     this.liquidacionExistente = false;
     this.liquidacionRegistrada = false;
     this.errorLiquidacion = '';
+    if (this.link && !this.modoInterno) {
+  const nodeRef = this.nodoSeleccionado.trim();
+
+  if (!nodeRef) {
+    this.errorLiquidacion = 'Selecciona un nodo válido.';
+    return;
+  }
+
+  this.cargandoCuenta = true;
+  const version = ++this.consultaCuentaVersion;
+
+  this.seguimientoProspectoService.consultarLiquidacionNodo(nodeRef)
+    .pipe(finalize(() => {
+      if (this.consultaCuentaVersion === version) {
+        this.cargandoCuenta = false;
+      }
+    }))
+    .subscribe({
+      next: respuesta => {
+        if (this.consultaCuentaVersion !== version) return;
+
+        const datos = respuesta as {
+          success?: boolean;
+          dispersionAccount?: string | null;
+          cuentaCLConfirmada?: boolean | null;
+        };
+
+        if (datos.success !== true) {
+          this.errorLiquidacion = 'No fue posible consultar la liquidación.';
+          return;
+        }
+
+        const opciones: Record<string, string> = {
+          NETWORK: 'en-red',
+          OTHER_BANK: 'otros-bancos',
+          OTHER_BANK_AND_NETWORK: 'otros-bancos-en-red'
+        };
+
+        const dispersion = datos.dispersionAccount ?? '';
+        const opcion = Object.prototype.hasOwnProperty.call(opciones, dispersion)
+          ? opciones[dispersion]
+          : undefined;
+
+        this.liquidacionConsultada = true;
+        //this.liquidacionExistente = datos.cuentaCLConfirmada === true;
+        this.liquidacionExistente =
+  dispersion === 'NETWORK' || datos.cuentaCLConfirmada === true;
+        this.liquidacionRegistrada = false;
+
+        if (opcion) {
+          this.liquidacionForm.controls.cuentaFueraRed.setValue(
+            opcion,
+            { emitEvent: false }
+          );
+        }
+
+        this.errorLiquidacion = '';
+        this.actualizarEstadoLiquidacion();
+        this.actualizarValidadoresAccesos();
+        this.pasoActivo = 'liquidacion';
+      },
+      error: () => {
+        if (this.consultaCuentaVersion !== version) return;
+        this.errorLiquidacion = 'No fue posible consultar la liquidación. Reintenta.';
+      }
+    });
+
+  return;
+}
     if (!nodo.idSirio) {
       this.errorLiquidacion = 'No se encontró el idSirio del nodo seleccionado.';
       return;
@@ -1307,7 +1520,47 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     return typeof valor === 'string' ? valor : '';
   }
 
+  private bloquearOperacionPublicaPendiente(): boolean {
+    if (this.modoInterno) return false;
+    this.error = 'Esta operación requiere la autorización del nodo de seguimiento en el BFF y aún no está disponible.';
+    return true;
+  }
+
   consultarCuentaComercio(): void {
+   if (!this.modoInterno) {
+  if (this.cargandoCuenta) return;
+
+  this.cargandoCuenta = true;
+  this.errorLiquidacion = '';
+  this.liquidacionConsultada = false;
+
+  this.seguimientoProspectoService.consultarCuenta()
+    .pipe(finalize(() => this.cargandoCuenta = false))
+    .subscribe({
+      next: respuesta => {
+        const datos = respuesta as {
+          success?: boolean;
+          entityInfo?: Record<string, unknown>;
+        };
+
+        if (datos.success !== true || !datos.entityInfo) {
+          this.errorLiquidacion =
+            'No fue posible consultar la cuenta del comercio.';
+          return;
+        }
+
+        this.cuentaComercio = this.extraerCuenta(respuesta);
+        this.cargarFormulariosDesdeGet();
+        this.consultarArbolPublico();
+      },
+      error: () => {
+        this.errorLiquidacion =
+          'No fue posible consultar la cuenta del comercio.';
+      }
+    });
+
+  return;
+}
     if (this.cargandoCuenta) return;
     if (this.arbolRealCargado) {
       this.consultarLiquidacionNodo();
@@ -1428,7 +1681,62 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     return undefined;
   }
 
+  private consultarArbolPublico(): void {
+  if (this.modoInterno || !this.tokenSmsValidado) return;
+
+  this.cargandoArbol = true;
+  this.errorArbol = '';
+
+  this.seguimientoProspectoService.consultarArbol()
+    .pipe(finalize(() => this.cargandoArbol = false))
+    .subscribe({
+      next: respuesta => {
+        const datos = respuesta as {
+          success?: boolean;
+          nodes?: ArbolNodoApi[];
+        };
+
+        if (datos.success !== true || !Array.isArray(datos.nodes)) {
+          this.errorArbol =
+            'No fue posible obtener el árbol autorizado del comercio.';
+          return;
+        }
+
+        const arbol = this.nodosDesdeArbol(datos.nodes);
+
+        if (!arbol.length) {
+          this.errorArbol =
+            'No se encontraron nodos autorizados para este comercio.';
+          return;
+        }
+
+        this.arbol = arbol;
+        this.arbolRealCargado = true;
+
+        const primerNodo =
+          this.buscarPrimerNodoAccesos(arbol) || arbol[0];
+
+        this.nodoSeleccionado = primerNodo.id;
+
+        // Aún falta consultar el estado de liquidación
+        // del nodo autorizado.
+        this.liquidacionConsultada = false;
+        this.liquidacionExistente = false;
+        this.liquidacionRegistrada = false;
+
+       this.errorLiquidacion =
+       'Pendiente de consultar el estado de liquidación del nodo seleccionado.';
+       this.actualizarValidadoresAccesos();
+       this.consultarLiquidacionNodo();
+      },
+      error: () => {
+        this.errorArbol =
+          'No fue posible consultar el árbol autorizado del comercio.';
+      }
+    });
+}
   private consultarArbolReal(sirioIdConsultado: string): void {
+    if (this.bloquearOperacionPublicaPendiente()) return;
     const nodeID = this.valorTexto(this.cuentaComercio?.['nodeID'])
       || this.valorTexto(this.cuentaComercio?.['nodeId'])
       || this.valorTexto(this.prospecto?.['nodeID'])
@@ -1442,7 +1750,10 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     const cuentaInicial = this.estadoLiquidacionActual();
     this.cargandoArbol = true;
     this.errorArbol = '';
-    this.arbolNodosService.obtenerArbol(nodeID, this.link ? this.prospectoBearerToken : undefined).pipe(
+    (this.link && !this.modoInterno
+  ? this.seguimientoProspectoService.consultarArbol()
+  : this.arbolNodosService.obtenerArbol(nodeID, this.obtenerBearerConsulta())
+).pipe(
       finalize(() => this.cargandoArbol = false)
     ).subscribe({
       next: respuesta => {
@@ -1479,8 +1790,17 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
 
   private nodoDesdeApi(nodo: ArbolNodoApi, index = 0): NodoProspecto | null {
     if (!nodo || typeof nodo !== 'object') return null;
-    const id = this.valorNodo(nodo, ['nodeID', 'nodeId', 'idNode', 'id', 'contextID', 'entityID', 'terminalID', 'terminalUserID']) || `nodo-${index + 1}`;
-    const hijos = this.hijosNodosArbol(nodo).map((hijo, i) => this.nodoDesdeApi(hijo, i)).filter((hijo): hijo is NodoProspecto => !!hijo);
+    const id = this.valorNodo(nodo, [
+  'ref',
+  'nodeID',
+  'nodeId',
+  'idNode',
+  'id',
+  'contextID',
+  'entityID',
+  'terminalID',
+  'terminalUserID'
+]) || `nodo-${index + 1}`;const hijos = this.hijosNodosArbol(nodo).map((hijo, i) => this.nodoDesdeApi(hijo, i)).filter((hijo): hijo is NodoProspecto => !!hijo);
     return {
       id,
       nombre: this.valorNodo(nodo, ['name', 'nodeName', 'contextDescription', 'nameCommerce', 'businessName', 'tuName', 'description']) || id,
