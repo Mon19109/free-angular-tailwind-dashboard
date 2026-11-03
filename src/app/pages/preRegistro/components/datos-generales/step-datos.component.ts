@@ -44,6 +44,8 @@ export class StepDatosComponent implements OnInit {
   @Input() localidadesFiscal: CodigoPostalLocalizacion[] = [];
   @Input() localidadesComercial: CodigoPostalLocalizacion[] = [];
   @Input() localidadesRepresentante: CodigoPostalLocalizacion[] = [];
+  // Sólo Consulta de Comercios: el DTO BFF contiene la descripción, sin ID de localidad.
+  @Input() conservarColoniaRepresentante = false;
   @Input() cargandoLocalidadesFiscal = false;
   @Input() cargandoLocalidadesComercial = false;
   @Input() cargandoLocalidadesRepresentante = false;
@@ -325,6 +327,15 @@ export class StepDatosComponent implements OnInit {
         };
       })
       .filter(option => option.value);
+  }
+
+  get usarSelectorColoniaRepresentante(): boolean {
+    if ((this.form.get('codigoPostalRepresentante')?.value || '').length !== 5) return false;
+    if (!this.conservarColoniaRepresentante) return true;
+    const colonia = this.form.get('coloniaRepresentante')?.value || '';
+    const opciones = this.localidadesRepresentanteOptions;
+    // No modificar el control al cargar opciones: conservar también la captura manual.
+    return opciones.length > 0 && (!colonia || opciones.some(opcion => opcion.value === colonia));
   }
 
   get placeholderColoniaFiscal(): string {

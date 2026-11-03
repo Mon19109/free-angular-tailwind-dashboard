@@ -319,7 +319,7 @@
         @if (esInvalido('codigoPostalRepresentante')) { <small>{{ mensajeCampo('codigoPostalRepresentante') }}</small> }
       </div>
       <div class="field"><label for="coloniaRepresentante">Colonia <b>*</b></label>
-        @if ((form.get('codigoPostalRepresentante')?.value || '').length === 5) {
+        @if (usarSelectorColoniaRepresentante) {
         <app-select
           [placeholder]="placeholderColoniaRepresentante"
           [options]="localidadesRepresentanteOptions"
