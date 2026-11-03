@@ -643,12 +643,12 @@ export class RegistroClienteComponent {
         const privados = /(?:id$|^id|guid|sirio|token|password)/i;
         this.camposEdicionBff = (Array.isArray(respuesta.permissions?.editFields) ? respuesta.permissions.editFields : []).filter(campo =>
           typeof campo === 'string' && Object.hasOwn(this.datosForm.controls, campo) && !privados.test(campo));
-        // El nivel procede del árbol autorizado, no de una posible entidad padre.
-        const tipos: Record<string, string> = { entidad: 'Empresa Grupo', sucursal: 'Sucursales de Grupo',
-          caja: 'Cuenta Terminal', 'sub-afiliado': 'Empresa Holding' };
+        // El BFF resuelve el catálogo; Angular sólo recibe la descripción.
+        const tipoComercio = typeof cuenta['tipoComercio'] === 'string' && cuenta['tipoComercio'].trim()
+          ? cuenta['tipoComercio'] : 'No disponible';
         // La verificación nunca debe reutilizar la captura local como evidencia del GET.
         if (cambiosEsperados) this.datosForm.reset({}, { emitEvent: false });
-        this.pintarCuentaComercio(cuenta, tipos[this.nivelSeleccionado] || '');
+        this.pintarCuentaComercio(cuenta, tipoComercio);
         if (cambiosEsperados) {
           const recibidos = this.datosForm.getRawValue() as Record<string, unknown>;
           const confirmado = Object.entries(cambiosEsperados).every(([campo, valor]) => recibidos[campo] === valor);
