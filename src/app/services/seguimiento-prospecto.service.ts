@@ -1,89 +1,85 @@
-import { HttpClient, HttpContext } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
+import { SeguimientoNavigationService } from './seguimiento-navigation.service';
+
+export interface DocumentoSeguimiento {
+  ref: string;
+  name: string | null;
+  documentType: string | null;
+  status: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SeguimientoProspectoService {
   private readonly http = inject(HttpClient);
+  private readonly navigation = inject(SeguimientoNavigationService);
 
   guardarAccesos(nodeRef: string, users: Array<{kind: string; name: string; paternalSurname: string; maternalSurname: string; email: string; phoneNumber: string}>): Observable<{success: boolean; registration?: {status: string}}> {
-    return this.http.post<{success: boolean; registration?: {status: string}}>(
+    return this.navigation.request(options => this.http.post<{success: boolean; registration?: {status: string}}>(
       `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/accesos`, { users },
-      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH_TOKEN, true), headers: { 'X-Portal-Request': '1' } }
-    ).pipe(map(response => { if (response?.success !== true) throw new Error('No fue posible confirmar los accesos.'); return response; }));
+      options
+    )).pipe(map(response => { if (response?.success !== true) throw new Error('No fue posible confirmar los accesos.'); return response; }));
   }
 
   renovarAcceso(): Observable<unknown> {
-  return this.http.post(
+  return this.navigation.request(options => this.http.post(
     '/api/seguimiento-prospecto/renovar',
     {},
-    {
-      withCredentials: true,
-      context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
-      headers: { 'X-Portal-Request': '1' }
-    }
-  );
+    options
+  ));
 }
     consultarCuenta(): Observable<unknown> {
-    return this.http.get(
+    return this.navigation.request(options => this.http.get(
       '/api/seguimiento-prospecto/cuenta',
-      {
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
-      }
-    );
+      options
+    ));
   }
 
   consultarArbol(): Observable<unknown> {
-    return this.http.get(
+    return this.navigation.request(options => this.http.get(
       '/api/seguimiento-prospecto/arbol',
-      {
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
-      }
-    );
+      options
+    ));
   }
 
   consultarLiquidacionNodo(nodeRef: string): Observable<unknown> {
-  return this.http.get(
+  return this.navigation.request(options => this.http.get(
     `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/liquidacion`,
-    {
-      withCredentials: true,
-      context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
-    }
-  );
+    options
+  ));
 }
 
 guardarDispersionEnRed(nodeRef: string): Observable<unknown> {
-  return this.http.put(
+  return this.navigation.request(options => this.http.put(
     `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/dispersion`,
     { dispersionAccount: 'NETWORK' },
-    {
-      withCredentials: true,
-      context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
-      headers: { 'X-Portal-Request': '1' }
-    }
-  );
+    options
+  ));
 }
 
-  consultarDocumentos(): Observable<unknown> {
-    return this.http.get(
+  consultarDocumentos(): Observable<{ success: true; documents: DocumentoSeguimiento[] }> {
+    return this.navigation.request(options => this.http.get<{ success: boolean; documents: DocumentoSeguimiento[] }>(
       '/api/seguimiento-prospecto/documentos',
-      {
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
+      options
+    )).pipe(map(response => {
+      if (response?.success !== true || !Array.isArray(response.documents)
+        || response.documents.some(document => !document || typeof document.ref !== 'string'
+          || !document.ref || [document.name, document.documentType, document.status]
+            .some(value => value !== null && typeof value !== 'string'))) {
+        throw new Error('No fue posible confirmar la consulta de documentos.');
       }
-    );
+      // El contrato público sólo contiene metadatos; nunca trasladar URL o claves privadas.
+      return { success: true as const, documents: response.documents.map(({ ref, name, documentType, status }) => ({ ref, name, documentType, status })) };
+    }));
   }
 
   completar(_url: string): Observable<void> {
-    return this.http.put<{ success?: boolean; message?: string } | null>(
+    return this.navigation.request(options => this.http.put<{ success?: boolean; message?: string } | null>(
       '/api/seguimiento-prospecto/completar',
       {},
-      { context: new HttpContext().set(SKIP_AUTH_TOKEN, true), withCredentials: true,
-        headers: { 'X-Portal-Request': '1' } }
-    ).pipe(map(respuesta => {
+      options
+    )).pipe(map(respuesta => {
       if (respuesta?.success !== true) {
         throw new Error('No fue posible confirmar la finalización del seguimiento del prospecto.');
       }
@@ -93,20 +89,14 @@ guardarDispersionEnRed(nodeRef: string): Observable<unknown> {
     success: boolean;
     message?: string;
   }> {
-    return this.http.post<{
+    return this.navigation.request(options => this.http.post<{
       success: boolean;
       message?: string;
     }>(
       '/api/seguimiento-prospecto/liquidacion',
       formData,
-      {
-        withCredentials: true,
-        context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
-        headers: {
-          'X-Portal-Request': '1'
-        }
-      }
-    ).pipe(
+      options
+    )).pipe(
       map(respuesta => {
         if (respuesta?.success !== true) {
           throw new Error('No fue posible procesar la liquidación.');

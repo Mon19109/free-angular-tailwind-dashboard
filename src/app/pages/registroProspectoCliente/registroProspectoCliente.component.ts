@@ -13,8 +13,7 @@ import {
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { concatMap, finalize, from, interval, of, switchMap, tap, throwError, toArray } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { concatMap, finalize, from, map, Observable, of, switchMap, tap, throwError, toArray } from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -35,6 +34,7 @@ import { PreRegistroService } from '../../services/preregistro.service';
 import { PreregistroDocumentosService } from '../../services/preregistro-documentos.service';
 import { RegistroAccesoPayload, RegistroAccesosService } from '../../services/registro-accesos.service';
 import { SeguimientoProspectoService } from '../../services/seguimiento-prospecto.service';
+import { SeguimientoNavigationService } from '../../services/seguimiento-navigation.service';
 
 type ModoReserva = 'NINGUNO' | 'MANUAL' | 'TRANSACCIONAL' | 'AUTOMÁTICO' | 'COMPLETO';
 type TipoPersonaBeneficiario = 'fisica' | 'moral';
@@ -97,6 +97,9 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly registroAccesosService = inject(RegistroAccesosService);
   private readonly seguimientoProspectoService = inject(SeguimientoProspectoService);
+  private readonly seguimientoNavigation = inject(SeguimientoNavigationService);
+  private seguimientoVersion = 0;
+  private consultaArbolVersion = 0;
   private readonly accesosCompletadosPorNodo = new Set<string>();
   private readonly preregistroDocumentosService = inject(PreregistroDocumentosService);
   private readonly actualizarDatosComercioService = inject(ActualizarDatosComercioService);
@@ -238,10 +241,13 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   tokenErrorMessage = '';
   validandoToken = false;
   private tokenSmsValidado = false;
-  private renovacionSeguimientoIniciada = false;
   readonly mostrarSoloPasosFinales = true;
   seccionInformativaAbierta: 'comercio' | 'datos' | 'documentos' | null = 'comercio';
   cargandoDocumentos = false;
+  errorDocumentos = '';
+  private consultaDocumentosVersion = 0;
+  private nodoRaizPublico = '';
+  private documentosRaiz: DocumentoProspectoApi[] | null = null;
   documentosProspecto: DocumentoProspectoApi[] = [];
   archivosInvalidos = false;
   cartaLiquidacionArchivoNombre = '';
@@ -322,40 +328,6 @@ this.link = params.get('link') || pathLink;
     this.cargarProspecto();
   }
 
- private iniciarRenovacionSeguimiento(): void {
-  if (this.modoInterno || this.renovacionSeguimientoIniciada) return;
-
-  this.renovacionSeguimientoIniciada = true;
-
-  interval(5 * 60 * 1000)
-    .pipe(takeUntilDestroyed(this.destroyRef))
-    .subscribe(() => {
-      if (!this.tokenSmsValidado) return;
-
-     this.seguimientoProspectoService.renovarAcceso().subscribe({
-  error: (error) => {
-    // Un error temporal de conexión no debe cerrar el formulario.
-    if (error.status === 0 || error.status >= 500) {
-      console.warn('No fue posible renovar el acceso. Se intentará nuevamente.');
-      return;
-    }
-
-    // Solo exigir otro SMS cuando el BFF rechace la autorización.
-    if (
-      error.status === 401 ||
-      (error.status === 403 &&
-        error.error?.code === 'SEGUIMIENTO_SMS_REQUIRED')
-    ) {
-      this.tokenSmsValidado = false;
-      this.showTokenModal = true;
-      this.tokenErrorMessage =
-        'Tu acceso terminó. Valida nuevamente tu SMS.';
-      if (error.status === 401) this.cargarProspecto();
-    }
-  }
-});
-    });
-}
   validarTokenSms(): void {
     if (this.tokenSmsValidado || this.registroFinalizado || this.validandoToken || this.cargando || this.errorProspecto) return;
     const token = this.tokenValue.trim();
@@ -367,12 +339,14 @@ this.link = params.get('link') || pathLink;
     this.validandoToken = true;
     this.tokenSmsValidado = false;
     this.tokenErrorMessage = '';
+    const version = this.seguimientoVersion;
     this.prospectoService.validarTokenSms({
       tokenSms: token
     }).pipe(
-      finalize(() => this.validandoToken = false)
+      finalize(() => { if (this.seguimientoVersion === version) this.validandoToken = false; })
     ).subscribe({
       next: (resp: any) => {
+        if (this.seguimientoVersion !== version) return;
         if (resp?.success !== true) {
           this.tokenErrorMessage = 'No fue posible confirmar la validación del token.';
           return;
@@ -380,11 +354,11 @@ this.link = params.get('link') || pathLink;
 
        this.showTokenModal = false;
 this.tokenSmsValidado = true;
-this.iniciarRenovacionSeguimiento();
 if (this.prospecto) this.consultarCuentaComercio();
         else this.cargarProspecto();
       },
       error: (error: unknown) => {
+        if (this.seguimientoVersion !== version) return;
         this.tokenErrorMessage = 'No fue posible validar el token. Inténtalo nuevamente.';
       }
     });
@@ -392,6 +366,65 @@ if (this.prospecto) this.consultarCuentaComercio();
 
   clearTokenError(): void {
     this.tokenErrorMessage = '';
+  }
+
+  @HostListener('window:pageshow', ['$event'])
+  restaurarNavegacionPublica(event: PageTransitionEvent): void {
+    if (this.modoInterno || !event.persisted) return;
+    const version = ++this.seguimientoVersion;
+    this.consultaCuentaVersion++;
+    this.consultaCatalogoVersion++;
+    this.consultaDocumentosVersion++;
+    this.consultaArbolVersion++;
+    this.tokenSmsValidado = false;
+    this.showTokenModal = false;
+    this.validandoToken = false;
+    this.tokenValue = '';
+    this.tokenErrorMessage = '';
+    this.registroFinalizado = false;
+    this.error = '';
+    this.errorProspecto = '';
+    this.errorArbol = '';
+    this.errorDocumentos = '';
+    this.errorLiquidacion = '';
+    this.cargando = true;
+    this.cargandoCuenta = false;
+    this.cargandoArbol = false;
+    this.cargandoDocumentos = false;
+    this.guardando = false;
+    this.guardandoLiquidacion = false;
+    this.prospecto = null;
+    this.cuentaComercio = null;
+    this.nodoSeleccionado = '';
+    this.nodoRaizPublico = '';
+    this.arbol = [];
+    this.arbolRealCargado = false;
+    this.documentosRaiz = null;
+    this.documentosProspecto = [];
+    this.liquidacionConsultada = false;
+    this.liquidacionExistente = false;
+    this.liquidacionRegistrada = false;
+    this.modalLiquidacion = null;
+    this.modalAccesos = null;
+    this.cartaLiquidacionArchivo = null;
+    this.caratulaEdcArchivo = null;
+    this.cartaLiquidacionArchivoNombre = '';
+    this.caratulaEdcArchivoNombre = '';
+    this.documentosLiquidacionSubidos = false;
+    this.accesosCompletadosPorNodo.clear();
+    this.accesosPorNodo = {};
+    this.perfilesEnviadosPorNodo = {};
+    Object.keys(this.liquidacionPorNodo).forEach(key => delete this.liquidacionPorNodo[key]);
+    this.accesosForm.reset({}, { emitEvent: false });
+    this.liquidacionForm.reset({}, { emitEvent: false });
+    this.seguimientoNavigation.restartForNavigation().subscribe({
+      next: () => { if (this.seguimientoVersion === version) this.cargarProspecto(); },
+      error: () => {
+        if (this.seguimientoVersion !== version) return;
+        this.cargando = false;
+        this.mostrarErrorProspecto('No fue posible iniciar una nueva verificación del seguimiento. Abre nuevamente el enlace.');
+      }
+    });
   }
 
   alternarSeccionInformativa(seccion: 'comercio' | 'datos' | 'documentos'): void {
@@ -404,7 +437,7 @@ if (this.prospecto) this.consultarCuentaComercio();
   }
 
   continuarLiquidacion(): void {
-    if (!this.modoInterno && this.registroFinalizado) return;
+    if (!this.modoInterno && (!this.tokenSmsValidado || this.registroFinalizado)) return;
   if (!this.nodoRequiereAccesos || this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
     if (this.liquidacionCompleta) {
       this.abrirAccesos();
@@ -516,11 +549,13 @@ const formData = new FormData();
 
       this.error = '';
       this.guardandoLiquidacion = true;
+      const version = this.consultaCuentaVersion;
 
       this.seguimientoProspectoService.guardarLiquidacion(formData)
-        .pipe(finalize(() => this.guardandoLiquidacion = false))
+        .pipe(finalize(() => { if (this.consultaCuentaVersion === version) this.guardandoLiquidacion = false; }))
        .subscribe({
   next: (respuesta) => {
+    if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
     const resultado = respuesta as { success?: boolean };
 
     if (resultado?.success !== true) {
@@ -531,7 +566,9 @@ const formData = new FormData();
     this.liquidacionRegistrada = true;
     this.modalLiquidacion = 'guardada';
   },
-          error: () => {
+          error: error => {
+            if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
+            this.manejarErrorAutorizacionPublica(error);
             this.error =
               'No fue posible completar la liquidación. Ocurrió un problema al procesar la información. Por favor, contacta al administrador para verificar el estado de tu solicitud antes de volver a intentarlo.';
           }
@@ -577,7 +614,7 @@ const formData = new FormData();
   }
 
   aceptarModalLiquidacion(): void {
-    if (!this.modoInterno && this.registroFinalizado) return;
+    if (!this.modoInterno && (!this.tokenSmsValidado || this.registroFinalizado)) return;
  if (!this.modoInterno && this.modalLiquidacion === 'guardada') {
   if (!this.liquidacionRegistrada || this.guardandoLiquidacion) {
     this.error = 'La liquidación todavía no está confirmada.';
@@ -589,6 +626,11 @@ const formData = new FormData();
   return;
 }
     if (!this.nodoRequiereAccesos || !this.modalLiquidacion || this.guardandoLiquidacion) return;
+    if (!this.modoInterno && this.liquidacionCompleta) {
+      this.modalLiquidacion = null;
+      this.abrirAccesos();
+      return;
+    }
     if (this.modalLiquidacion === 'en-red') {
       if (!this.modoInterno) {
   const nodeRef = this.nodoSeleccionado.trim();
@@ -600,11 +642,13 @@ const formData = new FormData();
 
   this.error = '';
   this.guardandoLiquidacion = true;
+  const version = this.consultaCuentaVersion;
 
   this.seguimientoProspectoService.guardarDispersionEnRed(nodeRef)
-  .pipe(finalize(() => this.guardandoLiquidacion = false))
+  .pipe(finalize(() => { if (this.consultaCuentaVersion === version) this.guardandoLiquidacion = false; }))
   .subscribe({
     next: (respuesta) => {
+      if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
       const resultado = respuesta as { success?: boolean };
 
       if (resultado?.success !== true) {
@@ -616,7 +660,9 @@ const formData = new FormData();
       this.modalLiquidacion = null;
       this.abrirAccesos();
     },
-      error: () => {
+      error: error => {
+        if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
+        this.manejarErrorAutorizacionPublica(error);
         this.error =
           'No fue posible confirmar la dispersión. Contacta al administrador antes de volver a intentarlo.';
       }
@@ -664,6 +710,7 @@ const formData = new FormData();
   }
 
   private abrirAccesos(): void {
+    if (!this.liquidacionCompleta || this.cargandoCuenta || !this.nodoRequiereAccesos) return;
     this.error = '';
     if (this.soloLiquidacion) {
       this.liquidacionGuardada.emit(this.liquidacionForm.controls.cuentaFueraRed.value);
@@ -754,7 +801,7 @@ const formData = new FormData();
       return;
     }
     if (seccion === 'liquidacion') this.volverLiquidacion();
-    else this.continuarLiquidacion();
+    else if (this.liquidacionCompleta) this.abrirAccesos();
   }
 
   get accesosCompletos(): boolean {
@@ -781,7 +828,8 @@ const formData = new FormData();
   }
 
   private finalizarAccesosPublicos(): void {
-    if (!this.tokenSmsValidado || this.registroFinalizado || this.guardando || this.guardandoLiquidacion || !this.nodoRequiereAccesos) return;
+    if (!this.tokenSmsValidado || this.registroFinalizado || this.guardando || this.guardandoLiquidacion
+      || this.cargandoCuenta || !this.nodoRequiereAccesos || this.accesosCompletos) return;
     this.actualizarValidadoresAccesos();
     this.accesosForm.markAllAsTouched();
     if (!this.liquidacionCompleta || this.accesosForm.invalid || !this.nodoSeleccionado) {
@@ -789,6 +837,7 @@ const formData = new FormData();
       return;
     }
     const nodeRef = this.nodoSeleccionado;
+    const version = this.consultaCuentaVersion;
     const users = this.usuariosAcceso.map(usuario => {
       const value = (field: string) => String(this.accesosForm.get(`${usuario.prefijo}${field}`)?.value ?? '').trim();
       return { kind: usuario.prefijo, name: value('Nombre'), paternalSurname: value('Paterno'), maternalSurname: value('Materno'), email: value('Correo'), phoneNumber: value('Telefono') };
@@ -797,27 +846,38 @@ const formData = new FormData();
     this.error = '';
     let completed = false;
     this.seguimientoProspectoService.guardarAccesos(nodeRef, users).pipe(
+      tap(() => {
+        if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
+        this.accesosCompletadosPorNodo.add(nodeRef);
+        this.cuentaComercio = { ...this.cuentaComercio, hasPlatformAccess: true };
+      }),
       switchMap(result => {
+        if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return of(undefined);
         completed = result.registration?.status === 'COMPLETED';
         return completed ? this.seguimientoProspectoService.completar(this.link) : of(undefined);
       }),
-      finalize(() => this.guardando = false)
+      finalize(() => { if (this.consultaCuentaVersion === version) this.guardando = false; })
     ).subscribe({
       next: () => {
-        if (this.nodoSeleccionado !== nodeRef) return;
+        if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
         this.accesosCompletadosPorNodo.add(nodeRef);
         this.cuentaComercio = { ...this.cuentaComercio, hasPlatformAccess: true };
         this.registroFinalizado = completed;
         if (completed) { this.tokenSmsValidado = false; this.showTokenModal = false; }
         if (!completed) this.modalAccesos = this.buscarNodo(this.arbol, nodeRef)?.nombre ?? 'Comercio';
       },
-      error: () => { if (this.nodoSeleccionado === nodeRef) this.error = 'No fue posible confirmar el registro de accesos. No se repetirán automáticamente las escrituras.'; }
+      error: error => {
+        if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
+        this.manejarErrorAutorizacionPublica(error);
+        this.error = this.accesosCompletos
+          ? 'Los accesos están confirmados, pero no fue posible confirmar la finalización. Contacta al administrador; no se repetirán los registros.'
+          : 'No fue posible confirmar el registro de accesos. No se repetirán automáticamente las escrituras.';
+      }
     });
   }
 
   finalizar(): void {
     if (!this.modoInterno) { this.finalizarAccesosPublicos(); return; }
-    if (this.bloquearOperacionPublicaPendiente()) return;
     if (this.errorProspecto || this.guardandoLiquidacion || !this.nodoRequiereAccesos || this.guardando || this.accesosCompletos) return;
     this.error = '';
     const link = this.link.trim();
@@ -915,11 +975,13 @@ const formData = new FormData();
   private cargarProspecto(): void {
     this.cargando = true;
     this.error = '';
+    const version = this.seguimientoVersion;
 
     this.prospectoService.obtenerProspecto(this.prospectId, this.link).pipe(
-      finalize(() => this.cargando = false)
+      finalize(() => { if (this.seguimientoVersion === version) this.cargando = false; })
     ).subscribe({
       next: resp => {
+        if (this.seguimientoVersion !== version) return;
         if (resp?.success !== true || !resp.accountResponse || typeof resp.accountResponse !== 'object') {
           this.mostrarErrorProspecto(resp?.error?.message || resp?.message || 'No fue posible validar el link del prospecto.');
           return;
@@ -931,11 +993,11 @@ const formData = new FormData();
         if (this.registroFinalizado) return;
         this.precargarDatosProspecto();
         if (this.tokenSmsValidado) {
-          this.iniciarRenovacionSeguimiento();
           this.consultarCuentaComercio();
         }
       },
       error: respuesta => {
+        if (this.seguimientoVersion !== version) return;
         this.mostrarErrorProspecto(respuesta?.error?.error?.message || respuesta?.error?.message || 'No fue posible validar el link del prospecto.');
       }
     });
@@ -991,10 +1053,10 @@ const formData = new FormData();
       numero: index + 1,
       nombre: this.texto(documento.documentName || documento.name || documento.fileName) || `Documento ${index + 1}`,
       obligatorio: true,
-      archivoNombre: this.texto(documento.originalName || documento.fileName || documento.documentName),
-      archivoUrl: this.texto(documento.url || documento.fileUrl || documento.path),
+      archivoNombre: this.texto(documento.originalName || documento.fileName || documento.documentName || documento.name),
+      archivoUrl: this.modoInterno ? this.texto(documento.url || documento.fileUrl || documento.path) : '',
       archivoId: this.texto(documento.id || documento.documentID || documento.documentId),
-      s3Key: this.texto(documento.s3Key),
+      s3Key: this.modoInterno ? this.texto(documento.s3Key) : '',
       estatusRevision: this.estatusDocumento(documento)
     }));
   }
@@ -1074,7 +1136,6 @@ const formData = new FormData();
     }, { emitEvent: false });
     this.comercioForm.disable({ emitEvent: false });
     this.datosForm.disable({ emitEvent: false });
-    if (!this.modoInterno) this.consultarDocumentos(this.texto(datos['commerceID'] || datos['commerceId'] || datos['commerceGuid'] || this.prospecto?.id));
     if (this.liquidacionForm.controls.beneficiarioIgualComercio.value) {
       this.sincronizarBeneficiarioDesdeComercio();
     } else {
@@ -1185,28 +1246,45 @@ const formData = new FormData();
       : [];
   }
 
-  private consultarDocumentos(commerceId: string): void {
-    if (this.bloquearOperacionPublicaPendiente()) return;
-    if (!commerceId && !(this.link && !this.modoInterno)) return;
+  get documentosDelNodoDisponibles(): boolean {
+    return this.modoInterno || (!!this.nodoRaizPublico && this.nodoSeleccionado === this.nodoRaizPublico);
+  }
+
+  private consultarDocumentos(commerceId = ''): void {
+    if (!this.modoInterno && (!this.tokenSmsValidado || !this.documentosDelNodoDisponibles)) return;
+    if (this.modoInterno && !commerceId) return;
+    if (this.cargandoDocumentos) return;
     this.cargandoDocumentos = true;
+    this.errorDocumentos = '';
     const nodoId = this.nodoSeleccionado;
-    (this.link && !this.modoInterno
-  ? this.seguimientoProspectoService.consultarDocumentos()
-  : this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta())
-).pipe(
-      finalize(() => { if (this.nodoSeleccionado === nodoId) this.cargandoDocumentos = false; })
+    const version = ++this.consultaDocumentosVersion;
+    const sigueVigente = () => this.nodoSeleccionado === nodoId && this.consultaDocumentosVersion === version;
+    const consulta: Observable<DocumentoProspectoApi[]> = this.modoInterno
+      ? this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta()).pipe(
+        map(respuesta => respuesta.legalDocuments || respuesta.documents || [])
+      )
+      : this.seguimientoProspectoService.consultarDocumentos().pipe(
+        map(respuesta => respuesta.documents.map(documento => ({
+          id: documento.ref,
+          name: documento.name ?? undefined,
+          documentType: documento.documentType ?? undefined,
+          status: documento.status ?? undefined
+        })))
+      );
+    consulta.pipe(
+      finalize(() => { if (sigueVigente()) this.cargandoDocumentos = false; })
     ).subscribe({
-      next: respuesta => {
-  if (this.nodoSeleccionado !== nodoId) return;
-
-  const datos = respuesta as {
-    legalDocuments?: DocumentoProspectoApi[];
-    documents?: DocumentoProspectoApi[];
-  };
-
-  this.documentosProspecto = datos.legalDocuments || datos.documents || [];
-},
-error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = []; }
+      next: documentos => {
+        if (!sigueVigente()) return;
+        this.documentosProspecto = documentos;
+        if (!this.modoInterno) this.documentosRaiz = documentos;
+      },
+      error: error => {
+        if (!sigueVigente()) return;
+        this.manejarErrorAutorizacionPublica(error);
+        this.documentosProspecto = [];
+        this.errorDocumentos = 'No fue posible consultar los documentos del comercio. Puedes continuar con la liquidación y los accesos.';
+      }
     });
   }
 
@@ -1220,7 +1298,10 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
   validarArchivo(_documento: DocumentoRequerido, _estado: 'APPROVED' | 'REJECTED'): void {}
 
   verDocumentoProspecto(documento: DocumentoRequerido): void {
-    if (this.bloquearOperacionPublicaPendiente()) return;
+    if (!this.modoInterno) {
+      this.errorDocumentos = 'La visualización y descarga de archivos aún no están disponibles en este seguimiento.';
+      return;
+    }
     if (documento.s3Key) {
       this.documentosService.consultarUrlArchivo(documento.s3Key, this.obtenerBearerConsulta()).subscribe(url => window.open(url, '_blank', 'noopener'));
       return;
@@ -1230,6 +1311,7 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
 
   seleccionarNodo(id: string): void {
     if (this.guardando || this.guardandoLiquidacion || this.validandoArchivos) return;
+    if (!this.modoInterno && (!this.tokenSmsValidado || !this.buscarNodo(this.arbol, id))) return;
     this.error = '';
     if (id === this.nodoSeleccionado) return;
     this.guardarAccesosNodoActual();
@@ -1269,10 +1351,13 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
     const estado = this.liquidacionPorNodo[this.nodoSeleccionado];
     this.consultaCatalogoVersion++;
     this.consultaCuentaVersion++;
+    this.consultaDocumentosVersion++;
     this.datosForm.reset(estado?.datosComercio, { emitEvent: false });
     this.comercioForm.reset(estado?.comercio, { emitEvent: false });
-    this.documentosProspecto = estado?.documentos ?? [];
+    this.documentosProspecto = this.modoInterno ? estado?.documentos ?? []
+      : this.documentosDelNodoDisponibles ? this.documentosRaiz ?? [] : [];
     this.cargandoDocumentos = false;
+    this.errorDocumentos = '';
     this.liquidacionForm.reset(estado?.datos, { emitEvent: false });
     this.cuentaComercio = estado?.cuenta ?? null;
     this.liquidacionConsultada = !!estado;
@@ -1294,16 +1379,18 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
     this.cargandoCuenta = false;
     this.actualizarEstadoLiquidacion();
     if (!estado && this.nodoRequiereAccesos) this.consultarLiquidacionNodo();
+    if (!this.modoInterno && this.documentosDelNodoDisponibles && this.documentosRaiz === null) this.consultarDocumentos();
   }
 
   private consultarLiquidacionNodo(): void {
+    if (!this.modoInterno && !this.tokenSmsValidado) return;
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
     if (!nodo || !this.nodoRequiereAccesos) return;
     this.liquidacionConsultada = false;
     this.liquidacionExistente = false;
     this.liquidacionRegistrada = false;
     this.errorLiquidacion = '';
-    if (this.link && !this.modoInterno) {
+    if (!this.modoInterno) {
   const nodeRef = this.nodoSeleccionado.trim();
 
   if (!nodeRef) {
@@ -1322,7 +1409,7 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
     }))
     .subscribe({
       next: respuesta => {
-        if (this.consultaCuentaVersion !== version) return;
+        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef) return;
 
         const datos = respuesta as {
           success?: boolean;
@@ -1350,9 +1437,8 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
 
         this.cuentaComercio = { dispersionAccount: datos.dispersionAccount, hasPlatformAccess: datos.hasPlatformAccess, typeOfBusiness: datos.typeOfBusiness };
         this.liquidacionConsultada = true;
-        //this.liquidacionExistente = datos.cuentaCLConfirmada === true;
         this.liquidacionExistente =
-  dispersion === 'NETWORK' || datos.cuentaCLConfirmada === true;
+          dispersion === 'NETWORK' || (!!opcion && datos.cuentaCLConfirmada === true);
         this.liquidacionRegistrada = false;
 
         if (opcion) {
@@ -1365,10 +1451,11 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
         this.errorLiquidacion = '';
         this.actualizarEstadoLiquidacion();
         this.actualizarValidadoresAccesos();
-        this.pasoActivo = 'liquidacion';
+        this.pasoActivo = this.liquidacionCompleta ? 'accesos' : 'liquidacion';
       },
-      error: () => {
-        if (this.consultaCuentaVersion !== version) return;
+      error: error => {
+        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef) return;
+        this.manejarErrorAutorizacionPublica(error);
         this.errorLiquidacion = 'No fue posible consultar la liquidación. Reintenta.';
       }
     });
@@ -1577,24 +1664,31 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
     return typeof valor === 'string' ? valor : '';
   }
 
-  private bloquearOperacionPublicaPendiente(): boolean {
-    if (this.modoInterno) return false;
-    this.error = 'Esta operación requiere la autorización del nodo de seguimiento en el BFF y aún no está disponible.';
-    return true;
+  private manejarErrorAutorizacionPublica(error: unknown): void {
+    if (this.modoInterno) return;
+    const respuesta = error as { status?: number; error?: { code?: string } };
+    if (respuesta?.status === 401 || (respuesta?.status === 403
+      && ['SEGUIMIENTO_SMS_REQUIRED', 'SEGUIMIENTO_SCOPE_INVALID'].includes(respuesta.error?.code ?? ''))) {
+      this.mostrarErrorProspecto('La autorización del seguimiento ya no está vigente. Abre nuevamente el enlace para verificar el acceso.');
+    }
   }
 
   consultarCuentaComercio(): void {
    if (!this.modoInterno) {
+  if (!this.tokenSmsValidado || this.registroFinalizado) return;
   if (this.cargandoCuenta) return;
+  if (this.arbolRealCargado) { this.consultarLiquidacionNodo(); return; }
 
   this.cargandoCuenta = true;
   this.errorLiquidacion = '';
   this.liquidacionConsultada = false;
+  const version = ++this.consultaCuentaVersion;
 
   this.seguimientoProspectoService.consultarCuenta()
-    .pipe(finalize(() => this.cargandoCuenta = false))
+    .pipe(finalize(() => { if (this.consultaCuentaVersion === version) this.cargandoCuenta = false; }))
     .subscribe({
       next: respuesta => {
+        if (this.consultaCuentaVersion !== version) return;
         const datos = respuesta as {
           success?: boolean;
           entityInfo?: Record<string, unknown>;
@@ -1610,7 +1704,9 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
         this.cargarFormulariosDesdeGet();
         this.consultarArbolPublico();
       },
-      error: () => {
+      error: error => {
+        if (this.consultaCuentaVersion !== version) return;
+        this.manejarErrorAutorizacionPublica(error);
         this.errorLiquidacion =
           'No fue posible consultar la cuenta del comercio.';
       }
@@ -1739,15 +1835,17 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
   }
 
   private consultarArbolPublico(): void {
-  if (this.modoInterno || !this.tokenSmsValidado) return;
+  if (this.modoInterno || !this.tokenSmsValidado || this.cargandoArbol) return;
 
   this.cargandoArbol = true;
   this.errorArbol = '';
+  const version = ++this.consultaArbolVersion;
 
   this.seguimientoProspectoService.consultarArbol()
-    .pipe(finalize(() => this.cargandoArbol = false))
+    .pipe(finalize(() => { if (this.consultaArbolVersion === version) this.cargandoArbol = false; }))
     .subscribe({
       next: respuesta => {
+        if (this.consultaArbolVersion !== version) return;
         const datos = respuesta as {
           success?: boolean;
           nodes?: ArbolNodoApi[];
@@ -1769,6 +1867,11 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
 
         this.arbol = arbol;
         this.arbolRealCargado = true;
+        this.nodoRaizPublico = arbol[0].id;
+        this.documentosRaiz = null;
+        this.documentosProspecto = [];
+        this.consultaDocumentosVersion++;
+        this.cargandoDocumentos = false;
 
         const primerNodo =
           this.buscarPrimerNodoAccesos(arbol) || arbol[0];
@@ -1781,19 +1884,21 @@ error: () => { if (this.nodoSeleccionado === nodoId) this.documentosProspecto = 
         this.liquidacionExistente = false;
         this.liquidacionRegistrada = false;
 
-       this.errorLiquidacion =
-       'Pendiente de consultar el estado de liquidación del nodo seleccionado.';
+       this.errorLiquidacion = '';
        this.actualizarValidadoresAccesos();
        this.consultarLiquidacionNodo();
+       this.consultarDocumentos();
       },
-      error: () => {
+      error: error => {
+        if (this.consultaArbolVersion !== version) return;
+        this.manejarErrorAutorizacionPublica(error);
         this.errorArbol =
           'No fue posible consultar el árbol autorizado del comercio.';
       }
     });
 }
   private consultarArbolReal(sirioIdConsultado: string): void {
-    if (this.bloquearOperacionPublicaPendiente()) return;
+    if (!this.modoInterno) { this.consultarArbolPublico(); return; }
     const nodeID = this.valorTexto(this.cuentaComercio?.['nodeID'])
       || this.valorTexto(this.cuentaComercio?.['nodeId'])
       || this.valorTexto(this.prospecto?.['nodeID'])

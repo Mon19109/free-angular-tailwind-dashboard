@@ -4,15 +4,29 @@ import { TestBed } from '@angular/core/testing';
 import { authTokenInterceptor } from './auth-token.interceptor';
 import { PreRegistroService } from './preregistro.service';
 import { SeguimientoProspectoService } from './seguimiento-prospecto.service';
+import {
+  SEGUIMIENTO_NAVIGATION_COORDINATOR,
+  SEGUIMIENTO_NAVIGATION_TYPE,
+  SeguimientoNavigationService
+} from './seguimiento-navigation.service';
+import { of } from 'rxjs';
 
 describe('SeguimientoProspectoService (BFF)', () => {
   let http: HttpTestingController;
-  beforeEach(() => {
+  beforeEach(async () => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(withInterceptors([authTokenInterceptor])), provideHttpClientTesting()]
+      providers: [provideHttpClient(withInterceptors([authTokenInterceptor])), provideHttpClientTesting(),
+        { provide: SEGUIMIENTO_NAVIGATION_TYPE, useValue: 'navigate' },
+        { provide: SEGUIMIENTO_NAVIGATION_COORDINATOR, useValue: {
+          withNextSequence<T>(operation: (sequence: number) => Promise<T>) { return operation(1); },
+          withLock<T>(operation: () => Promise<T>) { return operation(); }
+        } }]
     });
     spyOn(localStorage, 'getItem').and.callFake(key => key === 'token' ? 'token-de-sesion' : null);
     http = TestBed.inject(HttpTestingController);
+    TestBed.inject(SeguimientoNavigationService).request(() => of(undefined)).subscribe();
+    http.expectOne('/api/seguimiento-prospecto/iniciar').flush({ success: true, context: '00000000-0000-4000-8000-000000000001' });
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
   });
   afterEach(() => http.verify());
 
@@ -26,11 +40,13 @@ describe('SeguimientoProspectoService (BFF)', () => {
     expect(req.request.headers.has('versionApp')).toBeFalse();
     expect(req.request.withCredentials).toBeTrue();
     expect(req.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(req.request.headers.get('X-Seguimiento-Context')).toBe('00000000-0000-4000-8000-000000000001');
     req.flush({ success: true });
     expect(completado).toBeTrue();
     TestBed.inject(HttpClient).get('/otra-consulta').subscribe();
     const otra = http.expectOne('/otra-consulta');
     expect(otra.request.headers.has('Authorization')).toBeFalse();
+    expect(otra.request.headers.has('X-Seguimiento-Context')).toBeFalse();
     otra.flush({});
   });
 
@@ -57,5 +73,30 @@ describe('SeguimientoProspectoService (BFF)', () => {
     expect(req.request.method).toBe('GET');
     expect(req.request.headers.has('Authorization')).toBeFalse();
     req.flush({ data: [{ giro: 780, descripcion: 'Descripción pública' }] });
+  });
+
+  it('mantiene documentos, liquidación y accesos en el contexto protegido del BFF', () => {
+    const seguimiento = TestBed.inject(SeguimientoProspectoService);
+    const assertContext = (url: string, method: string) => {
+      const request = http.expectOne(url);
+      expect(request.request.method).toBe(method);
+      expect(request.request.headers.get('X-Seguimiento-Context')).toBe('00000000-0000-4000-8000-000000000001');
+      expect(request.request.headers.has('Authorization')).toBeFalse();
+      expect(request.request.withCredentials).toBeTrue();
+      return request;
+    };
+
+    seguimiento.consultarDocumentos().subscribe();
+    assertContext('/api/seguimiento-prospecto/documentos', 'GET')
+      .flush({ success: true, documents: [] });
+    seguimiento.consultarLiquidacionNodo('node/ref').subscribe();
+    assertContext('/api/seguimiento-prospecto/nodos/node%2Fref/liquidacion', 'GET')
+      .flush({ success: true });
+    seguimiento.guardarLiquidacion(new FormData()).subscribe();
+    assertContext('/api/seguimiento-prospecto/liquidacion', 'POST')
+      .flush({ success: true });
+    seguimiento.guardarAccesos('node/ref', []).subscribe();
+    assertContext('/api/seguimiento-prospecto/nodos/node%2Fref/accesos', 'POST')
+      .flush({ success: true });
   });
 });

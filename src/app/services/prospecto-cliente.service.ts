@@ -1,10 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-
-
-import { HttpContext } from '@angular/common/http';
-import { SKIP_AUTH_TOKEN } from './auth-token.interceptor';
+import { SeguimientoNavigationService } from './seguimiento-navigation.service';
 export interface ProspectoClienteResponse {
   success?: boolean;
   smsValidated?: boolean;
@@ -44,6 +41,7 @@ export interface ValidarTokenSmsPayload { tokenSms: string; }
 @Injectable({ providedIn: 'root' })
 export class ProspectoClienteService {
   private readonly http = inject(HttpClient);
+  private readonly navigation = inject(SeguimientoNavigationService);
 
 
  obtenerProspecto(
@@ -52,14 +50,13 @@ export class ProspectoClienteService {
 ): Observable<ProspectoClienteResponse> {
   const params = new HttpParams().set('link', link);
 
-  return this.http.get<ProspectoClienteResponse>(
+  return this.navigation.request(options => this.http.get<ProspectoClienteResponse>(
     '/api/seguimiento-prospecto/prospecto',
     {
-      params,
-      withCredentials: true,
-      context: new HttpContext().set(SKIP_AUTH_TOKEN, true)
+      ...options,
+      params
     }
-  );
+  ));
 }
 
   guardarCapturaCliente(payload: ProspectoClienteCapturaPayload): Observable<unknown> {
@@ -68,10 +65,9 @@ export class ProspectoClienteService {
   }
 
   validarTokenSms(payload: ValidarTokenSmsPayload): Observable<unknown> {
-    return this.http.post('/api/seguimiento-prospecto/validar-sms',
+    return this.navigation.request(options => this.http.post('/api/seguimiento-prospecto/validar-sms',
       { tokenSms: payload.tokenSms },
-      { withCredentials: true, context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
-        headers: { 'X-Portal-Request': '1' } });
+      options));
   }
 
 }

@@ -5,14 +5,28 @@ import { ActivatedRoute } from '@angular/router';
 import { RegistroProspectoClienteComponent } from './registroProspectoCliente.component';
 import { authTokenInterceptor } from '../../services/auth-token.interceptor';
 import { SeguimientoProspectoService } from '../../services/seguimiento-prospecto.service';
+import {
+  SEGUIMIENTO_NAVIGATION_COORDINATOR,
+  SEGUIMIENTO_NAVIGATION_TYPE,
+  SeguimientoNavigationService
+} from '../../services/seguimiento-navigation.service';
+import { of } from 'rxjs';
 
 describe('Seguimiento: recuperación de SMS y estado real',()=>{
   let c: RegistroProspectoClienteComponent, http: HttpTestingController;
-  beforeEach(()=>{
-    TestBed.configureTestingModule({providers:[provideHttpClient(withInterceptors([authTokenInterceptor])),provideHttpClientTesting(),{provide:ActivatedRoute,useValue:{}}]});
+  beforeEach(async ()=>{
+    TestBed.configureTestingModule({providers:[provideHttpClient(withInterceptors([authTokenInterceptor])),provideHttpClientTesting(),
+      {provide:ActivatedRoute,useValue:{}},{provide:SEGUIMIENTO_NAVIGATION_TYPE,useValue:'navigate'},
+      {provide:SEGUIMIENTO_NAVIGATION_COORDINATOR,useValue:{
+        withNextSequence<T>(operation:(sequence:number)=>Promise<T>){return operation(1);},
+        withLock<T>(operation:()=>Promise<T>){return operation();}
+      }}]});
     c=TestBed.runInInjectionContext(()=>new RegistroProspectoClienteComponent());c.link='fixture-link';
     http=TestBed.inject(HttpTestingController);
-    spyOn(c,'consultarCuentaComercio');spyOn<any>(c,'iniciarRenovacionSeguimiento');
+    TestBed.inject(SeguimientoNavigationService).request(() => of(undefined)).subscribe();
+    http.expectOne('/api/seguimiento-prospecto/iniciar').flush({success:true,context:'00000000-0000-4000-8000-000000000001'});
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    spyOn(c,'consultarCuentaComercio');
   });
   afterEach(()=>http.verify());
   function load(smsValidated:boolean,status:string){

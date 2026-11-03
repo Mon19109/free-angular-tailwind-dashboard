@@ -258,7 +258,8 @@
           </div>
           }
         </article>
-
+        }
+        @if (!modoInterno || !mostrarSoloPasosFinales) {
         <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'documentos'" [class.done]="false">
           <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('documentos')">
             <span class="section-icon"><i class="fa-solid fa-file-lines"></i></span>
@@ -266,12 +267,25 @@
               <strong>3. Documentos</strong>
               <small>Documentos requeridos del comercio</small>
             </span>
-            <span class="step-status">Pendiente</span>
+            <span class="step-status">{{ cargandoDocumentos ? 'Consultando' : documentosProspecto.length ? 'Consultados' : 'Documentos' }}</span>
             <i class="fa-solid" [ngClass]="seccionInformativaAbierta === 'documentos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
           @if (seccionInformativaAbierta === 'documentos') {
           <div class="section-body">
             @if (cargandoDocumentos) { <p class="tree-state">Cargando documentos...</p> }
+            @if (errorDocumentos) { <p class="tree-state error" role="alert">{{ errorDocumentos }}</p> }
+            @if (!modoInterno) {
+              @if (!documentosDelNodoDisponibles) {
+                <p>Los documentos se consultan en el nodo principal de este seguimiento.</p>
+              } @else {
+                @for (documento of documentosVisibles; track documento.archivoId) {
+                  <p><strong>{{ documento.nombre }}</strong> · {{ documento.estatusRevision === 'APPROVED' ? 'Aprobado' : documento.estatusRevision === 'REJECTED' ? 'Rechazado' : documento.estatusRevision === 'IN_REVIEW' ? 'En revisión' : 'Sin estado confirmado' }}</p>
+                } @empty {
+                  @if (!cargandoDocumentos && !errorDocumentos) { <p>No hay documentos registrados.</p> }
+                }
+                <p>La visualización y descarga de archivos aún no están disponibles en este seguimiento.</p>
+              }
+            } @else {
             <app-step-documentos
               [documentos]="documentosVisibles"
               [documentosCargados]="documentosCargados"
@@ -282,6 +296,7 @@
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (verArchivo)="verDocumentoProspecto($event)"
               (validarArchivo)="validarArchivo($event.documento, $event.estado)" />
+            }
           </div>
           }
         </article>
@@ -447,7 +462,7 @@
 
         @if (!soloLiquidacion) {
         <article class="section-card" [class.open]="seccionFinalAbierta === 'accesos'" [class.done]="accesosCompletos">
-          <button type="button" class="section-trigger" (click)="alternarSeccionFinal('accesos')" [attr.aria-expanded]="seccionFinalAbierta === 'accesos'" [disabled]="!modoInterno && !liquidacionConsultada">
+          <button type="button" class="section-trigger" (click)="alternarSeccionFinal('accesos')" [attr.aria-expanded]="seccionFinalAbierta === 'accesos'" [disabled]="!modoInterno && (!liquidacionCompleta || cargandoCuenta)">
             <span class="section-icon"><i class="fa-solid fa-lock"></i></span>
             <span class="section-copy">
               <strong>5. Accesos a Plataforma</strong>
@@ -460,7 +475,7 @@
           @if (modoInterno && seccionFinalAbierta === 'accesos' && (accesosCompletos || !liquidacionCompleta)) {
           <div class="section-body"><p role="status">{{ accesosCompletos ? 'Los accesos a plataforma de este nodo están concluidos.' : 'Completa la cuenta de liquidación para capturar los accesos a plataforma.' }}</p></div>
           }
-          @if (seccionFinalAbierta === 'accesos' && liquidacionConsultada && !accesosCompletos && (!modoInterno || liquidacionCompleta)) {
+          @if (seccionFinalAbierta === 'accesos' && liquidacionConsultada && !accesosCompletos && liquidacionCompleta) {
           <div class="section-body">
             <app-step-accesos
               [form]="accesosForm"
