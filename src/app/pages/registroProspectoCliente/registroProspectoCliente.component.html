@@ -259,7 +259,7 @@
           }
         </article>
         }
-        @if (!modoInterno || !mostrarSoloPasosFinales) {
+        @if (modoInterno && !mostrarSoloPasosFinales) {
         <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'documentos'" [class.done]="false">
           <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('documentos')">
             <span class="section-icon"><i class="fa-solid fa-file-lines"></i></span>

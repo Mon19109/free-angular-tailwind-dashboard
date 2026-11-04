@@ -10,8 +10,8 @@ import autoTable from 'jspdf-autotable';
 import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/consulta-comercios.service';
 import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
 
-type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos' | 'pendientes';
-type EstatusComercio = 'Pendiente de revisión' | 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
+type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos' | 'pendiente-core' | 'pendientes';
+type EstatusComercio = 'Pendiente de revisión' | 'PENDIENTE AUTORIZACIÓN CORE' | 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
 type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; valor: '...' };
 type FiltroJerarquia = 'entidad' | 'sucursal' | 'caja';
 
@@ -66,7 +66,8 @@ export class ConsultaComerciosComponent {
     { id: 'entidad' as NivelComercio, label: 'Entidad', icon: 'fa-building' },
     { id: 'sucursal' as NivelComercio, label: 'Sucursal', icon: 'fa-store' },
     { id: 'caja' as NivelComercio, label: 'Caja', icon: 'fa-cash-register' },
-    { id: 'prospectos' as NivelComercio, label: 'Prospectos', icon: 'fa-user-clock' }
+    { id: 'prospectos' as NivelComercio, label: 'Prospectos', icon: 'fa-user-clock' },
+    { id: 'pendiente-core' as NivelComercio, label: 'PENDIENTE AUTORIZACIÓN', icon: 'fa-user-clock' }
   ];
 
   get nivelesVisibles() {
@@ -74,6 +75,9 @@ export class ConsultaComerciosComponent {
   }
 
   private tieneComerciosPorNivel(nivel: NivelComercio): boolean {
+    if (nivel === 'pendiente-core') {
+      return this.comercios.some(comercio => this.esPendienteAutorizacionCore(comercio.statusOriginal));
+    }
     return this.comercios.some(comercio =>
       nivel === 'prospectos'
         ? this.esProspectoAdmin(comercio)
@@ -101,9 +105,17 @@ export class ConsultaComerciosComponent {
     return this.comercios.some(comercio => this.esPendienteRevision(comercio.statusOriginal));
   }
 
+  get soloPendientesAutorizacionCore(): boolean {
+    return this.filtros.nivel === 'pendiente-core';
+  }
+
   private esPendienteRevision(status: unknown): boolean {
     const valor = this.normalizarTexto(String(status ?? '')).replace(/[\s_]+/g, '_');
     return valor === '27' || valor === 'PENDIENTE_REVISION';
+  }
+
+  private esPendienteAutorizacionCore(status: unknown): boolean {
+    return this.normalizarTexto(String(status ?? '')) === 'PENDIENTE AUTORIZACION CORE';
   }
 
   cargando = false;
@@ -203,7 +215,8 @@ export class ConsultaComerciosComponent {
       nameCommerce: this.filtros.nombre.trim(),
       rfc: this.filtros.rfc.trim(),
       email: this.filtros.correo.trim(),
-      status: this.filtros.nivel === 'prospectos' ? 'PROSPECTO_ADMIN' : '',
+      status: this.filtros.nivel === 'prospectos' ? 'PROSPECTO_ADMIN'
+        : this.soloPendientesAutorizacionCore ? 'PENDIENTE AUTORIZACIÓN CORE' : '',
     }).subscribe({
       next: respuesta => {
         if (respuesta.success === false) {
@@ -245,6 +258,7 @@ export class ConsultaComerciosComponent {
       sucursal: ['nombre', 'rfc', 'correo'],
       caja: [],
       prospectos: ['nombre', 'rfc', 'correo'],
+      'pendiente-core': ['nombre', 'rfc', 'correo'],
       pendientes: ['entidad', 'sucursal', 'caja', 'nombre', 'rfc', 'correo']
     };
 
@@ -263,11 +277,12 @@ export class ConsultaComerciosComponent {
     const nivel = this.filtros.nivel;
     this.limpiarFiltrosNoAplicables();
     this.resultados = this.ordenarComoArbol(this.comercios.filter(comercio => {
-      const coincideNivel = nivel === 'todos' || nivel === 'pendientes'
+      const coincideNivel = nivel === 'todos' || nivel === 'pendientes' || nivel === 'pendiente-core'
         || (nivel === 'prospectos' ? this.esProspectoAdmin(comercio) : this.normalizarNivel(comercio.nivel) === nivel);
 
       return coincideNivel && this.coincideFiltrosJerarquia(comercio)
-        && (!this.soloPendientesRevision || this.esPendienteRevision(comercio.statusOriginal));
+        && (!this.soloPendientesRevision || this.esPendienteRevision(comercio.statusOriginal))
+        && (!this.soloPendientesAutorizacionCore || this.esPendienteAutorizacionCore(comercio.statusOriginal));
     }));
     this.paginaActual = 1;
     this.accionesAbiertas = null;
@@ -324,6 +339,7 @@ export class ConsultaComerciosComponent {
     const status = this.normalizarTexto(String(comercio.status ?? comercio['Status'] ?? comercio['STATUS'] ?? ''));
 
     if (this.esPendienteRevision(status)) return 'Pendiente de revisión';
+    if (this.esPendienteAutorizacionCore(status)) return 'PENDIENTE AUTORIZACIÓN CORE';
     if (status === 'ACTIVO' || status === 'ACTIVE') return 'Activo';
     if (status === 'INACTIVO' || status === 'INACTIVE') return 'Inactivo';
     if (status === 'BAJA' || status === 'BAJA DEFINITIVA' || status === 'BAJA_DEFINITIVA') return 'Baja definitiva';
@@ -726,7 +742,8 @@ export class ConsultaComerciosComponent {
   }
 
   puedeEditar(comercio: Comercio): boolean {
-    return comercio.estatus === 'Prospecto' || this.esPendienteRevision(comercio.statusOriginal);
+    return comercio.estatus === 'Prospecto' || this.esPendienteRevision(comercio.statusOriginal)
+      || this.esPendienteAutorizacionCore(comercio.statusOriginal);
   }
 
   private obtenerIdRolSesion(): number {

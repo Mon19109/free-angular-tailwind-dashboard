@@ -41,6 +41,38 @@ describe('Filtro de pendientes de revisión', () => {
     expect(component.resultados.length).toBe(2);
   });
 
+  it('consulta el estatus CORE exacto y conserva filtros, búsqueda y paginación', () => {
+    const records = [
+      ...Array.from({ length: 12 }, (_, index) => ({
+        status: 'PENDIENTE AUTORIZACIÓN CORE', ref: `ref-core-${index}`, displayId: `CORE-${index}`,
+        nameCommerce: `Comercio ${index}`, nivel: 'Entidad', jerarquia: `Entidad ${index + 1}`
+      })),
+      { status: 'ACTIVO', ref: 'ref-active', displayId: 'ACTIVE-1', nameCommerce: 'Otro comercio', nivel: 'Entidad', jerarquia: 'Entidad 20' }
+    ];
+    const buscarComercios = jasmine.createSpy().and.callFake((filters: { status?: string }) => of({
+      commerces: records.filter(record => !filters.status || record.status === filters.status)
+    }));
+    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    const component = new ConsultaComerciosComponent(router,
+      { buscarComercios } as unknown as ConsultaComerciosService, {} as RecuperarCuentaService, auth);
+
+    expect(component.nivelesVisibles.some(nivel => nivel.id === 'pendiente-core' && nivel.label === 'PENDIENTE AUTORIZACIÓN')).toBeTrue();
+    component.filtros.nombre = 'Comercio';
+    component.seleccionarNivel('pendiente-core');
+
+    expect(buscarComercios.calls.mostRecent().args[0].status).toBe('PENDIENTE AUTORIZACIÓN CORE');
+    expect(buscarComercios.calls.mostRecent().args[0].nameCommerce).toBe('Comercio');
+    expect(component.resultados.length).toBe(12);
+    expect(component.resultados.every(row => row.estatus === 'PENDIENTE AUTORIZACIÓN CORE')).toBeTrue();
+    component.ejecutarAccion('editarInformacion', component.resultados[0]);
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/registro_cliente'], { queryParams: { ref: 'ref-core-0' } });
+    component.cambiarPagina(2);
+    expect(component.comerciosPaginados.length).toBe(2);
+    component.busquedaTabla = 'Comercio 11';
+    expect(component.resultadosFiltradosTabla.length).toBe(1);
+    expect(component.puedeEditar(component.resultados[0])).toBeTrue();
+  });
+
   it('no ofrece el botón si no hay pendientes y restablece el filtro al limpiar', () => {
     expect(crear(['ACTIVO', 'INACTIVO']).hayPendientesRevision).toBeFalse();
     const component = crear([27, 'ACTIVO']);
