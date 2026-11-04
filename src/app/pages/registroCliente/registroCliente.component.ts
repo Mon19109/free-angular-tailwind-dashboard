@@ -2188,7 +2188,7 @@ export class RegistroClienteComponent {
         return !!this.contextoSeleccionado.nombreComercial && !!this.comercioForm.getRawValue().nivel
           && !!tipoComercio && tipoComercio !== 'No disponible';
       }
-      if (id === 'datos') return this.datosGeneralesBffCompletos();
+      if (id === 'datos') return true;
       if (id === 'liquidacion') return !!this.opcionLiquidacionConsulta;
       if (id === 'accesos') return this.accesosDisponiblesBff === true;
       return false;
