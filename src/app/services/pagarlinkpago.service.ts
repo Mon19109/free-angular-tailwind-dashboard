@@ -25,7 +25,7 @@ export interface AltaTarjeta {
 @Injectable({ providedIn: 'root' })
 export class PagarLinkPagoService {
   private readonly http = inject(HttpClient);
-  private readonly bff = '/api/pagar-voucher';
+  private readonly bff = '/api/pagar-linkpago';
   private ubicacionPrecargada?: Observable<UbicacionPago>;
 
   agregarTarjeta(tarjeta: AltaTarjeta): Observable<any> {

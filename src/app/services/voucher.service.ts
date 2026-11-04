@@ -12,7 +12,7 @@ export interface VoucherResponse {
 @Injectable({ providedIn: 'root' })
 export class VoucherService {
   private readonly http = inject(HttpClient);
-  private readonly bff = '/api/pagar-voucher';
+  private readonly bff = '/api/voucher';
 
   obtenerOrden(reference: string): Observable<any> {
     return this.http.get(`${this.bff}/orden/${encodeURIComponent(reference)}`, { withCredentials: true });
