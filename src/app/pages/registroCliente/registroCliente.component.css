@@ -189,6 +189,28 @@
   line-height: 1.2;
 }
 
+.credentials-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 0 clamp(16px, 2.2vw, 24px) 16px;
+}
+
+.credentials-feedback {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.credentials-feedback.success {
+  color: #15803d;
+}
+
+.credentials-feedback.error {
+  color: #b91c1c;
+}
+
 .flow-step.active,
 .flow-step.done {
   color: var(--reg-text);

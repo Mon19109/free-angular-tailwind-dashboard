@@ -22,6 +22,15 @@
       </div>
     </nav>
 
+    <div class="credentials-action" *ngIf="puedeEnviarCredenciales || enviandoCredenciales || mensajeCredenciales || errorCredenciales">
+      <button *ngIf="puedeEnviarCredenciales || enviandoCredenciales" type="button" class="button primary"
+        [disabled]="enviandoCredenciales" (click)="enviarCredenciales()">
+        {{ enviandoCredenciales ? 'Enviando...' : 'Enviar credenciales' }}
+      </button>
+      <p *ngIf="mensajeCredenciales" class="credentials-feedback success" role="status">{{ mensajeCredenciales }}</p>
+      <p *ngIf="errorCredenciales" class="credentials-feedback error" role="alert">{{ errorCredenciales }}</p>
+    </div>
+
     <div class="registro-layout" [class.tree-collapsed]="arbolMinimizado || !mostrarArbolRegistro" [class.without-tree]="!mostrarArbolRegistro">
       <aside class="tree-panel" [class.collapsed]="arbolMinimizado" *ngIf="mostrarArbolRegistro">
         <div class="panel-heading">

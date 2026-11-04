@@ -287,6 +287,39 @@ export class RegistroClienteComponent {
     return this.modoContextoBff ? this.sesionPortal.hasValidSession()
       && (role === 2 || role === '2') : this.esMesaDigitalSesion;
   }
+  get puedeEnviarCredenciales(): boolean {
+    if (!this.modoContextoBff || !this.puedeVerRevisionDocumental || this.enviandoCredenciales || this.credencialesEnviadas) return false;
+    const raiz = this.arbolServicio[0];
+    if (!raiz || raiz.id !== this.nodoSeleccionado || this.cargandoCuentaComercio || this.cargandoDocumentosProspecto
+      || this.cargandoArbol || this.errorCuentaComercio || this.errorDocumentosProspecto) return false;
+    return (['comercio', 'datos', 'documentos', 'liquidacion', 'accesos'] as const).every(id => this.pasoTerminado(id));
+  }
+
+  enviarCredenciales(): void {
+    if (!this.puedeEnviarCredenciales) return;
+    const ref = this.contextoBff?.commerce.ref;
+    if (!ref) return;
+    this.enviandoCredenciales = true;
+    this.errorCredenciales = '';
+    this.mensajeCredenciales = '';
+    this.contextoService.enviarCredencialesComercio(ref).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => { this.enviandoCredenciales = false; })
+    ).subscribe({
+      next: respuesta => {
+        if (respuesta?.success === true && respuesta.sent === true) {
+          this.credencialesEnviadas = true;
+          this.mensajeCredenciales = 'Credenciales enviadas correctamente.';
+          return;
+        }
+        this.errorCredenciales = respuesta?.message || 'El servicio no confirmó el envío de credenciales.';
+      },
+      error: error => {
+        this.errorCredenciales = typeof error?.error?.message === 'string'
+          ? error.error.message : 'No fue posible enviar las credenciales.';
+      }
+    });
+  }
   pldID = '';
   private pldPorNodo: Record<string, string> = {};
   private consultaSipreladActual = 0;
@@ -320,6 +353,10 @@ export class RegistroClienteComponent {
     return this.documentosBffConsultados ? 'empty' : 'idle';
   }
   mensajeObservacionesCliente = '';
+  enviandoCredenciales = false;
+  credencialesEnviadas = false;
+  mensajeCredenciales = '';
+  errorCredenciales = '';
   mensajeRegistroCliente = '';
   botonModalRegistro = 'OK';
   modalRegistro = {
@@ -538,6 +575,7 @@ export class RegistroClienteComponent {
   arbolServicio: NodoRegistro[] = [];
   nodeIDEdicion = '';
   documentosProspectoPorNodo: Record<string, DocumentoProspectoApi[]> = {};
+  private documentosConfirmadosBffPorNodo: Record<string, Record<string, string>> = {};
   mostrarMesaDigitalProspecto = false;
   pendienteRevisionEdicion = false;
   habilitarMesaDigitalEdicion = false;
@@ -571,6 +609,10 @@ export class RegistroClienteComponent {
     this.observacionesClienteMesaDigital = '';
     this.emailNotificacionMesaDigital = '';
     this.mensajeObservacionesCliente = '';
+    this.enviandoCredenciales = false;
+    this.credencialesEnviadas = false;
+    this.mensajeCredenciales = '';
+    this.errorCredenciales = '';
     this.edicionAutorizadaBff = false;
     this.camposEdicionBff = [];
     this.guardandoDatosNodo = false;
@@ -593,6 +635,7 @@ export class RegistroClienteComponent {
     this.cargandoSiprelad = false;
     this.documentosProspecto = [];
     this.documentosProspectoPorNodo = {};
+    this.documentosConfirmadosBffPorNodo = {};
     this.documentosBffConsultados = false;
     this.cargandoDocumentosProspecto = false;
     this.errorDocumentosProspecto = '';
@@ -699,6 +742,7 @@ export class RegistroClienteComponent {
         this.documentosProspecto = [];
         this.documentosBffConsultados = false;
         delete this.documentosProspectoPorNodo[nodeRef];
+        delete this.documentosConfirmadosBffPorNodo[nodeRef];
         this.errorDocumentosProspecto = error?.status === 403
           ? 'No tienes autorización para consultar los documentos'
           : 'No fue posible consultar los documentos';
@@ -725,6 +769,7 @@ export class RegistroClienteComponent {
       this.documentosProspecto = [];
       this.documentosBffConsultados = false;
       delete this.documentosProspectoPorNodo[nodeRef];
+      delete this.documentosConfirmadosBffPorNodo[nodeRef];
       if (this.nivelSeleccionado === 'caja') return;
       this.revisionPermitidaBff = false;
       this.registroPermitidoBff = false;
@@ -742,6 +787,9 @@ export class RegistroClienteComponent {
           this.documentosProspecto = this.documentosDesdeRespuesta({ documents: respuesta.documents.map(row => ({
             ref: row.ref, name: row.name ?? '', documentType: row.documentType ?? '', status: row.status ?? ''
           })) });
+          this.documentosConfirmadosBffPorNodo[nodeRef] = Object.fromEntries(this.documentosProspecto
+            .filter(documento => typeof documento['ref'] === 'string' && typeof documento.status === 'string')
+            .map(documento => [String(documento['ref']), String(documento.status)]));
           this.documentosBffConsultados = true;
           ++this.versionDocumentosBff;
           this.observacionesInternasCargadasBff = Object.hasOwn(respuesta, 'internalObservations')
@@ -1944,6 +1992,7 @@ export class RegistroClienteComponent {
   }
 
   seleccionarNodo(nodo: NodoRegistro): void {
+    if (this.enviandoCredenciales) return;
     if (this.modoContextoBff) {
       const seleccionado = this.buscarNodo(this.arbolServicio, nodo.id);
       if (!seleccionado) return;
@@ -2126,6 +2175,18 @@ export class RegistroClienteComponent {
   }
 
   private seccionConInformacionRegistrada(id: SeccionRegistro['id']): boolean {
+    if (this.modoContextoBff) {
+      if (!this.cuentaNodoActual || this.cargandoCuentaComercio || this.errorCuentaComercio) return false;
+      if (id === 'comercio') {
+        const tipoComercio = this.comercioForm.getRawValue().tipoComercio;
+        return !!this.contextoSeleccionado.nombreComercial && !!this.comercioForm.getRawValue().nivel
+          && !!tipoComercio && tipoComercio !== 'No disponible';
+      }
+      if (id === 'datos') return this.datosGeneralesBffCompletos();
+      if (id === 'liquidacion') return !!this.opcionLiquidacionConsulta;
+      if (id === 'accesos') return this.accesosDisponiblesBff === true;
+      return false;
+    }
     if (!this.nodeIDEdicion || this.cargandoCuentaComercio || this.errorCuentaComercio) return false;
     if (id === 'liquidacion') return !!this.opcionLiquidacionConsulta;
     if (id === 'accesos') return this.accesosRegistrados;
@@ -2134,18 +2195,32 @@ export class RegistroClienteComponent {
 
   estadoPaso(id: SeccionRegistro['id']): string {
     if (this.seccionConInformacionRegistrada(id)) return 'Completado';
+    if (this.modoContextoBff && id === 'documentos' && !this.cargandoDocumentosProspecto
+      && !this.errorDocumentosProspecto && this.documentosNodoValidados(this.nodoSeleccionado)) return 'Completado';
     if (this.esEdicionPendiente && id === 'documentos') {
       return this.documentosNodoValidados(this.nodoSeleccionado) ? 'Concluida' : 'Pendiente de revisión';
     }
-    if (this.mostrarSoloPasosTresCincoRegistroTemporal && ['comercio', 'datos'].includes(id)) return 'Completado';
-    if (this.esNodoExistente && id !== 'liquidacion' && id !== 'accesos' && id !== 'documentos') return 'Completado';
-    if (id === 'liquidacion' && this.tieneLiquidacion(this.nodoSeleccionado)) return 'Completado';
-    if (id === 'accesos' && this.pasoCompletado(id) && this.accesosTieneContenido(this.accesosForm.getRawValue())) return 'Completado';
-    if (id === 'documentos' && this.documentosNodoValidados(this.nodoSeleccionado)) return 'Terminado';
+    if (!this.modoContextoBff && this.mostrarSoloPasosTresCincoRegistroTemporal && ['comercio', 'datos'].includes(id)) return 'Completado';
+    if (!this.modoContextoBff && this.esNodoExistente && id !== 'liquidacion' && id !== 'accesos' && id !== 'documentos') return 'Completado';
+    if (!this.modoContextoBff && id === 'liquidacion' && this.tieneLiquidacion(this.nodoSeleccionado)) return 'Completado';
+    if (!this.modoContextoBff && id === 'accesos' && this.pasoCompletado(id) && this.accesosTieneContenido(this.accesosForm.getRawValue())) return 'Completado';
+    if (!this.modoContextoBff && id === 'documentos' && this.documentosNodoValidados(this.nodoSeleccionado)) return 'Terminado';
     if (this.seccionAbierta === id) return 'En curso';
     if (id === 'accesos') return 'Pendiente';
-    if (this.pasoCompletado(id)) return 'Completado';
+    if (!this.modoContextoBff && this.pasoCompletado(id)) return 'Completado';
     return 'Pendiente';
+  }
+
+  private datosGeneralesBffCompletos(): boolean {
+    const datos = this.datosForm.getRawValue() as Record<string, unknown>;
+    const opcionales = new Set(['numeroExterior', 'numeroInterior', 'entreCalle', 'yCalle']);
+    const requeridos = this.camposDatosGenerales.filter(campo => !opcionales.has(campo));
+    const direccionComercialRequerida = [
+      'codigoPostalComercial', 'tipoVialidadComercial', 'nombreVialidadComercial',
+      'coloniaComercial', 'localidadComercial', 'municipioComercial', 'entidadFederativaComercial'
+    ];
+    return [...requeridos, ...direccionComercialRequerida].every(campo =>
+      typeof datos[campo] === 'string' && (datos[campo] as string).trim().length > 0);
   }
 
   pasoTerminado(id: SeccionRegistro['id']): boolean {
@@ -2168,6 +2243,14 @@ export class RegistroClienteComponent {
     const documentos = nodoId === this.nodoSeleccionado
       ? this.documentosProspecto
       : this.documentosProspectoPorNodo[nodoId] ?? [];
+    if (this.modoContextoBff) {
+      const confirmados = this.documentosConfirmadosBffPorNodo[nodoId];
+      return !this.cargandoDocumentosProspecto && !this.errorDocumentosProspecto
+        && !!confirmados && documentos.length > 0 && documentos.every(documento => {
+          const ref = documento['ref'];
+          return typeof ref === 'string' && confirmados[ref] === 'APPROVED' && documento.status === 'APPROVED';
+        });
+    }
     if (this.documentosValidadosParaRegistro(documentos)) return true;
 
     const nodo = this.buscarNodo(this.arbol, nodoId);

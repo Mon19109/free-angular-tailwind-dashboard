@@ -104,6 +104,14 @@ export interface ComercioContexto {
   capabilities: Record<string, boolean>;
 }
 
+export interface EnviarCredencialesResponse {
+  success: boolean;
+  sent?: boolean;
+  code?: string;
+  message?: string;
+  steps?: Record<'comercio' | 'datos' | 'documentos' | 'liquidacion' | 'accesos', boolean>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -197,6 +205,13 @@ export class ConsultaComerciosService {
 
   consultarContexto(ref: string): Observable<ComercioContexto> {
     return this.http.get<ComercioContexto>(`/api/comercios/${encodeURIComponent(ref)}/contexto`, { withCredentials: true });
+  }
+
+  enviarCredencialesComercio(ref: string): Observable<EnviarCredencialesResponse> {
+    return this.http.post<EnviarCredencialesResponse>(
+      `/api/comercios/${encodeURIComponent(ref)}/credenciales`, {},
+      { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) }
+    );
   }
 
   consultarPasswordCaja(guid: string): Observable<ConsultaPasswordCajaResponse> {

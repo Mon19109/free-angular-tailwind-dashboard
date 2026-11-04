@@ -250,6 +250,91 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.commerceID).toBe(''); expect(component.pldID).toBe('');
     http.expectNone(request => true);
   });
+  it('muestra los cinco estados confirmados y envía credenciales solo con la ref', () => {
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    const contexts = http.match(`/api/comercios/${ref}/contexto`);
+    expect(contexts.length).toBe(2);
+    contexts[0].flush(response());
+    contexts[1].flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [
+      { ref, name: 'Entidad real', levelType: 4, depth: 0 }
+    ] });
+    const info = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`);
+    info.flush({ success: true, information: {
+      tipoComercio: 'Empresa Grupo', nameCommerce: 'Comercio real', businessName: 'Razón real', rfc: 'ABCD123456EF7',
+      personType: 'PF', name: 'Persona', patSurname: 'Apellido', matSurname: 'Materno', curp: 'CURP-REAL',
+      fiscalRegime: '601', activityDescription: 'Actividad', businessLine: 'Giro',
+      bussinesLineDescription: 'Descripción giro', businessActivityCode: '1234',
+      dispersionAccount: 'NETWORK', hasPlatformAccess: true,
+      commerceAddress: [
+        { addressType: 'DF', postalCode: '01000', roadType: 'Calle', roadName: 'Fiscal', extNum: '1',
+          district: 'Centro', location: 'Localidad', municipality: 'Municipio', federativeEntity: 'Estado' },
+        { addressType: 'DC', postalCode: '01000', roadType: 'Calle', roadName: 'Comercial', extNum: '1',
+          district: 'Centro', location: 'Localidad', municipality: 'Municipio', federativeEntity: 'Estado' }
+      ]
+    } });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({ success: true, pld: [] });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true, documents: [
+      { ref: other, name: 'Acta', documentType: 'LEGAL', status: 'APPROVED' }
+    ], permissions: { reviewDocuments: true, sendObservations: false, notificationEmail: null } });
+
+    const view = fixture.componentInstance;
+    expect(['comercio', 'datos', 'documentos', 'liquidacion', 'accesos']
+      .every(id => view.estadoPaso(id as any) === 'Completado')).toBeTrue();
+    expect(view.puedeEnviarCredenciales).toBeTrue();
+    fixture.detectChanges();
+    const button = Array.from(fixture.nativeElement.querySelectorAll('button'))
+      .find((item: any) => item.textContent.trim() === 'Enviar credenciales') as HTMLButtonElement;
+    expect(button).toBeTruthy();
+    button.click(); fixture.detectChanges();
+    expect(button.disabled).toBeTrue();
+    const send = http.expectOne(`/api/comercios/${ref}/credenciales`);
+    expect(send.request.method).toBe('POST');
+    expect(send.request.body).toEqual({});
+    expect(send.request.withCredentials).toBeTrue();
+    expect(send.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(send.request.headers.has('Authorization')).toBeFalse();
+    send.flush({ success: true, sent: true }); fixture.detectChanges();
+    expect(view.credencialesEnviadas).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Credenciales enviadas correctamente.');
+    view.enviarCredenciales();
+    http.expectNone(`/api/comercios/${ref}/credenciales`);
+  });
+
+  it('no completa documentos ni habilita el envío con cambios de revisión locales', () => {
+    TestBed.inject(AuthService).actualizarSesion({ success: true, authenticated: true, expiresAt: Date.now() + 60000, usuario: { idRol: 2 } });
+    const fixture = TestBed.createComponent(RegistroClienteComponent);
+    const contexts = http.match(`/api/comercios/${ref}/contexto`);
+    contexts[0].flush(response());
+    contexts[1].flush({ ...response(), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [
+      { ref, name: 'Entidad real', levelType: 4, depth: 0 }
+    ] });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/informacion-general`).flush({ success: true, information: {
+      tipoComercio: 'Empresa Grupo', nameCommerce: 'Comercio real', businessName: 'Razón real', rfc: 'ABCD123456EF7',
+      personType: 'PF', name: 'Persona', patSurname: 'Apellido', matSurname: 'Materno', curp: 'CURP-REAL',
+      fiscalRegime: '601', activityDescription: 'Actividad', businessLine: 'Giro',
+      bussinesLineDescription: 'Descripción giro', businessActivityCode: '1234',
+      dispersionAccount: 'NETWORK', hasPlatformAccess: true,
+      commerceAddress: [
+        { addressType: 'DF', postalCode: '01000', roadType: 'Calle', roadName: 'Fiscal', district: 'Centro', location: 'Localidad', municipality: 'Municipio', federativeEntity: 'Estado' },
+        { addressType: 'DC', postalCode: '01000', roadType: 'Calle', roadName: 'Comercial', district: 'Centro', location: 'Localidad', municipality: 'Municipio', federativeEntity: 'Estado' }
+      ]
+    } });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/pld`).flush({ success: true, pld: [] });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true, documents: [
+      { ref: other, name: 'Acta', documentType: 'LEGAL', status: 'IN_REVIEW' }
+    ], permissions: { reviewDocuments: true, sendObservations: false, notificationEmail: null } });
+    const view = fixture.componentInstance;
+    expect(view.estadoPaso('documentos')).not.toBe('Completado');
+    view.actualizarEstatusDocumento(view.documentosVisibles[0], 'APPROVED');
+    expect(view.documentosNodoValidados(ref)).toBeFalse();
+    expect(view.puedeEnviarCredenciales).toBeFalse();
+    fixture.detectChanges();
+    expect(Array.from(fixture.nativeElement.querySelectorAll('button'))
+      .some((item: any) => item.textContent.trim() === 'Enviar credenciales')).toBeFalse();
+  });
   it('caja omite documentos; vacío y 503 no simulan resultados', () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), capabilities: { tree: true } });
     http.expectOne(`/api/comercios/${ref}/arbol`).flush({ success: true, tree: [

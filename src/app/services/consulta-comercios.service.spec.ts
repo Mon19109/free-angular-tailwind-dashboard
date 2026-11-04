@@ -33,6 +33,17 @@ describe('Consulta de comercios BFF', () => {
     expect(status).toBe(403);
     http.expectNone(request => request.url !== '/api/comercios/buscar');
   });
+  it('envía credenciales con cookie y CSRF, sin Bearer ni nodeId de navegador', () => {
+    service.enviarCredencialesComercio('11111111-1111-4111-8111-111111111111').subscribe();
+    const req = http.expectOne('/api/comercios/11111111-1111-4111-8111-111111111111/credenciales');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.withCredentials).toBeTrue();
+    expect(req.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    expect(req.request.params.keys()).toEqual([]);
+    expect(req.request.body).toEqual({});
+    req.flush({ success: true, sent: true });
+  });
   it('acepta solo listas documentales válidas, incluida la lista vacía', () => {
     for (const documents of [[], [{ ref: 'doc', name: 'Acta', status: 'APPROVED', documentType: null }]]) {
       let result: unknown;
