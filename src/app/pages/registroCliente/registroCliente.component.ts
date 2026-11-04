@@ -22,6 +22,7 @@ import { Subscription, Observable, catchError, finalize, forkJoin, map, of, swit
 import { UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
+import { DatosGeneralesAdminComponent } from './components/datos-generales-admin/datos-generales-admin.component';
 import { StepDocumentosComponent } from '../preRegistro/components/documentos/step-documentos.component';
 import { DocumentoRequerido } from '../preRegistro/models/preregistro.models';
 import { SipreladResultado, SipreladService } from '../../services/siprelad.service';
@@ -73,6 +74,7 @@ interface SeccionRegistro {
     RouterModule,
     StepComercioComponent,
     StepDatosComponent,
+    DatosGeneralesAdminComponent,
     StepDocumentosComponent
   ],
   templateUrl: './registroCliente.component.html',
@@ -334,6 +336,7 @@ export class RegistroClienteComponent {
   private consultaCuentaActual = 0;
   cargandoArbol = false;
   errorCuentaComercio = '';
+  descripcionRegimenFiscal = '';
   errorArbol = '';
   localidadesFiscal: CodigoPostalLocalizacion[] = [];
   localidadesComercial: CodigoPostalLocalizacion[] = [];
@@ -628,6 +631,7 @@ export class RegistroClienteComponent {
     this.mensajeActualizacionDatos = '';
     this.cargandoCuentaComercio = false;
     this.errorCuentaComercio = '';
+    this.descripcionRegimenFiscal = '';
     this.commerceID = '';
     this.pldID = '';
     this.resultadosSiprelad = [];
@@ -1419,6 +1423,8 @@ export class RegistroClienteComponent {
 
   private pintarCuentaComercio(cuenta: Record<string, unknown>, tipoComercio: string): void {
     if (!Object.keys(cuenta).length) return;
+
+    this.descripcionRegimenFiscal = this.valorCuenta(cuenta, ['fiscalRegimeDescription']);
 
     const direccionFiscal = this.direccionCuenta(cuenta, 'DF');
     const direccionComercial = this.direccionCuenta(cuenta, 'DC') || direccionFiscal;

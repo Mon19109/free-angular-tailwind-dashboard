@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": [
+    "src/app/pages/registroCliente/registroCliente-catalogos.spec.ts",
+    "src/**/*.d.ts"
+  ],
+  "exclude": [
+    "src/app/pages/preRegistro/preRegistro.component.spec.ts"
+  ]
+}

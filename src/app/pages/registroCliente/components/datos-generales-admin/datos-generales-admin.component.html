@@ -1,0 +1,510 @@
+<form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
+
+  <!-- Datos generales -->
+  @if (seccionesVisibles.datosGenerales) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Datos generales</h3>
+      @if (mostrarInfoFiscalEntidad) {
+      <label class="checkbox-inline">
+        <input type="checkbox" [checked]="infoFiscalEntidadActiva"
+          (change)="cambiarInfoFiscalEntidad.emit($any($event.target).checked)">
+        Misma información fiscal de la Entidad
+      </label>
+      } @else {
+      <span>Campos obligatorios marcados con *</span>
+      }
+    </div>
+    <div class="form-grid cols-2">
+      @if (tiene('tipoPersona')) {
+      <div class="field span-2">
+        <span class="field-label">Seleccione el tipo de cliente para el registro <b>*</b></span>
+        <div class="person-type-radios" [class.invalid]="esInvalido('tipoPersona')" role="radiogroup" aria-label="Tipo de cliente para el registro">
+          <label>
+            <input type="radio" value="PF" formControlName="tipoPersona"
+              [attr.disabled]="bloquearTipoPersona && !esPersonaFisica ? true : null" />
+            Persona Fisica
+          </label>
+          <label>
+            <input type="radio" value="PM" formControlName="tipoPersona"
+              [attr.disabled]="bloquearTipoPersona && !esPersonaMoral ? true : null" />
+            Persona Moral
+          </label>
+        </div>
+        @if (esInvalido('tipoPersona')) { <small>Debes seleccionar una opción.</small> }
+      </div>
+      }
+
+      @if (tiene('rfc')) {
+      <div class="field">
+        <label for="rfc">RFC <b>*</b></label>
+        <input id="rfc" [attr.maxlength]="esPersonaMoral ? 12 : 13" formControlName="rfc" [class.invalid]="esInvalido('rfc')" />
+        @if (esInvalido('rfc')) { <small>{{ mensajeCampo('rfc') }}</small> }
+      </div>
+      }
+      @if (tiene('razonSocial') && esPersonaMoral) {
+      <div class="field">
+        <label for="razonSocial">Razón social <b>*</b></label>
+        <input maxlength="150" id="razonSocial" formControlName="razonSocial" [class.invalid]="esInvalido('razonSocial')" />
+        @if (esInvalido('razonSocial')) { <small>{{ mensajeCampo('razonSocial') }}</small> }
+      </div>
+      }
+      @if (tiene('nombre') && esPersonaFisica) {
+      <div class="field">
+        <label for="nombre">Nombre(s) <b>*</b></label>
+        <input maxlength="80" id="nombre" formControlName="nombre" [class.invalid]="esInvalido('nombre')" />
+        @if (esInvalido('nombre')) { <small>{{ mensajeCampo('nombre') }}</small> }
+      </div>
+      }
+      @if (tiene('apellidoPaterno') && esPersonaFisica) {
+      <div class="field">
+        <label for="apellidoPaterno">Apellido paterno <b>*</b></label>
+        <input maxlength="80" id="apellidoPaterno" formControlName="apellidoPaterno" [class.invalid]="esInvalido('apellidoPaterno')" />
+        @if (esInvalido('apellidoPaterno')) { <small>{{ mensajeCampo('apellidoPaterno') }}</small> }
+      </div>
+      }
+      @if (tiene('apellidoMaterno') && esPersonaFisica) {
+      <div class="field">
+        <label for="apellidoMaterno">Apellido materno <b>*</b></label>
+        <input maxlength="80" id="apellidoMaterno" formControlName="apellidoMaterno" [class.invalid]="esInvalido('apellidoMaterno')" />
+        @if (esInvalido('apellidoMaterno')) { <small>{{ mensajeCampo('apellidoMaterno') }}</small> }
+      </div>
+      }
+      @if (tiene('curp') && esPersonaFisica) {
+      <div class="field">
+        <label for="curp">CURP <b>*</b></label>
+        <input id="curp" maxlength="18" formControlName="curp" [class.invalid]="esInvalido('curp')" />
+        @if (esInvalido('curp')) { <small>{{ mensajeCampo('curp') }}</small> }
+      </div>
+      }
+      @if (tiene('nombreComercial') && !esPersonaFisica) {
+      <div class="field">
+        <label for="nombreComercial">Nombre comercial <b>*</b></label>
+        <input maxlength="80" id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
+        @if (esInvalido('nombreComercial')) { <small>{{ mensajeCampo('nombreComercial') }}</small> }
+      </div>
+      }
+      @if (tiene('regimenFiscal')) {
+      <div class="field">
+        <label for="regimenFiscal">Régimen fiscal <b>*</b></label>
+        <app-select
+          placeholder="Selecciona una opción"
+          [options]="regimenFiscalOptions"
+          formControlName="regimenFiscal"
+          [className]="esInvalido('regimenFiscal') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+        />
+        @if (esInvalido('regimenFiscal')) { <small>{{ mensajeCampo('regimenFiscal') }}</small> }
+      </div>
+      }
+
+      @if (tiene('actividad') && esPersonaFisica) {
+      <div class="field">
+        <label for="actividad">Actividad <b>*</b></label>
+        <input id="actividad" class="activity-input readonly-locked" formControlName="actividad" readonly [class.invalid]="esInvalido('actividad')" />
+        @if (esInvalido('actividad')) { <small>{{ mensajeCampo('actividad') }}</small> }
+      </div>
+      }
+
+      @if (tiene('nombreComercial') && esPersonaFisica) {
+      <div class="field">
+        <label for="nombreComercial">Nombre comercial <b>*</b></label>
+        <input maxlength="80" id="nombreComercial" formControlName="nombreComercial" [class.invalid]="esInvalido('nombreComercial')" />
+        @if (esInvalido('nombreComercial')) { <small>{{ mensajeCampo('nombreComercial') }}</small> }
+      </div>
+      }
+
+      @if (tiene('giroComercial') && esPersonaMoral) {
+      <div class="field">
+        <label for="giroComercial">Familia del giro <b>*</b></label>
+        <input id="giroComercial" formControlName="giroComercial" readonly
+          [class.invalid]="esInvalido('giroComercial')" />
+        @if (esInvalido('giroComercial')) { <small>{{ mensajeCampo('giroComercial') }}</small> }
+      </div>
+      }
+
+      @if (tiene('descripcionGiro') && esPersonaMoral) {
+      <div class="field">
+        <label for="descripcionGiro">Descripción del giro <b>*</b></label>
+        <input id="descripcionGiro" formControlName="descripcionGiro" readonly [class.invalid]="esInvalido('descripcionGiro')" />
+        @if (esInvalido('descripcionGiro')) { <small>{{ mensajeCampo('descripcionGiro') }}</small> }
+      </div>
+      }
+
+      @if (tiene('mcc') && esPersonaMoral) {
+      <div class="field">
+        <label for="mcc">MCC <b>*</b></label>
+        <input id="mcc" formControlName="mcc" readonly [class.invalid]="esInvalido('mcc')" />
+        @if (esInvalido('mcc')) { <small>{{ mensajeCampo('mcc') }}</small> }
+      </div>
+      }
+
+      @if (tiene('correo')) {
+      <div class="field">
+        <label for="correo">Correo electrónico <b>*</b></label>
+        <input maxlength="100" id="correo" type="email" formControlName="correo" [class.invalid]="esInvalido('correo')" />
+        @if (esInvalido('correo')) { <small>{{ mensajeCampo('correo') }}</small> }
+      </div>
+      }
+      @if (tiene('telefono')) {
+      <div class="field">
+        <label for="telefono">Teléfono de contacto <b>*</b></label>
+        <input id="telefono" maxlength="10" inputmode="numeric" formControlName="telefono"
+          [class.invalid]="esInvalido('telefono')" />
+        @if (esInvalido('telefono')) { <small>{{ mensajeCampo('telefono') }}</small> }
+      </div>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- Domicilio Fiscal -->
+  @if (seccionesVisibles.domicilioFiscal) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Domicilio Fiscal</h3>
+      <span>Campos obligatorios marcados con *</span>
+    </div>
+    <div class="form-grid cols-2">
+      @if (tiene('codigoPostal')) {
+      <div class="field"><label for="codigoPostal">Código Postal <b>*</b></label>
+        <input maxlength="10" id="codigoPostal" inputmode="numeric" formControlName="codigoPostal" [class.invalid]="esInvalido('codigoPostal')" />
+        @if (esInvalido('codigoPostal')) { <small>{{ mensajeCampo('codigoPostal') }}</small> }
+      </div>
+      }
+      @if (tiene('tipoVialidad')) {
+      <div class="field"><label for="tipoVialidad">Tipo de Vialidad <b>*</b></label>
+        <app-select
+          placeholder="Selecciona un tipo de vialidad"
+          [options]="tipoVialidadOptions"
+          formControlName="tipoVialidad"
+          [className]="esInvalido('tipoVialidad') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+        />
+        @if (esInvalido('tipoVialidad')) { <small>{{ mensajeCampo('tipoVialidad') }}</small> }
+      </div>
+      }
+      @if (tiene('nombreVialidad')) {
+      <div class="field"><label for="nombreVialidad">Nombre de la Vialidad <b>*</b></label>
+        <input maxlength="100" id="nombreVialidad" formControlName="nombreVialidad" [class.invalid]="esInvalido('nombreVialidad')" />
+        @if (esInvalido('nombreVialidad')) { <small>{{ mensajeCampo('nombreVialidad') }}</small> }
+      </div>
+      }
+      @if (tiene('numeroExterior')) {
+      <div class="field"><label for="numeroExterior">Número Exterior <b>*</b></label>
+        <input maxlength="20" id="numeroExterior" formControlName="numeroExterior" [class.invalid]="esInvalido('numeroExterior')" />
+        @if (esInvalido('numeroExterior')) { <small>{{ mensajeCampo('numeroExterior') }}</small> }
+      </div>
+      }
+      @if (tiene('numeroInterior')) {
+      <div class="field"><label for="numeroInterior">Número Interior</label>
+        <input maxlength="20" id="numeroInterior" formControlName="numeroInterior" [class.invalid]="esInvalido('numeroInterior')" />
+        @if (esInvalido('numeroInterior')) { <small>{{ mensajeCampo('numeroInterior') }}</small> }
+      </div>
+      }
+
+      @if (tiene('colonia')) {
+      <div class="field"><label for="colonia">Colonia <b>*</b></label>
+        @if ((form.get('codigoPostal')?.value || '').length === 5) {
+        <app-select
+          [placeholder]="placeholderColoniaFiscal"
+          [options]="localidadesFiscalOptions"
+          formControlName="colonia"
+          [disabled]="form.get('colonia')?.disabled || localidadesFiscal.length === 0"
+          [className]="esInvalido('colonia') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+          (valueChange)="seleccionarColoniaFiscal($event)"
+        />
+        } @else {
+        <input id="colonia" formControlName="colonia" [class.invalid]="esInvalido('colonia')" />
+        }
+        @if (esInvalido('colonia')) { <small>{{ mensajeCampo('colonia') }}</small> }
+      </div>
+      }
+      @if (tiene('localidad')) {
+      <div class="field"><label for="localidad">Localidad <b>*</b></label>
+        <input id="localidad" formControlName="localidad" [class.invalid]="esInvalido('localidad')" readonly />
+        @if (esInvalido('localidad')) { <small>{{ mensajeCampo('localidad') }}</small> }
+      </div>
+      }
+      @if (tiene('municipio')) {
+      <div class="field"><label for="municipio">Municipio / Alcaldía <b>*</b></label>
+        <input id="municipio" formControlName="municipio" [class.invalid]="esInvalido('municipio')" readonly />
+        @if (esInvalido('municipio')) { <small>{{ mensajeCampo('municipio') }}</small> }
+      </div>
+      }
+      @if (tiene('entidadFederativa')) {
+      <div class="field"><label for="entidadFederativa">Entidad Federativa <b>*</b></label>
+        <input id="entidadFederativa" formControlName="entidadFederativa"
+          [class.invalid]="esInvalido('entidadFederativa')" readonly />
+        @if (esInvalido('entidadFederativa')) { <small>{{ mensajeCampo('entidadFederativa') }}</small> }
+      </div>
+      }
+      @if (tiene('entreCalle')) {
+      <div class="field"><label for="entreCalle">Entre Calle</label>
+        <input maxlength="100" id="entreCalle" formControlName="entreCalle" [class.invalid]="esInvalido('entreCalle')" />
+        @if (esInvalido('entreCalle')) { <small>{{ mensajeCampo('entreCalle') }}</small> }
+      </div>
+      }
+      @if (tiene('yCalle')) {
+      <div class="field"><label for="yCalle">Y Calle</label>
+        <input maxlength="100" id="yCalle" formControlName="yCalle" [class.invalid]="esInvalido('yCalle')" />
+        @if (esInvalido('yCalle')) { <small>{{ mensajeCampo('yCalle') }}</small> }
+      </div>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- Representante Legal -->
+  @if (seccionesVisibles.representante) {
+  <section class="step-section">
+
+    <div class="section-title">
+      <h3>Representante Legal</h3>
+    </div>
+    <div class="form-grid cols-3">
+      <div class="field"><label for="nombreRepresentante">Nombre <b>*</b></label>
+        <input maxlength="80" id="nombreRepresentante" formControlName="nombreRepresentante"
+          [class.invalid]="esInvalido('nombreRepresentante')" />
+        @if (esInvalido('nombreRepresentante')) { <small>{{ mensajeCampo('nombreRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="apellidoPaternoRepresentante">Apellido Paterno <b>*</b></label>
+        <input maxlength="80" id="apellidoPaternoRepresentante" formControlName="apellidoPaternoRepresentante"
+          [class.invalid]="esInvalido('apellidoPaternoRepresentante')" />
+        @if (esInvalido('apellidoPaternoRepresentante')) { <small>{{ mensajeCampo('apellidoPaternoRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="apellidoMaternoRepresentante">Apellido Materno <b>*</b></label>
+        <input maxlength="80" id="apellidoMaternoRepresentante" formControlName="apellidoMaternoRepresentante"
+          [class.invalid]="esInvalido('apellidoMaternoRepresentante')" />
+        @if (esInvalido('apellidoMaternoRepresentante')) { <small>{{ mensajeCampo('apellidoMaternoRepresentante') }}</small> }
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- Dirección Representante -->
+  @if (seccionesVisibles.dirRepresentante) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Dirección del Representante Legal</h3>
+    </div>
+    <div class="form-grid cols-2">
+      <div class="field"><label for="calleRepresentante">Calle <b>*</b></label>
+        <input maxlength="100" id="calleRepresentante" formControlName="calleRepresentante"
+          [class.invalid]="esInvalido('calleRepresentante')" />
+        @if (esInvalido('calleRepresentante')) { <small>{{ mensajeCampo('calleRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="numeroExteriorRepresentante">Número Exterior <b>*</b></label>
+        <input maxlength="20" id="numeroExteriorRepresentante" formControlName="numeroExteriorRepresentante"
+          [class.invalid]="esInvalido('numeroExteriorRepresentante')" />
+        @if (esInvalido('numeroExteriorRepresentante')) { <small>{{ mensajeCampo('numeroExteriorRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="numeroInteriorRepresentante">Número Interior</label>
+        <input maxlength="20" id="numeroInteriorRepresentante" formControlName="numeroInteriorRepresentante"
+          [class.invalid]="esInvalido('numeroInteriorRepresentante')" />
+        @if (esInvalido('numeroInteriorRepresentante')) { <small>{{ mensajeCampo('numeroInteriorRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="codigoPostalRepresentante">Código Postal <b>*</b></label>
+        <input maxlength="10" id="codigoPostalRepresentante" inputmode="numeric" formControlName="codigoPostalRepresentante"
+          [class.invalid]="esInvalido('codigoPostalRepresentante')" />
+        @if (esInvalido('codigoPostalRepresentante')) { <small>{{ mensajeCampo('codigoPostalRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="coloniaRepresentante">Colonia <b>*</b></label>
+        @if (usarSelectorColoniaRepresentante) {
+        <app-select
+          [placeholder]="placeholderColoniaRepresentante"
+          [options]="localidadesRepresentanteOptions"
+          formControlName="coloniaRepresentante"
+          [disabled]="form.get('coloniaRepresentante')?.disabled || localidadesRepresentante.length === 0"
+          [className]="esInvalido('coloniaRepresentante') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+          (valueChange)="seleccionarColoniaRepresentante($event)"
+        />
+        } @else {
+        <input id="coloniaRepresentante" formControlName="coloniaRepresentante"
+          [class.invalid]="esInvalido('coloniaRepresentante')" />
+        }
+        @if (esInvalido('coloniaRepresentante')) { <small>{{ mensajeCampo('coloniaRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="municipioRepresentante">Municipio / Alcaldía <b>*</b></label>
+        <input id="municipioRepresentante" formControlName="municipioRepresentante"
+          [class.invalid]="esInvalido('municipioRepresentante')" readonly />
+        @if (esInvalido('municipioRepresentante')) { <small>{{ mensajeCampo('municipioRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="estadoRepresentante">Estado <b>*</b></label>
+        <input id="estadoRepresentante" formControlName="estadoRepresentante"
+          [class.invalid]="esInvalido('estadoRepresentante')" readonly />
+        @if (esInvalido('estadoRepresentante')) { <small>{{ mensajeCampo('estadoRepresentante') }}</small> }
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- Contacto Representante -->
+  @if (seccionesVisibles.contactoRep) {
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Contacto del Representante Legal</h3>
+    </div>
+    <div class="form-grid cols-3">
+      <div class="field"><label for="correoRepresentante">Correo Electrónico <b>*</b></label>
+        <input maxlength="100" id="correoRepresentante" type="email" formControlName="correoRepresentante"
+          [class.invalid]="esInvalido('correoRepresentante')" />
+        @if (esInvalido('correoRepresentante')) { <small>{{ mensajeCampo('correoRepresentante') }}</small> }
+      </div>
+      <div class="field"><label for="telefonoRepresentante">Teléfono <b>*</b></label>
+        <input id="telefonoRepresentante" maxlength="10" inputmode="numeric" formControlName="telefonoRepresentante"
+          [class.invalid]="esInvalido('telefonoRepresentante')" />
+        @if (esInvalido('telefonoRepresentante')) { <small>{{ mensajeCampo('telefonoRepresentante') }}</small> }
+      </div>
+
+      <div class="field"><label for="telefonoAdicionalRepresentante">Teléfono Adicional</label>
+        <input id="telefonoAdicionalRepresentante" maxlength="10" inputmode="numeric"
+          maxlength="10" inputmode="numeric" formControlName="telefonoAdicionalRepresentante" />
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- Domicilio Comercial -->
+  <section class="step-section">
+
+    <div class="section-title section-title-inline">
+      <h3>Domicilio Comercial</h3>
+
+      @if (mostrarMismoDomicilio) {
+      <label class="checkbox-inline">
+        <input type="checkbox" formControlName="mismoDomicilio">
+        Mismo domicilio que el fiscal
+      </label>
+      }
+    </div>
+
+    <div class="form-grid cols-2">
+
+      <div class="field">
+        <label for="codigoPostalComercial">Código Postal <b>*</b></label>
+        <input maxlength="10" id="codigoPostalComercial" inputmode="numeric" formControlName="codigoPostalComercial"
+          [class.invalid]="esInvalido('codigoPostalComercial')">
+        @if (esInvalido('codigoPostalComercial')) { <small>{{ mensajeCampo('codigoPostalComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="tipoVialidadComercial">Tipo de Vialidad <b>*</b></label>
+        <app-select
+          placeholder="Selecciona un tipo de vialidad"
+          [options]="tipoVialidadOptions"
+          formControlName="tipoVialidadComercial"
+          [className]="esInvalido('tipoVialidadComercial') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+        />
+        @if (esInvalido('tipoVialidadComercial')) { <small>{{ mensajeCampo('tipoVialidadComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="nombreVialidadComercial">Nombre de la Vialidad <b>*</b></label>
+        <input maxlength="100" id="nombreVialidadComercial" formControlName="nombreVialidadComercial"
+          [class.invalid]="esInvalido('nombreVialidadComercial')">
+        @if (esInvalido('nombreVialidadComercial')) { <small>{{ mensajeCampo('nombreVialidadComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="numeroExteriorComercial">Número Exterior <b>*</b></label>
+        <input maxlength="20" id="numeroExteriorComercial" formControlName="numeroExteriorComercial"
+          [class.invalid]="esInvalido('numeroExteriorComercial')">
+        @if (esInvalido('numeroExteriorComercial')) { <small>{{ mensajeCampo('numeroExteriorComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="numeroInteriorComercial">Número Interior</label>
+        <input maxlength="20" id="numeroInteriorComercial" formControlName="numeroInteriorComercial">
+      </div>
+
+      <div class="field">
+        <label for="coloniaComercial">Colonia <b>*</b></label>
+        @if ((form.get('codigoPostalComercial')?.value || '').length === 5) {
+        <app-select
+          [placeholder]="placeholderColoniaComercial"
+          [options]="localidadesComercialOptions"
+          formControlName="coloniaComercial"
+          [disabled]="form.get('coloniaComercial')?.disabled || localidadesComercial.length === 0"
+          [className]="esInvalido('coloniaComercial') ? 'preregistro-select preregistro-select-arrow invalid' : 'preregistro-select preregistro-select-arrow'"
+          (valueChange)="seleccionarColoniaComercial($event)"
+        />
+        } @else {
+        <input id="coloniaComercial" formControlName="coloniaComercial"
+          [class.invalid]="esInvalido('coloniaComercial')">
+        }
+        @if (esInvalido('coloniaComercial')) { <small>{{ mensajeCampo('coloniaComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="localidadComercial">Localidad <b>*</b></label>
+        <input id="localidadComercial" formControlName="localidadComercial"
+          [class.invalid]="esInvalido('localidadComercial')" readonly>
+        @if (esInvalido('localidadComercial')) { <small>{{ mensajeCampo('localidadComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="municipioComercial">Municipio / Alcaldía <b>*</b></label>
+        <input id="municipioComercial" formControlName="municipioComercial"
+          [class.invalid]="esInvalido('municipioComercial')" readonly>
+        @if (esInvalido('municipioComercial')) { <small>{{ mensajeCampo('municipioComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="entidadFederativaComercial">Entidad Federativa <b>*</b></label>
+        <input id="entidadFederativaComercial" formControlName="entidadFederativaComercial"
+          [class.invalid]="esInvalido('entidadFederativaComercial')" readonly>
+        @if (esInvalido('entidadFederativaComercial')) { <small>{{ mensajeCampo('entidadFederativaComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="entreCalleComercial">Entre Calle <b>*</b></label>
+        <input maxlength="100" id="entreCalleComercial" formControlName="entreCalleComercial"
+          [class.invalid]="esInvalido('entreCalleComercial')">
+        @if (esInvalido('entreCalleComercial')) { <small>{{ mensajeCampo('entreCalleComercial') }}</small> }
+      </div>
+
+      <div class="field">
+        <label for="yCalleComercial">Y Calle <b>*</b></label>
+        <input maxlength="100" id="yCalleComercial" formControlName="yCalleComercial"
+          [class.invalid]="esInvalido('yCalleComercial')">
+        @if (esInvalido('yCalleComercial')) { <small>{{ mensajeCampo('yCalleComercial') }}</small> }
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- Contacto comercial -->
+  <section class="step-section">
+    <div class="section-title">
+      <h3>Contacto Comercial</h3>
+    </div>
+    <p class="commercial-contact-note">
+      El contacto comercial es el que se mostrará en el ticket.
+    </p>
+    <div class="form-grid cols-3">
+      <div class="field"><label for="correoComercial">Correo Electrónico</label>
+        <input maxlength="100" id="correoComercial" type="email" formControlName="correoComercial"
+          [class.invalid]="esInvalido('correoComercial')">
+        @if (esInvalido('correoComercial')) { <small>{{ mensajeCampo('correoComercial') }}</small> }
+      </div>
+      <div class="field"><label for="telefonoComercial">Teléfono</label>
+        <input id="telefonoComercial" maxlength="10" inputmode="numeric" formControlName="telefonoComercial"
+          [class.invalid]="esInvalido('telefonoComercial')">
+        @if (esInvalido('telefonoComercial')) { <small>{{ mensajeCampo('telefonoComercial') }}</small> }
+      </div>
+
+      <div class="field"><label for="telefonoAdicionalComercial">Teléfono Adicional</label>
+        <input id="telefonoAdicionalComercial" maxlength="10" inputmode="numeric" formControlName="telefonoAdicionalComercial" />
+      </div>
+    </div>
+  </section>
+
+
+  <div class="step-actions">
+    <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
+    @if (mostrarContinuar) {
+    <button type="submit" class="button primary">{{ textoContinuar }}</button>
+    }
+  </div>
+
+</form>
