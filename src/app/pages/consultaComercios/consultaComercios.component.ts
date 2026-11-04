@@ -67,7 +67,7 @@ export class ConsultaComerciosComponent {
     { id: 'sucursal' as NivelComercio, label: 'Sucursal', icon: 'fa-store' },
     { id: 'caja' as NivelComercio, label: 'Caja', icon: 'fa-cash-register' },
     { id: 'prospectos' as NivelComercio, label: 'Prospectos', icon: 'fa-user-clock' },
-    { id: 'pendiente-core' as NivelComercio, label: 'PENDIENTE AUTORIZACIÓN', icon: 'fa-user-clock' }
+    { id: 'pendiente-core' as NivelComercio, label: 'Pendiente autorización', icon: 'fa-user-clock' }
   ];
 
   get nivelesVisibles() {
