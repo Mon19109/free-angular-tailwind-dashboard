@@ -1,3 +1,4 @@
+import { SessionRefreshService } from '../../services/session-refresh.service';
 import { AuthService } from '../../services/auth.service';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
@@ -31,6 +32,69 @@ describe('Registro Cliente con contexto BFF', () => {
     }
     http.verify();
   });
+  it('tras renovar recarga el mismo comercio y nodo con referencias nuevas sin repetir escrituras', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    component.nodoSeleccionado = other;
+    const freshRef = '33333333-3333-4333-8333-333333333333';
+    const freshNode = '44444444-4444-4444-8444-444444444444';
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.returnValue(Promise.resolve(true));
+    TestBed.inject(SessionRefreshService).renovar().subscribe();
+    http.expectOne('/api/auth/refresh').flush({ success: true, authenticated: true, expiresAt: Date.now() + 600000 });
+    const renewal = http.expectOne(`/api/comercios/${ref}/nodos/${other}/renovar-contexto`);
+    expect(renewal.request.body).toEqual({});
+    expect(renewal.request.withCredentials).toBeTrue();
+    expect(renewal.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(renewal.request.headers.has('Authorization')).toBeFalse();
+    expect(component.contextoBff).toBeNull();
+    renewal.flush({ success: true, commerce: { ref: freshRef }, selectedIndex: 1,
+      tree: [{ ref: freshRef }, { ref: freshNode }] });
+    expect(navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ replaceUrl: true,
+      queryParams: { ref: freshRef, nodeRef: freshNode } }));
+    params.next(convertToParamMap({ ref: freshRef, nodeRef: freshNode }));
+    http.expectOne(`/api/comercios/${freshRef}/contexto`).flush({ ...response(freshRef), capabilities: { tree: true } });
+    http.expectOne(`/api/comercios/${freshRef}/arbol`).flush({ success: true, tree: [
+      { ref: freshRef, name: 'Entidad', levelType: 4, depth: 0 },
+      { ref: freshNode, name: 'Sucursal', levelType: 5, depth: 1 }
+    ] });
+    expect(component.nodoSeleccionado).toBe(freshNode);
+    http.expectOne(`/api/comercios/${freshRef}/nodos/${freshNode}/informacion-general`).flush({ success: true, information: { nameCommerce: 'Sucursal' } });
+    for (const req of http.match(r => /\/(documentos|pld)$/.test(r.url))) {
+      expect(req.request.url).toContain(`/comercios/${freshRef}/nodos/${freshNode}/`);
+      req.flush({ success: true, documents: [], rows: [] });
+    }
+    http.expectNone(r => r.method !== 'GET');
+    http.expectNone('/api/comercios/buscar');
+  });
+
+  it('refresh fallido no recupera y referencia vencida bloquea sin reintentar escrituras', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const refresh = TestBed.inject(SessionRefreshService);
+    refresh.renovar().subscribe({ error: () => undefined });
+    http.expectOne('/api/auth/refresh').flush({}, { status: 503, statusText: 'Unavailable' });
+    http.expectNone(r => r.url.endsWith('/renovar-contexto'));
+    refresh.renovar().subscribe();
+    http.expectOne('/api/auth/refresh').flush({ success: true, authenticated: true, expiresAt: Date.now() + 600000 });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/renovar-contexto`).flush(
+      { code: 'COMERCIOS_REFERENCE_NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
+    expect(component.contextoBff).toBeNull();
+    expect(component.errorContexto).toContain('No fue posible recuperar');
+    component.guardarRevisionDocumentos(); component.enviarNotificacionMesaDigital(); component.registrarClienteProspecto();
+    http.expectNone(() => true);
+  });
+
+  it('una recuperación tardía no sustituye otro comercio elegido durante el refresh', () => {
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.returnValue(Promise.resolve(true));
+    TestBed.inject(SessionRefreshService).renovar().subscribe();
+    http.expectOne('/api/auth/refresh').flush({ success: true, authenticated: true, expiresAt: Date.now() + 600000 });
+    const renewal = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/renovar-contexto`);
+    params.next(convertToParamMap({ ref: other }));
+    http.expectOne(`/api/comercios/${other}/contexto`).flush(response(other));
+    renewal.flush({ success: true, commerce: { ref: other }, tree: [{ ref: other }], selectedIndex: 0 });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(component.contextoBff?.commerce.ref).toBe(other);
+  });
+
   it('entrada sin ref no activa legacy ni usa IDs privados o almacenamiento local', () => {
     const pending = http.expectOne(`/api/comercios/${ref}/contexto`);
     params.next(convertToParamMap({ nodeID: other, commerceID: other, pldID: other, id: other }));

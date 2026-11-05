@@ -1,3 +1,4 @@
+import { SessionRefreshService } from '../../services/session-refresh.service';
 import { AuthService } from '../../services/auth.service';
 import { ConsultaComerciosService, ComercioContexto } from '../../services/consulta-comercios.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -815,6 +816,44 @@ export class RegistroClienteComponent {
     }
   }
 
+  private nodoInicialBff = '';
+  private renovandoContextoBff = false;
+
+  private renovarContextoBff(): void {
+    const ref = this.contextoBff?.commerce.ref;
+    const nodeRef = this.nodoSeleccionado || ref;
+    if (!ref || !nodeRef || this.renovandoContextoBff) return;
+    this.renovandoContextoBff = true;
+    this.consultaArbolBff?.unsubscribe();
+    this.limpiarDetalleBff();
+    const generation = this.consultaCuentaActual;
+    this.contextoBff = null;
+    this.arbolServicio = [];
+    this.nodoSeleccionado = '';
+    this.cargandoContexto = true;
+    this.errorContexto = '';
+    const fallo = () => {
+      if (generation !== this.consultaCuentaActual) return;
+      this.cargandoContexto = false;
+      this.errorContexto = 'No fue posible recuperar el comercio con la sesión renovada. Vuelve a seleccionarlo desde Consulta de Comercios.';
+    };
+    this.contextoService.renovarContexto(ref, nodeRef).pipe(
+      finalize(() => { this.renovandoContextoBff = false; }), takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: result => {
+        if (generation !== this.consultaCuentaActual) return;
+        const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const selected = Array.isArray(result?.tree) && Number.isInteger(result.selectedIndex)
+          ? result.tree[result.selectedIndex]?.ref : undefined;
+        if (result?.success !== true || !uuid.test(result.commerce?.ref ?? '') ||
+            result.commerce.ref === ref || !selected || !uuid.test(selected)) { fallo(); return; }
+        // Navigation reloads authorized reads and permissions; never replay a write.
+        void this.router.navigate([], { relativeTo: this.route, replaceUrl: true,
+          queryParams: { ref: result.commerce.ref, nodeRef: selected } }).then(ok => { if (!ok) fallo(); }, fallo);
+      }, error: fallo
+    });
+  }
+
   private cargarContextoBff(): void {
     this.route.queryParamMap.pipe(
       switchMap(params => {
@@ -827,6 +866,7 @@ export class RegistroClienteComponent {
         this.contextoBff = null;
         this.errorContexto = '';
         this.cargandoContexto = true;
+        this.nodoInicialBff = params.get('nodeRef') || '';
         const ref = params.get('ref') || '';
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref)) {
           this.errorContexto = 'Referencia no válida. Vuelve a buscar el comercio.';
@@ -859,6 +899,8 @@ export class RegistroClienteComponent {
 
   constructor() {
     this.cargarContextoBff();
+    inject(SessionRefreshService).renovada$.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.renovarContextoBff());
   }
 
   get arbol(): NodoRegistro[] {
@@ -1232,9 +1274,12 @@ export class RegistroClienteComponent {
         next: tree => {
           this.arbolServicio = tree;
           this.cargandoArbol = false;
-          if (tree[0]) {
-            this.seleccionarNodo(tree[0]);
-            this.abrirRutaNodo(tree, tree[0].id);
+          const selected = this.nodoInicialBff ? this.buscarNodo(tree, this.nodoInicialBff) : tree[0];
+          if (selected) {
+            this.seleccionarNodo(selected);
+            this.abrirRutaNodo(tree, selected.id);
+          } else if (this.nodoInicialBff) {
+            this.errorArbol = 'El nodo seleccionado ya no está disponible en el árbol autorizado.';
           }
         },
         error: () => {

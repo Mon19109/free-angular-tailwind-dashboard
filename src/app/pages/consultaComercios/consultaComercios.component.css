@@ -214,14 +214,6 @@
   gap: 10px;
 }
 
-.level-grid-dynamic {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.level-grid-dynamic:has(.level-option) {
-  margin-top: 10px;
-}
-
 .level-filters legend {
   margin-bottom: 2px;
   color: var(--consulta-text);

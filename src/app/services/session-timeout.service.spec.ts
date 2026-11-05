@@ -4,6 +4,7 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { AuthService } from './auth.service';
+import { SessionRefreshService } from './session-refresh.service';
 import { SessionTimeoutService } from './session-timeout.service';
 import { authTokenInterceptor } from './auth-token.interceptor';
 import { sessionExpirationInterceptor } from './session-expiration.interceptor';
@@ -48,10 +49,13 @@ describe('SessionTimeoutService con sesión BFF', () => {
     window.dispatchEvent(new Event('focus')); expect(service.mostrarModal()).toBeTrue();
   }));
   it('renueva una sola petición sin tokens y usa la nueva expiración del BFF', fakeAsync(() => {
+    const recovered = jasmine.createSpy('context recovery');
+    TestBed.inject(SessionRefreshService).renovada$.subscribe(recovered);
     iniciar(); tick(duration - 20000); service.mantenerSesion(); service.mantenerSesion();
     const req = http.expectOne('/api/auth/refresh'); expect(req.request.body).toEqual({});
     expect(req.request.headers.has('Authorization')).toBeFalse();
     expect(req.request.headers.get('X-Portal-Request')).toBe('1'); req.flush(active());
+    expect(recovered).toHaveBeenCalledTimes(1);
     expect(service.mostrarAviso()).toBeFalse(); tick(duration - 1); expect(auth.hasValidSession()).toBeTrue();
     tick(1); expect(service.mostrarModal()).toBeTrue();
   }));

@@ -130,6 +130,12 @@ export class ConsultaComerciosService {
     });
   }
 
+  renovarContexto(ref: string, nodeRef: string): Observable<ComercioArbolResponse & { commerce: { ref: string }; selectedIndex: number }> {
+    return this.http.post<ComercioArbolResponse & { commerce: { ref: string }; selectedIndex: number }>(
+      `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/renovar-contexto`, {},
+      { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
+  }
+
   consultarInformacionNodo(ref: string, nodeRef: string): Observable<ComercioInformacionResponse> {
     return this.http.get<ComercioInformacionResponse>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/informacion-general`, { withCredentials: true });
   }
