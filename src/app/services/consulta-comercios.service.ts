@@ -206,7 +206,7 @@ export class ConsultaComerciosService {
       {}, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
-  enviarObservacionesNodo(ref: string, nodeRef: string, observations: string, email: string): Observable<{ success: boolean }> {
+  enviarObservacionesNodo(ref: string, nodeRef: string, observations: string, email: string): Observable<{ success: boolean; message?: string; error?: { message?: string } }> {
     return this.http.post<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/observaciones`,
       { observations, email }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }

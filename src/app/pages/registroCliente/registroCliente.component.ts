@@ -2799,10 +2799,16 @@ export class RegistroClienteComponent {
     }
     const generation = this.consultaCuentaActual;
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
-    const mostrarErrorEnvio = () => {
+    // Messages arrive sanitized by the BFF. Never render technical codes or HTML.
+    const mensajePublico = (body: { message?: unknown; error?: { message?: unknown } } | null | undefined): string | undefined => {
+      return [body?.error?.message, body?.message].find((value): value is string =>
+        typeof value === 'string' && !!value.trim() && value.length <= 2000 &&
+        !/[<>\u0000-\u001f\u007f]|\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/.test(value));
+    };
+    const mostrarErrorEnvio = (mensaje?: string) => {
       this.mensajeObservacionesCliente = '';
       this.mostrarModalRegistro('error', 'No fue posible enviar la notificación',
-        'Estamos teniendo complicaciones para atender tu solicitud. Por favor, inténtalo más tarde.', 'Entendido');
+        mensaje ?? 'Estamos teniendo complicaciones para atender tu solicitud. Por favor, inténtalo más tarde.', 'Entendido');
     };
     this.enviandoNotificacionMesaDigital = true;
     this.mensajeObservacionesCliente = '';
@@ -2810,16 +2816,20 @@ export class RegistroClienteComponent {
       next: response => {
         if (!vigente()) return;
         this.enviandoNotificacionMesaDigital = false;
-        if (response?.success !== true) { mostrarErrorEnvio(); return; }
+        const mensaje = mensajePublico(response);
+        if (response?.success !== true || response.error) {
+          mostrarErrorEnvio(mensaje);
+          return;
+        }
         this.observacionesClienteMesaDigital = '';
-        this.mostrarModalRegistro('success', 'Operación exitosa', 'Notificación enviada correctamente.');
+        this.mostrarModalRegistro('success', 'Operación exitosa', mensaje ?? 'Notificación enviada correctamente.');
       },
       error: error => {
         if (!vigente()) return;
         this.enviandoNotificacionMesaDigital = false;
         if ([401, 403, 409, 422].includes(error.status)) this.notificacionPermitidaBff = false;
         this.codigoNotificacionBff = this.codigoBffSeguro(error.error?.code);
-        mostrarErrorEnvio();
+        mostrarErrorEnvio(mensajePublico(error.error));
       }
     });
   }

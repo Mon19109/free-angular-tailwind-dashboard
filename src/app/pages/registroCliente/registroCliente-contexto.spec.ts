@@ -893,6 +893,27 @@ describe('Registro Cliente con contexto BFF', () => {
     });
   }
 
+  for (const status of [200, 201, 400, 409, 422, 500]) for (const success of [true, false]) {
+    for (const nested of [false, true]) {
+      it(`popup de observaciones conserva mensaje público HTTP ${status}, success ${success}, anidado ${nested}`, () => {
+        cargarRevision();
+        component.observacionesClienteMesaDigital = 'Conservar borrador';
+        const message = nested ? 'Error comunication.' : 'Operación procesada. ' + 'Revisa los documentos pendientes. '.repeat(15);
+        component.enviarNotificacionMesaDigital();
+        component.enviarNotificacionMesaDigital();
+        const request = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos/observaciones`);
+        request.flush({ success, ...(nested ? { error: { message } } : { message }) }, { status, statusText: 'Provider result' });
+        const ok = status < 300 && success && !nested;
+        expect(component.modalRegistro.visible).toBeTrue();
+        expect(component.modalRegistro.tipo).toBe(ok ? 'success' : 'error');
+        expect(component.modalRegistro.mensaje).toBe(message);
+        expect(component.observacionesClienteMesaDigital).toBe(ok ? '' : 'Conservar borrador');
+        expect(component.enviandoNotificacionMesaDigital).toBeFalse();
+        http.expectNone(r => r.method === 'POST');
+      });
+    }
+  }
+
   for (const status of ['APPROVED','REJECTED','IN_REVIEW']) {
     it(`notifica documentos ${status} sin permiso de revisión ni guardar borrador`, () => {
       cargarRevision({reviewDocuments:false,sendObservations:true,notificationEmail:'cuenta@example.test'});
