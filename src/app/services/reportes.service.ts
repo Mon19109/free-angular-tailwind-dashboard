@@ -1,58 +1,41 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-export interface PeriodoReporte {
-  anio: string;
-  mes: string;
-  mesNumero: string;
+export interface CuentaReporte {
+  idSirio: string;
+  guidCommerce: string;
+  name: string;
+  levelType?: number;
 }
-
-export interface ReporteArchivo {
-  name?: string;
-  url?: string;
-  [key: string]: unknown;
+export interface FiltroReporte {
+  periodo: string; // Ej. "2026 Octubre"
+  tipoCuenta: 'Cuenta Adquirente' | 'Cuenta Emision' | 'Cuenta Emisión' | 'Cuenta Reserva';
+  guid: string;
+  cuenta: string;
 }
+export type TipoDescarga='estado-pdf'|'estado-excel'|'transacciones'|'diario'|'split'|'conciliacion';
 
-export type TipoCuentaReporte = 'EMISION' | 'ADQUIRENTE';
-
-@Injectable({ providedIn: 'root' })
+@Injectable({providedIn:'root'})
 export class ReportesService {
-  private readonly api = '/api/reportes';
-  constructor(private http: HttpClient) {}
-  obtenerEntidades(): Observable<any> { return this.http.get(`${this.api}/entidades`, { withCredentials: true }); }
-  obtenerCuentas(entitySonID?: string): Observable<any> {
-    const params = entitySonID === undefined ? undefined : new HttpParams().set('entitySonID', entitySonID);
-    return this.http.get(`${this.api}/cuentas`, { params, withCredentials: true });
+  private readonly http=inject(HttpClient);
+  private readonly base='/api/reportes';
+  obtenerCuentas():Observable<{cuentas:CuentaReporte[]}>{
+    return this.http.get<{cuentas:CuentaReporte[]}>(`${this.base}/cuentas`,{withCredentials:true});
   }
-  obtenerSaldo(idContext: string): Observable<any> {
-    return this.http.get(`${this.api}/saldo/${encodeURIComponent(idContext)}`, { withCredentials: true });
+  buscar(filtro:FiltroReporte):Observable<{rows:unknown}>{
+    return this.http.post<{rows:unknown}>(`${this.base}/buscar`,filtro,{withCredentials:true});
   }
-  buscarFolderReportes(periodo: string, tipoCuenta: TipoCuentaReporte, guidComerce: string): Observable<ReporteArchivo[]> {
-    return this.http.get<ReporteArchivo[]>(`${this.api}/directorio`, { withCredentials: true,
-      params: new HttpParams().set('periodo', periodo).set('tipoCuenta', tipoCuenta).set('guidComerce', guidComerce) });
+  buscarReporte(filtro:FiltroReporte,reporte:string):Observable<{rows:unknown}>{
+    return this.http.post<{rows:unknown}>(`${this.base}/buscar-reporte`,{...filtro,reporte},{withCredentials:true});
   }
-  buscarArchivosReporte(periodo: string, tipoCuenta: TipoCuentaReporte, reporte: string, guidComerce: string): Observable<ReporteArchivo[]> {
-    return this.http.get<ReporteArchivo[]>(`${this.api}/archivos`, { withCredentials: true,
-      params: new HttpParams().set('periodo', periodo).set('tipoCuenta', tipoCuenta).set('reporte', reporte).set('guidComerce', guidComerce) });
+  descargar(tipo:TipoDescarga,filtro:Partial<FiltroReporte>&{fecha?:string;clabe?:string}):Observable<Blob>{
+    return this.http.post(`${this.base}/descargar`,{tipo,...filtro},{withCredentials:true,responseType:'blob'});
   }
-  obtenerEstadoCuenta(tipo: 'PDF' | 'EXCEL', periodo: string, cuenta: string, clabe = ''): Observable<any> {
-    return this.http.get(`${this.api}/estado-cuenta`, { withCredentials: true,
-      params: new HttpParams().set('tipo', tipo).set('periodo', periodo).set('cuenta', cuenta).set('clabe', clabe) });
-  }
-  obtenerCorteDia(periodo: string): Observable<any> {
-    return this.http.get(`${this.api}/corte-dia`, { withCredentials: true, params: new HttpParams().set('periodo', periodo) });
-  }
-  obtenerDiarioTransacciones(periodo: string): Observable<any> {
-    return this.http.get(`${this.api}/diario-transacciones`, { withCredentials: true, params: new HttpParams().set('periodo', periodo) });
-  }
-  obtenerTransaccionesSplit(periodo: string, cuenta: string): Observable<any> {
-    return this.http.get(`${this.api}/transacciones-split`, { withCredentials: true,
-      params: new HttpParams().set('periodo', periodo).set('cuenta', cuenta) });
-  }
-  parsePeriodo(periodo: string): PeriodoReporte {
-    const [anio = '', mes = ''] = periodo.trim().split(/\s+/, 2);
-    const meses: Record<string, string> = { Enero:'01', Febrero:'02', Marzo:'03', Abril:'04', Mayo:'05', Junio:'06', Julio:'07', Agosto:'08', Septiembre:'09', Septiempre:'09', Octubre:'10', Noviembre:'11', Diciembre:'12' };
-    return { anio, mes, mesNumero: meses[mes] || '' };
+  guardarArchivo(blob:Blob,nombre:string):void {
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=nombre;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 }
