@@ -19,7 +19,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subscription, Observable, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
+import { Subscription, Observable, EMPTY, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import { UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -287,7 +287,7 @@ export class RegistroClienteComponent {
   private readonly sesionPortal = inject(AuthService);
   get puedeVerRevisionDocumental(): boolean {
     const role = this.sesionPortal.getUserData()?.idRol;
-    return this.modoContextoBff ? this.sesionPortal.hasValidSession()
+    return this.modoContextoBff ? !this.renovandoContextoBff && !this.contextoIrrecuperable && this.sesionPortal.hasValidSession()
       && (role === 2 || role === '2') : this.esMesaDigitalSesion;
   }
   get puedeEnviarCredenciales(): boolean {
@@ -727,7 +727,7 @@ export class RegistroClienteComponent {
     });
   }
 
-  private consultarRelacionNodoBff(tipo: 'pld' | 'documentos'): void {
+  private consultarRelacionNodoBff(tipo: 'pld' | 'documentos', conservarCaptura = false): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
     if (!ref || !nodeRef || !this.buscarNodo(this.arbolServicio, nodeRef)) return;
@@ -799,11 +799,11 @@ export class RegistroClienteComponent {
           ++this.versionDocumentosBff;
           this.observacionesInternasCargadasBff = Object.hasOwn(respuesta, 'internalObservations')
             && (respuesta.internalObservations === null || typeof respuesta.internalObservations === 'string');
-          this.observacionesInternasMesaDigital = typeof respuesta.internalObservations === 'string' ? respuesta.internalObservations : '';
+          if (!conservarCaptura) this.observacionesInternasMesaDigital = typeof respuesta.internalObservations === 'string' ? respuesta.internalObservations : '';
           this.revisionPermitidaBff = respuesta.permissions?.reviewDocuments === true;
           this.notificacionPermitidaBff = respuesta.permissions?.sendObservations === true;
           this.registroPermitidoBff = respuesta.permissions?.registerClient === true;
-          this.emailNotificacionMesaDigital = respuesta.permissions?.notificationEmail ?? '';
+          if (!conservarCaptura) this.emailNotificacionMesaDigital = respuesta.permissions?.notificationEmail ?? '';
           this.codigoRevisionBff = this.codigoBffSeguro(respuesta.permissions?.reviewUnavailableCode)
             || (!respuesta.permissions ? 'Permisos documentales ausentes en la respuesta del BFF.'
               : '');
@@ -818,38 +818,71 @@ export class RegistroClienteComponent {
 
   private nodoInicialBff = '';
   private renovandoContextoBff = false;
+  private contextoIrrecuperable = false;
+  private contextoSinRecarga = '';
+  private vigenciaTimer?: ReturnType<typeof setTimeout>;
 
   private renovarContextoBff(): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado || ref;
-    if (!ref || !nodeRef || this.renovandoContextoBff) return;
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!ref || !nodeRef || !uuid.test(ref) || !uuid.test(nodeRef) || this.renovandoContextoBff) return;
+    clearTimeout(this.vigenciaTimer);
     this.renovandoContextoBff = true;
-    this.consultaArbolBff?.unsubscribe();
-    this.limpiarDetalleBff();
     const generation = this.consultaCuentaActual;
-    this.contextoBff = null;
-    this.arbolServicio = [];
-    this.nodoSeleccionado = '';
-    this.cargandoContexto = true;
-    this.errorContexto = '';
-    const fallo = () => {
-      if (generation !== this.consultaCuentaActual) return;
-      this.cargandoContexto = false;
-      this.errorContexto = 'No fue posible recuperar el comercio con la sesión renovada. Vuelve a seleccionarlo desde Consulta de Comercios.';
+    const vigente = () => generation === this.consultaCuentaActual && this.contextoBff?.commerce.ref === ref
+      && (this.nodoSeleccionado || ref) === nodeRef;
+    const fallo = (error?: { status?: number }) => {
+      if (!vigente()) return;
+      if ([401, 403, 404].includes(error?.status ?? 0)) {
+        this.contextoIrrecuperable = true;
+        this.errorContexto = 'La selección ya no puede verificarse. Selecciona nuevamente el comercio autorizado.';
+      } else {
+        this.mensajeObservacionesCliente = 'No fue posible verificar el contexto temporalmente. La captura se conserva.';
+      }
     };
-    this.contextoService.renovarContexto(ref, nodeRef).pipe(
+    this.contextoService.vigenciaContexto(ref, nodeRef).pipe(
+      switchMap(state => {
+        if (!vigente()) return EMPTY;
+        if (!state.success || !Number.isFinite(state.expiresAt)) throw new Error('Vigencia inválida');
+        if (state.valid && state.expiresAt > Date.now()) {
+          this.vigenciaTimer = setTimeout(() => { if (this.contextoBff?.commerce.ref === ref) this.renovarContextoBff(); }, state.expiresAt - Date.now() + 25);
+          return EMPTY;
+        }
+        return this.contextoService.renovarContexto(ref, nodeRef);
+      }),
       finalize(() => { this.renovandoContextoBff = false; }), takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: result => {
-        if (generation !== this.consultaCuentaActual) return;
-        const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!vigente()) return;
         const selected = Array.isArray(result?.tree) && Number.isInteger(result.selectedIndex)
           ? result.tree[result.selectedIndex]?.ref : undefined;
-        if (result?.success !== true || !uuid.test(result.commerce?.ref ?? '') ||
-            result.commerce.ref === ref || !selected || !uuid.test(selected)) { fallo(); return; }
-        // Navigation reloads authorized reads and permissions; never replay a write.
+        if (!result.success || !uuid.test(result.commerce?.ref ?? '') || result.commerce.ref === ref ||
+            !selected || !uuid.test(selected) || result.tree.some(n => !uuid.test(n.ref))) { fallo(); return; }
+        // Replace only navigation capabilities; preserve forms, current step and draft text.
+        this.consultaArbolBff?.unsubscribe();
+        this.consultaCuentaBff?.unsubscribe();
+        this.consultaDocumentosBff?.unsubscribe();
+        this.consultaPldBff?.unsubscribe();
+        ++this.consultaCuentaActual;
+        this.cargandoCuentaComercio = false;
+        this.cargandoArbol = false;
+        this.cargandoSiprelad = false;
+        this.contextoBff = { ...this.contextoBff!, commerce: { ...this.contextoBff!.commerce, ref: result.commerce.ref } };
+        this.arbolServicio = this.arbolPlanoPorProfundidad(result.tree.map(n => ({ id: n.ref, name: n.name ?? '', levelType: n.levelType, depth: n.depth })));
+        this.nodoSeleccionado = selected;
+        this.nodoInicialBff = selected;
+        this.contextoSeleccionado.idComercio = selected;
+        this.documentosProspectoPorNodo = {};
+        this.documentosConfirmadosBffPorNodo = {};
+        this.errorContexto = '';
+        this.contextoIrrecuperable = false;
+        this.consultarRelacionNodoBff('documentos', true);
+        this.contextoSinRecarga = result.commerce.ref + '/' + selected;
         void this.router.navigate([], { relativeTo: this.route, replaceUrl: true,
-          queryParams: { ref: result.commerce.ref, nodeRef: selected } }).then(ok => { if (!ok) fallo(); }, fallo);
+          queryParams: { ref: result.commerce.ref, nodeRef: selected } }).catch(() => {
+            this.mensajeObservacionesCliente = 'El contexto se recuperó, pero no fue posible actualizar la dirección de navegación.';
+          });
       }, error: fallo
     });
   }
@@ -857,6 +890,12 @@ export class RegistroClienteComponent {
   private cargarContextoBff(): void {
     this.route.queryParamMap.pipe(
       switchMap(params => {
+        if (this.contextoSinRecarga === params.get('ref') + '/' + params.get('nodeRef')) {
+          this.contextoSinRecarga = '';
+          return EMPTY;
+        }
+        clearTimeout(this.vigenciaTimer);
+        this.contextoIrrecuperable = false;
         this.consultaArbolBff?.unsubscribe();
         this.limpiarDetalleBff();
         this.arbolServicio = [];
@@ -899,6 +938,7 @@ export class RegistroClienteComponent {
 
   constructor() {
     this.cargarContextoBff();
+    this.destroyRef.onDestroy(() => clearTimeout(this.vigenciaTimer));
     inject(SessionRefreshService).renovada$.pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.renovarContextoBff());
   }
@@ -1011,7 +1051,7 @@ export class RegistroClienteComponent {
   }
 
   get puedeFinalizarDocumentosBff(): boolean {
-    if (!this.modoContextoBff || this.registrandoCliente || this.guardandoRevisionDocumentos
+    if (!this.modoContextoBff || this.renovandoContextoBff || this.contextoIrrecuperable || this.registrandoCliente || this.guardandoRevisionDocumentos
       || this.cargandoDocumentosProspecto || this.errorDocumentosProspecto) return false;
     if (this.mostrarRegistrarClienteDocumentos) return this.documentosValidadosParaRegistro(this.documentosProspecto);
     return this.puedeRevisarDocumentosBff;
@@ -2045,6 +2085,7 @@ export class RegistroClienteComponent {
   seleccionarNodo(nodo: NodoRegistro): void {
     if (this.enviandoCredenciales) return;
     if (this.modoContextoBff) {
+      if (this.renovandoContextoBff || this.contextoIrrecuperable) return;
       const seleccionado = this.buscarNodo(this.arbolServicio, nodo.id);
       if (!seleccionado) return;
       this.limpiarDetalleBff();

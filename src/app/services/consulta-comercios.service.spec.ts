@@ -13,6 +13,13 @@ describe('Consulta de comercios BFF', () => {
     service = TestBed.inject(ConsultaComerciosService);
   });
   afterEach(() => http.verify());
+  it('no envía URLs con referencias vacías o inválidas', () => {
+    for (const [ref, node] of [['', ''], ['undefined', 'null'], [' ', ' ']]) {
+      service.renovarContexto(ref, node).subscribe({ next: () => fail('Unexpected success'), error: () => undefined });
+      service.vigenciaContexto(ref, node).subscribe({ next: () => fail('Unexpected success'), error: () => undefined });
+    }
+    http.expectNone(() => true);
+  });
   it('envía exclusivamente filtros con cookie y protección CSRF, sin leer storage', () => {
     const storage = spyOn(localStorage, 'getItem').and.throwError('Storage prohibido');
     service.buscarComercios({ nameCommerce: 'Tienda', rfc: 'RFC', email: 'fixture@example.invalid', telefono: '123', status: 'ACTIVO', nodeID: 'private', token: 'private' } as any).subscribe();

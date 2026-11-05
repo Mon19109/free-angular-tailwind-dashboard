@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthService } from './auth.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, throwError } from 'rxjs';
 import { environment } from '../environments/environments';
 
 export interface ConsultaComerciosFiltros {
@@ -130,7 +130,19 @@ export class ConsultaComerciosService {
     });
   }
 
+  private referenciasValidas(ref: string, nodeRef: string): boolean {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuid.test(ref) && uuid.test(nodeRef);
+  }
+
+  vigenciaContexto(ref: string, nodeRef: string): Observable<{ success: boolean; valid: boolean; expiresAt: number }> {
+    if (!this.referenciasValidas(ref, nodeRef)) return throwError(() => new Error('Referencia no válida'));
+    return this.http.get<{ success: boolean; valid: boolean; expiresAt: number }>(
+      `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/vigencia-contexto`, { withCredentials: true });
+  }
+
   renovarContexto(ref: string, nodeRef: string): Observable<ComercioArbolResponse & { commerce: { ref: string }; selectedIndex: number }> {
+    if (!this.referenciasValidas(ref, nodeRef)) return throwError(() => new Error('Referencia no válida'));
     return this.http.post<ComercioArbolResponse & { commerce: { ref: string }; selectedIndex: number }>(
       `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/renovar-contexto`, {},
       { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
