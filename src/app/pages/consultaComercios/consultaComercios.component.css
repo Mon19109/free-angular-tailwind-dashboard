@@ -200,17 +200,29 @@
   color: #315aa3;
 }
 
-.level-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(140px, 1fr));
-  gap: 10px;
+.level-filters {
+  min-width: 0;
   padding: 0;
   margin: 0;
   border: 0;
 }
 
-.level-grid legend {
-  grid-column: 1 / -1;
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 10px;
+}
+
+.level-grid-dynamic {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.level-grid-dynamic:has(.level-option) {
+  margin-top: 10px;
+}
+
+.level-filters legend {
   margin-bottom: 2px;
   color: var(--consulta-text);
   font-weight: 750;
@@ -218,7 +230,7 @@
 }
 
 .level-option {
-  min-height: 56px;
+  min-height: 64px;
   width: 100%;
   min-width: 0;
   display: flex;
@@ -266,13 +278,12 @@
 
 .level-option span {
   min-width: 0;
-  overflow: hidden;
   color: inherit;
   font-size: 15px;
   font-weight: inherit;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .info-grid {
@@ -818,9 +829,8 @@ td {
   letter-spacing: 0 !important;
 }
 
-/* Keep the status filter after the level cards, on the following row. */
+/* Match the dynamic status filter to the level cards. */
 .review-level-option {
-  grid-column: 1;
   text-align: left;
   font-family: inherit;
 }

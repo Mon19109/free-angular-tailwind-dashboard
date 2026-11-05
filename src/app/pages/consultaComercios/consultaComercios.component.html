@@ -18,20 +18,37 @@
     </div>
 
     <form (ngSubmit)="buscar()">
-      <fieldset class="level-grid">
+      <fieldset class="level-filters">
         <legend>Buscar por Nivel</legend>
-        <label class="level-option" *ngFor="let nivel of nivelesVisibles" [class.active]="filtros.nivel === nivel.id">
-          <input type="radio" name="nivel" [value]="nivel.id" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
-          <i class="fa-solid" [ngClass]="nivel.icon"></i>
-          <span>{{ nivel.label }}</span>
-        </label>
-        <label *ngIf="hayPendientesRevision || soloPendientesRevision"
-          class="level-option review-level-option"
-          [class.active]="soloPendientesRevision">
-          <input type="radio" name="nivel" value="pendientes" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
-          <i class="fa-solid fa-user-clock" aria-hidden="true"></i>
-          <span class="review-level-label">Pendientes de revisión</span>
-        </label>
+        <div class="level-grid">
+          <ng-container *ngFor="let nivel of nivelesVisibles">
+            @if (nivel.id !== 'prospectos' && nivel.id !== 'pendiente-core') {
+              <label class="level-option" [class.active]="filtros.nivel === nivel.id">
+                <input type="radio" name="nivel" [value]="nivel.id" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
+                <i class="fa-solid" [ngClass]="nivel.icon"></i>
+                <span>{{ nivel.label }}</span>
+              </label>
+            }
+          </ng-container>
+        </div>
+        <div class="level-grid level-grid-dynamic">
+          <ng-container *ngFor="let nivel of nivelesVisibles">
+            @if (nivel.id === 'prospectos' || nivel.id === 'pendiente-core') {
+              <label class="level-option" [class.active]="filtros.nivel === nivel.id">
+                <input type="radio" name="nivel" [value]="nivel.id" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
+                <i class="fa-solid" [ngClass]="nivel.icon"></i>
+                <span>{{ nivel.label }}</span>
+              </label>
+            }
+          </ng-container>
+          <label *ngIf="hayPendientesRevision || soloPendientesRevision"
+            class="level-option review-level-option"
+            [class.active]="soloPendientesRevision">
+            <input type="radio" name="nivel" value="pendientes" [(ngModel)]="filtros.nivel" (ngModelChange)="seleccionarNivel($event)">
+            <i class="fa-solid fa-user-clock" aria-hidden="true"></i>
+            <span class="review-level-label">Pendientes de revisión</span>
+          </label>
+        </div>
       </fieldset>
 
       <div class="info-grid" *ngIf="filtros.nivel !== 'caja'">
