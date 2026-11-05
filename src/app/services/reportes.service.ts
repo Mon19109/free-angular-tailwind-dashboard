@@ -1,3 +1,6 @@
+
+    
+  
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -38,4 +41,28 @@ export class ReportesService {
     a.href=url;a.download=nombre;a.click();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  generarPDF(cuenta: string, periodo: string, clabe: string) {
+    return this.http.post('/api/reportes/descargar', {
+      tipo: 'estado-pdf',
+      cuenta,
+      periodo,
+      clabe
+    }, {
+      responseType: 'blob',
+      withCredentials: true
+    });
+  }
+
+  generarEXCEL(cuenta: string, periodo: string, clabe: string) {
+    return this.http.post('/api/reportes/descargar', {
+      tipo: 'estado-excel',
+      cuenta,
+      periodo,
+      clabe
+    }, {
+      responseType: 'blob',
+      withCredentials: true
+    });
+  }
 }
+
