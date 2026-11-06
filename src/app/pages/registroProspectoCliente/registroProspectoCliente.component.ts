@@ -238,6 +238,13 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   errorArbol = '';
   showTokenModal = true;
   registroFinalizado = false;
+  finalizacionEstado: 'NOT_STARTED' | 'CONFIRMED' | 'PENDING' | 'REJECTED' = 'NOT_STARTED';
+  pasosRegistroCompletos = false;
+  get mensajeFinalizacion(): string {
+    if (this.finalizacionEstado === 'PENDING') return 'La finalización está pendiente de confirmación. Los accesos confirmados se conservan. No se repetirá la operación; solicita la verificación al administrador.';
+    if (this.finalizacionEstado === 'REJECTED') return 'El proveedor rechazó la finalización. Los accesos confirmados se conservan. Solicita la revisión al administrador.';
+    return '';
+  }
   private readonly meta = inject(Meta);
   tokenValue = '';
   tokenErrorMessage = '';
@@ -383,6 +390,8 @@ if (this.prospecto) this.consultarCuentaComercio();
     this.tokenValue = '';
     this.tokenErrorMessage = '';
     this.registroFinalizado = false;
+    this.finalizacionEstado = 'NOT_STARTED';
+    this.pasosRegistroCompletos = false;
     this.error = '';
     this.errorProspecto = '';
     this.errorArbol = '';
@@ -854,6 +863,8 @@ const formData = new FormData();
       switchMap(result => {
         if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return of(undefined);
         completed = result.registration?.status === 'COMPLETED';
+        this.pasosRegistroCompletos = completed;
+        if (completed) this.finalizacionEstado = 'PENDING';
         return completed ? this.seguimientoProspectoService.completar(this.link) : of(undefined);
       }),
       finalize(() => { if (this.consultaCuentaVersion === version) this.guardando = false; })
@@ -863,15 +874,40 @@ const formData = new FormData();
         this.accesosCompletadosPorNodo.add(nodeRef);
         this.cuentaComercio = { ...this.cuentaComercio, hasPlatformAccess: true };
         this.registroFinalizado = completed;
-        if (completed) { this.tokenSmsValidado = false; this.showTokenModal = false; }
+        if (completed) { this.finalizacionEstado = 'CONFIRMED'; this.tokenSmsValidado = false; this.showTokenModal = false; }
         if (!completed) this.modalAccesos = this.buscarNodo(this.arbol, nodeRef)?.nombre ?? 'Comercio';
       },
       error: error => {
         if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
         this.manejarErrorAutorizacionPublica(error);
-        this.error = this.accesosCompletos
-          ? 'Los accesos están confirmados, pero no fue posible confirmar la finalización. Contacta al administrador; no se repetirán los registros.'
-          : 'No fue posible confirmar el registro de accesos. No se repetirán automáticamente las escrituras.';
+        if (this.accesosCompletos) {
+          this.finalizacionEstado = error?.error?.completion?.status === 'REJECTED' ? 'REJECTED' : 'PENDING';
+          this.modalAccesos = null;
+        } else this.error = 'No fue posible confirmar el registro de accesos. No se repetirán automáticamente las escrituras.';
+      }
+    });
+  }
+
+  completarRegistroPublico(): void {
+    if (this.modoInterno || !this.tokenSmsValidado || !this.pasosRegistroCompletos
+      || this.guardando || this.finalizacionEstado !== 'NOT_STARTED') return;
+    const version = this.seguimientoVersion;
+    this.guardando = true;
+    this.finalizacionEstado = 'PENDING';
+    this.seguimientoProspectoService.completar(this.link).pipe(finalize(() => {
+      if (this.seguimientoVersion === version) this.guardando = false;
+    })).subscribe({
+      next: () => {
+        if (this.seguimientoVersion !== version) return;
+        this.finalizacionEstado = 'CONFIRMED';
+        this.registroFinalizado = true;
+        this.tokenSmsValidado = false;
+        this.showTokenModal = false;
+      },
+      error: error => {
+        if (this.seguimientoVersion !== version) return;
+        this.manejarErrorAutorizacionPublica(error);
+        this.finalizacionEstado = error?.error?.completion?.status === 'REJECTED' ? 'REJECTED' : 'PENDING';
       }
     });
   }
@@ -996,11 +1032,13 @@ const formData = new FormData();
           return;
         }
         this.enlaceVinculado = true;
-        this.registroFinalizado = resp.registration?.status === 'COMPLETED';
+        this.finalizacionEstado = resp.completion?.status ?? 'NOT_STARTED';
+        this.registroFinalizado = this.finalizacionEstado === 'CONFIRMED';
+        this.pasosRegistroCompletos = resp.registration?.status === 'COMPLETED';
         this.tokenSmsValidado = resp.smsValidated === true && !this.registroFinalizado;
         this.showTokenModal = !this.tokenSmsValidado && !this.registroFinalizado;
         this.prospecto = resp.accountResponse;
-        if (this.registroFinalizado) return;
+        if (this.registroFinalizado || this.mensajeFinalizacion) { this.showTokenModal = false; return; }
         this.precargarDatosProspecto();
         if (this.tokenSmsValidado) {
           this.consultarCuentaComercio();
@@ -1544,7 +1582,7 @@ const formData = new FormData();
 
         this.cuentaComercio = { ...this.cuentaComercio, dispersionAccount: datos.dispersionAccount, hasPlatformAccess: datos.hasPlatformAccess, typeOfBusiness: datos.typeOfBusiness };
         this.liquidacionConsultada = true;
-       this.liquidacionExistente = !!opcion;
+        this.liquidacionExistente = dispersion === 'NETWORK' || (!!opcion && datos.cuentaCLConfirmada === true);
         this.liquidacionRegistrada = false;
 
         if (opcion) {

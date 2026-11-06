@@ -5,6 +5,7 @@ import { SeguimientoNavigationService } from './seguimiento-navigation.service';
 export interface ProspectoClienteResponse {
   success?: boolean;
   smsValidated?: boolean;
+  completion?: { status: 'NOT_STARTED' | 'CONFIRMED' | 'PENDING' | 'REJECTED' };
   registration?: { status: 'PENDING' | 'PARTIAL' | 'COMPLETED' | 'UNVERIFIED'; liquidationComplete: boolean | null; platformComplete: boolean | null };
   message?: string;
   error?: { name?: string; message?: string; code?: string };
