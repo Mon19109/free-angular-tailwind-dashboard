@@ -2,11 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
-import { saveAs } from 'file-saver';
 import { finalize, Subscription, timeout } from 'rxjs';
-import { ReporteArchivo, ReportesService } from '../../services/reportes.service';
+import { CuentaReporte, FiltroReporte, TipoDescarga, ReportesService } from '../../services/reportes.service';
 
-type TipoCuentaReporte = 'EMISION' | 'ADQUIRENTE';
 type TipoReporte = 'ESTADO_PDF' | 'ESTADO_EXCEL' | 'CORTE_DIA' | 'DIARIO_TRANSACCIONES' | 'TRANSACCIONES_SPLIT' | string;
 
 interface ReporteDisponible {
@@ -40,7 +38,6 @@ interface EntidadReporteDisponible {
 export class ReportesComponent implements OnInit, OnDestroy {
   private readonly sessionAuth = inject(AuthService);
   private consultaSubscription?: Subscription;
-  private saldoSubscription?: Subscription;
   private reporteSubscription?: Subscription;
   private entidadesSubscription?: Subscription;
   private cuentasSubscription?: Subscription;
@@ -67,7 +64,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     {
       id: 'CORTE_DIA',
       titulo: 'Corte del día',
-      descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, no esta ligada al periodo de tiempo seleccionado del filtro superior',
+      descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, utilizando el periodo seleccionado del filtro superior',
       imagen: this.assetUrl('assets/reportes/Transacciones.png'),
       variante: 'corte',
       origen: 'fijo'
@@ -75,7 +72,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     {
       id: 'DIARIO_TRANSACCIONES',
       titulo: 'Diario de Transacciones',
-      descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, no esta ligada al periodo de tiempo seleccionado del filtro superior',
+      descripcion: 'La información presentada corresponde a las transacciones procesadas al corte del día, utilizando el periodo seleccionado del filtro superior',
       imagen: this.assetUrl('assets/reportes/TransaccionesDia.png'),
       variante: 'diario',
       origen: 'fijo'
@@ -164,7 +161,6 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.consultaSubscription?.unsubscribe();
-    this.saldoSubscription?.unsubscribe();
     this.reporteSubscription?.unsubscribe();
     this.entidadesSubscription?.unsubscribe();
     this.cuentasSubscription?.unsubscribe();
@@ -184,105 +180,68 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   cargarEntidades(): void {
     this.entidadesSubscription?.unsubscribe();
-    this.entidadesSubscription = this.reportesService.obtenerEntidades().subscribe({
+    // For profiles 8/9 this endpoint returns the authorized tree, not accounts of a selected entity.
+    this.entidadesSubscription = this.reportesService.obtenerCuentas().subscribe({
       next: respuesta => {
-        this.entidades = this.extraerEntidades(respuesta);
+        this.entidades = respuesta.cuentas.filter(cuenta => cuenta.levelType === 4 && cuenta.idSirio)
+          .map(cuenta => ({ id: cuenta.idSirio, texto: cuenta.name }));
+        this.mensaje = 'La consulta de cuentas por entidad está pendiente de integración.';
       },
-      error: () => {
-        this.mensaje = 'No fue posible cargar las entidades.';
-      }
+      error: (error: unknown) => { this.mensaje = this.errorConsulta(error, 'No fue posible cargar las entidades.'); }
     });
   }
 
   onEntidadChange(): void {
     this.cuentasSubscription?.unsubscribe();
-    this.saldoSubscription?.unsubscribe();
     this.cuentaSeleccionada = '';
     this.guidComerceSeleccionado = '';
     this.clabe = '';
     this.cuentas = [];
     this.limpiarResultados();
-
-    if (this.entidadSeleccionada) this.cargarCuentas(this.entidadSeleccionada);
+    this.mensaje = 'La consulta de cuentas por entidad está pendiente de integración.';
   }
 
-  cargarCuentas(entitySonID?: string): void {
+  cargarCuentas(): void {
     this.cuentasSubscription?.unsubscribe();
-    this.cuentasSubscription = this.reportesService.obtenerCuentas(entitySonID).subscribe({
+    this.cuentasSubscription = this.reportesService.obtenerCuentas().subscribe({
       next: respuesta => {
-        this.cuentas = this.normalizarLista(respuesta, [
-          'cuentas',
-          'rows',
-          'data',
-          'accounts',
-          'concentratorAccounts',
-          'accountList',
-          'contextResponse'
-        ])
-          .filter(cuenta => this.debeMostrarCuenta(cuenta))
-          .map(cuenta => ({
-            id: this.obtenerValorCuenta(cuenta),
-            texto: this.obtenerTextoCuenta(cuenta),
-            guidComerce: String(cuenta?.guidComerce ?? cuenta?.guidCommerce ?? cuenta?.commerceGuid ?? '')
-          }))
-          .filter(cuenta => !!cuenta.id);
+        this.cuentas = respuesta.cuentas.filter(cuenta => this.debeMostrarCuenta(cuenta) && cuenta.idSirio)
+          .map(cuenta => ({ id: cuenta.idSirio, texto: cuenta.name, guidComerce: cuenta.guidCommerce }));
       },
-      error: () => {
-        this.mensaje = 'No fue posible cargar las cuentas.';
-      }
+      error: (error: unknown) => { this.mensaje = this.errorConsulta(error, 'No fue posible cargar las cuentas.'); }
     });
   }
 
-  private extraerEntidades(respuesta: unknown): EntidadReporteDisponible[] {
-    const entidades: EntidadReporteDisponible[] = [];
-    const visitar = (valor: unknown): void => {
-      if (Array.isArray(valor)) {
-        valor.forEach(visitar);
-        return;
-      }
-      if (!valor || typeof valor !== 'object') return;
-
-      const nodo = valor as Record<string, any>;
-      const nivel = nodo['levelType'] ?? nodo['idAffilationLevel'] ?? nodo['level'];
-      const id = String(nodo['idSirio'] ?? nodo['sirioId'] ?? nodo['entitySonID'] ?? nodo['bundle'] ?? nodo['idNode'] ?? nodo['nodeID'] ?? nodo['id'] ?? '');
-      const esEntidad = nivel == null || Number(nivel) === 4 || String(nivel).toLowerCase() === 'entidad';
-      if (id && esEntidad && !entidades.some(entidad => entidad.id === id)) {
-        entidades.push({
-          id,
-          texto: String(nodo['name'] ?? nodo['nombre'] ?? nodo['nodeName'] ?? nodo['contextDescription'] ?? nodo['businessName'] ?? nodo['bussinesName'] ?? id)
-        });
-      }
-
-      for (const llave of ['contextResponse', 'rows', 'data', 'entities', 'entityLevels', 'children', 'childs', 'nodes', 'tree', 'items', 'content']) {
-        if (nodo[llave] != null) visitar(nodo[llave]);
-      }
-    };
-
-    visitar(respuesta);
-    return entidades;
-  }
-
   onCuentaChange(): void {
-    this.saldoSubscription?.unsubscribe();
     this.limpiarResultados();
     this.clabe = '';
     this.guidComerceSeleccionado = this.cuentas.find(cuenta => cuenta.id === this.cuentaSeleccionada)?.guidComerce || '';
 
-    if (!this.cuentaSeleccionada) return;
+    if (this.cuentaSeleccionada) {
+      this.mensaje = 'La consulta de saldo y CLABE está pendiente de integración. Los estados de cuenta se solicitan sin CLABE.';
+    }
+  }
 
-    this.saldoSubscription = this.reportesService.obtenerSaldo(this.cuentaSeleccionada).subscribe({
-      next: respuesta => {
-        const rows = respuesta?.rows || respuesta?.data || respuesta;
-        const cuenta = rows?.onsignaEntity || respuesta?.onsignaEntity || rows;
-        this.clabe = cuenta?.clabeAccount || cuenta?.virtualAccount || '';
-        if (!this.clabe) {
-          this.mensaje = rows?.error?.message || respuesta?.message || 'No fue posible obtener la CLABE de la cuenta.';
-        }
-      },
-      error: () => {
-        this.mensaje = 'No fue posible obtener la CLABE de la cuenta.';
+  private filtroSeleccionado(): FiltroReporte | undefined {
+    const cuenta = this.cuentas.find(item => item.id === this.cuentaSeleccionada);
+    const tipos: Record<string, FiltroReporte['tipoCuenta']> = {
+      'cuenta adquirente': 'Cuenta Adquirente', 'cuenta emision': 'Cuenta Emision',
+      'cuenta emisión': 'Cuenta Emisión', 'cuenta reserva': 'Cuenta Reserva'
+    };
+    const tipoCuenta = tipos[cuenta?.texto.trim().toLocaleLowerCase('es-MX') ?? ''];
+    if (!cuenta || !tipoCuenta) return undefined;
+    return { periodo: this.periodoSeleccionado, cuenta: cuenta.id, guid: cuenta.guidComerce,
+      tipoCuenta };
+  }
+
+  private errorConsulta(error: unknown, respaldo: string): string {
+    if (error && typeof error === 'object' && 'error' in error) {
+      const body = error.error;
+      if (body && typeof body === 'object' && 'code' in body && body.code === 'REPORTES_AUTHORIZATION_UNAVAILABLE') {
+        return 'La autorización de reportes aún no está disponible.';
       }
-    });
+    }
+    return respaldo;
   }
 
   consultar(): void {
@@ -293,20 +252,23 @@ export class ReportesComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const filtro = this.filtroSeleccionado();
+    if (!filtro) { this.mensaje = 'El tipo de cuenta recibido no es compatible con el contrato de reportes.'; return; }
+
     // Estos reportes no dependen de los archivos encontrados en el directorio.
     const reportesFijos = this.obtenerReportesFijosDisponibles();
     this.reportes = [...reportesFijos];
     this.mostrarReportes = true;
     this.cargando = true;
 
-    this.consultaSubscription = this.reportesService.buscarFolderReportes(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), this.guidComerceSeleccionado)
+    this.consultaSubscription = this.reportesService.buscar(filtro)
       .pipe(
         finalize(() => {
           this.cargando = false;
         })
       )
       .subscribe({ next: respuesta => {
-        const carpetas = this.extraerRows(respuesta);
+        const carpetas = this.extraerRows(respuesta.rows);
         const dinamicos = carpetas
           .map(item => item.name || '')
           .filter(nombre => !!nombre && !!this.reportesDinamicos[nombre])
@@ -318,8 +280,10 @@ export class ReportesComponent implements OnInit, OnDestroy {
           }));
 
         this.reportes = [...this.obtenerReportesFijosDisponibles(), ...dinamicos];
-      }, error: () => {
-        this.mensaje = 'No fue posible consultar los reportes adicionales. Los reportes generales siguen disponibles.';
+      }, error: (error: unknown) => {
+        this.mostrarReportes = false;
+        this.reportes = [];
+        this.mensaje = this.errorConsulta(error, 'No fue posible consultar los reportes.');
       }
       });
   }
@@ -339,159 +303,54 @@ export class ReportesComponent implements OnInit, OnDestroy {
     }
 
     this.abriendoReporte = reporte.id;
-    const ventanaReporte = ['ESTADO_PDF', 'ESTADO_EXCEL'].includes(reporte.id) ? null : window.open('', '_blank');
-
     if (reporte.origen === 'dinamico') {
-      this.verReporteDinamico(reporte, ventanaReporte);
+      this.verReporteDinamico(reporte);
       return;
     }
-
-    this.verReporteFijo(reporte, ventanaReporte);
+    this.verReporteFijo(reporte);
   }
 
-  private verReporteDinamico(reporte: ReporteDisponible, ventanaReporte: Window | null): void {
-    this.reporteSubscription = this.reportesService.buscarArchivosReporte(this.periodoSeleccionado, this.obtenerTipoCuentaSeleccionada(), reporte.folder || reporte.id, this.guidComerceSeleccionado)
+  private verReporteDinamico(reporte: ReporteDisponible): void {
+    const filtro = this.filtroSeleccionado();
+    if (!filtro) { this.abriendoReporte = ''; return; }
+    this.reporteSubscription = this.reportesService.buscarReporte(filtro, reporte.folder || reporte.id)
       .pipe(finalize(() => this.abriendoReporte = ''))
       .subscribe({
-        next: respuesta => {
-          const archivo = this.extraerRows(respuesta).find(item => !!item.url);
-
-          if (archivo?.url) {
-            this.abrirUrlReporte(archivo.url, ventanaReporte);
-            return;
-          }
-
-          ventanaReporte?.close();
-          this.mensaje = `No se encontró archivo para "${reporte.titulo}".`;
+        next: () => {
+          this.mensaje = 'La búsqueda de archivos está disponible, pero su descarga mediante el BFF está pendiente de integración.';
         },
-        error: () => {
-          ventanaReporte?.close();
-          this.mensaje = `No fue posible abrir "${reporte.titulo}".`;
-        }
+        error: (error: unknown) => { this.mensaje = this.errorConsulta(error, `No fue posible consultar "${reporte.titulo}".`); }
       });
   }
 
-  private verReporteFijo(reporte: ReporteDisponible, ventanaReporte: Window | null): void {
-    const cuenta = this.cuentaSeleccionada;
-    const clabe = this.clabe;
-    const request$ = reporte.id === 'ESTADO_PDF'
-      ? this.reportesService.obtenerEstadoCuenta('PDF', this.periodoSeleccionado, cuenta, clabe)
-      : reporte.id === 'ESTADO_EXCEL'
-        ? this.reportesService.obtenerEstadoCuenta('EXCEL', this.periodoSeleccionado, cuenta, clabe)
-        : reporte.id === 'CORTE_DIA'
-          ? this.reportesService.obtenerCorteDia(this.periodoSeleccionado)
-          : reporte.id === 'DIARIO_TRANSACCIONES'
-            ? this.reportesService.obtenerDiarioTransacciones(this.periodoSeleccionado)
-            : this.reportesService.obtenerTransaccionesSplit(this.periodoSeleccionado, cuenta);
-
-    this.reporteSubscription = request$
-      .pipe(
-        timeout(this.reporteTimeoutMs),
-        finalize(() => this.abriendoReporte = '')
-      )
-      .subscribe({
-        next: respuesta => this.descargarRespuestaReporte(respuesta, reporte, ventanaReporte),
-        error: error => {
-          ventanaReporte?.close();
-          this.mensaje = error?.name === 'TimeoutError'
-            ? `El servicio tardó demasiado en generar "${reporte.titulo}". Intenta de nuevo o selecciona otro periodo.`
-            : `No fue posible generar "${reporte.titulo}".`;
-        }
-      });
+  private verReporteFijo(reporte: ReporteDisponible): void {
+    const tipos: Record<string, TipoDescarga> = { ESTADO_PDF: 'estado-pdf', ESTADO_EXCEL: 'estado-excel',
+      CORTE_DIA: 'transacciones', DIARIO_TRANSACCIONES: 'diario', TRANSACCIONES_SPLIT: 'split' };
+    const tipo = tipos[reporte.id];
+    if (!tipo) { this.abriendoReporte = ''; return; }
+    this.reporteSubscription = this.reportesService.descargar(tipo, {
+      periodo: this.periodoSeleccionado, cuenta: this.cuentaSeleccionada, clabe: this.clabe
+    }).pipe(timeout(this.reporteTimeoutMs), finalize(() => this.abriendoReporte = '')).subscribe({
+      next: archivo => {
+        if (!archivo.size) { this.mensaje = `El servicio no regresó archivo para "${reporte.titulo}".`; return; }
+        const extension = tipo === 'estado-pdf' ? 'pdf' : 'xlsx';
+        this.reportesService.guardarArchivo(archivo, `${reporte.titulo}-${this.periodoSeleccionado}.${extension}`);
+      },
+      error: (error: unknown) => {
+        this.mensaje = error instanceof Error && error.name === 'TimeoutError'
+          ? `El servicio tardó demasiado en generar "${reporte.titulo}". Intenta de nuevo o selecciona otro periodo.`
+          : this.errorConsulta(error, `No fue posible generar "${reporte.titulo}".`);
+      }
+    });
   }
 
-  private descargarRespuestaReporte(respuesta: any, reporte: ReporteDisponible, ventanaReporte: Window | null): void {
-    const base64 = this.extraerBase64Reporte(respuesta);
-
-    if (!base64) {
-      ventanaReporte?.close();
-      this.mensaje = `El servicio no regresó archivo para "${reporte.titulo}".`;
-      return;
+  private extraerRows(rows: unknown): Array<{ name: string }> {
+    if (!Array.isArray(rows)) {
+      this.mensaje = 'El formato del directorio de reportes no es compatible.';
+      return [];
     }
-
-    const extension = reporte.id === 'ESTADO_PDF' ? 'pdf' : 'xlsx';
-    const mimeType = extension === 'pdf'
-      ? 'application/pdf'
-      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    const blob = this.base64ABlob(base64, mimeType);
-    const url = URL.createObjectURL(blob);
-
-    if (extension === 'pdf') {
-      saveAs(blob, `estado-cuenta-${this.periodoSeleccionado}.${extension}`);
-    } else {
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${reporte.titulo}-${this.periodoSeleccionado}.${extension}`;
-      link.click();
-    }
-
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
-  }
-
-  private abrirUrlReporte(url: string, ventanaReporte: Window | null): void {
-    if (ventanaReporte && !ventanaReporte.closed) {
-      ventanaReporte.location.href = url;
-      return;
-    }
-
-    window.open(url, '_blank');
-  }
-
-  private descargarArchivo(url: string, nombreArchivo: string): void {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = nombreArchivo;
-    link.click();
-  }
-
-  private extraerBase64Reporte(respuesta: any): string {
-    const posiblesValores = [
-      respuesta?.reportFile?.base64,
-      respuesta?.rows?.reportFile?.base64,
-      respuesta?.data?.reportFile?.base64,
-      respuesta?.base64,
-      respuesta?.rows?.base64,
-      respuesta?.data?.base64,
-      respuesta?.file,
-      respuesta?.rows?.file,
-      respuesta?.data?.file,
-      respuesta?.reportFile,
-      respuesta?.rows?.reportFile,
-      respuesta?.data?.reportFile,
-    ];
-
-    const valor = posiblesValores.find(item => typeof item === 'string' && item.trim());
-    return typeof valor === 'string' ? valor.trim() : '';
-  }
-
-  private extraerRows(respuesta: any): ReporteArchivo[] {
-    if (Array.isArray(respuesta)) return respuesta;
-    if (Array.isArray(respuesta?.rows)) return respuesta.rows;
-    return [];
-  }
-
-  obtenerValorCuenta(cuenta: any): string {
-    return String(
-      cuenta?.idNode
-      ?? cuenta?.nodeID
-      ?? cuenta?.idSirio
-      ?? cuenta?.sirioId
-      ?? cuenta?.id
-      ?? cuenta?.bundle
-      ?? cuenta?.entitySonID
-      ?? ''
-    );
-  }
-
-  obtenerTextoCuenta(cuenta: any): string {
-    return cuenta?.name || cuenta?.nombre || cuenta?.businessName || cuenta?.bussinesName || this.obtenerValorCuenta(cuenta);
-  }
-
-  private obtenerTipoCuentaSeleccionada(): TipoCuentaReporte {
-    const cuenta = this.cuentas.find(item => item.id === this.cuentaSeleccionada);
-    const texto = (cuenta?.texto || '').toLowerCase();
-
-    return texto.includes('adquir') ? 'ADQUIRENTE' : 'EMISION';
+    return rows.filter((item: unknown): item is { name: string } =>
+      !!item && typeof item === 'object' && 'name' in item && typeof item.name === 'string');
   }
 
   private obtenerReportesFijosDisponibles(): ReporteDisponible[] {
@@ -510,51 +369,14 @@ export class ReportesComponent implements OnInit, OnDestroy {
     return Number(this.sessionAuth.getSessionValue('idPerfil') || 0);
   }
 
-  private debeMostrarCuenta(cuenta: any): boolean {
+  private debeMostrarCuenta(cuenta: CuentaReporte): boolean {
     const idPerfil = this.obtenerIdPerfil();
 
     if (idPerfil === 5) {
       return true;
     }
 
-    return this.obtenerTextoCuenta(cuenta).trim().toLocaleLowerCase('es-MX') !== 'cuenta reserva';
-  }
-
-  private normalizarLista(response: any, keys: string[]): any[] {
-    if (Array.isArray(response)) return response;
-    if (!response || typeof response !== 'object') return [];
-
-    for (const key of keys) {
-      const value = response[key];
-      if (Array.isArray(value)) return value;
-
-      if (value && typeof value === 'object') {
-        const nested = this.normalizarLista(value, keys);
-        if (nested.length) return nested;
-      }
-    }
-
-    for (const value of Object.values(response)) {
-      if (Array.isArray(value)) return value;
-
-      if (value && typeof value === 'object') {
-        const nested = this.normalizarLista(value, keys);
-        if (nested.length) return nested;
-      }
-    }
-
-    return [];
-  }
-
-  private base64ABlob(base64: string, mimeType: string): Blob {
-    const contenidoBinario = atob(base64);
-    const bytes = new Uint8Array(contenidoBinario.length);
-
-    for (let i = 0; i < contenidoBinario.length; i++) {
-      bytes[i] = contenidoBinario.charCodeAt(i);
-    }
-
-    return new Blob([bytes], { type: mimeType });
+    return cuenta.name.trim().toLocaleLowerCase('es-MX') !== 'cuenta reserva';
   }
 
   private generarPeriodos(): string[] {

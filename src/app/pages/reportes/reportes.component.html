@@ -14,7 +14,7 @@
 
     <label class="reportes-field">
       <span>Selecciona Cuenta</span>
-      <select class="reportes-control" [(ngModel)]="cuentaSeleccionada" name="cuenta" [disabled]="mostrarEntidades && !entidadSeleccionada" (change)="onCuentaChange()">
+      <select class="reportes-control" [(ngModel)]="cuentaSeleccionada" name="cuenta" [disabled]="mostrarEntidades" (change)="onCuentaChange()">
         <option value=""></option>
         <option *ngFor="let cuenta of cuentas" [value]="cuenta.id">
           {{ cuenta.texto }}

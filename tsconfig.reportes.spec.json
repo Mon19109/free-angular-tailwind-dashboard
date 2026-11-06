@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": [
+    "src/**/*.d.ts",
+    "src/app/pages/reportes/reportes.component.spec.ts",
+    "src/app/services/reportes.service.spec.ts"
+  ]
+}
