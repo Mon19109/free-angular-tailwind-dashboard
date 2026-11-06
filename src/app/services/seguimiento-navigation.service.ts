@@ -112,12 +112,41 @@ export class SeguimientoNavigationService {
   private allowReloadResume = this.navigationType === 'reload';
   private reloadNeedsStart = false;
 
+  private pending: Array<() => void> = [];
+  private requesting = false;
+
+  private serial<T>(operation: () => Observable<T>): Observable<T> {
+    return new Observable<T>(subscriber => {
+      const start = () => {
+        if (subscriber.closed) { this.advance(); return; }
+        // Keep the active request alive until completion: aborting HTTP does not
+        // release a server lock. Cancelled queued operations never reach the BFF.
+        try {
+          operation().subscribe({ next: value => subscriber.next(value),
+            error: error => { subscriber.error(error); this.advance(); },
+            complete: () => { subscriber.complete(); this.advance(); } });
+        } catch (error) { subscriber.error(error); this.advance(); }
+      };
+      this.pending.push(start);
+      if (!this.requesting) this.advance();
+    });
+  }
+
+  private advance(): void {
+    const next = this.pending.shift();
+    this.requesting = !!next;
+    next?.();
+  }
+
   request<T>(operation: (options: SeguimientoRequestOptions) => Observable<T>): Observable<T> {
     return defer(() => {
       const generation = this.generation;
       return this.initialize().pipe(switchMap(context => {
         this.requireCurrentNavigation(generation);
-        return operation(this.options(context)).pipe(map(response => {
+        return this.serial(() => {
+          this.requireCurrentNavigation(generation);
+          return operation(this.options(context));
+        }).pipe(map(response => {
           this.requireCurrentNavigation(generation);
           return response;
         }));
@@ -149,7 +178,7 @@ export class SeguimientoNavigationService {
             return begin();
           }))
         : begin();
-      this.initialization = initialization.pipe(map(response => {
+      this.initialization = this.serial(() => initialization).pipe(map(response => {
         this.requireCurrentNavigation(generation);
         const result = response as { success?: unknown; context?: unknown } | null;
         if (result?.success !== true || typeof result.context !== 'string'

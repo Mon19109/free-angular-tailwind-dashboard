@@ -57,7 +57,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
 
   it('no envía archivos si falta SMS o el nodo seleccionado es Caja', () => {
     load();
-    const event = () => ({target: {files: [new File(['fixture'], 'file.pdf', {type: 'application/pdf'})], value: 'file'}} as unknown as Event);
+    const event = () => ({archivo: new File(['fixture'], 'file.pdf', {type: 'application/pdf'}), documento: {numero: 1, nombre: 'Documento', obligatorio: false}});
     (c as any).tokenSmsValidado = false;
     c.subirDocumentoPublico(event());
     (c as any).tokenSmsValidado = true;
@@ -110,10 +110,19 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(api.consultarDocumentos).toHaveBeenCalledTimes(3);
   });
 
-  it('sube archivo al nodo seleccionado y reconsulta sin aprobarlo ni reiniciar liquidación', () => {
+  it('rechaza la firma binaria inválida sin enviar el archivo', async () => {
+    load();
+    await c.subirDocumentoPublico({ archivo: new File(['not-pdf'], 'file.pdf', { type: 'application/pdf' }),
+      documento: { numero: 1, nombre: 'Documento', obligatorio: false } });
+    expect(api.subirDocumentoNodo).not.toHaveBeenCalled();
+    expect(c.mensajeDocumentoPublico).toContain('contenido');
+    expect(c.subiendoDocumentoPublico).toBeFalse();
+  });
+
+  it('sube archivo al nodo seleccionado y reconsulta sin aprobarlo ni reiniciar liquidación', async () => {
     load(); c.seleccionarNodo(child);
     const file = new File(['%PDF-1.4'], 'documento.pdf', {type:'application/pdf'});
-    c.subirDocumentoPublico({target:{files:[file],value:'documento.pdf'}} as unknown as Event);
+    await c.subirDocumentoPublico({archivo: file, documento: {numero: 1, nombre: 'Documento', obligatorio: false}});
     expect(api.subirDocumentoNodo).toHaveBeenCalledWith(child,1,file);
     expect(api.consultarDocumentos).toHaveBeenCalledWith(child);
     expect(c.documentosVisibles[0].estatusRevision).toBe('APPROVED'); // Only the mocked backend status, never changed by upload.

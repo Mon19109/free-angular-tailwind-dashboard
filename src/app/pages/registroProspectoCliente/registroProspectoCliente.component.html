@@ -273,7 +273,10 @@
           @if (seccionInformativaAbierta === 'documentos') {
           <div class="section-body">
             @if (cargandoDocumentos) { <p class="tree-state">Cargando documentos...</p> }
-            @if (errorDocumentos) { <p class="tree-state error" role="alert">{{ errorDocumentos }}</p> }
+            @if (errorDocumentos) {
+              <p class="tree-state error" role="alert">{{ errorDocumentos }}</p>
+              @if (!modoInterno) { <button class="button ghost" type="button" [disabled]="cargandoDocumentos || !!errorProspecto" (click)="reintentarDocumentos()">Reintentar documentos</button> }
+            }
             @if (!modoInterno) {
               @if (!documentosDelNodoDisponibles) {
                 <p>Selecciona un nodo del árbol para consultar sus documentos.</p>
@@ -284,21 +287,13 @@
                   [soloTablaDocumentos]="true"
                   [mostrarAccionesAdministrativas]="false"
                   [estadoConsultaDocumentos]="cargandoDocumentos ? 'loading' : errorDocumentos ? 'error' : documentosProspecto.length ? 'ready' : 'empty'"
-                  [contextoDocumento]="nodoSeleccionado" />
-                @if (permiteCargaPublica) {
-                  <div class="document-upload-field">
-                    <label for="tipo-documento-publico">Tipo de documento</label>
-                    <select id="tipo-documento-publico" [value]="numeroDocumentoPublico" [disabled]="subiendoDocumentoPublico"
-                      (change)="numeroDocumentoPublico = +$any($event.target).value">
-                      @for (tipo of tiposDocumentoPublico; track $index) { <option [value]="$index + 1">{{ tipo }}</option> }
-                    </select>
-                    <label for="archivo-documento-publico">Cargar PDF, PNG o JPEG (máximo 10 MiB)</label>
-                    <input id="archivo-documento-publico" type="file" accept="application/pdf,image/png,image/jpeg"
-                      [disabled]="subiendoDocumentoPublico" (change)="subirDocumentoPublico($event)" />
-                    @if (subiendoDocumentoPublico) { <p role="status">Subiendo documento...</p> }
-                    @if (mensajeDocumentoPublico) { <p role="status">{{ mensajeDocumentoPublico }}</p> }
-                  </div>
-                }
+                  [contextoDocumento]="nodoSeleccionado"
+                  [cargaPublica]="permiteCargaPublica"
+                  [permitirAgregarDocumento]="permiteCargaPublica"
+                  [documentosDisponibles]="documentosCargaPublica"
+                  [subiendoDocumento]="subiendoDocumentoPublico"
+                  [mensajeCargaDocumento]="mensajeDocumentoPublico"
+                  (subirDocumento)="subirDocumentoPublico($event)" />
                 <p>La visualización y descarga de archivos aún no están disponibles en este seguimiento.</p>
               }
             } @else {

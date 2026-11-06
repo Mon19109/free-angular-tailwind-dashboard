@@ -70,6 +70,23 @@ describe('Seguimiento: contexto del BFF por navegación', () => {
 
   afterEach(() => http?.verify());
 
+  it('serializa documentos y liquidación; BUSY sigue siendo error y permite reintento explícito', async () => {
+    setup(); const service = TestBed.inject(SeguimientoProspectoService);
+    const errors: number[] = [];
+    service.consultarDocumentos('node').subscribe({ error: error => errors.push(error.status) });
+    service.consultarLiquidacionNodo('node').subscribe();
+    http.expectOne('/api/seguimiento-prospecto/iniciar').flush({ success: true, context });
+    await settleNavigation();
+    const documents = http.expectOne('/api/seguimiento-prospecto/nodos/node/documentos');
+    http.expectNone('/api/seguimiento-prospecto/nodos/node/liquidacion');
+    documents.flush({ code: 'SEGUIMIENTO_BUSY' }, { status: 409, statusText: 'Conflict' });
+    expect(errors).toEqual([409]);
+    http.expectNone('/api/seguimiento-prospecto/nodos/node/documentos');
+    http.expectOne('/api/seguimiento-prospecto/nodos/node/liquidacion').flush({ success: true });
+    service.consultarDocumentos('node').subscribe();
+    http.expectOne('/api/seguimiento-prospecto/nodos/node/documentos').flush({ success: true, documents: [] });
+  });
+
   it('inicia una sola vez con el contrato nuevo y comparte el contexto entre servicios', async () => {
     setup();
     TestBed.inject(ProspectoClienteService).obtenerProspecto('ignorar', 'fixture-link').subscribe();
@@ -181,12 +198,13 @@ describe('Seguimiento: contexto del BFF por navegación', () => {
 
     navigation.restartForNavigation().subscribe();
     navigation.request(options => of(options.headers.get('X-Seguimiento-Context')!)).subscribe(value => newContext = value);
+    http.expectNone('/api/seguimiento-prospecto/iniciar');
+    previousRequest.flush({ success: true });
     const secondBegin = http.expectOne('/api/seguimiento-prospecto/iniciar');
     expect(secondBegin.request.body.navigationId).not.toBe(firstId);
     expect(secondBegin.request.body.navigationSequence).toBe(2);
     secondBegin.flush({ success: true, context: nextContext });
     await settleNavigation();
-    previousRequest.flush({ success: true });
     expect(newContext).toBe(nextContext);
     expect(oldDelivered).toBeFalse();
     expect(oldRejected).toBeTrue();

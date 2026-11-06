@@ -13,7 +13,8 @@ describe('Seguimiento: consultas independientes por nodo', () => {
     documents: [{ ref: name, name, documentType: null, status: 'APPROVED' }] });
   const liquidacion = { success: true, dispersionAccount: 'NETWORK', cuentaCLConfirmada: true, hasPlatformAccess: false };
   beforeEach(() => {
-    service = jasmine.createSpyObj<SeguimientoProspectoService>('Seguimiento', ['consultarDocumentos', 'consultarLiquidacionNodo']);
+    service = jasmine.createSpyObj<SeguimientoProspectoService>('Seguimiento', ['consultarDocumentos', 'consultarLiquidacionNodo', 'consultarCuenta']);
+    service.consultarCuenta.and.callFake(ref => of({ success: true, entityInfo: { typePerson: 'PM', businessName: ref, nameCommerce: ref } }));
     service.consultarDocumentos.and.callFake(ref => of(documentos(ref ?? '')));
     service.consultarLiquidacionNodo.and.returnValue(of(liquidacion));
     TestBed.configureTestingModule({ providers: [provideHttpClient(), { provide: ActivatedRoute, useValue: {} },
@@ -60,6 +61,38 @@ describe('Seguimiento: consultas independientes por nodo', () => {
     expect(c.liquidacionExistente).toBeTrue();
     expect(service.consultarDocumentos).toHaveBeenCalledTimes(1);
     expect(service.consultarLiquidacionNodo).toHaveBeenCalledTimes(2);
+  });
+  it('beneficiario PM/PF usa la cuenta seleccionada y conserva su catálogo', () => {
+    service.consultarCuenta.and.callFake(ref => of({ success: true, entityInfo: ref === 'entidad'
+      ? { typePerson: 'PM', businessName: 'Empresa', rfc: 'EMP010101XXX', businessActivityCode: 5411, bussinesLineDescription: 'Abarrotes' }
+      : { typePerson: 'PF', name: 'Ana', paternalSurname: 'Pérez', maternalSurname: 'López', rfc: 'PELA900101XXX', idActivity: 12, activityDescription: 'Comercio' } }));
+    c.seleccionarNodo('entidad');
+    c.liquidacionForm.controls.beneficiarioIgualComercio.setValue(true);
+    // This subscription normally comes from ngOnInit; use the same form-driven
+    // refresh by reloading the selected account with the checkbox already active.
+    c.reintentarLiquidacion();
+    expect(c.liquidacionForm.controls.tipoPersonaBeneficiario.value).toBe('moral');
+    expect(c.liquidacionForm.controls.nombreBeneficiario.value).toBe('Empresa');
+    expect(c.liquidacionForm.controls.rfcBeneficiario.value).toBe('EMP010101XXX');
+    expect(c.liquidacionForm.controls.giro.value).toBe(5411);
+    c.seleccionarNodo('sucursal');
+    c.liquidacionForm.controls.beneficiarioIgualComercio.setValue(true); c.reintentarLiquidacion();
+    expect(c.liquidacionForm.controls.tipoPersonaBeneficiario.value).toBe('fisica');
+    expect(c.liquidacionForm.controls.nombreBeneficiario.value).toBe('Ana');
+    expect(c.liquidacionForm.controls.apellidoPaternoBeneficiario.value).toBe('Pérez');
+    expect(c.liquidacionForm.controls.apellidoMaternoBeneficiario.value).toBe('López');
+    expect(c.liquidacionForm.controls.idActivity.value).toBe(12);
+    c.seleccionarNodo('entidad');
+    expect(c.liquidacionForm.controls.nombreBeneficiario.value).toBe('Empresa');
+    expect(c.liquidacionForm.controls.apellidoPaternoBeneficiario.value).toBe('');
+  });
+  it('ignora cuentas tardías tras cambiar y regresar de nodo', () => {
+    const old = new Subject<unknown>(); service.consultarCuenta.and.returnValue(old);
+    c.seleccionarNodo('entidad');
+    service.consultarCuenta.and.callFake(ref => of({ success: true, entityInfo: { typePerson: 'PM', businessName: ref } }));
+    c.seleccionarNodo('sucursal'); c.seleccionarNodo('entidad');
+    old.next({ success: true, entityInfo: { businessName: 'Cuenta anterior' } }); old.complete();
+    expect(c.datosForm.controls.razonSocial.value).toBe('entidad');
   });
   it('no consulta nodos ajenos ni continúa con autorización vencida', () => {
     c.seleccionarNodo('ajeno'); expect(service.consultarDocumentos).not.toHaveBeenCalled();

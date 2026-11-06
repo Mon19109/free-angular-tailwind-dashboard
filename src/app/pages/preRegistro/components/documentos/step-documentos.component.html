@@ -1,11 +1,11 @@
 <ng-template #cargaDocumento>
-@if (permitirAgregarDocumento && !soloConsulta && (mostrarCargaDocumento || subiendoDocumento || mensajeCargaDocumento)) {
+@if (permitirAgregarDocumento && (!soloConsulta || cargaPublica) && (cargaPublica || mostrarCargaDocumento || subiendoDocumento || mensajeCargaDocumento)) {
   <section class="step-section documents-panel" aria-label="Agregar documento">
     @if (!documentos.length) {
       <p>No hay documentos cargados. Selecciona el tipo de documento y sube el archivo.</p>
     }
     @if (!documentosDisponibles.length) { <p>Todos los tipos de documento ya tienen un archivo cargado.</p> }
-    @if (mostrarCargaDocumento && !subiendoDocumento) {
+    @if ((mostrarCargaDocumento || cargaPublica) && !subiendoDocumento) {
       <div class="field">
         <label for="tipo-documento-nuevo">Tipo de documento</label>
         <select id="tipo-documento-nuevo" [value]="tipoDocumentoNuevo"
@@ -18,7 +18,7 @@
       </div>
       <label class="file-picker">
         <input #nuevoArchivo type="file" [disabled]="!documentoNuevo"
-          [accept]="documentoNuevo?.nombre?.toLowerCase()?.startsWith('imagen') ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.pdf,application/pdf'"
+          [accept]="cargaPublica ? 'application/pdf,image/png,image/jpeg' : documentoNuevo?.nombre?.toLowerCase()?.startsWith('imagen') ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.pdf,application/pdf'"
           (change)="elegirArchivoNuevo($event)" />
         <span>Seleccionar archivo</span>
       </label>
@@ -189,6 +189,7 @@
       <p class="mesa-notification-message">{{ mensajeNotificacion }}</p>
     }
     }
+    @if (cargaPublica && soloTablaDocumentos) { <ng-container *ngTemplateOutlet="cargaDocumento" /> }
   </section>
 } @else {
   <section class="step-section documents-panel">

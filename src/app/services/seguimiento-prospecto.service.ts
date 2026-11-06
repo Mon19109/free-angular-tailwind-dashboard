@@ -29,10 +29,10 @@ export class SeguimientoProspectoService {
     options
   ));
 }
-    consultarCuenta(): Observable<unknown> {
+    consultarCuenta(nodeRef?: string): Observable<unknown> {
     return this.navigation.request(options => this.http.get(
       '/api/seguimiento-prospecto/cuenta',
-      options
+      { ...options, ...(nodeRef ? { params: { nodeRef } } : {}) }
     ));
   }
 

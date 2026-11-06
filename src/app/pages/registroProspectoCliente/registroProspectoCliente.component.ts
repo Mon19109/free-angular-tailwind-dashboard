@@ -14,7 +14,7 @@ import {
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { concatMap, finalize, from, map, Observable, of, switchMap, tap, throwError, toArray } from 'rxjs';
+import { concatMap, finalize, from, map, Observable, of, Subject, takeUntil, switchMap, tap, throwError, toArray } from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -249,6 +249,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   cargandoDocumentos = false;
   errorDocumentos = '';
   private consultaDocumentosVersion = 0;
+  private consultaInformacionVersion = 0;
+  private readonly nodeReadsCancelled = new Subject<void>();
   private nodoRaizPublico = '';
   documentosProspecto: DocumentoProspectoApi[] = [];
   archivosInvalidos = false;
@@ -368,6 +370,7 @@ if (this.prospecto) this.consultarCuentaComercio();
   @HostListener('window:pageshow', ['$event'])
   restaurarNavegacionPublica(event: PageTransitionEvent): void {
     if (this.modoInterno || !event.persisted) return;
+    this.nodeReadsCancelled.next();
     const version = ++this.seguimientoVersion;
     this.enlaceVinculado = false;
     this.consultaCuentaVersion++;
@@ -1079,7 +1082,7 @@ const formData = new FormData();
   }
 
   private cargarFormulariosDesdeGet(): void {
-    const datos = { ...(this.prospecto ?? {}), ...(this.cuentaComercio ?? {}) } as Record<string, unknown>;
+    const datos = { ...(this.modoInterno ? this.prospecto ?? {} : {}), ...(this.cuentaComercio ?? {}) } as Record<string, unknown>;
     const direcciones = this.listaObjetos(datos['commerceAddress']);
     const fiscal = direcciones.find(direccion => this.texto(direccion['addressType']).toUpperCase() === 'DF') || direcciones[0] || {};
     const comercial = direcciones.find(direccion => this.texto(direccion['addressType']).toUpperCase() === 'DC') || fiscal;
@@ -1092,12 +1095,12 @@ const formData = new FormData();
       tipoComercio: this.texto(datos['commerceType'] || datos['type']) || 'Sucursales de Grupo'
     }, { emitEvent: false });
     this.datosForm.patchValue({
-      tipoPersona: this.texto(datos['typePerson']) || 'PM',
+      tipoPersona: this.texto(datos['typePerson']) || (this.modoInterno ? 'PM' : ''),
       razonSocial: this.texto(datos['businessName']),
       nombreComercial: this.texto(datos['nameCommerce'] || datos['name']),
       nombre: this.texto(datos['name']),
-      apellidoPaterno: this.texto(datos['paternalSurname']),
-      apellidoMaterno: this.texto(datos['maternalSurname']),
+      apellidoPaterno: this.texto(datos['paternalSurname'] || datos['patSurname']),
+      apellidoMaterno: this.texto(datos['maternalSurname'] || datos['matSurname']),
       actividad: this.texto(datos['activityDescription']),
       rfc: this.texto(datos['rfc']),
       regimenFiscal: this.texto(datos['fiscalRegime']),
@@ -1154,10 +1157,11 @@ const formData = new FormData();
 
   private sincronizarBeneficiarioDesdeComercio(): void {
     const direccion = this.datosForm.getRawValue();
-    const datos = { ...(this.prospecto ?? {}), ...(this.cuentaComercio ?? {}) } as Record<string, unknown>;
+    const datos = { ...(this.modoInterno ? this.prospecto ?? {} : {}), ...(this.cuentaComercio ?? {}) } as Record<string, unknown>;
+    if (!['PM', 'PF'].includes(this.texto(direccion.tipoPersona))) { this.limpiarDatosBeneficiario(); return; }
     const esMoral = this.texto(direccion.tipoPersona) === 'PM';
     const nombre = esMoral
-      ? this.texto(direccion.razonSocial) || this.texto(direccion.nombreComercial)
+      ? this.texto(direccion.razonSocial)
       : this.texto(direccion.nombre);
     const direccionCompleta = [
       direccion.tipoVialidad,
@@ -1183,7 +1187,7 @@ const formData = new FormData();
   }
 
   private precargarCatalogoLiquidacion(): void {
-    const datos = { ...(this.prospecto ?? {}), ...(this.cuentaComercio ?? {}) };
+    const datos = { ...(this.modoInterno ? this.prospecto ?? {} : {}), ...(this.cuentaComercio ?? {}) };
     const tipo: TipoPersonaBeneficiario = this.texto(datos['typePerson']).toUpperCase() === 'PM' ? 'moral' : 'fisica';
     const codigo = this.codigoCatalogo(tipo === 'moral' ? datos['businessActivityCode'] : datos['idActivity']);
     const version = ++this.consultaCatalogoVersion;
@@ -1200,6 +1204,7 @@ const formData = new FormData();
     const campoId = tipo === 'moral' ? 'giro' : 'idActivity';
     const campoDescripcion = tipo === 'moral' ? 'giroBeneficiario' : 'actividadBeneficiario';
     const descripcionInicial = this.liquidacionForm.controls[campoDescripcion].value;
+    if (descripcionInicial) return;
     const sigueVigente = () => version === this.consultaCatalogoVersion
       && this.liquidacionForm.controls.tipoPersonaBeneficiario.value === tipo
       && this.liquidacionForm.controls[campoId].value === codigo
@@ -1259,6 +1264,10 @@ const formData = new FormData();
     return this.modoInterno || (!!this.nodoSeleccionado && !!this.buscarNodo(this.arbol, this.nodoSeleccionado));
   }
 
+  reintentarDocumentos(): void {
+    if (!this.modoInterno && !this.cargandoDocumentos) this.consultarDocumentos();
+  }
+
   private consultarDocumentos(commerceId = ''): void {
     if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto || !this.documentosDelNodoDisponibles)) return;
     if (this.modoInterno && !commerceId) return;
@@ -1282,7 +1291,7 @@ const formData = new FormData();
         })))
       );
     consulta.pipe(
-      takeUntilDestroyed(this.destroyRef),
+      takeUntil(this.nodeReadsCancelled), takeUntilDestroyed(this.destroyRef),
       finalize(() => { if (sigueVigente()) this.cargandoDocumentos = false; })
     ).subscribe({
       next: documentos => {
@@ -1316,14 +1325,28 @@ const formData = new FormData();
     const node = this.buscarNodo(this.arbol, this.nodoSeleccionado);
     return !this.modoInterno && this.tokenSmsValidado && !!node && node.levelType !== 6 && node.nivel !== 'caja';
   }
-  subirDocumentoPublico(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0]; input.value = '';
+  get documentosCargaPublica(): DocumentoRequerido[] {
+    return this.tiposDocumentoPublico.map((nombre, index) => ({ numero: index + 1, nombre, obligatorio: false }));
+  }
+  async subirDocumentoPublico(event: { archivo: File; documento: DocumentoRequerido }): Promise<void> {
+    const file = event.archivo;
     if (!file || !this.permiteCargaPublica || this.subiendoDocumentoPublico) return;
-    if (file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) {
-      this.errorDocumentos = 'Selecciona un PDF, PNG o JPEG de hasta 10 MiB.'; return;
+    if (!file.size || file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) {
+      this.mensajeDocumentoPublico = 'Selecciona un PDF, PNG o JPEG de hasta 10 MiB.'; return;
     }
     const node = this.nodoSeleccionado, navigation = this.seguimientoVersion;
+    this.subiendoDocumentoPublico = true;
+    try {
+      const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+      const signature = file.type === 'application/pdf' ? [37,80,68,70,45]
+        : file.type === 'image/png' ? [137,80,78,71,13,10,26,10] : [255,216,255];
+      if (!signature.every((value, i) => bytes[i] === value)) throw new Error('Invalid signature');
+    } catch {
+      this.subiendoDocumentoPublico = false;
+      this.mensajeDocumentoPublico = 'El contenido del archivo no coincide con un PDF, PNG o JPEG válido.'; return;
+    }
+    this.numeroDocumentoPublico = event.documento.numero;
+    if (node !== this.nodoSeleccionado || navigation !== this.seguimientoVersion || !this.permiteCargaPublica) { this.subiendoDocumentoPublico = false; return; }
     this.subiendoDocumentoPublico = true; this.errorDocumentos = ''; this.mensajeDocumentoPublico = '';
     this.seguimientoProspectoService.subirDocumentoNodo(node, this.numeroDocumentoPublico, file).pipe(
       finalize(() => { this.subiendoDocumentoPublico = false; }), takeUntilDestroyed(this.destroyRef)
@@ -1336,7 +1359,7 @@ const formData = new FormData();
       error: error => {
         if (this.nodoSeleccionado !== node || this.seguimientoVersion !== navigation) return;
         this.manejarErrorAutorizacionPublica(error);
-        this.errorDocumentos = 'No fue posible confirmar la carga del documento.';
+        this.mensajeDocumentoPublico = 'No fue posible confirmar la carga del documento.';
       }
     });
   }
@@ -1362,6 +1385,7 @@ const formData = new FormData();
     if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto || !this.buscarNodo(this.arbol, id))) return;
     this.error = '';
     if (id === this.nodoSeleccionado) return;
+    this.nodeReadsCancelled.next();
     this.guardarAccesosNodoActual();
     if (this.nodoSeleccionado && this.nodoRequiereAccesos && this.liquidacionConsultada) {
       this.liquidacionPorNodo[this.nodoSeleccionado] = this.estadoLiquidacionActual();
@@ -1408,7 +1432,7 @@ const formData = new FormData();
     this.cargandoDocumentos = false;
     this.errorDocumentos = '';
     this.liquidacionForm.reset(estado?.datos, { emitEvent: false });
-    this.cuentaComercio = estado?.cuenta ?? null;
+    this.cuentaComercio = this.modoInterno ? estado?.cuenta ?? null : null;
     this.liquidacionConsultada = !!estado;
     this.liquidacionExistente = estado?.existente ?? false;
     this.liquidacionRegistrada = estado?.registrada ?? false;
@@ -1427,14 +1451,42 @@ const formData = new FormData();
     this.modalAccesos = null;
     this.cargandoCuenta = false;
     this.actualizarEstadoLiquidacion();
-    if ((!this.modoInterno || !estado) && this.nodoRequiereAccesos) this.consultarLiquidacionNodo();
+    if (!this.modoInterno) this.consultarCuentaNodoPublico();
+    else if (!estado && this.nodoRequiereAccesos) this.consultarLiquidacionNodo();
     if (!this.modoInterno && this.documentosDelNodoDisponibles) { this.documentosProspecto = []; this.consultarDocumentos(); }
+  }
+
+  private consultarCuentaNodoPublico(): void {
+    if (!this.tokenSmsValidado || this.errorProspecto || !this.documentosDelNodoDisponibles) return;
+    const node = this.nodoSeleccionado, version = ++this.consultaInformacionVersion, navigation = this.seguimientoVersion;
+    const vigente = () => version === this.consultaInformacionVersion && node === this.nodoSeleccionado
+      && navigation === this.seguimientoVersion && this.tokenSmsValidado && !this.errorProspecto;
+    this.cargandoCuenta = true;
+    this.errorLiquidacion = '';
+    let cargandoLiquidacion = false;
+    this.seguimientoProspectoService.consultarCuenta(node).pipe(takeUntil(this.nodeReadsCancelled), takeUntilDestroyed(this.destroyRef),
+      finalize(() => { if (vigente() && !cargandoLiquidacion) this.cargandoCuenta = false; })).subscribe({
+      next: response => {
+        if (!vigente()) return;
+        const data = response as { success?: boolean; entityInfo?: Record<string, unknown> };
+        if (data.success !== true || !data.entityInfo) { this.errorLiquidacion = 'No fue posible confirmar la cuenta del nodo.'; return; }
+        this.cuentaComercio = data.entityInfo;
+        this.cargarFormulariosDesdeGet();
+        cargandoLiquidacion = this.nodoRequiereAccesos;
+        this.consultarLiquidacionNodo();
+      },
+      error: error => {
+        if (!vigente()) return;
+        this.manejarErrorAutorizacionPublica(error);
+        this.errorLiquidacion = 'No fue posible consultar la cuenta del nodo. Reintenta.';
+      }
+    });
   }
 
   reintentarLiquidacion(): void {
     if (this.cargandoCuenta || this.errorProspecto) return;
     if (this.modoInterno || !this.documentosDelNodoDisponibles) this.consultarCuentaComercio();
-    else this.consultarLiquidacionNodo();
+    else this.consultarCuentaNodoPublico();
   }
 
   private consultarLiquidacionNodo(): void {
@@ -1457,7 +1509,7 @@ const formData = new FormData();
   const version = ++this.consultaCuentaVersion;
 
   this.seguimientoProspectoService.consultarLiquidacionNodo(nodeRef)
-    .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => {
+    .pipe(takeUntil(this.nodeReadsCancelled), takeUntilDestroyed(this.destroyRef), finalize(() => {
       if (this.consultaCuentaVersion === version) {
         this.cargandoCuenta = false;
       }
@@ -1490,7 +1542,7 @@ const formData = new FormData();
           ? opciones[dispersion]
           : undefined;
 
-        this.cuentaComercio = { dispersionAccount: datos.dispersionAccount, hasPlatformAccess: datos.hasPlatformAccess, typeOfBusiness: datos.typeOfBusiness };
+        this.cuentaComercio = { ...this.cuentaComercio, dispersionAccount: datos.dispersionAccount, hasPlatformAccess: datos.hasPlatformAccess, typeOfBusiness: datos.typeOfBusiness };
         this.liquidacionConsultada = true;
         this.liquidacionExistente =
           dispersion === 'NETWORK' || (!!opcion && datos.cuentaCLConfirmada === true);
@@ -1940,7 +1992,7 @@ const formData = new FormData();
 
        this.errorLiquidacion = '';
        this.actualizarValidadoresAccesos();
-       this.consultarLiquidacionNodo();
+       this.consultarCuentaNodoPublico();
        this.consultarDocumentos();
       },
       error: error => {

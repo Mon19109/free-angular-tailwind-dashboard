@@ -13,6 +13,7 @@ export class StepDocumentosComponent implements OnChanges {
  @Input() estadoConsultaDocumentos: 'idle' | 'loading' | 'error' | 'empty' | 'ready' | null = null;
  @Input() documentos: DocumentoRequerido[] = [];
  @Input() soloTablaDocumentos = false;
+ @Input() cargaPublica = false;
   @Input() documentosCargados = 0;
   @Input() documentosPendientes = 0;
   @Input() archivosInvalidos = false;
@@ -76,7 +77,7 @@ export class StepDocumentosComponent implements OnChanges {
   }
 
   cargarDocumentoNuevo(): void {
-    if (!this.permitirAgregarDocumento || this.soloConsulta || this.subiendoDocumento || !this.archivoNuevo || !this.documentoNuevo) return;
+    if (!this.permitirAgregarDocumento || (this.soloConsulta && !this.cargaPublica) || this.subiendoDocumento || !this.archivoNuevo || !this.documentoNuevo) return;
     this.subirDocumento.emit({ archivo: this.archivoNuevo, documento: this.documentoNuevo });
   }
 
