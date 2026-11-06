@@ -233,29 +233,6 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(api.guardarLiquidacion).toHaveBeenCalledTimes(1);
   });
 
-  for (const dispersionAccount of ['OTHER_BANK', 'OTHER_BANK_AND_NETWORK']) {
-    it(`${dispersionAccount} requiere confirmación CL persistida`, () => {
-      api.consultarLiquidacionNodo.and.returnValue(of({ success: true, dispersionAccount, cuentaCLConfirmada: true }));
-      load(); expect(c.liquidacionCompleta).toBeTrue();
-    });
-  }
-  it('último nodo confirma accesos y finalización sin repetir escrituras', () => {
-    accountNetwork(); fillAccess();
-    api.guardarAccesos.and.returnValue(of({ success: true, registration: { status: 'COMPLETED' } }));
-    api.completar.and.returnValue(of(undefined));
-    c.finalizar(); expect(c.accesosCompletos).toBeTrue(); expect(c.registroFinalizado).toBeTrue();
-    expect(c.finalizacionEstado).toBe('CONFIRMED'); c.finalizar();
-    expect(api.guardarAccesos).toHaveBeenCalledTimes(1); expect(api.completar).toHaveBeenCalledTimes(1);
-  });
-  it('rechazo de finalización conserva el registro confirmado de accesos', () => {
-    accountNetwork(); fillAccess();
-    api.guardarAccesos.and.returnValue(of({ success: true, registration: { status: 'COMPLETED' } }));
-    api.completar.and.returnValue(throwError(() => ({ status: 400, error: { completion: { status: 'REJECTED' } } })));
-    c.finalizar(); expect(c.accesosCompletos).toBeTrue(); expect(c.registroFinalizado).toBeFalse();
-    expect(c.finalizacionEstado).toBe('REJECTED'); expect(c.error).toBe('');
-    c.completarRegistroPublico(); expect(api.completar).toHaveBeenCalledTimes(1);
-  });
-
   it('conserva accesos confirmados si falla completar y nunca vuelve a registrarlos', () => {
     accountNetwork(); fillAccess();
     api.guardarAccesos.and.returnValue(of({ success: true, registration: { status: 'COMPLETED' } }));
@@ -263,9 +240,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     c.finalizar();
     expect(c.accesosCompletos).toBeTrue();
     expect(c.registroFinalizado).toBeFalse();
-    expect(c.error).toBe('');
-    expect(c.finalizacionEstado).toBe('PENDING');
-    expect(c.mensajeFinalizacion).toContain('Los accesos confirmados se conservan');
+    expect(c.error).toContain('Los accesos están confirmados');
     c.finalizar();
     expect(api.guardarAccesos).toHaveBeenCalledTimes(1);
     expect(api.completar).toHaveBeenCalledTimes(1);

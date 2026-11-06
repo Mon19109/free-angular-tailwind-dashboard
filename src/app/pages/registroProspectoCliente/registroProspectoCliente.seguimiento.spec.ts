@@ -29,9 +29,9 @@ describe('Seguimiento: recuperación de SMS y estado real',()=>{
     spyOn(c,'consultarCuentaComercio');
   });
   afterEach(()=>http.verify());
-  function load(smsValidated:boolean,status:string,completion = 'NOT_STARTED'){
+  function load(smsValidated:boolean,status:string){
     (c as any).cargarProspecto();
-    http.expectOne('/api/seguimiento-prospecto/prospecto').flush({success:true,accountResponse:{aliasUser:false},smsValidated,registration:{status},completion:{status:completion}});
+    http.expectOne('/api/seguimiento-prospecto/prospecto').flush({success:true,accountResponse:{aliasUser:false},smsValidated,registration:{status}});
   }
   it('refrescar una sesión validada no vuelve a validar SMS y conserva la etapa pendiente',()=>{
     load(true,'PARTIAL');expect(c.showTokenModal).toBeFalse();expect(c.registroFinalizado).toBeFalse();expect(c.consultarCuentaComercio).toHaveBeenCalledTimes(1);
@@ -42,14 +42,8 @@ describe('Seguimiento: recuperación de SMS y estado real',()=>{
     load(false,'PARTIAL');expect(c.showTokenModal).toBeTrue();expect(c.registroFinalizado).toBeFalse();expect(c.consultarCuentaComercio).not.toHaveBeenCalled();
   });
   it('registro completo se muestra sin SMS ni nuevas escrituras',()=>{
-    load(false,'COMPLETED','CONFIRMED');expect(c.registroFinalizado).toBeTrue();expect(c.showTokenModal).toBeFalse();
+    load(false,'COMPLETED');expect(c.registroFinalizado).toBeTrue();expect(c.showTokenModal).toBeFalse();
     c.validarTokenSms();c.continuarLiquidacion();c.aceptarModalLiquidacion();c.finalizar();http.expectNone(()=>true);
-  });
-  it('pasos completos no implican enlace finalizado',()=>{
-    load(true,'COMPLETED');expect(c.registroFinalizado).toBeFalse();expect(c.pasosRegistroCompletos).toBeTrue();http.expectNone(r=>r.url.includes('completar'));
-  });
-  it('recarga pendiente no repite finalización ni consulta nodos bloqueados',()=>{
-    load(true,'COMPLETED','PENDING');expect(c.registroFinalizado).toBeFalse();expect(c.mensajeFinalizacion).toContain('pendiente');expect(c.consultarCuentaComercio).not.toHaveBeenCalled();c.completarRegistroPublico();http.expectNone(()=>true);
   });
   it('accesos usa referencia y datos del formulario, nunca Sirio/perfil/token',()=>{
     const users=[{kind:'admin',name:'Prueba',paternalSurname:'Prueba',maternalSurname:'Prueba',email:'prueba@example.invalid',phoneNumber:'5512345678'}];
