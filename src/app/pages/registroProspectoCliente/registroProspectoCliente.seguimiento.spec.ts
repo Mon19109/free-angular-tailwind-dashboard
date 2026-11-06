@@ -38,6 +38,24 @@ describe('Seguimiento: recuperación de SMS y estado real',()=>{
     c.tokenValue='123456';c.validarTokenSms();http.expectNone(r=>r.url.includes('validar-sms'));
     load(true,'PARTIAL');expect(c.showTokenModal).toBeFalse();
   });
+  it('muestra el rechazo seguro de enlace terminado antes de SMS y no ejecuta operaciones protegidas',()=>{
+    (c as any).cargarProspecto();
+    http.expectOne('/api/seguimiento-prospecto/prospecto').flush(
+      {success:false,code:'SEGUIMIENTO_UPSTREAM_REJECTED',message:'Enlace terminado'},
+      {status:409,statusText:'Conflict'});
+    expect(c.errorProspecto).toBe('Enlace terminado');
+    expect(c.showTokenModal).toBeFalse();
+    expect(c.consultarCuentaComercio).not.toHaveBeenCalled();
+    expect((c as any).tokenSmsValidado).toBeFalse();
+    http.expectNone(()=>true);
+  });
+  it('UNVERIFIED y NOT_STARTED no confirman finalización ni autorizan información sin SMS',()=>{
+    load(false,'UNVERIFIED');
+    expect(c.showTokenModal).toBeTrue();
+    expect(c.registroFinalizado).toBeFalse();
+    expect(c.consultarCuentaComercio).not.toHaveBeenCalled();
+    http.expectNone(()=>true);
+  });
   it('una sesión nueva exige SMS aunque la liquidación esté configurada',()=>{
     load(false,'PARTIAL');expect(c.showTokenModal).toBeTrue();expect(c.registroFinalizado).toBeFalse();expect(c.consultarCuentaComercio).not.toHaveBeenCalled();
   });
