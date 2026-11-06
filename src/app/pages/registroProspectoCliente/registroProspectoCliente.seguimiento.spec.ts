@@ -31,7 +31,7 @@ describe('Seguimiento: recuperación de SMS y estado real',()=>{
   afterEach(()=>http.verify());
   function load(smsValidated:boolean,status:string){
     (c as any).cargarProspecto();
-    http.expectOne('/api/seguimiento-prospecto/prospecto?link=fixture-link').flush({success:true,accountResponse:{aliasUser:false},smsValidated,registration:{status}});
+    http.expectOne('/api/seguimiento-prospecto/prospecto').flush({success:true,accountResponse:{aliasUser:false},smsValidated,registration:{status}});
   }
   it('refrescar una sesión validada no vuelve a validar SMS y conserva la etapa pendiente',()=>{
     load(true,'PARTIAL');expect(c.showTokenModal).toBeFalse();expect(c.registroFinalizado).toBeFalse();expect(c.consultarCuentaComercio).toHaveBeenCalledTimes(1);

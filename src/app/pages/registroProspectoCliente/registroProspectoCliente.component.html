@@ -259,7 +259,7 @@
           }
         </article>
         }
-        @if (modoInterno && !mostrarSoloPasosFinales) {
+        @if ((!modoInterno && tokenSmsValidado) || (modoInterno && !mostrarSoloPasosFinales)) {
         <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'documentos'" [class.done]="false">
           <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('documentos')">
             <span class="section-icon"><i class="fa-solid fa-file-lines"></i></span>
@@ -276,12 +276,26 @@
             @if (errorDocumentos) { <p class="tree-state error" role="alert">{{ errorDocumentos }}</p> }
             @if (!modoInterno) {
               @if (!documentosDelNodoDisponibles) {
-                <p>Los documentos se consultan en el nodo principal de este seguimiento.</p>
+                <p>Selecciona un nodo del árbol para consultar sus documentos.</p>
               } @else {
                 @for (documento of documentosVisibles; track documento.archivoId) {
                   <p><strong>{{ documento.nombre }}</strong> · {{ documento.estatusRevision === 'APPROVED' ? 'Aprobado' : documento.estatusRevision === 'REJECTED' ? 'Rechazado' : documento.estatusRevision === 'IN_REVIEW' ? 'En revisión' : 'Sin estado confirmado' }}</p>
                 } @empty {
                   @if (!cargandoDocumentos && !errorDocumentos) { <p>No hay documentos registrados.</p> }
+                }
+                @if (permiteCargaPublica) {
+                  <div class="document-upload-field">
+                    <label for="tipo-documento-publico">Tipo de documento</label>
+                    <select id="tipo-documento-publico" [value]="numeroDocumentoPublico" [disabled]="subiendoDocumentoPublico"
+                      (change)="numeroDocumentoPublico = +$any($event.target).value">
+                      @for (tipo of tiposDocumentoPublico; track $index) { <option [value]="$index + 1">{{ tipo }}</option> }
+                    </select>
+                    <label for="archivo-documento-publico">Cargar PDF, PNG o JPEG (máximo 10 MiB)</label>
+                    <input id="archivo-documento-publico" type="file" accept="application/pdf,image/png,image/jpeg"
+                      [disabled]="subiendoDocumentoPublico" (change)="subirDocumentoPublico($event)" />
+                    @if (subiendoDocumentoPublico) { <p role="status">Subiendo documento...</p> }
+                    @if (mensajeDocumentoPublico) { <p role="status">{{ mensajeDocumentoPublico }}</p> }
+                  </div>
                 }
                 <p>La visualización y descarga de archivos aún no están disponibles en este seguimiento.</p>
               }

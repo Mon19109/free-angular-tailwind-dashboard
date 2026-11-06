@@ -1,3 +1,4 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { ProcessingOverlayComponent } from '../../shared/components/processing-overlay/processing-overlay.component';
@@ -206,6 +207,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
 
   prospectId = '';
   link = '';
+  private enlaceVinculado = false;
   cargando = true;
   guardando = false;
   error = '';
@@ -240,7 +242,8 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   tokenValue = '';
   tokenErrorMessage = '';
   validandoToken = false;
-  private tokenSmsValidado = false;
+  //private tokenSmsValidado = false;
+  tokenSmsValidado = false;
   readonly mostrarSoloPasosFinales = true;
   seccionInformativaAbierta: 'comercio' | 'datos' | 'documentos' | null = 'comercio';
   cargandoDocumentos = false;
@@ -319,11 +322,6 @@ this.link = params.get('link') || pathLink;
     this.actualizarValidadoresAccesos();
 
     if (this.modoInterno) return;
-    if (!this.link) {
-      this.cargando = false;
-      this.error = 'El link no contiene token para validar el registro.';
-      return;
-    }
 
     this.cargarProspecto();
   }
@@ -372,6 +370,7 @@ if (this.prospecto) this.consultarCuentaComercio();
   restaurarNavegacionPublica(event: PageTransitionEvent): void {
     if (this.modoInterno || !event.persisted) return;
     const version = ++this.seguimientoVersion;
+    this.enlaceVinculado = false;
     this.consultaCuentaVersion++;
     this.consultaCatalogoVersion++;
     this.consultaDocumentosVersion++;
@@ -977,7 +976,16 @@ const formData = new FormData();
     this.error = '';
     const version = this.seguimientoVersion;
 
-    this.prospectoService.obtenerProspecto(this.prospectId, this.link).pipe(
+    if (!this.modoInterno && this.link) {
+      // Keep the entry token only in memory; reload resumes via the public cookie/context.
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('link');
+      for (const key of ['prospectId', 'prospect', 'id']) clean.searchParams.delete(key);
+      clean.pathname = clean.pathname.replace(/(\/registro-prospecto)\/[^/]+\/?$/, '$1');
+      window.history.replaceState(window.history.state, '', clean.pathname + clean.search + clean.hash);
+    }
+
+    this.prospectoService.obtenerProspecto(this.prospectId, this.enlaceVinculado ? '' : this.link).pipe(
       finalize(() => { if (this.seguimientoVersion === version) this.cargando = false; })
     ).subscribe({
       next: resp => {
@@ -986,6 +994,7 @@ const formData = new FormData();
           this.mostrarErrorProspecto(resp?.error?.message || resp?.message || 'No fue posible validar el link del prospecto.');
           return;
         }
+        this.enlaceVinculado = true;
         this.registroFinalizado = resp.registration?.status === 'COMPLETED';
         this.tokenSmsValidado = resp.smsValidated === true && !this.registroFinalizado;
         this.showTokenModal = !this.tokenSmsValidado && !this.registroFinalizado;
@@ -1247,13 +1256,13 @@ const formData = new FormData();
   }
 
   get documentosDelNodoDisponibles(): boolean {
-    return this.modoInterno || (!!this.nodoRaizPublico && this.nodoSeleccionado === this.nodoRaizPublico);
+    return this.modoInterno || (!!this.nodoSeleccionado && !!this.buscarNodo(this.arbol, this.nodoSeleccionado));
   }
 
   private consultarDocumentos(commerceId = ''): void {
     if (!this.modoInterno && (!this.tokenSmsValidado || !this.documentosDelNodoDisponibles)) return;
     if (this.modoInterno && !commerceId) return;
-    if (this.cargandoDocumentos) return;
+
     this.cargandoDocumentos = true;
     this.errorDocumentos = '';
     const nodoId = this.nodoSeleccionado;
@@ -1263,7 +1272,7 @@ const formData = new FormData();
       ? this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta()).pipe(
         map(respuesta => respuesta.legalDocuments || respuesta.documents || [])
       )
-      : this.seguimientoProspectoService.consultarDocumentos().pipe(
+      : this.seguimientoProspectoService.consultarDocumentos(this.nodoSeleccionado).pipe(
         map(respuesta => respuesta.documents.map(documento => ({
           id: documento.ref,
           name: documento.name ?? undefined,
@@ -1291,6 +1300,44 @@ const formData = new FormData();
   private estatusDocumento(documento: DocumentoProspectoApi): 'APPROVED' | 'REJECTED' | 'IN_REVIEW' | undefined {
     const estado = documento.status || documento.documentStatus;
     return estado === 'APPROVED' || estado === 'REJECTED' || estado === 'IN_REVIEW' ? estado : undefined;
+  }
+
+  numeroDocumentoPublico = 1;
+  subiendoDocumentoPublico = false;
+  mensajeDocumentoPublico = '';
+  readonly tiposDocumentoPublico = [
+    'Comprobante de domicilio', 'Acta constitutiva', 'INE', 'Contrato',
+    'Imagen exterior', 'Imagen interior', 'Segunda imagen interior', 'Escritura',
+    'Poder', 'Constancia fiscal', 'Firma electrónica', 'INE representante legal',
+    'INE tercero', 'Carátula de estado de cuenta'
+  ];
+  get permiteCargaPublica(): boolean {
+    const node = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    return !this.modoInterno && this.tokenSmsValidado && !!node && node.levelType !== 6 && node.nivel !== 'caja';
+  }
+  subirDocumentoPublico(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0]; input.value = '';
+    if (!file || !this.permiteCargaPublica || this.subiendoDocumentoPublico) return;
+    if (file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) {
+      this.errorDocumentos = 'Selecciona un PDF, PNG o JPEG de hasta 10 MiB.'; return;
+    }
+    const node = this.nodoSeleccionado, navigation = this.seguimientoVersion;
+    this.subiendoDocumentoPublico = true; this.errorDocumentos = ''; this.mensajeDocumentoPublico = '';
+    this.seguimientoProspectoService.subirDocumentoNodo(node, this.numeroDocumentoPublico, file).pipe(
+      finalize(() => { this.subiendoDocumentoPublico = false; }), takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        if (this.nodoSeleccionado !== node || this.seguimientoVersion !== navigation) return;
+        this.mensajeDocumentoPublico = 'Documento cargado. Su revisión corresponde al portal administrativo.';
+        this.consultarDocumentos();
+      },
+      error: error => {
+        if (this.nodoSeleccionado !== node || this.seguimientoVersion !== navigation) return;
+        this.manejarErrorAutorizacionPublica(error);
+        this.errorDocumentos = 'No fue posible confirmar la carga del documento.';
+      }
+    });
   }
 
   seleccionarArchivo(_event: Event, _documento: DocumentoRequerido): void {}
@@ -1379,7 +1426,7 @@ const formData = new FormData();
     this.cargandoCuenta = false;
     this.actualizarEstadoLiquidacion();
     if (!estado && this.nodoRequiereAccesos) this.consultarLiquidacionNodo();
-    if (!this.modoInterno && this.documentosDelNodoDisponibles && this.documentosRaiz === null) this.consultarDocumentos();
+    if (!this.modoInterno && this.documentosDelNodoDisponibles) { this.documentosProspecto = []; this.consultarDocumentos(); }
   }
 
   private consultarLiquidacionNodo(): void {

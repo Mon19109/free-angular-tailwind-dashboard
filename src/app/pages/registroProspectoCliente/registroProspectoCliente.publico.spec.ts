@@ -17,7 +17,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
   const document = { ref: '10000000-0000-4000-8000-000000000003', name: 'Constancia fiscal', documentType: 'CSF', status: 'APPROVED' };
 
   beforeEach(() => {
-    api = jasmine.createSpyObj('seguimiento', ['consultarCuenta', 'consultarArbol', 'consultarLiquidacionNodo', 'consultarDocumentos', 'guardarDispersionEnRed', 'guardarLiquidacion', 'guardarAccesos', 'completar', 'renovarAcceso']);
+    api = jasmine.createSpyObj('seguimiento', ['consultarCuenta', 'consultarArbol', 'consultarLiquidacionNodo', 'consultarDocumentos', 'guardarDispersionEnRed', 'guardarLiquidacion', 'guardarAccesos', 'completar', 'renovarAcceso', 'subirDocumentoNodo']);
     prospecto = jasmine.createSpyObj('prospecto', ['obtenerProspecto', 'validarTokenSms']);
     navigation = jasmine.createSpyObj('navigation', ['restartForNavigation']);
     navigation.restartForNavigation.and.returnValue(of(undefined));
@@ -28,6 +28,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
       { ref: child, name: 'Sucursal', levelType: 5, depth: 1 }
     ] }));
     api.consultarLiquidacionNodo.and.returnValue(of({ success: true, dispersionAccount: null, cuentaCLConfirmada: null, hasPlatformAccess: false }));
+    api.subirDocumentoNodo.and.returnValue(of({success:true}));
     api.consultarDocumentos.and.returnValue(of({ success: true, documents: [document] }));
     TestBed.configureTestingModule({ providers: [provideHttpClient(), { provide: ActivatedRoute, useValue: {} },
       { provide: SeguimientoProspectoService, useValue: api }, { provide: ProspectoClienteService, useValue: prospecto },
@@ -38,6 +39,32 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     c.showTokenModal = false;
     (c as any).tokenSmsValidado = true;
     spyOn(window, 'scrollTo');
+  });
+
+  it('retira el enlace de la dirección y las consultas siguientes utilizan el contexto', () => {
+    const original = window.location.href;
+    const originalState = window.history.state;
+    try {
+      window.history.replaceState(originalState, '', '/registro-prospecto/fixture-link?link=fixture-link');
+      (c as any).cargarProspecto();
+      expect(window.location.pathname).toBe('/registro-prospecto');
+      expect(window.location.search).toBe('');
+      (c as any).cargarProspecto();
+      expect(prospecto.obtenerProspecto.calls.argsFor(0)[1]).toBe('fixture-link');
+      expect(prospecto.obtenerProspecto.calls.argsFor(1)[1]).toBe('');
+    } finally { window.history.replaceState(originalState, '', original); }
+  });
+
+  it('no envía archivos si falta SMS o el nodo seleccionado es Caja', () => {
+    load();
+    const event = () => ({target: {files: [new File(['fixture'], 'file.pdf', {type: 'application/pdf'})], value: 'file'}} as unknown as Event);
+    (c as any).tokenSmsValidado = false;
+    c.subirDocumentoPublico(event());
+    (c as any).tokenSmsValidado = true;
+    (c as any).arbol = [{id: 'caja', levelType: 6, nivel: 'caja', hijos: []}];
+    c.nodoSeleccionado = 'caja';
+    c.subirDocumentoPublico(event());
+    expect(api.subirDocumentoNodo).not.toHaveBeenCalled();
   });
 
   function load() { c.consultarCuentaComercio(); }
@@ -71,22 +98,33 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(c.pasoActivo).toBe('accesos');
   });
 
-  it('no atribuye documentos de la raíz a una sucursal y conserva la raíz al volver', () => {
+  it('consulta los documentos de cada nodo por su referencia, sin heredar la raíz', () => {
     load();
+    api.consultarDocumentos.and.returnValue(of({success:true, documents:[]}));
     c.seleccionarNodo(child);
-    expect(c.documentosDelNodoDisponibles).toBeFalse();
+    expect(c.documentosDelNodoDisponibles).toBeTrue();
     expect(c.documentosProspecto).toEqual([]);
-    (c as any).consultarDocumentos('identificador-no-autorizado');
-    expect(api.consultarDocumentos).toHaveBeenCalledTimes(1);
+    expect(api.consultarDocumentos).toHaveBeenCalledWith(child);
     c.seleccionarNodo(root);
-    expect(c.documentosVisibles[0].nombre).toBe('Constancia fiscal');
-    expect(api.consultarDocumentos).toHaveBeenCalledTimes(1);
+    expect(api.consultarDocumentos).toHaveBeenCalledWith(root);
+    expect(api.consultarDocumentos).toHaveBeenCalledTimes(3);
+  });
+
+  it('sube archivo al nodo seleccionado y reconsulta sin aprobarlo ni reiniciar liquidación', () => {
+    load(); c.seleccionarNodo(child);
+    const file = new File(['%PDF-1.4'], 'documento.pdf', {type:'application/pdf'});
+    c.subirDocumentoPublico({target:{files:[file],value:'documento.pdf'}} as unknown as Event);
+    expect(api.subirDocumentoNodo).toHaveBeenCalledWith(child,1,file);
+    expect(api.consultarDocumentos).toHaveBeenCalledWith(child);
+    expect(c.documentosVisibles[0].estatusRevision).toBe('APPROVED'); // Only the mocked backend status, never changed by upload.
+    expect(api.guardarLiquidacion).not.toHaveBeenCalled();
+    expect(navigation.restartForNavigation).not.toHaveBeenCalled();
   });
 
   it('ignora documentos de una consulta anterior incluso después de volver al mismo nodo', () => {
     const old = new Subject<any>();
     const current = new Subject<any>();
-    api.consultarDocumentos.and.returnValues(old, current);
+    api.consultarDocumentos.and.returnValues(old, of({success:true,documents:[]}), current);
     load();
     c.seleccionarNodo(child);
     c.seleccionarNodo(root);

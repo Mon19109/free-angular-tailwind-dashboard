@@ -48,15 +48,9 @@ export class ProspectoClienteService {
   _prospectId: string,
   link: string
 ): Observable<ProspectoClienteResponse> {
-  const params = new HttpParams().set('link', link);
-
-  return this.navigation.request(options => this.http.get<ProspectoClienteResponse>(
-    '/api/seguimiento-prospecto/prospecto',
-    {
-      ...options,
-      params
-    }
-  ));
+  return this.navigation.request(options => link
+    ? this.http.post<ProspectoClienteResponse>('/api/seguimiento-prospecto/prospecto', { link }, options)
+    : this.http.get<ProspectoClienteResponse>('/api/seguimiento-prospecto/prospecto', options));
 }
 
   guardarCapturaCliente(payload: ProspectoClienteCapturaPayload): Observable<unknown> {

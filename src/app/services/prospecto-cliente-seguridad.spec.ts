@@ -31,11 +31,21 @@ describe('Seguimiento público: transporte y límites de autorización', () => {
   afterEach(() => http.verify());
   it('envía sólo enlace, sin prospectId ni Authorization', () => {
     TestBed.inject(ProspectoClienteService).obtenerProspecto('identidad-no-confiable', 'enlace-prueba').subscribe();
-    const r = http.expectOne('/api/seguimiento-prospecto/prospecto?link=enlace-prueba');
-    expect(r.request.params.keys()).toEqual(['link']);
+    const r = http.expectOne('/api/seguimiento-prospecto/prospecto');
+    expect(r.request.method).toBe('POST');
+    expect(r.request.params.keys()).toEqual([]);
+    expect(r.request.body).toEqual({link: 'enlace-prueba'});
     expect(r.request.headers.get('X-Seguimiento-Context')).toBe('00000000-0000-4000-8000-000000000001');
     expect(r.request.headers.has('Authorization')).toBeFalse();expect(r.request.withCredentials).toBeTrue();
     r.flush({success: true, accountResponse: {aliasUser: false}});
+  });
+  it('recarga consulta prospecto sin enlace ni query usando contexto y cookie', () => {
+    TestBed.inject(ProspectoClienteService).obtenerProspecto('', '').subscribe();
+    const r = http.expectOne('/api/seguimiento-prospecto/prospecto');
+    expect(r.request.method).toBe('GET');
+    expect(r.request.params.keys()).toEqual([]);
+    expect(r.request.withCredentials).toBeTrue();
+    r.flush({success:true, accountResponse:{}, smsValidated:true});
   });
   it('SMS sólo envía el código con cookie y protección CSRF', () => {
     TestBed.inject(ProspectoClienteService).validarTokenSms({tokenSms: '123456'}).subscribe();

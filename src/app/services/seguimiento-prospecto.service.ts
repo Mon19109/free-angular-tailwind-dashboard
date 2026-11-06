@@ -58,9 +58,9 @@ guardarDispersionEnRed(nodeRef: string): Observable<unknown> {
   ));
 }
 
-  consultarDocumentos(): Observable<{ success: true; documents: DocumentoSeguimiento[] }> {
+  consultarDocumentos(nodeRef?: string): Observable<{ success: true; documents: DocumentoSeguimiento[] }> {
     return this.navigation.request(options => this.http.get<{ success: boolean; documents: DocumentoSeguimiento[] }>(
-      '/api/seguimiento-prospecto/documentos',
+      nodeRef ? `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/documentos` : '/api/seguimiento-prospecto/documentos',
       options
     )).pipe(map(response => {
       if (response?.success !== true || !Array.isArray(response.documents)
@@ -71,6 +71,18 @@ guardarDispersionEnRed(nodeRef: string): Observable<unknown> {
       }
       // El contrato público sólo contiene metadatos; nunca trasladar URL o claves privadas.
       return { success: true as const, documents: response.documents.map(({ ref, name, documentType, status }) => ({ ref, name, documentType, status })) };
+    }));
+  }
+
+  subirDocumentoNodo(nodeRef: string, numeroDocumento: number, file: File): Observable<{success: boolean}> {
+    const body = new FormData();
+    body.append('numeroDocumento', String(numeroDocumento));
+    body.append('file', file);
+    return this.navigation.request(options => this.http.post<{success: boolean}>(
+      `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/documentos`, body, options
+    )).pipe(map(response => {
+      if (response?.success !== true) throw new Error('No fue posible confirmar la carga.');
+      return response;
     }));
   }
 
