@@ -88,8 +88,10 @@ describe('Seguimiento: contexto del BFF por navegación', () => {
 
     begin.flush({ success: true, context });
     await settleNavigation();
-    for (const url of ['/api/seguimiento-prospecto/prospecto?link=fixture-link', '/api/seguimiento-prospecto/cuenta']) {
+    for (const url of ['/api/seguimiento-prospecto/prospecto', '/api/seguimiento-prospecto/cuenta']) {
       const request = http.expectOne(url);
+      expect(request.request.method).toBe(url.endsWith('/prospecto') ? 'POST' : 'GET');
+      if (url.endsWith('/prospecto')) expect(request.request.body).toEqual({ link: 'fixture-link' });
       expect(request.request.headers.get('X-Seguimiento-Context')).toBe(context);
       expect(request.request.withCredentials).toBeTrue();
       request.flush({ success: true });

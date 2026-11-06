@@ -250,7 +250,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   errorDocumentos = '';
   private consultaDocumentosVersion = 0;
   private nodoRaizPublico = '';
-  private documentosRaiz: DocumentoProspectoApi[] | null = null;
   documentosProspecto: DocumentoProspectoApi[] = [];
   archivosInvalidos = false;
   cartaLiquidacionArchivoNombre = '';
@@ -398,7 +397,6 @@ if (this.prospecto) this.consultarCuentaComercio();
     this.nodoRaizPublico = '';
     this.arbol = [];
     this.arbolRealCargado = false;
-    this.documentosRaiz = null;
     this.documentosProspecto = [];
     this.liquidacionConsultada = false;
     this.liquidacionExistente = false;
@@ -1061,7 +1059,9 @@ const formData = new FormData();
     return this.documentosProspecto.map((documento, index) => ({
       numero: index + 1,
       nombre: this.texto(documento.documentName || documento.name || documento.fileName) || `Documento ${index + 1}`,
-      obligatorio: true,
+      obligatorio: this.modoInterno,
+      estado: documento.status === 'APPROVED' ? 'Aprobado' : documento.status === 'REJECTED' ? 'Rechazado'
+        : documento.status === 'IN_REVIEW' ? 'En revisión' : documento.status || 'Sin estado confirmado',
       archivoNombre: this.texto(documento.originalName || documento.fileName || documento.documentName || documento.name),
       archivoUrl: this.modoInterno ? this.texto(documento.url || documento.fileUrl || documento.path) : '',
       archivoId: this.texto(documento.id || documento.documentID || documento.documentId),
@@ -1260,14 +1260,15 @@ const formData = new FormData();
   }
 
   private consultarDocumentos(commerceId = ''): void {
-    if (!this.modoInterno && (!this.tokenSmsValidado || !this.documentosDelNodoDisponibles)) return;
+    if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto || !this.documentosDelNodoDisponibles)) return;
     if (this.modoInterno && !commerceId) return;
 
     this.cargandoDocumentos = true;
     this.errorDocumentos = '';
     const nodoId = this.nodoSeleccionado;
     const version = ++this.consultaDocumentosVersion;
-    const sigueVigente = () => this.nodoSeleccionado === nodoId && this.consultaDocumentosVersion === version;
+    const sigueVigente = () => this.nodoSeleccionado === nodoId && this.consultaDocumentosVersion === version
+      && (this.modoInterno || (this.tokenSmsValidado && !this.errorProspecto));
     const consulta: Observable<DocumentoProspectoApi[]> = this.modoInterno
       ? this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta()).pipe(
         map(respuesta => respuesta.legalDocuments || respuesta.documents || [])
@@ -1281,12 +1282,12 @@ const formData = new FormData();
         })))
       );
     consulta.pipe(
+      takeUntilDestroyed(this.destroyRef),
       finalize(() => { if (sigueVigente()) this.cargandoDocumentos = false; })
     ).subscribe({
       next: documentos => {
         if (!sigueVigente()) return;
         this.documentosProspecto = documentos;
-        if (!this.modoInterno) this.documentosRaiz = documentos;
       },
       error: error => {
         if (!sigueVigente()) return;
@@ -1357,8 +1358,8 @@ const formData = new FormData();
   }
 
   seleccionarNodo(id: string): void {
-    if (this.guardando || this.guardandoLiquidacion || this.validandoArchivos) return;
-    if (!this.modoInterno && (!this.tokenSmsValidado || !this.buscarNodo(this.arbol, id))) return;
+    if (this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico) return;
+    if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto || !this.buscarNodo(this.arbol, id))) return;
     this.error = '';
     if (id === this.nodoSeleccionado) return;
     this.guardarAccesosNodoActual();
@@ -1366,6 +1367,7 @@ const formData = new FormData();
       this.liquidacionPorNodo[this.nodoSeleccionado] = this.estadoLiquidacionActual();
     }
     this.nodoSeleccionado = id;
+    this.mensajeDocumentoPublico = '';
     this.restaurarLiquidacionNodo();
     const accesos = this.accesosPorNodo[id];
     this.accesosForm.enable({ emitEvent: false });
@@ -1402,7 +1404,7 @@ const formData = new FormData();
     this.datosForm.reset(estado?.datosComercio, { emitEvent: false });
     this.comercioForm.reset(estado?.comercio, { emitEvent: false });
     this.documentosProspecto = this.modoInterno ? estado?.documentos ?? []
-      : this.documentosDelNodoDisponibles ? this.documentosRaiz ?? [] : [];
+      : [];
     this.cargandoDocumentos = false;
     this.errorDocumentos = '';
     this.liquidacionForm.reset(estado?.datos, { emitEvent: false });
@@ -1425,12 +1427,18 @@ const formData = new FormData();
     this.modalAccesos = null;
     this.cargandoCuenta = false;
     this.actualizarEstadoLiquidacion();
-    if (!estado && this.nodoRequiereAccesos) this.consultarLiquidacionNodo();
+    if ((!this.modoInterno || !estado) && this.nodoRequiereAccesos) this.consultarLiquidacionNodo();
     if (!this.modoInterno && this.documentosDelNodoDisponibles) { this.documentosProspecto = []; this.consultarDocumentos(); }
   }
 
+  reintentarLiquidacion(): void {
+    if (this.cargandoCuenta || this.errorProspecto) return;
+    if (this.modoInterno || !this.documentosDelNodoDisponibles) this.consultarCuentaComercio();
+    else this.consultarLiquidacionNodo();
+  }
+
   private consultarLiquidacionNodo(): void {
-    if (!this.modoInterno && !this.tokenSmsValidado) return;
+    if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto)) return;
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
     if (!nodo || !this.nodoRequiereAccesos) return;
     this.liquidacionConsultada = false;
@@ -1449,14 +1457,14 @@ const formData = new FormData();
   const version = ++this.consultaCuentaVersion;
 
   this.seguimientoProspectoService.consultarLiquidacionNodo(nodeRef)
-    .pipe(finalize(() => {
+    .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => {
       if (this.consultaCuentaVersion === version) {
         this.cargandoCuenta = false;
       }
     }))
     .subscribe({
       next: respuesta => {
-        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef) return;
+        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.tokenSmsValidado || this.errorProspecto) return;
 
         const datos = respuesta as {
           success?: boolean;
@@ -1501,7 +1509,7 @@ const formData = new FormData();
         this.pasoActivo = this.liquidacionCompleta ? 'accesos' : 'liquidacion';
       },
       error: error => {
-        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef) return;
+        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.tokenSmsValidado || this.errorProspecto) return;
         this.manejarErrorAutorizacionPublica(error);
         this.errorLiquidacion = 'No fue posible consultar la liquidación. Reintenta.';
       }
@@ -1915,7 +1923,6 @@ const formData = new FormData();
         this.arbol = arbol;
         this.arbolRealCargado = true;
         this.nodoRaizPublico = arbol[0].id;
-        this.documentosRaiz = null;
         this.documentosProspecto = [];
         this.consultaDocumentosVersion++;
         this.cargandoDocumentos = false;

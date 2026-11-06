@@ -34,6 +34,7 @@
 
 @if (mostrarMesaDigital || soloConsulta) {
   <section class="mesa-review">
+    @if (!soloTablaDocumentos) {
     <h3>Revisión de Mesa Digital</h3>
 
     <div class="mesa-siprelad-result">
@@ -62,9 +63,11 @@
       }
     </div>
 
+    }
     @if (estadoConsultaDocumentos === 'loading') { <p role="status">Consultando documentos...</p> }
     @if (estadoConsultaDocumentos === 'empty') { <p role="status">No hay documentos disponibles</p> }
     @if (estadoConsultaDocumentos === null || estadoConsultaDocumentos === 'ready') {
+    @if (!soloTablaDocumentos) {
     <div class="mesa-results">
       <span><i class="fa-solid fa-folder-open"></i> Documentos Totales: <strong>{{ documentos.length }}</strong></span>
       <span>Aprobados: <strong>{{ documentosAprobados }}</strong></span>
@@ -73,7 +76,8 @@
       <span><i class="fa-solid fa-circle-exclamation"></i> Estado General: <strong>{{ estadoGeneralMesaDigital }}</strong></span>
     </div>
 
-    <div class="mesa-table">
+    }
+    <div class="mesa-table" [class.solo-documentos]="soloTablaDocumentos">
       <div class="mesa-table-head" aria-hidden="true">
         <span>#</span>
         <span>Nombre del Documento</span>

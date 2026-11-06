@@ -278,11 +278,13 @@
               @if (!documentosDelNodoDisponibles) {
                 <p>Selecciona un nodo del árbol para consultar sus documentos.</p>
               } @else {
-                @for (documento of documentosVisibles; track documento.archivoId) {
-                  <p><strong>{{ documento.nombre }}</strong> · {{ documento.estatusRevision === 'APPROVED' ? 'Aprobado' : documento.estatusRevision === 'REJECTED' ? 'Rechazado' : documento.estatusRevision === 'IN_REVIEW' ? 'En revisión' : 'Sin estado confirmado' }}</p>
-                } @empty {
-                  @if (!cargandoDocumentos && !errorDocumentos) { <p>No hay documentos registrados.</p> }
-                }
+                <app-step-documentos
+                  [documentos]="documentosVisibles"
+                  [soloConsulta]="true"
+                  [soloTablaDocumentos]="true"
+                  [mostrarAccionesAdministrativas]="false"
+                  [estadoConsultaDocumentos]="cargandoDocumentos ? 'loading' : errorDocumentos ? 'error' : documentosProspecto.length ? 'ready' : 'empty'"
+                  [contextoDocumento]="nodoSeleccionado" />
                 @if (permiteCargaPublica) {
                   <div class="document-upload-field">
                     <label for="tipo-documento-publico">Tipo de documento</label>
@@ -346,7 +348,7 @@
 
         @if (errorLiquidacion) {
         <p class="registration-message error" role="alert">{{ errorLiquidacion }}</p>
-        <button type="button" class="button ghost" (click)="consultarCuentaComercio()" [disabled]="cargandoCuenta">Reintentar consulta</button>
+        <button type="button" class="button ghost" (click)="reintentarLiquidacion()" [disabled]="cargandoCuenta || !!errorProspecto">Reintentar consulta</button>
         }
 
         @if (nodoRequiereAccesos) {

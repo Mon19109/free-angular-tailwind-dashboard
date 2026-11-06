@@ -3418,3 +3418,10 @@ small {
     grid-column: span 1;
   }
 }
+
+/* Same document table without the administrative validation column. */
+.mesa-table.solo-documentos .mesa-table-head,
+.mesa-table.solo-documentos .mesa-row {
+  grid-template-columns: 44px minmax(220px, 1fr) minmax(130px, .5fr) 116px;
+  min-width: 570px;
+}

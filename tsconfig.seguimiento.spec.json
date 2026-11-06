@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.spec.json",
+  "include": [
+    "src/**/*.d.ts",
+    "src/app/pages/registroProspectoCliente/registroProspectoCliente.nodos.spec.ts",
+    "src/app/pages/registroProspectoCliente/registroProspectoCliente.seguimiento.spec.ts",
+    "src/app/services/seguimiento-prospecto.service.spec.ts",
+    "src/app/services/seguimiento-navigation.service.spec.ts"
+  ]
+}

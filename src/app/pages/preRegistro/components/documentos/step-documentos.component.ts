@@ -12,6 +12,7 @@ import { SipreladResultado } from '../../../../services/siprelad.service';
 export class StepDocumentosComponent implements OnChanges {
  @Input() estadoConsultaDocumentos: 'idle' | 'loading' | 'error' | 'empty' | 'ready' | null = null;
  @Input() documentos: DocumentoRequerido[] = [];
+ @Input() soloTablaDocumentos = false;
   @Input() documentosCargados = 0;
   @Input() documentosPendientes = 0;
   @Input() archivosInvalidos = false;
