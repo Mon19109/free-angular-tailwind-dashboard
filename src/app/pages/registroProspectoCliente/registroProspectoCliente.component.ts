@@ -1544,8 +1544,7 @@ const formData = new FormData();
 
         this.cuentaComercio = { ...this.cuentaComercio, dispersionAccount: datos.dispersionAccount, hasPlatformAccess: datos.hasPlatformAccess, typeOfBusiness: datos.typeOfBusiness };
         this.liquidacionConsultada = true;
-        this.liquidacionExistente =
-          dispersion === 'NETWORK' || (!!opcion && datos.cuentaCLConfirmada === true);
+       this.liquidacionExistente = !!opcion;
         this.liquidacionRegistrada = false;
 
         if (opcion) {
