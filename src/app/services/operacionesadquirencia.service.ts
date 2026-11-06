@@ -1,6 +1,5 @@
 import { obtenerNodoSesion } from '../shared/utils/nodo-sesion';
-import { Injectable, inject } from '@angular/core';
-import { AuthService } from './auth.service';
+import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, EMPTY, expand, reduce, throwError } from 'rxjs';
 import { leerPaginaOperaciones } from '../shared/utils/pagina-operaciones';
@@ -112,12 +111,12 @@ export function cuentaAdquirencia(nodo: any): string {
   providedIn: 'root'
 })
 export class OperacionesAdquirenciaService {
-  private readonly sessionAuth = inject(AuthService);
   private apiAldebaran = environment.api.aldebaran;
   private baseUrl = environment.api.kashpay;
   private apiSaldos = environment.api.saldos;
   private baseUrlTicket = environment.api.voucher;
   private apiV1Url = `${this.baseUrl}api/v1/`;
+  //private cuen = localStorage.getItem('issueId');
 
   
   constructor(private http: HttpClient) { }
@@ -125,6 +124,7 @@ export class OperacionesAdquirenciaService {
   private getCommonHeaders(): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Accept': 'application/json'
     });
   }
@@ -134,12 +134,24 @@ export class OperacionesAdquirenciaService {
 
     return new HttpHeaders({
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Accept': 'application/json'
     });
   }
 
   private getStoredToken(): string {
-    return this.sessionAuth.getToken() || '';
+    const rawSession = localStorage.getItem('auth_session');
+
+    if (rawSession) {
+      try {
+        const session = JSON.parse(rawSession);
+        if (session?.token) return session.token;
+      } catch {
+        localStorage.removeItem('auth_session');
+      }
+    }
+
+    return localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
   }
   /**
    * Obtiene la lista de cuentas del API
@@ -148,7 +160,7 @@ export class OperacionesAdquirenciaService {
   /*obtenerCuentas(): Observable<Cuenta[]> {
     //const headers = this.getCommonHeaders();
     
-    return this.http.get<any>(`${this.apiAldebaran}getEntityLevels?fatherId=${this.sessionAuth.getSessionValue('issueId') || ''}&level=`);
+    return this.http.get<any>(`${this.apiAldebaran}getEntityLevels?fatherId=${localStorage.getItem('issueId')}&level=`);
         
   }*/
 
@@ -187,7 +199,7 @@ export class OperacionesAdquirenciaService {
 }
 
   getSubafiliados(): Observable<{ contextResponse: Subafiliado[] }> {
-      const nodeID = obtenerNodoSesion(this.sessionAuth);
+      const nodeID = obtenerNodoSesion();
 
       if (nodeID) {
         return this.http.get<{ contextResponse: Subafiliado[] }>(
@@ -203,7 +215,7 @@ export class OperacionesAdquirenciaService {
     }
   
     getSubafiliadoById(): Observable<any> {
-      const nodeID = obtenerNodoSesion(this.sessionAuth);
+      const nodeID = obtenerNodoSesion();
 
       return this.http.get<any>(
         `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=3`,
@@ -274,7 +286,13 @@ getCajas(idTerminal:number) {
    * @param formData Datos del formulario
    */
   obtenerCuentaSesion(): string {
-    return cuentaAdquirencia({ acquiringId: this.sessionAuth.getSessionValue('acquiringId') });
+    try {
+      const session = JSON.parse(localStorage.getItem('auth_session') || 'null');
+      if (session) return cuentaAdquirencia({ acquiringId: session.acquiringId });
+    } catch {
+      // Sesiones anteriores a auth_session.
+    }
+    return cuentaAdquirencia({ acquiringId: localStorage.getItem('acquiringId') });
   }
 
   enviarFormulario(formData: FormularioData, page = 0): Observable<any> {
@@ -350,6 +368,7 @@ getCajas(idTerminal:number) {
       'versionApp': '3',
       'Entity-i': 'com.sub.tecs',
       'terminalId': terminalId,
+      'Accept': 'application/json',
       'Accept': 'application/json'
     });
 

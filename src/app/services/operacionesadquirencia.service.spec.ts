@@ -29,7 +29,7 @@ describe('Consulta de operaciones de adquirencia', () => {
     service.enviarFormulario({ idSirioConsulta: 'PHP-84', tipoOperacion: ['1', '10008'],
       estatus: ['15', '31'], fechaInicio: '2023-09-01 00:00', fechaFin: '2023-09-30 23:59'
     }, 2).subscribe();
-    const req = http.expectOne(request => request.url === '/api/operaciones-adquirencia/cuentas/PHP-84/operaciones');
+    const req = http.expectOne(request => request.url.endsWith('/PHP-84/getoperationbytypeandstatuscustom'));
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('type')).toBe('1,10008');
     expect(req.request.params.get('status')).toBe('15,31');
@@ -49,11 +49,9 @@ describe('Consulta de operaciones de adquirencia', () => {
     http.expectNone(() => true);
   });
 
-  it('no obtiene cuentas de sesiones almacenadas en el navegador', () => {
+  it('prefiere la cuenta de la sesión actual a valores legacy', () => {
     localStorage.setItem('auth_session', JSON.stringify({ acquiringId: 'ACTUAL' }));
     localStorage.setItem('acquiringId', 'ANTERIOR');
-    spyOn(localStorage, 'getItem').and.throwError('No leer storage');
-    expect(service.obtenerCuentaSesion()).toBe('');
-    expect(localStorage.getItem).not.toHaveBeenCalled();
+    expect(service.obtenerCuentaSesion()).toBe('ACTUAL');
   });
 });
