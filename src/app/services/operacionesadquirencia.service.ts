@@ -6,6 +6,7 @@ import { leerPaginaOperaciones } from '../shared/utils/pagina-operaciones';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
 //import { AuthService, UserSessionData } from '../services/auth.service';
+import { AuthService } from './auth.service';
 
 export interface Cuenta {
   id: number;
@@ -119,12 +120,14 @@ export class OperacionesAdquirenciaService {
   //private cuen = localStorage.getItem('issueId');
 
   
-  constructor(private http: HttpClient) { }
-
+  //constructor(private http: HttpClient) { }
+constructor(
+  private http: HttpClient,
+  private authService: AuthService
+) {}
   private getCommonHeaders(): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Accept': 'application/json'
     });
   }
@@ -134,7 +137,6 @@ export class OperacionesAdquirenciaService {
 
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Accept': 'application/json'
     });
   }
@@ -199,8 +201,8 @@ export class OperacionesAdquirenciaService {
 }
 
   getSubafiliados(): Observable<{ contextResponse: Subafiliado[] }> {
-      const nodeID = obtenerNodoSesion();
-
+      //const nodeID = obtenerNodoSesion();
+      const nodeID = obtenerNodoSesion(this.authService);
       if (nodeID) {
         return this.http.get<{ contextResponse: Subafiliado[] }>(
           `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=3`,
@@ -215,8 +217,8 @@ export class OperacionesAdquirenciaService {
     }
   
     getSubafiliadoById(): Observable<any> {
-      const nodeID = obtenerNodoSesion();
-
+      //const nodeID = obtenerNodoSesion();
+const nodeID = obtenerNodoSesion(this.authService);
       return this.http.get<any>(
         `/api/operaciones-adquirencia/nodos/${encodeURIComponent(nodeID)}/arbol?levels=3`,
         { headers: this.getBearerHeaders() }
@@ -368,7 +370,6 @@ getCajas(idTerminal:number) {
       'versionApp': '3',
       'Entity-i': 'com.sub.tecs',
       'terminalId': terminalId,
-      'Accept': 'application/json',
       'Accept': 'application/json'
     });
 

@@ -125,7 +125,7 @@ export class RegistroClienteComponent {
     this.consultarCuentaNodoBff(this.cambiosNoConfirmados);
   }
 
-  private camposEdicionBff: string[] = [];
+   camposEdicionBff: string[] = [];
   private edicionAutorizadaBff = false;
   get mostrarEditarDatosNodo(): boolean {
     return this.modoContextoBff ? this.puedeVerRevisionDocumental : this.puedeEditarDatosNodo;
