@@ -56,7 +56,7 @@ describe('Filtro de pendientes de revisión', () => {
     const component = new ConsultaComerciosComponent(router,
       { buscarComercios } as unknown as ConsultaComerciosService, {} as RecuperarCuentaService, auth);
 
-    expect(component.nivelesVisibles.some(nivel => nivel.id === 'pendiente-core' && nivel.label === 'Pendiente autorización')).toBeTrue();
+      expect(component.nivelesVisibles.some(nivel => nivel.id === 'pendiente-core' && nivel.label === 'Pendiente autorización CORE')).toBeTrue();
     component.filtros.nombre = 'Comercio';
     component.seleccionarNivel('pendiente-core');
 
