@@ -697,6 +697,9 @@ export class RegistroClienteComponent {
         // La verificación nunca debe reutilizar la captura local como evidencia del GET.
         if (cambiosEsperados) this.datosForm.reset({}, { emitEvent: false });
         this.pintarCuentaComercio(cuenta, tipoComercio);
+        if (this.modoContextoBff && this.puedeEditarDatosNodo) {
+  this.editarDatosNodo();
+}
         if (cambiosEsperados) {
           const recibidos = this.datosForm.getRawValue() as Record<string, unknown>;
           const confirmado = Object.entries(cambiosEsperados).every(([campo, valor]) => recibidos[campo] === valor);

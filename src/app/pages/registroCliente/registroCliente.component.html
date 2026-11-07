@@ -182,7 +182,9 @@
               [mostrarInfoFiscalEntidad]="mostrarInfoFiscalEntidadSucursal"
               [infoFiscalEntidadActiva]="datosForm.controls.mismaInfoFiscalEntidad.value"
               [mostrarMismoDomicilio]="false"
-              [bloquearActividad]="modoContextoBff ? true : (nodeIDEdicion ? !editandoDatosNodo : soloConsulta)"
+              [bloquearActividad]="modoContextoBff
+  ? !(puedeEditarDatosNodo && camposEdicionBff.includes('actividad'))
+  : (nodeIDEdicion ? !editandoDatosNodo : soloConsulta)"
               [mostrarBusquedaAvanzadaGiro]="!modoContextoBff && editandoDatosNodo"
               [validarSoloCambios]="editandoDatosNodo"
               [mostrarContinuar]="modoContextoBff ? (puedeEditarDatosNodo && editandoDatosNodo) : esMesaDigitalSesion"
