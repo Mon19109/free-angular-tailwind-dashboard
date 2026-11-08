@@ -520,41 +520,50 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 22px max-content;
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  min-width: 0;
 }
 
 .tree-row.leaf-row {
-  grid-template-columns: max-content;
+  grid-template-columns: minmax(0, 1fr);
   padding-left: 30px;
 }
 
+
 .tree-node {
-  width: max-content;
-  max-width: 270px;
-  min-width: 150px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 36px;
+
   display: inline-flex;
   align-items: center;
   gap: 10px;
+
   border: 1px solid transparent;
   border-radius: 10px;
-  padding: 0 10px;
+  padding: 8px 10px;
+
   color: var(--reg-text);
   background: transparent;
   cursor: pointer;
+
   font-size: 13px;
   font-weight: 800;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .tree-node span {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .tree-node.leaf {
