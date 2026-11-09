@@ -3089,8 +3089,22 @@ this.guardarBorradorSilencioso();
       nivel: 'sucursal',
       ruta: ruta || sucursalNombre,
       hijos: Array.from({ length: cajas }, (_, cajaIndex) => {
-        const cajaId = `${sucursalId}-caja-${cajaIndex + 1}`;
-        const cajaNombre = this.nombreNodoArbol(cajaId, `Caja ${this.formatearNumero(cajaIndex + 1)}`);
+       const cajaId = `${sucursalId}-caja-${cajaIndex + 1}`;
+
+const datosSucursal = this.obtenerDatosPorSucursal()[sucursalId];
+
+const nombreComercio = String(
+  datosSucursal?.['nombreComercial']
+  || datosSucursal?.['razonSocial']
+  || ''
+).trim();
+
+const nombrePredeterminado = nombreComercio
+  ? `${nombreComercio} - Caja ${cajaIndex + 1}`
+  : `Caja ${this.formatearNumero(cajaIndex + 1)}`;
+
+const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
+
         return {
           id: cajaId,
           nombre: cajaNombre,
@@ -3798,10 +3812,16 @@ this.guardarBorradorSilencioso();
       nombre = ['Sucursal', sufijo || municipio || colonia].filter(Boolean).join(' ');
     }
 
-    if (!nombre) return;
-    const nombres = this.obtenerNombresArbol();
-    nombres[sucursalId] = nombre;
-    this.arbolNegocioForm.controls.nombresArbol.setValue(JSON.stringify(nombres), { emitEvent: false });
+  if (!nombre) return;
+
+const nombres = this.obtenerNombresArbol();
+nombres[sucursalId] = nombre;
+
+this.arbolNegocioForm.controls.nombresArbol.setValue(
+  JSON.stringify(nombres),
+  { emitEvent: false }
+);
+
   }
 
   private municipioRepetidoEnSucursales(sucursalId: string, municipio: string): boolean {
