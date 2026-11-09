@@ -2485,9 +2485,26 @@ this.guardarBorradorSilencioso();
       idActivity: this.valorNumero(datos['actividadId']),
       email: opciones.omitirEmailTelefonoPrincipal ? '' : emailComercio,
       password: this.valorTexto(accesos['pinContrasena']),
-      name: incluirContactoPrincipal ? this.valorTexto(datos['nombre']) || this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(accesos['adminNombre']) : '',
-      paternalSurname: incluirContactoPrincipal ? this.valorTexto(datos['apellidoPaterno']) || this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(accesos['adminPaterno']) : '',
-      maternalSurname: incluirContactoPrincipal ? this.valorTexto(datos['apellidoMaterno']) || this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(accesos['adminMaterno']) : '',
+      
+      
+     name: tipoPersona === 'PF'
+  ? this.valorTexto(datos['nombre'])
+  : incluirContactoPrincipal
+    ? this.valorTexto(datos['nombreContactoComercial']) || this.valorTexto(accesos['adminNombre'])
+    : '',
+
+paternalSurname: tipoPersona === 'PF'
+  ? this.valorTexto(datos['apellidoPaterno'])
+  : incluirContactoPrincipal
+    ? this.valorTexto(datos['apellidoPaternoContactoComercial']) || this.valorTexto(accesos['adminPaterno'])
+    : '',
+
+maternalSurname: tipoPersona === 'PF'
+  ? this.valorTexto(datos['apellidoMaterno'])
+  : incluirContactoPrincipal
+    ? this.valorTexto(datos['apellidoMaternoContactoComercial']) || this.valorTexto(accesos['adminMaterno'])
+    : '',
+
       phoneNumber: opciones.omitirEmailTelefonoPrincipal ? '' : telefonoComercio,
       rfc: this.valorTexto(datos['rfc']),
       curp: this.valorTexto(datos['curp']),
