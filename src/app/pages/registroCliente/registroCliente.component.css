@@ -189,13 +189,7 @@
   line-height: 1.2;
 }
 
-.credentials-action {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding: 0 clamp(16px, 2.2vw, 24px) 16px;
-}
+
 
 .credentials-feedback {
   margin: 0;
@@ -680,6 +674,7 @@
 .content-panel {
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-content: start;
 }
@@ -1700,4 +1695,25 @@
 :host ::ng-deep app-step-documentos.revision-no-autorizada .mesa-table-head,
 :host ::ng-deep app-step-documentos.revision-no-autorizada .mesa-row {
   grid-template-columns: 52px minmax(360px, 1.7fr) minmax(110px, 0.55fr) minmax(116px, 0.55fr);
+}
+/* Botón enviar credenciales debajo del último paso */
+.credentials-action {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+  margin-top: 15px;
+  padding: 0;
+}
+
+.credentials-action .button {
+  width: auto;
+}
+
+.credentials-feedback {
+  max-width: 100%;
+  text-align: right;
 }

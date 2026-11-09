@@ -22,14 +22,6 @@
       </div>
     </nav>
 
-    <div class="credentials-action" *ngIf="puedeEnviarCredenciales || enviandoCredenciales || mensajeCredenciales || errorCredenciales">
-      <button *ngIf="puedeEnviarCredenciales || enviandoCredenciales" type="button" class="button primary"
-        [disabled]="enviandoCredenciales" (click)="enviarCredenciales()">
-        {{ enviandoCredenciales ? 'Enviando...' : 'Enviar credenciales' }}
-      </button>
-      <p *ngIf="mensajeCredenciales" class="credentials-feedback success" role="status">{{ mensajeCredenciales }}</p>
-      <p *ngIf="errorCredenciales" class="credentials-feedback error" role="alert">{{ errorCredenciales }}</p>
-    </div>
 
     <div class="registro-layout" [class.tree-collapsed]="arbolMinimizado || !mostrarArbolRegistro" [class.without-tree]="!mostrarArbolRegistro">
       <aside class="tree-panel" [class.collapsed]="arbolMinimizado" *ngIf="mostrarArbolRegistro">
@@ -83,12 +75,12 @@
         <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
         <p *ngIf="nivelSeleccionado !== 'caja' && errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>
 
-        <article
-          class="section-card"
-          *ngFor="let seccion of seccionesCardsVisibles"
-          [class.open]="seccionAbierta === seccion.id"
-          [class.done]="pasoTerminado(seccion.id)"
-          [class.readonly-existing]="soloConsulta && seccion.id !== 'documentos' && seccion.id !== 'datos'">
+       <ng-container *ngFor="let seccion of seccionesCardsVisibles">
+  <article
+    class="section-card"
+    [class.open]="seccionAbierta === seccion.id"
+    [class.done]="pasoTerminado(seccion.id)"
+    [class.readonly-existing]="soloConsulta && seccion.id !== 'documentos' && seccion.id !== 'datos'">
           <button type="button" class="section-trigger" (click)="alternarSeccion(seccion.id)">
             <span class="section-icon"><i class="fa-solid" [ngClass]="seccion.icono"></i></span>
             <span class="section-copy">
@@ -257,13 +249,45 @@
               (emailNotificacionChange)="emailNotificacionMesaDigital = $event"
               (enviarNotificacion)="enviarNotificacionMesaDigital()"
               (guardarBorrador)="guardarRevisionDocumentos()"
-              (finalizar)="continuarDesdeDocumentos()"
+                          (finalizar)="continuarDesdeDocumentos()"
               (volver)="continuarSeccion('datos')" />
           </div>
         </article>
 
-        <p *ngIf="mostrarCapturaFinalPendiente && !capturaFinalHabilitada" role="status">Puedes consultar la información. La captura de cuentas de liquidación y accesos se habilitará cuando Mesa Digital valide toda la documentación.</p>
+        <!-- Botón debajo de la tarjeta 5: Accesos a Plataforma y TPV -->
+        <div
+          class="credentials-action"
+          *ngIf="seccion.id === 'accesos' &&
+                 (puedeEnviarCredenciales || enviandoCredenciales || mensajeCredenciales || errorCredenciales)">
 
+          <button
+            *ngIf="puedeEnviarCredenciales || enviandoCredenciales"
+            type="button"
+            class="button primary"
+            [disabled]="enviandoCredenciales"
+            (click)="enviarCredenciales()">
+            {{ enviandoCredenciales ? 'Enviando...' : 'Enviar credenciales' }}
+          </button>
+
+          <p
+            *ngIf="mensajeCredenciales"
+            class="credentials-feedback success"
+            role="status">
+            {{ mensajeCredenciales }}
+          </p>
+
+          <p
+            *ngIf="errorCredenciales"
+            class="credentials-feedback error"
+            role="alert">
+            {{ errorCredenciales }}
+          </p>
+        </div>
+
+</ng-container>
+
+        <p *ngIf="mostrarCapturaFinalPendiente && !capturaFinalHabilitada" role="status">
+          
         <app-registro-prospecto-cliente
           *ngIf="capturaFinalHabilitada && arbolServicio.length"
           [modoInterno]="true"
