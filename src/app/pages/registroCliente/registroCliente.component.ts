@@ -264,7 +264,7 @@ export class RegistroClienteComponent {
       }
     });
   }
-
+ 
   private readonly preRegistroService = inject(PreRegistroService);
   private readonly arbolNodosService = inject(ArbolNodosService);
   private readonly activarProspectoService = inject(ActivarProspectoService);
@@ -298,31 +298,55 @@ export class RegistroClienteComponent {
     return (['comercio', 'datos', 'documentos', 'liquidacion', 'accesos'] as const).every(id => this.pasoTerminado(id));
   }
 
-  enviarCredenciales(): void {
-    if (!this.puedeEnviarCredenciales) return;
-    const ref = this.contextoBff?.commerce.ref;
-    if (!ref) return;
-    this.enviandoCredenciales = true;
-    this.errorCredenciales = '';
-    this.mensajeCredenciales = '';
-    this.contextoService.enviarCredencialesComercio(ref).pipe(
-      takeUntilDestroyed(this.destroyRef),
-      finalize(() => { this.enviandoCredenciales = false; })
-    ).subscribe({
-      next: respuesta => {
-        if (respuesta?.success === true && respuesta.sent === true) {
-          this.credencialesEnviadas = true;
-          this.mensajeCredenciales = 'Credenciales enviadas correctamente.';
-          return;
-        }
-        this.errorCredenciales = respuesta?.message || 'El servicio no confirmó el envío de credenciales.';
-      },
-      error: error => {
-        this.errorCredenciales = typeof error?.error?.message === 'string'
-          ? error.error.message : 'No fue posible enviar las credenciales.';
+  
+enviarCredenciales(): void {
+  if (!this.puedeEnviarCredenciales) return;
+
+  const ref = this.contextoBff?.commerce.ref;
+  if (!ref) return;
+
+  this.enviandoCredenciales = true;
+  this.errorCredenciales = '';
+  this.mensajeCredenciales = '';
+
+  this.contextoService.enviarCredencialesComercio(ref).pipe(
+    takeUntilDestroyed(this.destroyRef),
+    finalize(() => {
+      this.enviandoCredenciales = false;
+    })
+  ).subscribe({
+    next: respuesta => {
+      if (respuesta?.success === true && respuesta.sent === true) {
+        this.credencialesEnviadas = true;
+
+        this.mostrarModalRegistro(
+          'success',
+          'Operación exitosa',
+          'Credenciales enviadas correctamente.'
+        );
+        return;
       }
-    });
-  }
+
+      this.mostrarModalRegistro(
+        'error',
+        'No fue posible enviar',
+        respuesta?.message || 'El servicio no confirmó el envío de credenciales.'
+      );
+    },
+    error: error => {
+      const mensaje = typeof error?.error?.message === 'string'
+        ? error.error.message
+        : 'No fue posible enviar las credenciales.';
+
+      this.mostrarModalRegistro(
+        'error',
+        'No fue posible enviar',
+        mensaje
+      );
+    }
+  });
+}
+
   pldID = '';
   private pldPorNodo: Record<string, string> = {};
   private consultaSipreladActual = 0;

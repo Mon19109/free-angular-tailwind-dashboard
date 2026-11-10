@@ -1,6 +1,11 @@
 <div class="registro-shell">
   <app-processing-overlay *ngIf="registrandoCliente" />
   <app-processing-overlay
+  *ngIf="enviandoCredenciales"
+  texto="Enviando credenciales..."
+  descripcion="Estamos enviando las credenciales al comercio. Espera un momento."
+/>
+  <app-processing-overlay
     *ngIf="guardandoDatosNodo"
     texto="Cargando..."
     descripcion="Estamos actualizando los datos del comercio. Espera un momento." />
@@ -254,35 +259,24 @@
           </div>
         </article>
 
-        <!-- Botón debajo de la tarjeta 5: Accesos a Plataforma y TPV -->
-        <div
-          class="credentials-action"
-          *ngIf="seccion.id === 'accesos' &&
-                 (puedeEnviarCredenciales || enviandoCredenciales || mensajeCredenciales || errorCredenciales)">
+    
+<!-- Botón debajo de la tarjeta 5: Accesos a Plataforma y TPV -->
+<div
+  class="credentials-action"
+  *ngIf="seccion.id === 'accesos' &&
+         (puedeEnviarCredenciales || enviandoCredenciales)">
 
-          <button
-            *ngIf="puedeEnviarCredenciales || enviandoCredenciales"
-            type="button"
-            class="button primary"
-            [disabled]="enviandoCredenciales"
-            (click)="enviarCredenciales()">
-            {{ enviandoCredenciales ? 'Enviando...' : 'Enviar credenciales' }}
-          </button>
+  <button
+    *ngIf="puedeEnviarCredenciales || enviandoCredenciales"
+    type="button"
+    class="button primary"
+    [disabled]="enviandoCredenciales"
+    (click)="enviarCredenciales()">
+    {{ enviandoCredenciales ? 'Enviando...' : 'Enviar credenciales' }}
+  </button>
 
-          <p
-            *ngIf="mensajeCredenciales"
-            class="credentials-feedback success"
-            role="status">
-            {{ mensajeCredenciales }}
-          </p>
+</div>
 
-          <p
-            *ngIf="errorCredenciales"
-            class="credentials-feedback error"
-            role="alert">
-            {{ errorCredenciales }}
-          </p>
-        </div>
 
 </ng-container>
 
