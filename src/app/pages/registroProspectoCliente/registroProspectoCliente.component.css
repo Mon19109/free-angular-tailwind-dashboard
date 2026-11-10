@@ -322,8 +322,36 @@
   border-top: 1px solid rgba(148, 163, 184, 0.12);
 }
 
-.tree-row {
+/*.tree-row {
   margin-left: calc(var(--level, 0) * 22px);
+}
+*/
+/* Árbol del seguimiento */
+.tree-list {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.tree-row {
+  width: max-content;
+  min-width: max-content;
+  margin-left: calc(var(--level, 0) * 22px);
+  grid-template-columns: max-content;
+}
+
+.tree-row .tree-node {
+  width: max-content;
+  min-width: max-content;
+  max-width: none;
+  white-space: nowrap;
+}
+
+.tree-row .tree-node span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .access-node-warning {
@@ -338,7 +366,19 @@
   align-items: center;
   gap: 10px;
 }
+:host-context(html:not(.dark)) .access-node-warning {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
 
+/*
+.registro-shell:not(.internal-registration) .section-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.54);
+  overflow: hidden;
+}*/
 
 .registro-shell:not(.internal-registration) .section-card {
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -347,13 +387,29 @@
   overflow: hidden;
 }
 
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration) .section-card {
+  background: #ffffff;
+  border-color: #d1dbe9;
+}
+
 .registro-shell:not(.internal-registration) .section-card + .section-card {
   margin-top: 16px;
 }
-
+/*
 .registro-shell:not(.internal-registration) .section-card.open {
   border-color: rgba(246, 197, 85, 0.34);
   background: rgba(12, 17, 27, 0.94);
+}*/
+.registro-shell:not(.internal-registration) .section-card.open {
+  border-color: rgba(246, 197, 85, 0.34);
+  background: rgba(12, 17, 27, 0.94);
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration) .section-card.open {
+  background: #ffffff;
+  border-color: #d1dbe9;
 }
 
 .registro-shell:not(.internal-registration) .section-trigger {
@@ -368,6 +424,28 @@
   align-items: center;
   padding: 22px 26px;
   text-align: left;
+}
+
+/* Encabezados azul marino en modo claro */
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration) .section-trigger {
+  background: linear-gradient(110deg, #243247, #344f6c);
+  color: #ffffff;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration) .section-copy strong {
+  color: #ffffff;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration) .section-copy small {
+  color: #cbd5e1;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration) .section-trigger > i {
+  color: #f6c555;
 }
 
 .registro-shell:not(.internal-registration) .section-icon {
@@ -432,6 +510,13 @@
 .registro-shell:not(.internal-registration) .section-body {
   border-top: 1px solid rgba(148, 163, 184, 0.12);
   padding: 26px;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration) .section-body {
+  background: #ffffff;
+  color: #182338;
+  border-top-color: #d1dbe9;
 }
 
 .readonly-info-section ::ng-deep .step-actions {
@@ -618,6 +703,13 @@
   font-weight: 900;
 }
 
+/* Link de seguimiento: título FAC/TKT en modo claro */
+:host-context(html:not(.dark))
+::ng-deep app-step-accesos .access-save-indicator strong {
+  color: #182338 !important;
+  -webkit-text-fill-color: #182338 !important;
+}
+
 :host ::ng-deep app-step-accesos .access-save-progress {
   display: flex;
   gap: 10px;
@@ -661,6 +753,26 @@
   color: #f8fafc;
   border-color: rgba(246, 197, 85, 0.52);
   background: rgba(246, 197, 85, 0.14);
+}
+/* FAC/TKT: contraste de los botones en modo claro */
+:host-context(html:not(.dark))
+::ng-deep app-step-accesos .access-progress-dot {
+  color: #f8fafc !important;
+}
+
+:host-context(html:not(.dark))
+::ng-deep app-step-accesos .access-progress-dot strong {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+
+/* Botón seleccionado: fondo crema y texto oscuro */
+:host-context(html:not(.dark))
+::ng-deep app-step-accesos .access-progress-dot.active,
+:host-context(html:not(.dark))
+::ng-deep app-step-accesos .access-progress-dot.active strong {
+  color: #182338 !important;
+  -webkit-text-fill-color: #182338 !important;
 }
 
 :host ::ng-deep app-step-accesos .access-progress-dot.complete span {
@@ -852,6 +964,7 @@
   .registro-shell:not(.internal-registration) .section-body {
     padding: 16px;
   }
+
 
   .prospect-liquidacion-body ::ng-deep app-step-liquidacion .form-grid.cols-3 {
     grid-template-columns: 1fr;
@@ -1082,4 +1195,89 @@
   width: auto;
   margin: 0;
   text-align: center;
+}
+
+/* Encabezado FAC/TKT: texto oscuro en modo claro */
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-admin-section .access-admin-heading h3 {
+  color: #182338 !important;
+  -webkit-text-fill-color: #182338 !important;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-admin-section .access-admin-heading p {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-admin-heading {
+  background: #f1f5f9;
+  color: #182338;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-admin-heading h3,
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-admin-heading strong {
+  color: #182338;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-registro-summary {
+  background: #f8fafc;
+  border-color: #d1dbe9;
+  color: #182338;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-registro-summary h3 {
+  color: #182338;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-registro-user {
+  background: #ffffff;
+  border-color: #d1dbe9;
+  color: #334155;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-registro-user strong,
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-registro-user span {
+  color: #334155;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-registro-user.active {
+  background: #fff7e8;
+  border-color: #f1b23d;
+}
+
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-registro-user.active strong {
+  color: #182338;
+}
+
+/* Texto visible del encabezado FAC/TKT en modo claro */
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-admin-heading,
+:host-context(html:not(.dark))
+.registro-shell:not(.internal-registration)
+::ng-deep app-step-accesos .access-admin-heading * {
+  color: #182338 !important;
 }
