@@ -151,7 +151,20 @@
         <tbody>
           <tr *ngFor="let comercio of comerciosPaginados; let indice = index">
             <td>{{ comercio.idComercio }}</td>
-            <td><span class="badge" [ngClass]="normalizarNivel(comercio.nivel)">{{ comercio.nivel }}</span></td>
+            <td>
+  <span
+    class="badge"
+    [ngClass]="
+      comercio.nivel.toUpperCase() === 'TERMINAL'
+        ? 'caja'
+        : comercio.nivel.toUpperCase() === 'REFERENCIADOR'
+          ? 'referenciador'
+          : normalizarNivel(comercio.nivel)
+    "
+  >
+    {{ comercio.nivel.toUpperCase() === 'TERMINAL' ? 'CAJA' : comercio.nivel }}
+  </span>
+</td>
             <td>{{ comercio.jerarquia }}</td>
             <td>{{ comercio.nombreComercial }}</td>
             <td>{{ comercio.rfc }}</td>

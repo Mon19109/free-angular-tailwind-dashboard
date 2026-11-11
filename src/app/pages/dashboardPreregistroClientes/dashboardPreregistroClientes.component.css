@@ -559,6 +559,13 @@ td {
 .badge.sub-afiliado { background: #d96a16; }
 .badge.prospecto { background: #c7924b; color: #1d1608; }
 
+/* Referenciador: modo claro y oscuro */
+.badge.referenciador {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+
 .status {
   width: 9px;
   height: 9px;
