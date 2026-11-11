@@ -1,0 +1,1094 @@
+:host {
+  --consulta-bg: var(--app-bg);
+  --consulta-surface: var(--app-surface);
+  --consulta-surface-alt: var(--app-surface-alt);
+  --consulta-text: var(--app-text);
+  --consulta-muted: var(--app-text-muted);
+  --consulta-border: var(--app-border);
+  --consulta-gold: var(--brand-secondary);
+  --consulta-primary: var(--brand-primary);
+  --consulta-border-soft: rgba(208, 213, 221, 0.72);
+  --consulta-gold-soft: rgba(199, 146, 75, 0.18);
+  --consulta-muted-soft: rgba(208, 213, 221, 0.32);
+  display: block;
+  margin: -1rem;
+  color: var(--consulta-text);
+  font-family: Outfit, sans-serif;
+}
+
+:host-context(html.dark) {
+  --consulta-bg: #05070b;
+  --consulta-surface: rgba(9, 13, 20, 0.94);
+  --consulta-surface-alt: rgba(13, 18, 27, 0.96);
+  --consulta-text: #f6f7fb;
+  --consulta-muted: rgba(246, 247, 251, 0.68);
+  --consulta-border: #334155;
+  --consulta-border-soft: rgba(51, 65, 85, 0.78);
+  --consulta-gold-soft: rgba(199, 146, 75, 0.22);
+  --consulta-muted-soft: rgba(51, 65, 85, 0.42);
+}
+
+@media (min-width: 768px) {
+  :host {
+    margin: -1.5rem;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.consulta-shell {
+  min-height: calc(100vh - 96px);
+  padding: clamp(16px, 2.2vw, 26px);
+  background: var(--consulta-bg);
+  font-family: Outfit, sans-serif;
+}
+
+.consulta-shell *:not(i):not(.fa):not(.fa-solid):not(.fa-regular):not(.fa-brands),
+.modal-backdrop *:not(i):not(.fa):not(.fa-solid):not(.fa-regular):not(.fa-brands) {
+  font-family: Outfit, sans-serif;
+}
+
+:host-context(html.dark) .consulta-shell {
+  background:
+    radial-gradient(circle at top left, rgba(241, 178, 61, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 24%),
+    linear-gradient(180deg, #05070b 0%, #0b111a 52%, #05070b 100%);
+}
+
+:host-context(html:not(.dark)) .consulta-shell {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(241, 178, 61, 0.07), transparent 24%),
+    linear-gradient(180deg, #f7f9fc 0%, #edf3fa 52%, #f7f9fc 100%);
+}
+
+.consulta-card {
+  width: 100%;
+  overflow: visible;
+  border: 1px solid var(--consulta-border-soft);
+  border-radius: 8px;
+  background: transparent;
+}
+
+:host-context(html:not(.dark)) .consulta-card {
+  overflow: hidden;
+  border-color: rgba(209, 219, 233, 0.95);
+  border-radius: 18px 18px 0 0;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 24px 50px rgba(35, 50, 77, 0.08);
+}
+
+:host-context(html.dark) .consulta-card {
+  overflow: hidden;
+  border-color: rgba(241, 178, 61, 0.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(9, 13, 20, 0.94), rgba(13, 18, 27, 0.96));
+  box-shadow: 0 30px 72px rgba(0, 0, 0, 0.45);
+}
+
+.consulta-card-body {
+  padding: 0;
+}
+
+:host-context(html:not(.dark)) .consulta-card-body {
+  padding: clamp(18px, 2.2vw, 26px);
+}
+
+:host-context(html.dark) .consulta-card-body {
+  padding: clamp(18px, 2.2vw, 26px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+:host-context(html:not(.dark)) .page-header {
+  min-height: 150px;
+  margin-bottom: 0;
+  padding: 30px clamp(28px, 4vw, 42px);
+  align-items: center;
+  color: #ffffff;
+  background: linear-gradient(90deg, #243247 0%, #344c68 100%);
+}
+
+:host-context(html.dark) .page-header {
+  min-height: 150px;
+  margin-bottom: 0;
+  padding: 30px clamp(28px, 4vw, 42px);
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(90deg, rgba(8, 12, 19, 0.96), rgba(14, 20, 31, 0.96));
+}
+
+.page-eyebrow {
+  display: inline-block;
+  margin-bottom: 4px;
+  color: var(--consulta-gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.page-header h1 {
+  margin: 0;
+  color: var(--consulta-text);
+  font-size: clamp(22px, 2.4vw, 28px);
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+:host-context(html:not(.dark)) .page-header h1 {
+  color: #ffffff;
+}
+
+.page-header p {
+  margin: 10px 0 0;
+  color: var(--consulta-muted);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+:host-context(html:not(.dark)) .page-header p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.panel,
+.summary-card {
+  border: 1px solid var(--consulta-border-soft);
+  border-radius: 8px;
+  background: var(--consulta-surface);
+  box-shadow: var(--app-card-shadow);
+}
+
+:host-context(html.dark) .panel,
+:host-context(html.dark) .summary-card {
+  box-shadow: 0 30px 72px rgba(0, 0, 0, 0.45);
+}
+
+.filters-panel,
+.results-panel {
+  padding: clamp(14px, 1.8vw, 20px);
+  overflow: visible;
+}
+
+.panel-title,
+.panel-title > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-title {
+  justify-content: space-between;
+  margin-bottom: 14px;
+  color: var(--consulta-gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:host-context(html:not(.dark)) .panel-title,
+:host-context(html:not(.dark)) .link-action {
+  color: #315aa3;
+}
+
+.level-filters {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 10px;
+}
+
+.level-filters legend {
+  margin-bottom: 2px;
+  color: var(--consulta-text);
+  font-weight: 750;
+  font-size: 13px;
+}
+
+.level-option {
+  min-height: 64px;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--consulta-border-soft);
+  border-radius: 8px;
+  background: var(--consulta-surface-alt);
+  color: var(--consulta-muted);
+  cursor: pointer;
+  font-weight: 650;
+  overflow: hidden;
+}
+
+.level-option.active {
+  border-color: var(--consulta-gold);
+  color: var(--consulta-text);
+  box-shadow: 0 0 0 3px var(--consulta-gold-soft);
+}
+
+.level-option input {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--consulta-gold);
+}
+
+.level-option i {
+  flex: 0 0 22px;
+  width: 22px;
+  text-align: center;
+  color: var(--consulta-gold);
+  font-size: 16px;
+}
+
+:host-context(html:not(.dark)) .level-option i {
+  color: #315aa3;
+}
+
+:host-context(html:not(.dark)) .level-option.active {
+  border-color: #315aa3;
+  box-shadow: 0 0 0 3px rgba(49, 90, 163, 0.16);
+}
+
+.level-option span {
+  min-width: 0;
+  color: inherit;
+  font-size: 15px;
+  font-weight: inherit;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.info-grid label,
+.table-search,
+.modal-card label {
+  position: relative;
+  display: block;
+}
+
+.info-grid span,
+.table-tools span,
+.modal-card label span {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--consulta-text);
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.info-grid i,
+.table-search i {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  color: var(--consulta-muted);
+  font-size: 14px;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--consulta-border);
+  border-radius: 14px;
+  padding: 0 14px;
+  outline: 0;
+  color: var(--consulta-text);
+  background: var(--app-input-bg);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.info-grid input,
+.table-search input {
+  padding-left: 36px;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--consulta-gold);
+  box-shadow: 0 0 0 3px var(--consulta-gold-soft);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn,
+.link-action,
+.icon-btn,
+.actions-menu button,
+.export-menu button,
+.pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.btn {
+  min-height: 46px;
+  padding: 0 24px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  color: #1d1608;
+  background: linear-gradient(180deg, #f6c65c, var(--consulta-gold));
+}
+
+.btn-ghost {
+  border: 1px solid var(--consulta-border);
+  color: var(--consulta-text);
+  background: var(--consulta-surface-alt);
+}
+
+.btn-dark {
+  color: #ffffff;
+  background: #05070b;
+}
+
+.btn:disabled,
+.actions-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.link-action {
+  color: var(--consulta-gold);
+  background: transparent;
+}
+
+.export-wrapper {
+  position: relative;
+}
+
+.export-menu,
+.actions-menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 150px;
+  border: 1px solid var(--consulta-border);
+  border-radius: 8px;
+  background: var(--consulta-surface);
+  box-shadow: var(--app-modal-shadow);
+  overflow: hidden;
+}
+
+.export-menu {
+  top: calc(100% + 8px);
+  right: 0;
+}
+
+.export-menu button,
+.actions-menu button {
+  width: 100%;
+  min-height: 40px;
+  justify-content: flex-start;
+  padding: 0 14px;
+  color: var(--consulta-text);
+  background: transparent;
+}
+
+.export-menu button:hover,
+.actions-menu button:hover {
+  background: var(--consulta-surface-alt);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+
+.summary-card > i {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--consulta-gold);
+  background: var(--consulta-gold-soft);
+  font-size: 18px;
+}
+
+:host-context(html:not(.dark)) .summary-card > i {
+  color: #315aa3;
+  background: rgba(49, 90, 163, 0.1);
+}
+
+.summary-card span,
+.summary-card small {
+  display: block;
+  color: var(--consulta-muted);
+  font-weight: 750;
+}
+
+.summary-card strong {
+  display: block;
+  color: var(--consulta-text);
+  font-size: 22px;
+}
+
+.results-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.table-tools {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+
+.table-tools label:first-child {
+  display: grid;
+  grid-template-columns: auto 76px auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-search {
+  min-width: 270px;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.table-scroll.actions-open {
+  padding-bottom: 150px;
+}
+
+table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--consulta-border-soft);
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  color: var(--consulta-gold);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:host-context(html:not(.dark)) th {
+  color: #315aa3;
+}
+
+td {
+  color: var(--consulta-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-flex;
+  min-width: 86px;
+  justify-content: center;
+  border-radius: 6px;
+  padding: 5px 9px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.badge.caja { background: #8a6a0a; }
+.badge.sucursal { background: #6d54b5; }
+.badge.entidad { background: #1f7aac; }
+.badge.sub-afiliado { background: #d96a16; }
+.badge.prospecto { background: #c7924b; color: #1d1608; }
+
+.status {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: #43c478;
+}
+
+.status.inactive {
+  background: #e33d5f;
+}
+
+.actions-cell {
+  position: relative;
+  overflow: visible;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--consulta-border);
+  color: var(--consulta-gold);
+  background: transparent;
+}
+
+.actions-menu {
+  top: 44px;
+  right: 8px;
+  z-index: 30;
+  width: 190px;
+  min-width: 190px;
+  max-width: 190px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-transform: none;
+}
+
+.actions-menu button {
+  min-height: 34px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding-top: 16px;
+  color: var(--consulta-muted);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination button {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--consulta-border);
+  color: var(--consulta-text);
+  background: var(--consulta-surface-alt);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.pagination button:not(:disabled):hover {
+  border-color: var(--consulta-gold);
+  transform: translateY(-1px);
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.pagination button.active {
+  border-color: var(--consulta-gold);
+  background: var(--consulta-gold);
+  color: #1d1608;
+}
+
+.pagination-ellipsis {
+  min-width: 24px;
+  text-align: center;
+  color: var(--consulta-muted);
+  font-weight: 800;
+}
+
+.no-filters {
+  margin: 18px 0 0;
+  color: var(--consulta-muted);
+  font-weight: 750;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--app-overlay);
+}
+
+.modal-card {
+  width: min(820px, 100%);
+  border-radius: 8px;
+  background: var(--consulta-surface);
+  color: var(--consulta-text);
+  box-shadow: var(--app-modal-shadow);
+  overflow: hidden;
+}
+
+.modal-card header,
+.modal-card footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+}
+
+.modal-card header {
+  border-bottom: 1px solid var(--consulta-border);
+}
+
+.modal-card header h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 20px;
+  text-transform: uppercase;
+}
+
+.modal-card header > i {
+  color: #f0b429;
+  font-size: 30px;
+}
+
+.modal-card header button,
+.modal-card label button {
+  border: 0;
+  color: var(--consulta-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.modal-card p {
+  margin: 18px 22px;
+  padding: 16px;
+  border: 1px solid var(--consulta-border);
+  font-size: 20px;
+  line-height: 1.45;
+}
+
+.modal-card footer {
+  justify-content: flex-end;
+  background: var(--consulta-surface-alt);
+}
+
+.modal-card.password {
+  width: min(640px, 100%);
+}
+
+.modal-card.password label {
+  margin: 22px;
+}
+
+.modal-card.password input {
+  padding-right: 54px;
+}
+
+.modal-card.password label button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 46px;
+  height: 44px;
+  border-left: 1px solid var(--consulta-border);
+  background: var(--consulta-muted-soft);
+}
+
+.password-rules {
+  margin: 0 22px 22px;
+  color: var(--consulta-muted);
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .level-grid,
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .page-header,
+  .results-toolbar,
+  .pagination,
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .level-grid,
+  .info-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-tools label:first-child {
+    grid-template-columns: 1fr;
+  }
+
+  .table-search {
+    min-width: 0;
+  }
+}
+
+.consulta-shell .consulta-card .page-header .page-eyebrow {
+  margin-bottom: 4px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.16em !important;
+  line-height: 1.2 !important;
+}
+
+.consulta-shell .consulta-card .page-header h1 {
+  margin: 0 !important;
+  font-family: Outfit, sans-serif !important;
+  font-size: clamp(22px, 2.4vw, 28px) !important;
+  font-weight: 600 !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0 !important;
+}
+
+.consulta-shell .consulta-card .page-header p {
+  margin: 10px 0 0 !important;
+  font-family: Outfit, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+  letter-spacing: 0 !important;
+}
+
+/* Match the dynamic status filter to the level cards. */
+.review-level-option {
+  text-align: left;
+  font-family: inherit;
+}
+
+.level-option .review-level-label {
+  white-space: normal;
+}
+
+.level-option .review-selection-indicator {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--consulta-muted);
+  border-radius: 50%;
+}
+
+.review-level-option.active .review-selection-indicator {
+  border: 5px solid var(--consulta-gold);
+  background: var(--consulta-text);
+}
+
+:host-context(html:not(.dark)) .review-level-option.active .review-selection-indicator {
+  border-color: #315aa3;
+  background: #fff;
+}
+
+.review-level-option:focus-visible {
+  outline: 2px solid var(--consulta-gold);
+  outline-offset: 3px;
+}
+
+
+.export-button {
+  color: #ffffff;
+  background: #28313e;
+}
+
+.export-button:hover {
+  background: #344052;
+}
+
+/* ==========================================
+   DASHBOARD PREREGISTRO - TARJETAS
+   ========================================== */
+
+.preregistro-steps {
+  margin: 22px 0;
+  width: 100%;
+}
+
+.steps-header {
+  margin-bottom: 18px;
+}
+
+.steps-header h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.steps-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* Cuatro tarjetas por fila */
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Tarjeta */
+
+.step-card {
+  appearance: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+
+  min-width: 0;
+  min-height: 190px;
+  padding: 20px;
+
+  background: #080f20;
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+
+  color: #f8fafc;
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.step-card:hover {
+  border-color: var(--step-color);
+  transform: translateY(-2px);
+}
+
+.step-card:focus-visible {
+  outline: 2px solid var(--step-color);
+  outline-offset: 3px;
+}
+
+/* Tarjeta seleccionada */
+
+.step-card.selected {
+  border-color: var(--step-color);
+  background: #101b30;
+  box-shadow: inset 0 0 0 1px var(--step-color);
+}
+
+/* Parte superior */
+
+.step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Etiqueta Paso 1, Paso 2... */
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+
+  border-radius: 6px;
+  background: #1e293b;
+
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Bolita de color */
+
+.step-dot {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+
+  border-radius: 50%;
+  background: var(--step-color);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+
+/* Nombre del estatus */
+
+.step-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: #f8fafc;
+  overflow-wrap: break-word;
+}
+
+/* Número total */
+
+.step-bottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding-top: 20px;
+}
+
+.step-total {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Al seleccionar, el número toma el color del estatus */
+
+.step-card.selected .step-total {
+  color: var(--step-color);
+}
+
+/* Etapas cuyo estatus aún no está configurado */
+
+.step-card.pending .step-total {
+  opacity: 0.65;
+}
+
+/* ==========================================
+   MODO CLARO
+   ========================================== */
+
+:host-context(html:not(.dark)) .steps-header h2 {
+  color: #0f172a;
+}
+
+:host-context(html:not(.dark)) .steps-header p {
+  color: #64748b;
+}
+
+:host-context(html:not(.dark)) .step-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+:host-context(html:not(.dark)) .step-card:hover {
+  border-color: var(--step-color);
+}
+
+:host-context(html:not(.dark)) .step-card.selected {
+  background: #f8fafc;
+  border-color: var(--step-color);
+  box-shadow: inset 0 0 0 1px var(--step-color);
+}
+
+:host-context(html:not(.dark)) .step-number {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+:host-context(html:not(.dark)) .step-name {
+  color: #0f172a;
+}
+
+:host-context(html:not(.dark)) .step-total {
+  color: #0f172a;
+}
+
+:host-context(html:not(.dark)) .step-card.selected .step-total {
+  color: var(--step-color);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 1200px) {
+  .steps-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .steps-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .step-card {
+    min-height: 150px;
+    padding: 16px;
+  }
+
+  .step-total {
+    font-size: 28px;
+  }
+}

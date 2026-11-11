@@ -1,0 +1,265 @@
+<div class="consulta-shell">
+  <article class="consulta-card">
+    <header class="page-header">
+      <div>
+        <span class="page-eyebrow">Gestión de negocio</span>
+        <h1>Dashboard Preregistro Clientes</h1>
+<p>Consulta y da seguimiento a los prospectos durante las etapas de preregistro.</p>
+      </div>
+
+     
+    </header>
+
+    <div class="consulta-card-body">
+  <section class="panel filters-panel">
+    <div class="panel-title">
+      <div><i class="fa-solid fa-filter"></i><span>Filtros de búsqueda</span></div>
+      <button class="link-action" type="button" (click)="limpiar()"><i class="fa-solid fa-rotate-right"></i> Limpiar filtros</button>
+    </div>
+
+    <form (ngSubmit)="buscar()">
+
+     <div class="info-grid">
+
+        <label *ngIf="filtroVisible('nombre')">
+          <span>Nombre Comercial</span>
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" name="nombre" [(ngModel)]="filtros.nombre" placeholder="Buscar por nombre comercial">
+        </label>
+
+        <label *ngIf="filtroVisible('rfc')">
+          <span>RFC</span>
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" name="rfc" [(ngModel)]="filtros.rfc" placeholder="Buscar por RFC">
+        </label>
+
+        <label *ngIf="filtroVisible('correo')">
+          <span>Correo Electrónico</span>
+          <i class="fa-regular fa-envelope"></i>
+          <input type="email" name="correo" [(ngModel)]="filtros.correo" placeholder="Buscar por correo">
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-ghost" type="button" (click)="limpiar()"><i class="fa-solid fa-rotate"></i> Limpiar</button>
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+         <div class="export-wrapper">
+      <button class="btn btn-primary export-button"
+        type="button"
+        (click)="exportMenuAbierto = !exportMenuAbierto">
+  <i class="fa-solid fa-download"></i>
+  Exportar
+  <i class="fa-solid fa-chevron-down"></i>
+</button>
+
+<div class="export-menu" *ngIf="exportMenuAbierto">
+  <button type="button" (click)="exportarExcel()">
+    <i class="fa-solid fa-file-excel"></i> Excel
+  </button>
+
+  <button type="button" (click)="exportarPDF()">
+    <i class="fa-solid fa-file-pdf"></i> PDF
+  </button>
+</div>
+       
+      </div>
+      </div>
+    </form>
+  </section>
+
+  <section class="preregistro-steps">
+
+  <div class="steps-header">
+    <h2>Seguimiento de preregistro</h2>
+    <p>Selecciona una etapa para consultar sus prospectos.</p>
+  </div>
+
+  <div class="steps-grid">
+
+    <button
+      *ngFor="let paso of pasosPreregistro"
+      type="button"
+      class="step-card"
+      [class.selected]="pasoSeleccionado === paso.paso"
+      [class.pending]="!paso.status"
+      [style.--step-color]="paso.color"
+      [attr.aria-pressed]="pasoSeleccionado === paso.paso"
+      (click)="seleccionarPaso(paso.paso)">
+
+      <div class="step-top">
+        <span class="step-number">
+          Paso {{ paso.paso }}
+        </span>
+
+        <span class="step-dot"></span>
+      </div>
+
+      <div class="step-name">
+        {{ paso.nombre }}
+      </div>
+
+      <div class="step-bottom">
+        <span class="step-total">
+          {{ totalPaso(paso.paso) ?? '—' }}
+        </span>
+      </div>
+
+    </button>
+
+  </div>
+
+</section>
+
+  <section class="panel results-panel">
+    <div class="results-toolbar">
+      <div class="panel-title"><div><i class="fa-solid fa-list"></i><span>Resultados</span></div></div>
+      <div class="table-tools">
+        <label>
+          <span>Mostrando</span>
+          <select [(ngModel)]="elementosPorPagina" (ngModelChange)="cambiarPagina(1)">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          <span>registros</span>
+        </label>
+        <label class="table-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="search" [(ngModel)]="busquedaTabla" (ngModelChange)="cambiarPagina(1)" placeholder="Buscar en resultados...">
+        </label>
+      </div>
+    </div>
+
+    <p class="no-filters" *ngIf="errorConsulta">{{ errorConsulta }}</p>
+
+    <div class="table-scroll" [class.actions-open]="accionesAbiertas">
+      <table>
+        <thead>
+          <tr>
+            <th>Id Comercio</th>
+            <th>Nivel</th>
+            <th>Sub Afiliado / Entidad</th>
+            <th>Nombre Comercial</th>
+            <th>RFC</th>
+            <th>Correo Electrónico</th>
+            <th>Teléfono</th>
+            <th>Estatus</th>
+            <th *ngIf="mostrarAcciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let comercio of comerciosPaginados; let indice = index">
+            <td>{{ comercio.idComercio }}</td>
+            <td><span class="badge" [ngClass]="normalizarNivel(comercio.nivel)">{{ comercio.nivel }}</span></td>
+            <td>{{ comercio.jerarquia }}</td>
+            <td>{{ comercio.nombreComercial }}</td>
+            <td>{{ comercio.rfc }}</td>
+            <td>{{ comercio.correo }}</td>
+            <td>{{ comercio.telefono }}</td>
+            <td><span class="status" [class.inactive]="comercio.estatus !== 'Activo'"></span>{{ comercio.estatus }}</td>
+            <td class="actions-cell" *ngIf="mostrarAcciones">
+              <button *ngIf="tieneAccionesDisponibles(comercio)" class="icon-btn" type="button" (click)="toggleAcciones(idAcciones(comercio, indice))" title="Acciones">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+              <div class="actions-menu" *ngIf="accionesAbiertas === idAcciones(comercio, indice)">
+                <button *ngIf="puedeEditarInformacion && comercio.ref" type="button" (click)="ejecutarAccion('editarInformacion', comercio)">{{ etiquetaInformacion(comercio) }}</button>
+                <button *ngIf="puedeInactivar(comercio)" type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
+                <button *ngIf="puedeDarBaja()" type="button" (click)="ejecutarAccion('baja', comercio)">Baja</button>
+                <button *ngIf="puedeConsultarPassword(comercio)" type="button" (click)="ejecutarAccion('password', comercio)">Consulta Contraseña</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="pagination">
+      <span>Mostrando {{ comerciosPaginados.length }} de {{ resultadosFiltradosTabla.length }} registros</span>
+      <div>
+        <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1"><i class="fa-solid fa-chevron-left"></i></button>
+        <ng-container *ngFor="let pagina of paginasVisibles">
+          <button
+            type="button"
+            *ngIf="pagina.tipo === 'pagina'"
+            [class.active]="pagina.valor === paginaActual"
+            [attr.aria-current]="pagina.valor === paginaActual ? 'page' : null"
+            [attr.aria-label]="'Ir a página ' + pagina.valor"
+            (pointerdown)="seleccionarPagina(pagina.valor, $event)"
+          >{{ pagina.valor }}</button>
+          <span class="pagination-ellipsis" *ngIf="pagina.tipo === 'ellipsis'">{{ pagina.valor }}</span>
+        </ng-container>
+        <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </footer>
+  </section>
+    </div>
+  </article>
+</div>
+
+<div class="modal-backdrop" *ngIf="modalConfirmacion">
+  <section class="modal-card confirm">
+    <header><i class="fa-solid fa-triangle-exclamation"></i><h2>Confirmar Operación</h2><button type="button" (click)="modalConfirmacion = null"><i class="fa-solid fa-xmark"></i></button></header>
+    <p>
+      El comercio tiene sucursales o cajas asociadas, al realizar esta operación se
+      {{ modalConfirmacion.tipo === 'inactivar' ? 'inactivan' : 'darán de Baja' }} en automático todos los accesos.
+    </p>
+    <p>¿Desea continuar con la operación?</p>
+    <footer>
+      <button class="btn btn-primary" type="button" (click)="confirmarOperacion()">Si, deseo continuar</button>
+      <button class="btn btn-dark" type="button" (click)="modalConfirmacion = null">Cancelar</button>
+    </footer>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="accionesInternasHabilitadas && modalPassword">
+  <section class="modal-card password">
+    <header><h2>{{ modalPassword.nombreComercial }}</h2><button type="button" (click)="modalPassword = null"><i class="fa-solid fa-xmark"></i></button></header>
+    <p class="no-filters" *ngIf="cargandoPassword">Consultando contraseña...</p>
+    <p class="no-filters" *ngIf="errorPassword">{{ errorPassword }}</p>
+    <label>
+      <span>Contraseña:</span>
+      <input [type]="mostrarPassword ? 'text' : 'password'" [value]="modalPassword.password || ''" readonly>
+      <button type="button" (click)="mostrarPassword = !mostrarPassword"><i class="fa-regular fa-eye"></i></button>
+    </label>
+    <footer>
+      <button class="btn btn-primary" type="button" [disabled]="cargandoPassword || !modalPassword.password" (click)="abrirCambioPassword()">Cambiar</button>
+      <button class="btn btn-dark" type="button" (click)="modalPassword = null">Cancelar</button>
+    </footer>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="accionesInternasHabilitadas && modalCambiarPassword">
+  <section class="modal-card password">
+    <header><h2>Cambiar Contraseña</h2><button type="button" (click)="modalCambiarPassword = null"><i class="fa-solid fa-xmark"></i></button></header>
+    <p class="no-filters" *ngIf="guardandoPassword">Actualizando contraseña...</p>
+    <p class="no-filters" *ngIf="errorPassword">{{ errorPassword }}</p>
+    <label>
+      <input [type]="mostrarNuevaPassword ? 'text' : 'password'" [(ngModel)]="nuevaPassword" [disabled]="guardandoPassword" placeholder="Nueva contraseña">
+      <button type="button" (click)="mostrarNuevaPassword = !mostrarNuevaPassword"><i class="fa-regular fa-eye"></i></button>
+    </label>
+    <label>
+      <input [type]="mostrarConfirmarPassword ? 'text' : 'password'" [(ngModel)]="confirmarPassword" [disabled]="guardandoPassword" placeholder="Confirmar contraseña">
+      <button type="button" (click)="mostrarConfirmarPassword = !mostrarConfirmarPassword"><i class="fa-regular fa-eye"></i></button>
+    </label>
+    <ul class="password-rules">
+      <li>Al menos 12 caracteres</li>
+      <li>Letras minúsculas</li>
+      <li>Letras mayúsculas</li>
+      <li>Números</li>
+      <li>Caracteres especiales aceptados $&#64;!%*?&amp;</li>
+    </ul>
+    <footer>
+      <button class="btn btn-primary" type="button" [disabled]="guardandoPassword || !passwordValida || nuevaPassword !== confirmarPassword" (click)="guardarPassword()">
+        {{ guardandoPassword ? 'Guardando...' : 'Guardar' }}
+      </button>
+      <button class="btn btn-dark" type="button" [disabled]="guardandoPassword" (click)="modalCambiarPassword = null">Cancelar</button>
+    </footer>
+  </section>
+</div>
+
+@if (cargando) {
+  <app-processing-overlay
+    texto="Cargando información..."
+    descripcion="Estamos consultando los comercios. Espera un momento."
+  />
+}

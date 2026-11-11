@@ -25,6 +25,7 @@ type MenuAccess =
   | 'usuarios'
   | 'gestionNegocio'
   | 'consultaComercios'
+  | 'dashboardPreregistroClientes'
   | 'agregarNivelComercio'
   | 'enviarInvitacionComercio'
   | 'pagosDigitales'
@@ -161,14 +162,20 @@ export class AppSidebarComponent {
       title: 'GESTIÓN DE NEGOCIO',
       access: 'gestionNegocio',
       items: [
-        {
-          name: 'CONSULTA DE COMERCIOS',
-          icon: '<i class="fas fa-store fa-lg"></i>',
-          path: '/consulta_comercios',
-          access: 'consultaComercios'
-        },
-        {
-          name: 'AGREGAR NIVEL A COMERCIO EXISTENTE',
+       {
+  name: 'CONSULTA DE COMERCIOS',
+  icon: '<i class="fas fa-store fa-lg"></i>',
+  path: '/consulta_comercios',
+  access: 'consultaComercios'
+},
+{
+  name: 'DASHBOARD PREREGISTRO CLIENTES',
+  icon: '<i class="fas fa-chart-column fa-lg"></i>',
+  path: '/dashboard_preregistro_clientes',
+  access: 'dashboardPreregistroClientes'
+},
+{
+  name: 'AGREGAR NIVEL A COMERCIO EXISTENTE',
           icon: '<i class="fas fa-plus-square fa-lg"></i>',
           path: '/agregar_nivel_comercio',
           access: 'agregarNivelComercio'
@@ -348,13 +355,21 @@ export class AppSidebarComponent {
       ...section,
       items: section.items.filter(item => {
         // Consulta evalúa rol autenticado y la regla original de su sección.
-        if (item.access === 'consultaComercios') return this.hasMenuAccess(item.access);
+        if (
+  item.access === 'consultaComercios' ||
+  item.access === 'dashboardPreregistroClientes'
+) {
+  return this.hasMenuAccess(item.access);
+}
         return this.hasMenuAccess(section.access) && this.hasMenuAccess(item.access);
       })
     })).filter(section => section.items.length > 0);
   }
 
   private hasMenuAccess(access?: MenuAccess): boolean {
+    if (access === 'dashboardPreregistroClientes') {
+  return this.auth.hasValidSession() && this.idRol === 2;
+}
     if (access === 'consultaComercios') {
       const user = this.auth.getUserData();
       // Evaluar la sesión actual en cada emisión; nunca usar el modelo legacy para Consulta.

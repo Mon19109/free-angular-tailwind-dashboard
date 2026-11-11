@@ -1,5 +1,6 @@
 import { DetalleOperacionComponent } from './pages/detalleOperacion/detalle-operacion.component';
 import { agregarNivelComercioGuard } from './guards/agregar-nivel-comercio.guard';
+import { dashboardPreregistroClientesGuard } from './guards/dashboard-preregistro-clientes.guard';
 import { enviarInvitacionComercioGuard } from './guards/enviar-invitacion-comercio.guard';
 import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 import { EcommerceComponent } from './pages/dashboard2/ecommerce/ecommerce.component';
@@ -53,6 +54,7 @@ import { BeneficiariosComponent } from './pages/beneficiarios/beneficiarios.comp
 import { RevisionMesaDigitalComponent } from './pages/revisionMesaDigital/revisionMesaDigital.component';
 import { EnviarInvitacionComercioComponent } from './pages/enviarInvitacionComercio/enviarInvitacionComercio.component';
 import { ConsultaComerciosComponent } from './pages/consultaComercios/consultaComercios.component';
+import { DashboardPreregistroClientesComponent } from './pages/dashboardPreregistroClientes/dashboardPreregistroClientes.component';
 import { AgregarNivelComercioComponent } from './pages/agregarNivelComercio/agregarNivelComercio.component';
 import { RegistroClienteComponent } from './pages/registroCliente/registroCliente.component';
 import { RegistroProspectoClienteComponent } from './pages/registroProspectoCliente/registroProspectoCliente.component';
@@ -388,13 +390,20 @@ export const routes: Routes = [
       },
 
       {
-        path: 'consulta_comercios',
-        component: ConsultaComerciosComponent,
-        data: { roles: [2, 3, 4, 5, 6] },
-        title:'KASHPAY'
-      },
-      {
-        path: 'agregar_nivel_comercio',
+  path: 'consulta_comercios',
+  component: ConsultaComerciosComponent,
+  data: { roles: [2, 3, 4, 5, 6] },
+  title: 'KASHPAY'
+},
+{
+  path: 'dashboard_preregistro_clientes',
+  component: DashboardPreregistroClientesComponent,
+  canActivate: [dashboardPreregistroClientesGuard],
+  data: { roles: [2] },
+  title: 'Dashboard Preregistro Clientes | KASHPAY'
+},
+{
+  path: 'agregar_nivel_comercio',
         component: AgregarNivelComercioComponent,
         canActivate: [agregarNivelComercioGuard],
         title:'KASHPAY'
