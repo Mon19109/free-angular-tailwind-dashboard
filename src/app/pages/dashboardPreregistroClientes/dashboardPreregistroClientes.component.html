@@ -11,6 +11,48 @@
     </header>
 
     <div class="consulta-card-body">
+       <section class="preregistro-steps">
+
+  <div class="steps-header">
+    <h2>Seguimiento de preregistro</h2>
+    <p>Selecciona una etapa para consultar sus prospectos.</p>
+  </div>
+
+  <div class="steps-grid">
+
+    <button
+      *ngFor="let paso of pasosPreregistro"
+      type="button"
+      class="step-card"
+      [class.selected]="pasoSeleccionado === paso.paso"
+      [class.pending]="!paso.status"
+      [style.--step-color]="paso.color"
+      [attr.aria-pressed]="pasoSeleccionado === paso.paso"
+      (click)="seleccionarPaso(paso.paso)">
+
+      <div class="step-top">
+        <span class="step-number">
+          Paso {{ paso.paso }}
+        </span>
+
+        <span class="step-dot"></span>
+      </div>
+
+      <div class="step-name">
+        {{ paso.nombre }}
+      </div>
+
+      <div class="step-bottom">
+        <span class="step-total">
+          {{ totalPaso(paso.paso) ?? '—' }}
+        </span>
+      </div>
+
+    </button>
+
+  </div>
+
+</section>
   <section class="panel filters-panel">
     <div class="panel-title">
       <div><i class="fa-solid fa-filter"></i><span>Filtros de búsqueda</span></div>
@@ -67,48 +109,7 @@
     </form>
   </section>
 
-  <section class="preregistro-steps">
-
-  <div class="steps-header">
-    <h2>Seguimiento de preregistro</h2>
-    <p>Selecciona una etapa para consultar sus prospectos.</p>
-  </div>
-
-  <div class="steps-grid">
-
-    <button
-      *ngFor="let paso of pasosPreregistro"
-      type="button"
-      class="step-card"
-      [class.selected]="pasoSeleccionado === paso.paso"
-      [class.pending]="!paso.status"
-      [style.--step-color]="paso.color"
-      [attr.aria-pressed]="pasoSeleccionado === paso.paso"
-      (click)="seleccionarPaso(paso.paso)">
-
-      <div class="step-top">
-        <span class="step-number">
-          Paso {{ paso.paso }}
-        </span>
-
-        <span class="step-dot"></span>
-      </div>
-
-      <div class="step-name">
-        {{ paso.nombre }}
-      </div>
-
-      <div class="step-bottom">
-        <span class="step-total">
-          {{ totalPaso(paso.paso) ?? '—' }}
-        </span>
-      </div>
-
-    </button>
-
-  </div>
-
-</section>
+ 
 
   <section class="panel results-panel">
     <div class="results-toolbar">

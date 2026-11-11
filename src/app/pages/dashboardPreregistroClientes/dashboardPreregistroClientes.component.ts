@@ -83,7 +83,7 @@ export class DashboardPreregistroClientesComponent {
     {
       paso: 6,
       nombre: 'PENDIENTE DE AFILIACIÓN',
-      status: null,
+      status: 'PENDIENTE AUTORIZACIÓN CORE',
       color: '#f97316'
     },
     {
@@ -101,7 +101,7 @@ export class DashboardPreregistroClientesComponent {
   ];
 
   pasoSeleccionado: number | null = null;
-
+totalesPorPaso: Record<number, number | null> = {};
   seleccionarPaso(paso: number): void {
     this.pasoSeleccionado =
       this.pasoSeleccionado === paso ? null : paso;
@@ -118,13 +118,14 @@ export class DashboardPreregistroClientesComponent {
   return this.obtenerIdRolSesion() === 2;
 }
   constructor(
-    private router: Router,
-    private consultaComerciosService: ConsultaComerciosService,
-    private recuperarCuentaService: RecuperarCuentaService,
-    private auth: AuthService
-  ) {
-    this.buscar();
-  }
+  private router: Router,
+  private consultaComerciosService: ConsultaComerciosService,
+  private recuperarCuentaService: RecuperarCuentaService,
+  private auth: AuthService
+) {
+  this.cargarTotalesPasos();
+  this.buscar();
+}
 
   readonly niveles = [
     { id: 'todos' as NivelComercio, label: 'Todos los niveles', icon: 'fa-layer-group' },
@@ -268,20 +269,70 @@ export class DashboardPreregistroClientesComponent {
     };
   }
 
-  totalPaso(paso: number): number | null {
-  const configuracion = this.pasosPreregistro.find(
-    item => item.paso === paso
+ totalPaso(paso: number): number | null {
+  return this.totalesPorPaso[paso] ?? null;
+}
+
+private cargarTotalesPasos(): void {
+  const pasosConfigurados = this.pasosPreregistro.filter(
+    paso => paso.status !== null
   );
 
-  if (!configuracion?.status) {
-    return null;
+  if (!pasosConfigurados.length) return;
+
+  const consultas = pasosConfigurados.map(paso =>
+    this.consultaComerciosService.buscarComercios({
+      nameCommerce: '',
+      rfc: '',
+      email: '',
+      status: paso.status!
+    })
+  );
+
+  forkJoin(consultas).subscribe({
+    next: respuestas => {
+      respuestas.forEach((respuesta, indice) => {
+        const paso = pasosConfigurados[indice];
+
+        if (respuesta.success === false) {
+          this.totalesPorPaso[paso.paso] = null;
+          return;
+        }
+
+       const comercios = this.normalizarComerciosApi(
+  respuesta.commerces ?? []
+);
+
+const comerciosDelPaso = comercios.filter(comercio => {
+  const statusReal = this.normalizarTexto(
+    comercio.statusOriginal
+  );
+
+  if (paso.paso === 6) {
+    return this.esPendienteAutorizacionCore(
+      comercio.statusOriginal
+    );
   }
 
-  if (this.pasoSeleccionado !== paso) {
-    return null;
-  }
+  return statusReal === this.normalizarTexto(paso.status!);
+});
 
-  return this.resultados.length;
+const unicos = new Set(
+  comerciosDelPaso.map((comercio, index) =>
+    comercio.ref ||
+    `${comercio.idComercio}|${comercio.nivel}|${index}`
+  )
+);
+
+this.totalesPorPaso[paso.paso] = unicos.size;
+      });
+    },
+    error: () => {
+      pasosConfigurados.forEach(paso => {
+        this.totalesPorPaso[paso.paso] = null;
+      });
+    }
+  });
 }
 
   seleccionarNivel(nivel: NivelComercio): void {
@@ -420,9 +471,13 @@ buscar(): void {
         comercio.statusOriginal
       );
 
-      return estatusFiltrados.some(
-        permitido => this.normalizarTexto(permitido) === status
-      );
+     return estatusFiltrados.some(permitido => {
+  if (this.normalizarTexto(permitido) === 'PENDIENTE AUTORIZACION CORE') {
+    return this.esPendienteAutorizacionCore(comercio.statusOriginal);
+  }
+
+  return this.normalizarTexto(permitido) === status;
+});
     })
   );
 
