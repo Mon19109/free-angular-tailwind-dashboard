@@ -165,13 +165,35 @@
         <tbody>
           <tr *ngFor="let comercio of comerciosPaginados; let indice = index">
             <td>{{ comercio.idComercio }}</td>
-            <td><span class="badge" [ngClass]="normalizarNivel(comercio.nivel)">{{ comercio.nivel }}</span></td>
+            <td>
+  <span
+    class="badge"
+    [ngClass]="
+      comercio.nivel.toUpperCase() === 'TERMINAL'
+        ? 'caja'
+        : comercio.nivel.toUpperCase() === 'REFERENCIADOR'
+          ? 'referenciador'
+          : normalizarNivel(comercio.nivel)
+    "
+  >
+    {{ comercio.nivel.toUpperCase() === 'TERMINAL' ? 'CAJA' : comercio.nivel }}
+  </span>
+</td>
             <td>{{ comercio.jerarquia }}</td>
             <td>{{ comercio.nombreComercial }}</td>
             <td>{{ comercio.rfc }}</td>
             <td>{{ comercio.correo }}</td>
             <td>{{ comercio.telefono }}</td>
-            <td><span class="status" [class.inactive]="comercio.estatus !== 'Activo'"></span>{{ comercio.estatus }}</td>
+            <td>
+  <span
+    class="status"
+    [class.inactive]="
+      comercio.estatus === 'INACTIVO' ||
+      comercio.estatus === 'Inactivo'
+    ">
+  </span>
+  {{ comercio.estatus }}
+</td>
             <td class="actions-cell" *ngIf="mostrarAcciones">
               <button *ngIf="tieneAccionesDisponibles(comercio)" class="icon-btn" type="button" (click)="toggleAcciones(idAcciones(comercio, indice))" title="Acciones">
                 <i class="fa-solid fa-ellipsis-vertical"></i>

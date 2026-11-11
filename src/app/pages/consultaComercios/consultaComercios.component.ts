@@ -11,7 +11,7 @@ import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/co
 import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
 
 type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos' | 'pendiente-core' | 'pendientes';
-type EstatusComercio = 'Pendiente de revisión' | 'PENDIENTE AUTORIZACIÓN CORE' | 'Activo' | 'Inactivo' | 'Baja definitiva' | 'Prospecto';
+type EstatusComercio = string;
 type PaginaVisible = { tipo: 'pagina'; valor: number } | { tipo: 'ellipsis'; valor: '...' };
 type FiltroJerarquia = 'entidad' | 'sucursal' | 'caja';
 
@@ -22,7 +22,7 @@ interface Comercio {
   nodoId?: string;
   nodeID?: string;
   guid?: string;
-  nivel: 'Sub Afiliado' | 'Entidad' | 'Sucursal' | 'Caja' | 'Prospecto';
+  nivel: string;
   jerarquia: string;
   nombreComercial: string;
   razonSocial: string;
@@ -323,30 +323,38 @@ export class ConsultaComerciosComponent {
     return commerces.map(comercio => ({
       ref: comercio.ref,
       idComercio: comercio.displayId || 'ND',
-      nivel: comercio.nivel as Comercio['nivel'],
+      nivel: String(comercio.nivel ?? '').trim() || 'Sin nivel',
       jerarquia: comercio.jerarquia || '',
       nombreComercial: comercio.nameCommerce || 'ND',
       razonSocial: comercio.businessName || 'ND',
       rfc: comercio.rfc || 'ND', correo: comercio.email || 'ND',
       telefono: comercio.phoneNumber || 'ND',
       estatus: this.estatusDesdeComercioApi(comercio),
-      statusOriginal: String(comercio.status ?? ''),
+statusOriginal: String(
+  comercio.status ??
+  comercio['Status'] ??
+  comercio['STATUS'] ??
+  ''
+),
       tieneInferiores: comercio.nivel !== 'Caja'
     }));
   }
 
-  private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
-    const status = this.normalizarTexto(String(comercio.status ?? comercio['Status'] ?? comercio['STATUS'] ?? ''));
+ private estatusDesdeComercioApi(comercio: ConsultaComercioApi): EstatusComercio {
 
-    if (this.esPendienteRevision(status)) return 'Pendiente de revisión';
-    if (this.esPendienteAutorizacionCore(status)) return 'PENDIENTE AUTORIZACIÓN CORE';
-    if (status === 'ACTIVO' || status === 'ACTIVE') return 'Activo';
-    if (status === 'INACTIVO' || status === 'INACTIVE') return 'Inactivo';
-    if (status === 'BAJA' || status === 'BAJA DEFINITIVA' || status === 'BAJA_DEFINITIVA') return 'Baja definitiva';
-    if (this.esProspectoCliente(comercio)) return 'Prospecto';
+  const valorOriginal =
+    comercio.status ??
+    comercio['Status'] ??
+    comercio['STATUS'];
 
-    return 'Activo';
+  if (valorOriginal === null || valorOriginal === undefined) {
+    return 'Sin estatus';
   }
+
+  const status = String(valorOriginal).trim();
+
+  return status || 'Sin estatus';
+}
 
   private nivelDesdeComercioApi(comercio: ConsultaComercioApi): Comercio['nivel'] {
     const nivelServicio = this.nivelDesdeAffilationLevel(comercio.idAffilationLevel ?? comercio['idAffiliationLevel']);
