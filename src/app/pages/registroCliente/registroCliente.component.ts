@@ -1329,7 +1329,7 @@ enviarCredenciales(): void {
           const nodes = response.tree.map((node, index) => {
             if (!node || typeof node.ref !== 'string' || !node.ref || seen.has(node.ref)
               || !Number.isInteger(node.depth) || node.depth < 0 || node.depth > previousDepth + 1
-              || (index > 0 && node.depth === 0) || ![3, 4, 5, 6].includes(node.levelType)) throw new Error('Nodo inválido');
+              || (index > 0 && node.depth === 0) || ![3, 4, 5, 6, 7].includes(node.levelType)) throw new Error('Nodo inválido');
             seen.add(node.ref);
             previousDepth = node.depth;
             // id es solo la referencia opaca pública; nunca un identificador upstream.
@@ -1481,6 +1481,7 @@ enviarCredenciales(): void {
     if (levelType === 4) return 'entidad';
     if (levelType === 5) return 'sucursal';
     if (levelType === 6) return 'caja';
+    if (levelType === 7) return 'referenciador';
 
     const nivel = this.normalizarTexto(this.valorNodo(nodo, ['idAffilationLevel', 'level', 'type', 'nodeType']));
     if (nivel.includes('SUB')) return 'sub-afiliado';
@@ -1498,6 +1499,7 @@ enviarCredenciales(): void {
   private nivelApiARegistro(nivel: string): NivelNodo {
     const normalizado = this.normalizarTexto(nivel);
     if (normalizado === 'SUB AFILIADO') return 'sub-afiliado';
+     if (normalizado === 'REFERENCIADOR') return 'referenciador';
     if (normalizado === 'ENTIDAD') return 'entidad';
     if (normalizado === 'SUCURSAL') return 'sucursal';
     if (normalizado === 'CAJA') return 'caja';
