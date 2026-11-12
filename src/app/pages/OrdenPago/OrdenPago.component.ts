@@ -141,15 +141,8 @@ export class OrdenPagoComponent implements OnInit {
 
     cargarCuentas(): void {
 
-        const entitySonID = this.sesion?.entitySonID || this.sessionAuth.getSessionValue('entitySonID');
-
-        if (!entitySonID) {
-            console.warn('No hay entitySonID para cargar cuentas ordenantes');
-            return;
-        }
-
         this.ordenPagoService
-            .obtenerCuentas(entitySonID)
+            .obtenerCuentas()
             .subscribe({
                 next: (resp) => {
 
@@ -174,21 +167,8 @@ export class OrdenPagoComponent implements OnInit {
 
     cargarBeneficiarios(): void {
 
-        const idUser =
-            this.sesion?.validate ||
-            this.sessionAuth.getSessionValue('validate') ||
-            this.sesion?.idUser ||
-            this.sessionAuth.getSessionValue('idUser');
-
-        if (!idUser) {
-            console.warn('No hay idUser para cargar beneficiarios');
-            return;
-        }
-
-        /* console.log('Cargando beneficiarios con idUser:', idUser); */
-
         this.ordenPagoService
-            .obtenerContactos(String(idUser))
+            .obtenerContactos()
             .subscribe({
                 next: (resp) => {
 

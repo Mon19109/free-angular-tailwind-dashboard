@@ -6,11 +6,12 @@ import { Observable } from 'rxjs';
 export class OrdenPagoService {
   private readonly base = '/api/orden-pago';
   constructor(private http: HttpClient) {}
-  obtenerContactos(idUser: string): Observable<any> {
-    return this.http.get(`${this.base}/contactos`, { params: new HttpParams().set('idUser', idUser) });
+  // El BFF resuelve los identificadores del usuario desde la sesión autenticada.
+  obtenerContactos(): Observable<any> {
+    return this.http.get(`${this.base}/contactos`, { withCredentials: true });
   }
-  obtenerCuentas(entitySonID: string): Observable<any> {
-    return this.http.get(`${this.base}/cuentas`, { params: new HttpParams().set('sirioId', entitySonID) });
+  obtenerCuentas(): Observable<any> {
+    return this.http.get(`${this.base}/cuentas`, { withCredentials: true });
   }
   buscarInstitucion(cuenta: string): Observable<any> {
     return this.http.get(`${this.base}/instituciones`, { params: new HttpParams().set('value', cuenta) });
