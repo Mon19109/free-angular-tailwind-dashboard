@@ -732,6 +732,7 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(req.request.withCredentials).toBeTrue(); expect(req.request.headers.get('X-Portal-Request')).toBe('1');
     expect(req.request.headers.has('Authorization')).toBeFalse();
     req.flush({ success: true });
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true, documents: [{ ref: other, name: 'Acta', status: 'REJECTED' }], internalObservations: 'Nota existente', permissions: { reviewDocuments: true, sendObservations: true, notificationEmail: 'cuenta@example.test' } });
     expect(component.observacionesInternasMesaDigital).toBe('Nota existente');
     expect(component.documentosProspecto[0].status).toBe('REJECTED');
@@ -1087,13 +1088,45 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.codigoNotificacionBff).toBe('');
   });
 
-  it('guarda revisión antes de registrar con referencias opacas y confirma respuesta real', () => {
+  it('guardar revisión recarga 30 sin activar automáticamente aunque todos estén aprobados', () => {
+    cargarRevision();
+    component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
+    component.guardarRevisionDocumentos();
+    http.expectOne(r => r.method === 'PUT').flush({success:true});
+    http.expectNone(r => r.url.endsWith('/registrar'));
+    expect(component.puedeRevisarDocumentosBff).toBeFalse();
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), commerce: {...response().commerce, status: 'EN_REVISION_DOCUMENTACION'} });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,
+      documents:[{ref:other,name:'Acta',status:'APPROVED'}], internalObservations:null,
+      permissions:{reviewDocuments:true,registerClient:true,sendObservations:false,notificationEmail:null}});
+    expect(component.contextoBff?.commerce.status).toBe('EN_REVISION_DOCUMENTACION');
+    expect(component.estatusDocumentalBff).toBe('30 - EN REVISIÓN DOCUMENTACIÓN');
+    expect(component.mostrarRegistrarClienteDocumentos).toBeTrue();
+    http.expectNone(r => r.method === 'POST');
+  });
+
+  for (const operation of ['REVIEW', 'REGISTER']) it(`recarga tras ${operation} parcial sin reintentar escrituras`, () => {
+    cargarRevision();
+    component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
+    (component as any).registroPermitidoBff = operation === 'REGISTER';
+    if (operation === 'REGISTER') component.registrarClienteProspecto();
+    else component.guardarRevisionDocumentos();
+    http.expectOne(r => r.method === (operation === 'REGISTER' ? 'POST' : 'PUT')).flush(
+      {success:false,code:`COMERCIOS_${operation}_PARTIALLY_COMPLETED`}, {status:502,statusText:'Partial'});
+    expect(component.mensajeObservacionesCliente).toContain(operation === 'REGISTER' ? 'La activación se confirmó' : 'La revisión se guardó');
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,documents:[],internalObservations:null,
+      permissions:{reviewDocuments:false,registerClient:false,sendObservations:false,notificationEmail:null}});
+    http.expectNone(r => r.method === 'PUT' || r.method === 'POST');
+  });
+
+  it('registra explícitamente con referencias opacas y refresca el estatus confirmado', () => {
     cargarRevision();
     (component as any).registroPermitidoBff = true;
     expect(component.mostrarRegistrarClienteDocumentos).toBeTrue();
     component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
     component.continuarDesdeDocumentos();
-    http.expectOne(r => r.method === 'PUT').flush({success:true});
+    http.expectNone(r => r.method === 'PUT');
     const registration = http.expectOne(`/api/comercios/${ref}/nodos/${ref}/registrar`);
     expect(registration.request.method).toBe('POST');
     expect(registration.request.body).toEqual({});
@@ -1103,9 +1136,11 @@ describe('Registro Cliente con contexto BFF', () => {
     component.registrarClienteProspecto();
     http.expectNone(r => r.method === 'POST');
     registration.flush({success:true});
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), commerce: {...response().commerce, status: 'PENDIENTE_CUENTAS_LIQUIDACION'} });
     http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,documents:[],internalObservations:null,
       permissions:{reviewDocuments:false,sendObservations:false,registerClient:false,notificationEmail:null}});
     expect(component.registrandoCliente).toBeFalse();
+    expect(component.estatusDocumentalBff).toBe('31 - PENDIENTE CUENTAS LIQUIDACIÓN');
     expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
   });
 

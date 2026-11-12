@@ -2249,7 +2249,7 @@ this.comercioForm.patchValue(
   continuarDesdeDocumentos(): void {
     if (this.modoContextoBff) {
       if (!this.puedeFinalizarDocumentosBff) return;
-      if (this.mostrarRegistrarClienteDocumentos && !this.puedeRevisarDocumentosBff) this.registrarClienteProspecto();
+      if (this.mostrarRegistrarClienteDocumentos) this.registrarClienteProspecto();
       else this.guardarRevisionDocumentos(true);
       return;
     }
@@ -2456,11 +2456,16 @@ this.comercioForm.patchValue(
         if (response?.success !== true) { this.mensajeObservacionesCliente = 'El registro no fue confirmado.'; return; }
         this.registroPermitidoBff = false;
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Cliente registrado correctamente.');
-        this.consultarDocumentosProspecto();
+        this.refrescarEstadoDocumentalBff();
       },
       error: error => {
         if (!vigente()) return;
         this.registrandoCliente = false;
+        if (error.error?.code === 'COMERCIOS_REGISTER_PARTIALLY_COMPLETED') {
+          this.mensajeObservacionesCliente = 'La activación se confirmó, pero no se pudo verificar el estatus final. No repitas el registro; verifica el comercio.';
+          this.refrescarEstadoDocumentalBff();
+          return;
+        }
         const mensajeAprobado = 'El prospecto ya cuenta con un enlace activo, verifique o reporte al Administrador.';
         if (
   error.status === 409 &&
@@ -2811,6 +2816,43 @@ this.comercioForm.patchValue(
     return typeof code === 'string' && /^COMERCIOS_[A-Z_]{1,80}$/.test(code) ? code : '';
   }
 
+  get estatusDocumentalBff(): string {
+    const status = this.contextoBff?.commerce.status?.trim() || '';
+    const normalized = status.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase().replace(/^\d+\s*[-–]\s*/, '').replace(/\s+/g, '_');
+    if (['26', 'PROSPECTO_ADMIN'].includes(normalized)) return '26 - PROSPECTO_ADMIN';
+    if (['30', 'EN_REVISION_DOCUMENTACION'].includes(normalized)) return '30 - EN REVISIÓN DOCUMENTACIÓN';
+    if (['31', 'PENDIENTE_CUENTAS_LIQUIDACION'].includes(normalized)) return '31 - PENDIENTE CUENTAS LIQUIDACIÓN';
+    return status;
+  }
+
+  private refrescarEstadoDocumentalBff(avanzar = false): void {
+    const ref = this.contextoBff?.commerce.ref;
+    if (!ref) return;
+    const nodeRef = this.nodoSeleccionado;
+    const generation = this.consultaCuentaActual;
+    const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef
+      && this.consultaCuentaActual === generation;
+    this.revisionPermitidaBff = false;
+    this.registroPermitidoBff = false;
+    this.documentosConfirmadosBffPorNodo = {};
+    this.contextoService.consultarContexto(ref).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: value => {
+        if (!vigente()) return;
+        if (!value.success || value.commerce?.ref !== ref) {
+          this.mensajeObservacionesCliente = 'No se pudo verificar el contexto actualizado. Vuelve a consultar el comercio.';
+          return;
+        }
+        this.contextoBff = value;
+        if (avanzar && !this.esUltimoNodoSeleccionado) this.seleccionarSiguienteNodoArbol();
+        else this.consultarDocumentosProspecto();
+      },
+      error: () => {
+        if (vigente()) this.mensajeObservacionesCliente = 'No se pudo verificar el contexto actualizado. Vuelve a consultar el comercio.';
+      }
+    });
+  }
+
   private guardarRevisionBff(avanzar: boolean): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
@@ -2828,14 +2870,17 @@ this.comercioForm.patchValue(
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
         if (response?.success !== true) { this.mensajeObservacionesCliente = 'El guardado no fue confirmado.'; return; }
-        if (avanzar && this.mostrarRegistrarClienteDocumentos) { this.registrarClienteProspecto(); return; }
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
-        if (avanzar && !this.esUltimoNodoSeleccionado) this.seleccionarSiguienteNodoArbol();
-        else this.consultarDocumentosProspecto();
+        this.refrescarEstadoDocumentalBff(avanzar);
       },
       error: error => {
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
+        if (error.error?.code === 'COMERCIOS_REVIEW_PARTIALLY_COMPLETED') {
+          this.mensajeObservacionesCliente = 'La revisión se guardó, pero no se pudo verificar el cambio de estatus. Verifica el comercio antes de continuar.';
+          this.refrescarEstadoDocumentalBff();
+          return;
+        }
         if ([401, 403, 409, 422].includes(error.status)) this.revisionPermitidaBff = false;
         this.codigoRevisionBff = this.codigoBffSeguro(error.error?.code);
         this.mensajeObservacionesCliente = `No fue posible guardar la revisión. ${this.codigoRevisionBff}`.trim();
