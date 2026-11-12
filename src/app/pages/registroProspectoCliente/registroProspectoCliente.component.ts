@@ -48,6 +48,7 @@ interface NodoProspecto {
   idSirio?: string;
   nodeID?: string;
   levelType?: number;
+  status?: number;
   commerceGuid?: string;
   hijos?: NodoProspecto[];
 }
@@ -1641,6 +1642,16 @@ const formData = new FormData();
     return `${nodo.nivel} - ${nodo.nombre}`;
   }
 
+  get pasosFinalesBloqueadosPorEstatus(): boolean {
+  if (this.modoInterno) return false;
+
+  const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+
+  if (!nodo || !nodo.status) return false;
+
+  return [26, 30].includes(nodo.status);
+}
+
   get nodoRequiereAccesos(): boolean {
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
     if (nodo?.levelType) return [3, 4, 5].includes(nodo.levelType);
@@ -2068,16 +2079,18 @@ const formData = new FormData();
   'terminalID',
   'terminalUserID'
 ]) || `nodo-${index + 1}`;const hijos = this.hijosNodosArbol(nodo).map((hijo, i) => this.nodoDesdeApi(hijo, i)).filter((hijo): hijo is NodoProspecto => !!hijo);
-    return {
-      id,
-      nombre: this.valorNodo(nodo, ['name', 'nodeName', 'contextDescription', 'nameCommerce', 'businessName', 'tuName', 'description']) || id,
-      nivel: this.nivelNodoDesdeApi(nodo),
-      levelType: this.numeroNodo(nodo, ['levelType', 'idAffiliationLevel', 'idAffilationLevel']),
-      idSirio: this.valorNodo(nodo, ['idSirio', 'sirioId', 'entitySonID']),
-      nodeID: id,
-      commerceGuid: this.valorNodo(nodo, ['commerceGuid', 'guid', 'commerceID']),
-      hijos: hijos.length ? hijos : undefined
-    };
+    
+return {
+  id,
+  nombre: this.valorNodo(nodo, ['name', 'nodeName', 'contextDescription', 'nameCommerce', 'businessName', 'tuName', 'description']) || id,
+  nivel: this.nivelNodoDesdeApi(nodo),
+  levelType: this.numeroNodo(nodo, ['levelType', 'idAffiliationLevel', 'idAffilationLevel']),
+  status: this.numeroNodo(nodo, ['status', 'idStatus']),
+  idSirio: this.valorNodo(nodo, ['idSirio', 'sirioId', 'entitySonID']),
+  nodeID: id,
+  commerceGuid: this.valorNodo(nodo, ['commerceGuid', 'guid', 'commerceID']),
+  hijos: hijos.length ? hijos : undefined
+};
   }
 
   private arbolPlanoPorProfundidad(nodosApi: ArbolNodoApi[]): NodoProspecto[] {
