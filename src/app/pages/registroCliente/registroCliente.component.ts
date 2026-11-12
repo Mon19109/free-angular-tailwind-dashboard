@@ -2119,8 +2119,13 @@ enviarCredenciales(): void {
       if (!seleccionado) return;
       this.limpiarDetalleBff();
       this.nodoSeleccionado = seleccionado.id;
-      const nivel = seleccionado.nivel === 'sub-afiliado' ? 'Sub Afiliado'
-        : seleccionado.nivel === 'entidad' ? 'Entidad' : seleccionado.nivel === 'sucursal' ? 'Sucursal' : 'Caja';
+      
+   const nivel = seleccionado.nivel === 'sub-afiliado' ? 'Sub Afiliado'
+  : seleccionado.nivel === 'referenciador' ? 'Referenciador'
+  : seleccionado.nivel === 'entidad' ? 'Entidad'
+  : seleccionado.nivel === 'sucursal' ? 'Sucursal'
+  : 'Caja';
+
       this.contextoSeleccionado = { idComercio: seleccionado.id, email: '', nivel,
         nombreComercial: seleccionado.nombre, rfc: '' };
       this.comercioForm.patchValue({ nivel }, { emitEvent: false });
