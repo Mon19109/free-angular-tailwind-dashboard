@@ -94,7 +94,9 @@
           <button
             type="button"
             class="mesa-view"
-            [disabled]="!documento.archivoUrl && !documento.s3Key"
+            [disabled]="visualizarPorReferencia
+  ? !documento.archivoId
+  : (!documento.archivoUrl && !documento.s3Key)"
             (click)="verDocumento(documento)">
             <i class="fa-solid fa-file-arrow-down"></i> Ver
           </button>

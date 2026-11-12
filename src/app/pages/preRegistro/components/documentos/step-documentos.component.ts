@@ -54,6 +54,7 @@ export class StepDocumentosComponent implements OnChanges {
   @Input() subiendoDocumento = false;
   @Input() contextoDocumento = '';
   @Input() mensajeCargaDocumento = '';
+  @Input() visualizarPorReferencia = false;
   @Output() subirDocumento = new EventEmitter<{ archivo: File; documento: DocumentoRequerido }>();
   mostrarCargaDocumento = false;
   tipoDocumentoNuevo = 0;
