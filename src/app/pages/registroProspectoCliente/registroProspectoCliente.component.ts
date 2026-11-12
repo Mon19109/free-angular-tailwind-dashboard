@@ -1369,16 +1369,74 @@ const formData = new FormData();
 
   validarArchivo(_documento: DocumentoRequerido, _estado: 'APPROVED' | 'REJECTED'): void {}
 
-  verDocumentoProspecto(documento: DocumentoRequerido): void {
+    verDocumentoProspecto(documento: DocumentoRequerido): void {
     if (!this.modoInterno) {
-      this.errorDocumentos = 'La visualización y descarga de archivos aún no están disponibles en este seguimiento.';
+      this.errorDocumentos = '';
+
+      if (!this.tokenSmsValidado || !this.nodoSeleccionado) {
+        this.errorDocumentos = 'No hay una sesión de seguimiento válida.';
+        return;
+      }
+
+     const documentRef = String(documento.archivoId ?? '');
+
+      if (!documentRef) {
+        this.errorDocumentos = 'No fue posible identificar el documento.';
+        return;
+      }
+
+      const pestaña = window.open('about:blank', '_blank');
+
+      if (!pestaña) {
+        this.errorDocumentos = 'Permite las ventanas emergentes para visualizar el documento.';
+        return;
+      }
+
+      try {
+        pestaña.opener = null;
+      } catch {
+        // El navegador puede restringir esta propiedad.
+      }
+
+      this.seguimientoProspectoService
+        .verDocumentoNodo(this.nodoSeleccionado, documentRef)
+        .subscribe({
+          next: archivo => {
+            if (pestaña.closed) return;
+
+            if (
+              !archivo.size ||
+              !['application/pdf', 'image/png', 'image/jpeg'].includes(archivo.type)
+            ) {
+              pestaña.close();
+              this.errorDocumentos = 'El archivo recibido no tiene un formato válido.';
+              return;
+            }
+
+            const url = URL.createObjectURL(archivo);
+
+            pestaña.location.replace(url);
+
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+          },
+          error: () => {
+            if (!pestaña.closed) pestaña.close();
+            this.errorDocumentos = 'No fue posible visualizar el documento.';
+          }
+        });
+
       return;
     }
     if (documento.s3Key) {
-      this.documentosService.consultarUrlArchivo(documento.s3Key, this.obtenerBearerConsulta()).subscribe(url => window.open(url, '_blank', 'noopener'));
+      this.documentosService
+        .consultarUrlArchivo(documento.s3Key, this.obtenerBearerConsulta())
+        .subscribe(url => window.open(url, '_blank', 'noopener'));
       return;
     }
-    if (documento.archivoUrl) window.open(documento.archivoUrl, '_blank', 'noopener');
+
+    if (documento.archivoUrl) {
+      window.open(documento.archivoUrl, '_blank', 'noopener');
+    }
   }
 
   seleccionarNodo(id: string): void {

@@ -293,8 +293,8 @@
                   [documentosDisponibles]="documentosCargaPublica"
                   [subiendoDocumento]="subiendoDocumentoPublico"
                   [mensajeCargaDocumento]="mensajeDocumentoPublico"
-                  (subirDocumento)="subirDocumentoPublico($event)" />
-                <p>La visualización y descarga de archivos aún no están disponibles en este seguimiento.</p>
+                  (subirDocumento)="subirDocumentoPublico($event)"
+                  (verArchivo)="verDocumentoProspecto($event)"/>
               }
             } @else {
             <app-step-documentos

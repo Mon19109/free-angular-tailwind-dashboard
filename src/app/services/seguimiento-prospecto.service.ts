@@ -74,6 +74,16 @@ guardarDispersionEnRed(nodeRef: string): Observable<unknown> {
     }));
   }
 
+  verDocumentoNodo(nodeRef: string, documentRef: string): Observable<Blob> {
+    return this.navigation.request(options => this.http.get(
+      `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/documentos/${encodeURIComponent(documentRef)}/archivo`,
+      {
+        ...options,
+        responseType: 'blob' as const
+      }
+    ));
+  }
+
   subirDocumentoNodo(nodeRef: string, numeroDocumento: number, file: File): Observable<{success: boolean}> {
     const body = new FormData();
     body.append('numeroDocumento', String(numeroDocumento));
