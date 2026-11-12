@@ -1555,11 +1555,36 @@ enviarCredenciales(): void {
     const email = this.valorCuenta(cuenta, ['email', 'correo', 'mail']);
     const phone = this.valorCuenta(cuenta, ['phoneNumber', 'phone', 'telefono']);
     const tipoPersona = this.tipoPersonaDesdeCuenta(cuenta, rfc);
-    const niveles: Record<number, string> = { 3: 'Sub Afiliado', 4: 'Entidad', 5: 'Sucursal', 6: 'Caja' };
-    const nivel = this.modoContextoBff ? this.comercioForm.getRawValue().nivel
-      : niveles[Number(this.valorCuenta(cuenta, ['idAffiliationLevel', 'idAffilationLevel']))] || this.comercioForm.getRawValue().nivel;
-    this.tiposComercio = [...new Set([...(this.tiposComercioPorNivel[nivel] ?? []), ...(tipoComercio ? [tipoComercio] : [])])];
-    this.comercioForm.patchValue({ nivel, tipoComercio }, { emitEvent: false });
+   
+   const niveles: Record<number, string> = {
+  3: 'Sub Afiliado',
+  4: 'Entidad',
+  5: 'Sucursal',
+  6: 'Caja'
+};
+
+const nivelCuenta = this.valorCuenta(cuenta, ['nivelAfiliacion']);
+
+const nivel = this.modoContextoBff
+  ? (nivelCuenta || 'No disponible')
+  : (
+      niveles[Number(this.valorCuenta(cuenta, [
+        'idAffiliationLevel',
+        'idAffilationLevel'
+      ]))] || this.comercioForm.getRawValue().nivel
+    );
+
+this.tiposComercio = [
+  ...new Set([
+    ...(this.tiposComercioPorNivel[nivel] ?? []),
+    ...(tipoComercio ? [tipoComercio] : [])
+  ])
+];
+
+this.comercioForm.patchValue(
+  { nivel, tipoComercio },
+  { emitEvent: false }
+);
 
     this.datosForm.patchValue(this.valoresConContenido({
       actividadId: this.valorCuenta(cuenta, ['idActivity']),
