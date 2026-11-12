@@ -9,7 +9,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ConsultaComercioApi, ConsultaComerciosService } from '../../services/consulta-comercios.service';
 import { RecuperarCuentaService } from '../../services/recuperarCuenta.service';
-import { forkJoin } from 'rxjs';
+
 
 type NivelComercio = 'todos' | 'sub-afiliado' | 'entidad' | 'sucursal' | 'caja' | 'prospectos' | 'pendiente-core' | 'pendientes';
 type EstatusComercio = string;
@@ -50,66 +50,24 @@ styleUrls: ['./dashboardPreregistroClientes.component.css']
 export class DashboardPreregistroClientesComponent {
 
   readonly pasosPreregistro = [
-    {
-      paso: 1,
-      nombre: 'PROSPECTO',
-      status: 'PROSPECTO_ADMIN',
-      color: '#3b82f6'
-    },
-    {
-      paso: 2,
-      nombre: 'EN REVISIÓN DOCUMENTACIÓN',
-      status: '30',
-      color: '#6366f1'
-    },
-    {
-      paso: 3,
-      nombre: 'EN VALIDACIÓN DOCUMENTACIÓN MD',
-      status: null,
-      color: '#a855f7'
-    },
-    {
-      paso: 4,
-      nombre: 'PENDIENTE CUENTAS LIQUIDACIÓN',
-      status: '31',
-      color: '#ec4899'
-    },
-    {
-      paso: 5,
-      nombre: 'EN VALIDACIÓN CARTA Y CARÁTULA EDC',
-      status: null,
-      color: '#f43f5e'
-    },
-    {
-      paso: 6,
-      nombre: 'PENDIENTE DE AFILIACIÓN',
-      status: 'PENDIENTE AUTORIZACIÓN CORE',
-      color: '#f97316'
-    },
-    {
-      paso: 7,
-      nombre: 'PENDIENTE FIRMA DE CONTRATO',
-      status: null,
-      color: '#eab308'
-    },
-    {
-      paso: 8,
-      nombre: 'CLIENTE',
-      status: null,
-      color: '#10b981'
-    }
-  ];
+  { paso: 1, nombre: 'PROSPECTO', status: '25', color: '#3b82f6' },
+  { paso: 2, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN', status: '26', color: '#6366f1' },
+  { paso: 3, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN MD', status: '30', color: '#a855f7' },
+  { paso: 4, nombre: 'PENDIENTE CUENTAS LIQUIDACIÓN', status: '31', color: '#ec4899' },
+  { paso: 5, nombre: 'EN VALIDACIÓN CARTA Y CARÁTULA EDC', status: '33', color: '#f43f5e' },
+  { paso: 6, nombre: 'PENDIENTE DE AFILIACIÓN', status: '34', color: '#f97316' },
+  { paso: 7, nombre: 'PENDIENTE FIRMA DE CONTRATO', status: 'PENDIENTE_FIRMA_CONTRATO', color: '#eab308' },
+  { paso: 8, nombre: 'CLIENTE ', status: '19', color: '#10b981' }
+];
 
-  pasoSeleccionado: number | null = null;
+  pasoSeleccionado: number | null = 1;
 totalesPorPaso: Record<number, number | null> = {};
   seleccionarPaso(paso: number): void {
-    this.pasoSeleccionado =
-      this.pasoSeleccionado === paso ? null : paso;
-
-    this.filtros.nivel = 'todos';
-    this.paginaActual = 1;
-    this.buscar();
-  }
+  this.pasoSeleccionado = paso;
+  this.filtros.nivel = 'todos';
+  this.paginaActual = 1;
+  this.aplicarFiltroNivel();
+}
 
   // Temporal: habilitar solo después de migrar edición y caja al BFF.
   readonly accionesInternasHabilitadas = false;
@@ -123,7 +81,6 @@ totalesPorPaso: Record<number, number | null> = {};
   private recuperarCuentaService: RecuperarCuentaService,
   private auth: AuthService
 ) {
-  this.cargarTotalesPasos();
   this.buscar();
 }
 
@@ -147,7 +104,9 @@ totalesPorPaso: Record<number, number | null> = {};
     }
     return this.comercios.some(comercio =>
       nivel === 'prospectos'
-        ? this.esProspectoAdmin(comercio)
+        ? [1, 2].includes(
+    this.obtenerPasoPorEstatus(comercio.statusOriginal) ?? 0
+  )
         : this.normalizarNivel(comercio.nivel) === nivel
     );
   }
@@ -181,9 +140,42 @@ totalesPorPaso: Record<number, number | null> = {};
     return valor === '27' || valor === 'PENDIENTE_REVISION';
   }
 
-  private esPendienteAutorizacionCore(status: unknown): boolean {
-    return this.normalizarTexto(String(status ?? '')) === 'PENDIENTE AUTORIZACION CORE';
-  }
+ private esPendienteAutorizacionCore(status: unknown): boolean {
+  return this.obtenerPasoPorEstatus(status) === 8;
+}
+  private obtenerPasoPorEstatus(status: unknown): number | null {
+  const valor = this.normalizarTexto(String(status ?? ''))
+    .replace(/[\s-]+/g, '_');
+
+  const equivalencias: Record<string, number> = {
+    '25': 1,
+    'PROSPECTO_CLIENTE': 1,
+    'PROSPECTO_A_CLIENTE': 1,
+
+    '26': 2,
+    'PROSPECTO_ADMIN': 2,
+
+    '30': 3,
+    'EN_REVISION_DOCUMENTACION': 3,
+
+    '31': 4,
+    'PENDIENTE_CUENTAS_LIQUIDACION': 4,
+
+    '33': 5,
+    'EN_VALIDACION_CARTA_Y_CARATULA_EDC': 5,
+
+    '34': 6,
+    'PENDIENTE_DE_AFILIACION': 6,
+
+    'PENDIENTE_FIRMA_CONTRATO': 7,
+    'PENDIENTE_FIRMA_DE_CONTRATO': 7,
+
+    '19': 8,
+    'PENDIENTE_AUTORIZACION_CORE': 8
+  };
+
+  return equivalencias[valor] ?? null;
+}
 
   cargando = false;
   errorConsulta = '';
@@ -274,162 +266,70 @@ totalesPorPaso: Record<number, number | null> = {};
 }
 
 private cargarTotalesPasos(): void {
-  const pasosConfigurados = this.pasosPreregistro.filter(
-    paso => paso.status !== null
-  );
+  const totales: Record<number, number | null> = {};
 
-  if (!pasosConfigurados.length) return;
-
-  const consultas = pasosConfigurados.map(paso =>
-    this.consultaComerciosService.buscarComercios({
-      nameCommerce: '',
-      rfc: '',
-      email: '',
-      status: paso.status!
-    })
-  );
-
-  forkJoin(consultas).subscribe({
-    next: respuestas => {
-      respuestas.forEach((respuesta, indice) => {
-        const paso = pasosConfigurados[indice];
-
-        if (respuesta.success === false) {
-          this.totalesPorPaso[paso.paso] = null;
-          return;
-        }
-
-       const comercios = this.normalizarComerciosApi(
-  respuesta.commerces ?? []
-);
-
-const comerciosDelPaso = comercios.filter(comercio => {
-  const statusReal = this.normalizarTexto(
-    comercio.statusOriginal
-  );
-
-  if (paso.paso === 6) {
-    return this.esPendienteAutorizacionCore(
-      comercio.statusOriginal
-    );
+  for (const paso of this.pasosPreregistro) {
+    totales[paso.paso] = this.comercios.filter(
+      comercio =>
+        this.obtenerPasoPorEstatus(comercio.statusOriginal) === paso.paso
+    ).length;
   }
 
-  return statusReal === this.normalizarTexto(paso.status!);
-});
-
-const unicos = new Set(
-  comerciosDelPaso.map((comercio, index) =>
-    comercio.ref ||
-    `${comercio.idComercio}|${comercio.nivel}|${index}`
-  )
-);
-
-this.totalesPorPaso[paso.paso] = unicos.size;
-      });
-    },
-    error: () => {
-      pasosConfigurados.forEach(paso => {
-        this.totalesPorPaso[paso.paso] = null;
-      });
-    }
-  });
+  this.totalesPorPaso = totales;
 }
 
   seleccionarNivel(nivel: NivelComercio): void {
-    this.filtros.nivel = nivel;
-    this.limpiarFiltrosNoAplicables();
-    this.buscar();
-  }
+  this.filtros.nivel = nivel;
+  this.limpiarFiltrosNoAplicables();
+  this.aplicarFiltroNivel();
+}
 
-buscar(): void {
-  const paso = this.pasosPreregistro.find(
-    item => item.paso === this.pasoSeleccionado
-  );
-
-  if (paso && !paso.status) {
-    this.comercios = [];
-    this.resultados = [];
-    this.errorConsulta = 'El estatus de esta etapa aún no está configurado.';
-    this.cargando = false;
-    this.paginaActual = 1;
-    return;
-  }
-
-  const estatus = paso?.status
-    ? [paso.status]
-    : this.pasosPreregistro
-        .map(item => item.status)
-        .filter((status): status is string => status !== null);
-
-  if (!estatus.length) {
-    this.comercios = [];
-    this.resultados = [];
-    this.errorConsulta = 'No hay estatus configurados.';
-    this.cargando = false;
-    return;
-  }
-
+  buscar(): void {
   this.cargando = true;
   this.errorConsulta = '';
 
-  const consultas = estatus.map(status =>
-    this.consultaComerciosService.buscarComercios({
-      nameCommerce: this.filtros.nombre.trim(),
-      rfc: this.filtros.rfc.trim(),
-      email: this.filtros.correo.trim(),
-      status
-    })
-  );
-
-  forkJoin(consultas).subscribe({
-    next: respuestas => {
-      const respuestaFallida = respuestas.find(
-        respuesta => respuesta.success === false
-      );
-
-      if (respuestaFallida) {
+  this.consultaComerciosService.buscarComercios({
+    nameCommerce: '',
+    rfc: '',
+    email: '',
+    status: ''
+  }).subscribe({
+    next: respuesta => {
+      if (respuesta.success === false) {
         this.errorConsulta =
-          respuestaFallida.error?.message ||
-          'No fue posible consultar los prospectos.';
+          respuesta.error?.message ||
+          'No fue posible consultar los comercios.';
 
         this.comercios = [];
         this.resultados = [];
+        this.totalesPorPaso = {};
         this.cargando = false;
         return;
       }
 
-      const registros = respuestas.flatMap(
-        respuesta => respuesta.commerces ?? []
+      const normalizados = this.normalizarComerciosApi(
+        respuesta.commerces ?? []
       );
 
-      const normalizados = this.normalizarComerciosApi(registros);
+      this.comercios = this.ordenarComoArbol(normalizados);
 
-      const unicos = new Map<string, Comercio>();
-
-      normalizados.forEach((comercio, indice) => {
-        const clave = comercio.ref ||
-          `${comercio.idComercio}|${comercio.nivel}|${comercio.statusOriginal}|${indice}`;
-
-        unicos.set(clave, comercio);
-      });
-
-      this.comercios = this.ordenarComoArbol([...unicos.values()]);
-
+      this.cargarTotalesPasos();
       this.aplicarFiltroNivel();
+
       this.cargando = false;
     },
     error: () => {
-      this.errorConsulta = 'No fue posible consultar los prospectos.';
+      this.errorConsulta = 'No fue posible consultar los comercios.';
       this.comercios = [];
       this.resultados = [];
+      this.totalesPorPaso = {};
       this.cargando = false;
     }
   });
 }
 
-
- limpiar(): void {
-  this.pasoSeleccionado = null;
+limpiar(): void {
+  this.pasoSeleccionado = 1;
 
   this.filtros = {
     nivel: 'todos',
@@ -443,7 +343,7 @@ buscar(): void {
 
   this.busquedaTabla = '';
   this.paginaActual = 1;
-  this.buscar();
+  this.aplicarFiltroNivel();
 }
 
   filtroVisible(
@@ -452,32 +352,64 @@ buscar(): void {
   return true;
 }
 
-  private aplicarFiltroNivel(): void {
-  const paso = this.pasosPreregistro.find(
-    item => item.paso === this.pasoSeleccionado
-  );
-
-  const estatusPermitidos = this.pasosPreregistro
-    .map(item => item.status)
-    .filter((status): status is string => status !== null);
-
-  const estatusFiltrados = paso?.status
-    ? [paso.status]
-    : estatusPermitidos;
-
+private aplicarFiltroNivel(): void {
   this.resultados = this.ordenarComoArbol(
     this.comercios.filter(comercio => {
-      const status = this.normalizarTexto(
+      const pasoComercio = this.obtenerPasoPorEstatus(
         comercio.statusOriginal
       );
 
-     return estatusFiltrados.some(permitido => {
-  if (this.normalizarTexto(permitido) === 'PENDIENTE AUTORIZACION CORE') {
-    return this.esPendienteAutorizacionCore(comercio.statusOriginal);
-  }
+      if (pasoComercio === null) {
+        return false;
+      }
 
-  return this.normalizarTexto(permitido) === status;
-});
+      if (
+        this.pasoSeleccionado !== null &&
+        pasoComercio !== this.pasoSeleccionado
+      ) {
+        return false;
+      }
+
+      if (
+        this.filtros.nivel === 'pendiente-core' &&
+        pasoComercio !== 8
+      ) {
+        return false;
+      }
+
+      if (
+        this.filtros.nivel === 'prospectos' &&
+        pasoComercio !== 1 &&
+        pasoComercio !== 2
+      ) {
+        return false;
+      }
+
+      if (
+        this.filtros.nivel === 'pendientes' &&
+        !this.esPendienteRevision(comercio.statusOriginal)
+      ) {
+        return false;
+      }
+
+      if (
+        !['todos', 'prospectos', 'pendiente-core', 'pendientes'].includes(this.filtros.nivel) &&
+        this.normalizarNivel(comercio.nivel) !== this.filtros.nivel
+      ) {
+        return false;
+      }
+
+      const coincide = (valor: string, filtro: string): boolean =>
+        this.normalizarTexto(valor).includes(
+          this.normalizarTexto(filtro.trim())
+        );
+
+      return (
+        coincide(comercio.nombreComercial, this.filtros.nombre) &&
+        coincide(comercio.rfc, this.filtros.rfc) &&
+        coincide(comercio.correo, this.filtros.correo) &&
+        this.coincideFiltrosJerarquia(comercio)
+      );
     })
   );
 
@@ -527,7 +459,12 @@ buscar(): void {
       rfc: comercio.rfc || 'ND', correo: comercio.email || 'ND',
       telefono: comercio.phoneNumber || 'ND',
       estatus: this.estatusDesdeComercioApi(comercio),
-      statusOriginal: String(comercio.status ?? ''),
+      statusOriginal: String(
+  comercio.status ??
+  comercio['Status'] ??
+  comercio['STATUS'] ??
+  ''
+),
       tieneInferiores: comercio.nivel !== 'Caja'
     }));
   }
@@ -544,6 +481,14 @@ buscar(): void {
       ''
     )
   );
+
+  const paso = this.obtenerPasoPorEstatus(status);
+
+if (paso !== null) {
+  return this.pasosPreregistro.find(
+    item => item.paso === paso
+  )?.nombre ?? status;
+}
 
   const etiquetas: Record<string, string> = {
     'PROSPECTO_ADMIN': 'Prospecto',
@@ -621,15 +566,19 @@ buscar(): void {
   }
 
   private esProspectoCliente(comercio: ConsultaComercioApi): boolean {
-    const status = this.normalizarTexto(String(comercio.status ?? comercio['Status'] ?? comercio['STATUS'] ?? ''));
+  const status =
+    comercio.status ??
+    comercio['Status'] ??
+    comercio['STATUS'];
 
-    return status === 'PROSPECTO_CLIENTE' || status === 'PROSPECTO_A_CLIENTE' || status === 'PROSPECTO_ADMIN';
-  }
+  return [1, 2].includes(
+    this.obtenerPasoPorEstatus(status) ?? 0
+  );
+}
 
   private esProspectoAdmin(comercio: Comercio): boolean {
-    return this.normalizarTexto(comercio.statusOriginal || '') === 'PROSPECTO_ADMIN';
-  }
-
+  return this.obtenerPasoPorEstatus(comercio.statusOriginal) === 2;
+}
   private normalizarTexto(valor?: string): string {
     return (valor || '')
       .normalize('NFD')
