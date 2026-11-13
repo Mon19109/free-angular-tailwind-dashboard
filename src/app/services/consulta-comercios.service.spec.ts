@@ -33,6 +33,18 @@ describe('Consulta de comercios BFF', () => {
     req.flush({ success: true, commerces: [] });
     expect(storage).not.toHaveBeenCalled();
   });
+  it('consulta una contraseña por referencia con cookie y CSRF, sin Bearer ni GUID', () => {
+    const storage = spyOn(localStorage, 'getItem').and.throwError('Storage prohibido');
+    service.consultarPasswordCaja('ref-caja').subscribe({ error: error => expect(error.status).toBe(403) });
+    const req = http.expectOne('/api/comercios/ref-caja/password');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.withCredentials).toBeTrue();
+    expect(req.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    expect(req.request.body).toEqual({});
+    req.flush({ success: false }, { status: 403, statusText: 'Forbidden' });
+    expect(storage).not.toHaveBeenCalled();
+  });
   it('propaga errores sin consultar otro endpoint', () => {
     let status = 0;
     service.buscarComercios({}).subscribe({ error: error => status = error.status });
