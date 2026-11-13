@@ -232,11 +232,10 @@ export class ConsultaComerciosService {
     );
   }
 
-  consultarPasswordCaja(guid: string): Observable<ConsultaPasswordCajaResponse> {
+  consultarPasswordCaja(ref: string): Observable<ConsultaPasswordCajaResponse> {
     return this.http.post<ConsultaPasswordCajaResponse>(
-      `${environment.api.kashpay}api/v1/user-r7k/v2/shwpwd-f3a917`,
-      { guid },
-      { headers: this.headers() }
+      `/api/comercios/${encodeURIComponent(ref)}/password`, {},
+      { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) }
     );
   }
 

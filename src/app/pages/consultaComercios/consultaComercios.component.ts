@@ -60,15 +60,13 @@ export class ConsultaComerciosComponent {
     this.buscar();
   }
 
-  readonly niveles = [
-    { id: 'todos' as NivelComercio, label: 'Todos los niveles', icon: 'fa-layer-group' },
-    { id: 'sub-afiliado' as NivelComercio, label: 'Sub Afiliado', icon: 'fa-user-tie' },
-    { id: 'entidad' as NivelComercio, label: 'Entidad', icon: 'fa-building' },
-    { id: 'sucursal' as NivelComercio, label: 'Sucursal', icon: 'fa-store' },
-    { id: 'caja' as NivelComercio, label: 'Caja', icon: 'fa-cash-register' },
-    { id: 'prospectos' as NivelComercio, label: 'Prospectos', icon: 'fa-user-clock' },
-    { id: 'pendiente-core' as NivelComercio, label: 'Pendiente autorización CORE', icon: 'fa-user-clock' }
-  ];
+readonly niveles = [
+  { id: 'todos' as NivelComercio, label: 'Todos los niveles', icon: 'fa-layer-group' },
+  { id: 'sub-afiliado' as NivelComercio, label: 'Sub Afiliado', icon: 'fa-user-tie' },
+  { id: 'entidad' as NivelComercio, label: 'Entidad', icon: 'fa-building' },
+  { id: 'sucursal' as NivelComercio, label: 'Sucursal', icon: 'fa-store' },
+  { id: 'caja' as NivelComercio, label: 'Caja', icon: 'fa-cash-register' }
+];
 
   get nivelesVisibles() {
     return this.niveles.filter(nivel => nivel.id === 'todos' || this.tieneComerciosPorNivel(nivel.id));
@@ -391,8 +389,8 @@ statusOriginal: String(
     if (normalizado === 'ENTIDAD') return 'Entidad';
     if (normalizado === 'SUCURSAL') return 'Sucursal';
     if (normalizado === 'TERMINAL' || normalizado === 'TERMINALES' || normalizado === 'CAJA') return 'Caja';
-    if (normalizado === 'REFERENCIADOR' || normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospecto';
-
+   if (normalizado === 'REFERENCIADOR') return 'Referenciador';
+if (normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospecto';
     return null;
   }
 
@@ -556,7 +554,6 @@ statusOriginal: String(
   }
 
   ejecutarAccion(accion: 'editarInformacion' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
-    if (!this.accionesInternasHabilitadas && accion === 'password') return;
     this.accionesAbiertas = null;
 
     if (accion === 'editarInformacion') {
@@ -603,9 +600,10 @@ statusOriginal: String(
   }
 
   private consultarPasswordCaja(comercio: Comercio): void {
-    if (!this.accionesInternasHabilitadas) return;
-    if (!comercio.guid) {
-      this.errorPassword = 'La caja no tiene guid para consultar la contraseña.';
+    if (!this.puedeConsultarPassword(comercio) || this.cargandoPassword) return;
+    comercio.password = '';
+    if (!comercio.ref) {
+      this.errorPassword = 'La caja no tiene referencia para consultar la contraseña.';
       return;
     }
 
@@ -613,7 +611,7 @@ statusOriginal: String(
     this.errorPassword = '';
     comercio.password = '';
 
-    this.consultaComerciosService.consultarPasswordCaja(comercio.guid).subscribe({
+    this.consultaComerciosService.consultarPasswordCaja(comercio.ref).subscribe({
       next: respuesta => {
         const password = this.passwordDesdeRespuesta(respuesta);
         if (!password) {
@@ -623,8 +621,10 @@ statusOriginal: String(
         comercio.password = password;
         this.cargandoPassword = false;
       },
-      error: () => {
-        this.errorPassword = 'No fue posible consultar la contraseña.';
+      error: error => {
+        this.errorPassword = error?.error?.code === 'COMERCIOS_PASSWORD_AUTHORIZATION_UNVERIFIED'
+          ? 'Consulta de contraseña bloqueada: autorización no disponible.'
+          : 'No fue posible consultar la contraseña.';
         comercio.password = '';
         this.cargandoPassword = false;
       }
@@ -739,7 +739,7 @@ statusOriginal: String(
   }
 
   puedeConsultarPassword(comercio: Comercio): boolean {
-    return this.accionesInternasHabilitadas && [2, 3, 4, 5].includes(this.obtenerIdRolSesion()) && comercio.nivel === 'Caja';
+    return [2, 3, 4, 5].includes(this.obtenerIdRolSesion()) && comercio.nivel === 'Caja';
   }
 
   etiquetaInformacion(comercio: Comercio): string {
