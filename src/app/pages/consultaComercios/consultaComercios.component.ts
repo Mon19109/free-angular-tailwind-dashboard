@@ -319,11 +319,12 @@ export class ConsultaComerciosComponent {
     return this.normalizarTexto([numero || '', filtro, ruta].filter(Boolean).join(' '));
   }
 
-  private normalizarComerciosApi(commerces: ConsultaComercioApi[]): Comercio[] {
-    return commerces.map(comercio => ({
-      ref: comercio.ref,
-      idComercio: comercio.displayId || 'ND',
-      nivel: String(comercio.nivel ?? '').trim() || 'Sin nivel',
+private normalizarComerciosApi(commerces: ConsultaComercioApi[]): Comercio[] {
+  return commerces.map(comercio => ({
+    ref: comercio.ref,
+    idComercio: comercio.displayId || 'ND',
+    nivel: this.nivelDesdeAffilationLevel(comercio.nivel)
+      ?? (String(comercio.nivel ?? '').trim() || 'Sin nivel'),
       jerarquia: comercio.jerarquia || '',
       nombreComercial: comercio.nameCommerce || 'ND',
       razonSocial: comercio.businessName || 'ND',
@@ -336,7 +337,7 @@ statusOriginal: String(
   comercio['STATUS'] ??
   ''
 ),
-      tieneInferiores: comercio.nivel !== 'Caja'
+      tieneInferiores: this.nivelDesdeAffilationLevel(comercio.nivel) !== 'Caja'
     }));
   }
 
@@ -357,10 +358,15 @@ statusOriginal: String(
 }
 
   private nivelDesdeComercioApi(comercio: ConsultaComercioApi): Comercio['nivel'] {
-    const nivelServicio = this.nivelDesdeAffilationLevel(comercio.idAffilationLevel ?? comercio['idAffiliationLevel']);
-    if (nivelServicio) return nivelServicio;
+  if (this.esProspectoCliente(comercio)) return 'Prospecto';
 
-    if (this.esProspectoCliente(comercio)) return 'Prospecto';
+  const nivelServicio = this.nivelDesdeAffilationLevel(
+    comercio.idAffilationLevel ??
+    comercio['idAffiliationLevel'] ??
+    comercio['nivel']
+  );
+
+  if (nivelServicio) return nivelServicio;
 
     if (Number(comercio.terminalUserID) > 0) return 'Caja';
     if (Number(comercio.terminalID) > 0) return 'Sucursal';
