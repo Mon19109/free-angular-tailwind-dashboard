@@ -2,7 +2,6 @@ import { Component, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-
 //import { AuthService, UserSessionData } from '../../services/auth.service';
 import { OrdenPagoService } from '../../services/OrdenPago.service';
 import { RadioComponent } from '../../shared/components/form/input/radio.component';
@@ -10,794 +9,813 @@ import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 
 @Component({
-    selector: 'app-orden-pago',
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule, RadioComponent, FormsModule
+selector: 'app-orden-pago',
+standalone: true,
+imports: [
+CommonModule,
+ReactiveFormsModule, RadioComponent, FormsModule
 
-    ],
-    templateUrl: './OrdenPago.component.html',
-    styleUrls: ['./OrdenPago.component.css']
+],
+templateUrl: './OrdenPago.component.html',
+styleUrls: ['./OrdenPago.component.css']
 })
 export class OrdenPagoComponent implements OnInit {
     private readonly sessionAuth = inject(AuthService);
 
-    formulario!: FormGroup;
+formulario!: FormGroup;
 
-    pasoActual = 1;
-    saldo = 0;
-    readonly importeMaximo = 1_000_000;
-    get comisionEnvio(): number {
-        return String(this.formulario?.get('idInstitution')?.value ?? '').trim() === '40903' ? 0 : 5;
-    }
+pasoActual = 1;
+saldo = 0;
+readonly importeMaximo = 1_000_000;
+get comisionEnvio(): number {
+return String(this.formulario?.get('idInstitution')?.value ?? '').trim() === '40903' ? 0 : 5;
+}
 
-    get saldoRestante(): number {
-        const importe = Number(String(this.formulario?.get('importe')?.value ?? '').replace(/[$,\s]/g, ''));
-        const cargo = Number.isFinite(importe) && importe > 0 ? importe + this.comisionEnvio : 0;
-        return Math.round((this.saldo - cargo) * 100) / 100;
-    }
-    tipoEnvio = 'INDIVIDUAL';
-    mostrarErrorImporte = false;
+get saldoRestante(): number {
+const importe = Number(String(this.formulario?.get('importe')?.value ?? '').replace(/[$,\s]/g, ''));
+const cargo = Number.isFinite(importe) && importe > 0 ? importe + this.comisionEnvio : 0;
+return Math.round((this.saldo - cargo) * 100) / 100;
+}
+tipoEnvio = 'INDIVIDUAL';
+mostrarErrorImporte = false;
 
-    mostrarModalToken = false;
-    mostrarModalOperacionNoPermitida = false;
-    mostrarModalErrorOperacion = false;
-    mostrarModalValidacionOrden = false;
-    mensajeErrorOperacion = '';
-    mensajeValidacionOrden = '';
-    token = '';
-    tokenError = '';
-    tokenMensaje = '';
-    payloadPendiente: any = null;
-    finalizandoEnvio = false;
-    validandoToken = false;
-    reenviandoToken = false;
-    comprobanteSpei: any = null;
-    mensajeEnvio = '';
-    tipoMensajeEnvio: 'success' | 'error' = 'success';
+mostrarModalToken = false;
+mostrarModalOperacionNoPermitida = false;
+mostrarModalErrorOperacion = false;
+mostrarModalValidacionOrden = false;
+mensajeErrorOperacion = '';
+mensajeValidacionOrden = '';
+token = '';
+tokenError = '';
+tokenMensaje = '';
+payloadPendiente: any = null;
+finalizandoEnvio = false;
+validandoToken = false;
+reenviandoToken = false;
+comprobanteSpei: any = null;
+mensajeEnvio = '';
+tipoMensajeEnvio: 'success' | 'error' = 'success';
 
-    cuentas: any[] = [];
-    beneficiarios: any[] = [];
-    beneficiariosCargados = false;
+cuentas: any[] = [];
+beneficiarios: any[] = [];
+beneficiariosCargados = false;
 
-    //sesion: UserSessionData | null = null;
-    private sesion: any = null;
+//sesion: UserSessionData | null = null;
+private sesion: any = null;
 
-    constructor(
-        private fb: FormBuilder,
-        //private authService: AuthService,
-        private ordenPagoService: OrdenPagoService
-    ) { }
+constructor(
+private fb: FormBuilder,
+//private authService: AuthService,
+private ordenPagoService: OrdenPagoService
+) { }
 
-    ngOnInit(): void {
+ngOnInit(): void {
 
-        this.sesion = this.obtenerSesion();
+this.sesion = this.obtenerSesion();
 
-        this.formulario = this.fb.group({
-            cuentaOr: ['', Validators.required],
-            cuentaD: ['', Validators.required],
-            fullName: [''],
-            accountNumber: [''],
-            cardNumberMask: [''],
-            idInstitution: [''],
-            nameInstitution: [''],
-            importe: [''],
-            concepto: [''],
-            referencia: ['']
-        });
+this.formulario = this.fb.group({
+cuentaOr: ['', Validators.required],
+cuentaD: ['', Validators.required],
+fullName: [''],
+accountNumber: [''],
+cardNumberMask: [''],
+idInstitution: [''],
+nameInstitution: [''],
+importe: [''],
+concepto: [''],
+referencia: ['']
+});
 
-        this.formulario.get('cuentaD')?.valueChanges.subscribe(valor => {
-            const [fullName = '', accountNumber = '', cardNumberMask = '', idInstitution = '', nameInstitution = ''] =
-                String(valor || '').split('|');
-            this.formulario.patchValue({
-                fullName,
-                accountNumber: accountNumber === '0' ? cardNumberMask : accountNumber,
-                cardNumberMask,
-                idInstitution,
-                nameInstitution
-            }, { emitEvent: false });
-        });
+this.formulario.get('cuentaD')?.valueChanges.subscribe(valor => {
+const [fullName = '', accountNumber = '', cardNumberMask = '', idInstitution = '', nameInstitution = ''] =
+String(valor || '').split('|');
+this.formulario.patchValue({
+fullName,
+accountNumber: accountNumber === '0' ? cardNumberMask : accountNumber,
+cardNumberMask,
+idInstitution,
+nameInstitution
+}, { emitEvent: false });
+});
 
-        this.cargarCuentas();
-        this.cargarBeneficiarios();
+this.cargarCuentas();
+this.cargarBeneficiarios();
 
-        /*console.log('SESION');
-        console.log(this.sesion);
+/*console.log('SESION');
+       console.log(this.sesion);
 
-        console.log('ID USER');
-        console.log(this.sesion?.idUser);
+       console.log('ID USER');
+       console.log(this.sesion?.idUser);
 
 
 
-        this.formulario = this.fb.group({
-            //por si se requiere mandar
-            //tipoEnvio: ['INDIVIDUAL'],
-            cuentaOr: [''],
-            cuentaD: [''],
-            importe: [''],
-            concepto: [''],
-            referencia: ['']
-        });
+       this.formulario = this.fb.group({
+           //por si se requiere mandar
+           //tipoEnvio: ['INDIVIDUAL'],
+           cuentaOr: [''],
+           cuentaD: [''],
+           importe: [''],
+           concepto: [''],
+           referencia: ['']
+       });
 
-        this.cargarCuentas();
-        this.cargarBeneficiarios();*/
+       this.cargarCuentas();
+       this.cargarBeneficiarios();*/
 
-    }
+}
 
-    cambiarTipoEnvio(valor: string): void {
+cambiarTipoEnvio(valor: string): void {
 
-        this.tipoEnvio = valor;
-        this.limpiarMensajeEnvio();
-        /*
-         this.formulario.patchValue({
-          tipoEnvio: valor
-        });
-      */
+this.tipoEnvio = valor;
+this.limpiarMensajeEnvio();
+/*
+        this.formulario.patchValue({
+         tipoEnvio: valor
+       });
+     */
 
-        /* console.log('Tipo envío:', valor); */
+/* console.log('Tipo envío:', valor); */
 
-    }
+}
 
-    cargarCuentas(): void {
+cargarCuentas(): void {
+const entitySonID = this.sesion?.entitySonID || this.sessionAuth.getSessionValue('entitySonID');
 
-        this.ordenPagoService
-            .obtenerCuentas()
-            .subscribe({
-                next: (resp) => {
+if (!entitySonID) {
+console.warn('No hay entitySonID para cargar cuentas ordenantes');
+return;
+}
 
-                    /* console.log('Cuentas ordenantes', resp); */
+this.ordenPagoService
+.obtenerCuentas(entitySonID)
+.subscribe({
+next: (resp) => {
 
-                    this.cuentas = this.normalizarLista(resp, [
-                        'data',
-                        'accounts',
-                        'concentratorAccounts',
-                        'accountList'
-                    ]).filter(cuenta =>
-                        String(cuenta?.name ?? cuenta?.bussinesName ?? cuenta?.businessName ?? cuenta?.alias ?? '')
-                            .trim().toLocaleLowerCase('es-MX') !== 'cuenta reserva'
-                    );
+/* console.log('Cuentas ordenantes', resp); */
 
-                },
-                error: (err) => {
-                    console.error('Error al cargar cuentas ordenantes', err);
-                }
-            });
-    }
+this.cuentas = this.normalizarLista(resp, [
+'data',
+'accounts',
+'concentratorAccounts',
+'accountList'
+]).filter(cuenta =>
+String(cuenta?.name ?? cuenta?.bussinesName ?? cuenta?.businessName ?? cuenta?.alias ?? '')
+.trim().toLocaleLowerCase('es-MX') !== 'cuenta reserva'
+);
 
-    cargarBeneficiarios(): void {
+},
+error: (err) => {
+console.error('Error al cargar cuentas ordenantes', err);
+}
+});
+}
 
-        this.ordenPagoService
-            .obtenerContactos()
-            .subscribe({
-                next: (resp) => {
+cargarBeneficiarios(): void {
 
-                    /* console.log('Beneficiarios', resp); */
-                    this.beneficiariosCargados = true;
-                    this.beneficiarios = this.normalizarLista(resp, [
-                        'data',
-                        'contacts',
-                        'contactList',
-                        'contactResponse',
-                        'contactsResponse',
-                        'beneficiaries',
-                        'beneficiarios'
-                    ]);
+const idUser =
+this.sesion?.validate ||
+            this.sessionAuth.getSessionValue('validate') ||
+this.sesion?.idUser ||
+            this.sessionAuth.getSessionValue('idUser');
 
-                },
-                error: (err) => {
-                    this.beneficiariosCargados = true;
-                    console.error('Error al cargar beneficiarios', err);
-                }
-            });
+if (!idUser) {
+console.warn('No hay idUser para cargar beneficiarios');
+return;
+}
 
-    }
+/* console.log('Cargando beneficiarios con idUser:', idUser); */
 
-    private obtenerSesion(): any {
+this.ordenPagoService
+.obtenerContactos(String(idUser))
+.subscribe({
+next: (resp) => {
+
+/* console.log('Beneficiarios', resp); */
+this.beneficiariosCargados = true;
+this.beneficiarios = this.normalizarLista(resp, [
+'data',
+'contacts',
+'contactList',
+'contactResponse',
+'contactsResponse',
+'beneficiaries',
+'beneficiarios'
+]);
+
+},
+error: (err) => {
+this.beneficiariosCargados = true;
+console.error('Error al cargar beneficiarios', err);
+}
+});
+
+}
+
+private obtenerSesion(): any {
         return this.sessionAuth.getUserData();
-    }
+}
 
-    private normalizarLista(response: any, keys: string[]): any[] {
-        if (Array.isArray(response)) {
-            return response;
-        }
+private normalizarLista(response: any, keys: string[]): any[] {
+if (Array.isArray(response)) {
+return response;
+}
 
-        for (const key of keys) {
-            if (Array.isArray(response?.[key])) {
-                return response[key];
-            }
-        }
+for (const key of keys) {
+if (Array.isArray(response?.[key])) {
+return response[key];
+}
+}
 
-        return this.encontrarPrimerArreglo(response);
-    }
+return this.encontrarPrimerArreglo(response);
+}
 
-    private encontrarPrimerArreglo(value: any): any[] {
-        if (!value || typeof value !== 'object') {
-            return [];
-        }
+private encontrarPrimerArreglo(value: any): any[] {
+if (!value || typeof value !== 'object') {
+return [];
+}
 
-        for (const item of Object.values(value)) {
-            if (Array.isArray(item)) {
-                return item;
-            }
+for (const item of Object.values(value)) {
+if (Array.isArray(item)) {
+return item;
+}
 
-            const nested = this.encontrarPrimerArreglo(item);
-            if (nested.length) {
-                return nested;
-            }
-        }
+const nested = this.encontrarPrimerArreglo(item);
+if (nested.length) {
+return nested;
+}
+}
 
-        return [];
-    }
+return [];
+}
 
-    obtenerValorCuenta(cuenta: any): string {
-        return cuenta?.idSirio || cuenta?.bundle || cuenta?.sirioId || cuenta?.id || '';
-    }
+obtenerValorCuenta(cuenta: any): string {
+return cuenta?.idSirio || cuenta?.bundle || cuenta?.sirioId || cuenta?.id || '';
+}
 
-    obtenerTextoCuenta(cuenta: any): string {
-        const id = this.obtenerValorCuenta(cuenta);
-        const nombre = cuenta?.name || cuenta?.bussinesName || cuenta?.businessName || cuenta?.alias || '';
+obtenerTextoCuenta(cuenta: any): string {
+const id = this.obtenerValorCuenta(cuenta);
+const nombre = cuenta?.name || cuenta?.bussinesName || cuenta?.businessName || cuenta?.alias || '';
 
-        return [id, nombre].filter(Boolean).join(' - ');
-    }
+return [id, nombre].filter(Boolean).join(' - ');
+}
 
-    obtenerValorBeneficiario(beneficiario: any): string {
-        //console.log('beneficiario',beneficiario);
-        //$contactos[$i]->fullName.'-'.$contactos[$i]->accountNumber.'-'.$contactos[$i]->cardNumberMask.'-'.$contactos[$i]->idInstitution.'-'.$contactos[$i]->nameInstitution
-        return beneficiario.fullName+'|'+beneficiario.accountNumber+'|'+beneficiario.cardNumberMask+'|'+beneficiario.idInstitution+'|'+beneficiario.nameInstitution;
-    }
+obtenerValorBeneficiario(beneficiario: any): string {
+//console.log('beneficiario',beneficiario);
+//$contactos[$i]->fullName.'-'.$contactos[$i]->accountNumber.'-'.$contactos[$i]->cardNumberMask.'-'.$contactos[$i]->idInstitution.'-'.$contactos[$i]->nameInstitution
+return beneficiario.fullName+'|'+beneficiario.accountNumber+'|'+beneficiario.cardNumberMask+'|'+beneficiario.idInstitution+'|'+beneficiario.nameInstitution;
+}
 
-    obtenerTextoBeneficiario(beneficiario: any): string {
-        const alias = beneficiario?.nameAlias || beneficiario?.alias || beneficiario?.fullName || beneficiario?.name || '';
-        const cuenta = beneficiario?.cardNumberMask || beneficiario?.accountNumberMask || beneficiario?.accountNumber || beneficiario?.cardNumber || '';
-        const banco = beneficiario?.nameInstitution || beneficiario?.institutionName || beneficiario?.bankName || '';
-        const terminacion = cuenta ? ` **** ${String(cuenta).slice(-4)}` : '';
+obtenerTextoBeneficiario(beneficiario: any): string {
+const alias = beneficiario?.nameAlias || beneficiario?.alias || beneficiario?.fullName || beneficiario?.name || '';
+const cuenta = beneficiario?.cardNumberMask || beneficiario?.accountNumberMask || beneficiario?.accountNumber || beneficiario?.cardNumber || '';
+const banco = beneficiario?.nameInstitution || beneficiario?.institutionName || beneficiario?.bankName || '';
+const terminacion = cuenta ? ` **** ${String(cuenta).slice(-4)}` : '';
 
-        return `${alias}${terminacion} ${banco}`.trim();
-    }
+return `${alias}${terminacion} ${banco}`.trim();
+}
 
-    obtenerSaldo(): void {
+obtenerSaldo(): void {
 
-        const cuentaSeleccionada =
-            this.formulario.get('cuentaOr')?.value;
+const cuentaSeleccionada =
+this.formulario.get('cuentaOr')?.value;
 
-        this.saldo = 0;
+this.saldo = 0;
 
-        if (!cuentaSeleccionada) {
-            return;
-        }
+if (!cuentaSeleccionada) {
+return;
+}
 
-        /*console.log(
-            'Cuenta seleccionada:',
-            cuentaSeleccionada
-        );*/
+/*console.log(
+           'Cuenta seleccionada:',
+           cuentaSeleccionada
+       );*/
 
-        this.ordenPagoService
-            .obtenerSaldo(cuentaSeleccionada)
-            .subscribe({
-                next: (resp) => {
+this.ordenPagoService
+.obtenerSaldo(cuentaSeleccionada)
+.subscribe({
+next: (resp) => {
 
-                    // console.log('SALDO RESP', resp);
+// console.log('SALDO RESP', resp);
 
-                    if (this.formulario.get('cuentaOr')?.value !== cuentaSeleccionada) return;
-                    const saldo = Number(resp?.balance ?? 0);
-                    this.saldo = Number.isFinite(saldo) ? saldo : 0;
+if (this.formulario.get('cuentaOr')?.value !== cuentaSeleccionada) return;
+const saldo = Number(resp?.balance ?? 0);
+this.saldo = Number.isFinite(saldo) ? saldo : 0;
 
-                },
-                error: (err) => {
+},
+error: (err) => {
 
-                    console.error(
-                        'ERROR SALDO',
-                        err
-                    );
+console.error(
+'ERROR SALDO',
+err
+);
 
-                }
-            });
+}
+});
 
-    }
+}
 
 
-    private validarCuentas(): boolean {
-        const cuentaOr = this.formulario.get('cuentaOr')!;
-        const cuentaD = this.formulario.get('cuentaD')!;
-        cuentaOr.markAsTouched();
-        cuentaD.markAsTouched();
+private validarCuentas(): boolean {
+const cuentaOr = this.formulario.get('cuentaOr')!;
+const cuentaD = this.formulario.get('cuentaD')!;
+cuentaOr.markAsTouched();
+cuentaD.markAsTouched();
 
-        const cuentaSeleccionada = this.cuentas.find(
-            cuenta => String(this.obtenerValorCuenta(cuenta)) === String(cuentaOr.value || '')
-        );
-        const beneficiarioSeleccionado = this.obtenerBeneficiarioSeleccionado();
+const cuentaSeleccionada = this.cuentas.find(
+cuenta => String(this.obtenerValorCuenta(cuenta)) === String(cuentaOr.value || '')
+);
+const beneficiarioSeleccionado = this.obtenerBeneficiarioSeleccionado();
 
-        if (!cuentaOr.value || !cuentaSeleccionada) {
-            this.abrirModalValidacionOrden('Selecciona una cuenta ordenante válida.');
-            return false;
-        }
+if (!cuentaOr.value || !cuentaSeleccionada) {
+this.abrirModalValidacionOrden('Selecciona una cuenta ordenante válida.');
+return false;
+}
 
-        if (!cuentaD.value || !beneficiarioSeleccionado) {
-            this.abrirModalValidacionOrden('Ingresa una nueva cuenta o selecciona un contacto.');
-            return false;
-        }
+if (!cuentaD.value || !beneficiarioSeleccionado) {
+this.abrirModalValidacionOrden('Ingresa una nueva cuenta o selecciona un contacto.');
+return false;
+}
 
-        return cuentaOr.valid && cuentaD.valid;
-    }
+return cuentaOr.valid && cuentaD.valid;
+}
 
-    private validarImporte(): boolean {
-        const importe = Number(String(this.formulario.get('importe')?.value ?? '').replace(/[$,\s]/g, ''));
-        this.mostrarErrorImporte = !Number.isFinite(importe) || importe <= 0;
-        if (this.mostrarErrorImporte) return false;
-        if (importe > this.importeMaximo) {
-            this.abrirModalValidacionOrden('El importe no puede superar $1,000,000.00.');
-            return false;
-        }
-        return true;
-    }
+private validarImporte(): boolean {
+const importe = Number(String(this.formulario.get('importe')?.value ?? '').replace(/[$,\s]/g, ''));
+this.mostrarErrorImporte = !Number.isFinite(importe) || importe <= 0;
+if (this.mostrarErrorImporte) return false;
+if (importe > this.importeMaximo) {
+this.abrirModalValidacionOrden('El importe no puede superar $1,000,000.00.');
+return false;
+}
+return true;
+}
 
-    private validarSaldoDisponible(): boolean {
-        if (this.saldoRestante < 0) {
-            this.abrirModalValidacionOrden('El importe más la comisión no puede superar el saldo de la cuenta ordenante.');
-            return false;
-        }
-        return true;
-    }
+private validarSaldoDisponible(): boolean {
+if (this.saldoRestante < 0) {
+this.abrirModalValidacionOrden('El importe más la comisión no puede superar el saldo de la cuenta ordenante.');
+return false;
+}
+return true;
+}
 
-    siguiente(): void {
-        this.limpiarMensajeEnvio();
+siguiente(): void {
+this.limpiarMensajeEnvio();
 
-        if (!this.validarCuentas()) {
-            this.pasoActual = 1;
-            return;
-        }
+if (!this.validarCuentas()) {
+this.pasoActual = 1;
+return;
+}
 
-        if (this.pasoActual === 2) {
-            if (!this.validarImporte()) return;
-            if (!this.validarSaldoDisponible()) return;
-        }
+if (this.pasoActual === 2) {
+if (!this.validarImporte()) return;
+if (!this.validarSaldoDisponible()) return;
+}
 
-        this.pasoActual++;
+this.pasoActual++;
 
-    }
+}
 
-    atras(): void {
-        this.pasoActual--;
-    }
+atras(): void {
+this.pasoActual--;
+}
 
-    finalizar(): void {
-        if (this.finalizandoEnvio) {
-            return;
-        }
+finalizar(): void {
+if (this.finalizandoEnvio) {
+return;
+}
 
-        if (!this.validarCuentas()) {
-            this.pasoActual = 1;
-            return;
-        }
+if (!this.validarCuentas()) {
+this.pasoActual = 1;
+return;
+}
 
-        if (!this.validarImporte() || !this.validarSaldoDisponible()) {
-            this.pasoActual = 2;
-            return;
-        }
+if (!this.validarImporte() || !this.validarSaldoDisponible()) {
+this.pasoActual = 2;
+return;
+}
 
         const idRol = Number(this.sessionAuth.getSessionValue('idRol'));
-        const importe = Number(
-            String(this.formulario.value.importe ?? '0').replace(/[$,\s]/g, '')
-        );
+const importe = Number(
+String(this.formulario.value.importe ?? '0').replace(/[$,\s]/g, '')
+);
 
-        if (idRol === 7 && importe >= 1000) {
-            this.payloadPendiente = null;
-            this.mostrarModalOperacionNoPermitida = true;
-            return;
-        }
+if (idRol === 7 && importe >= 1000) {
+this.payloadPendiente = null;
+this.mostrarModalOperacionNoPermitida = true;
+return;
+}
 
-        const beneficiario = this.beneficiarios.find(
-            x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
-        );
+const beneficiario = this.beneficiarios.find(
+x => this.obtenerValorBeneficiario(x) == this.formulario.value.cuentaD
+);
 
-        const payload = {
+const payload = {
 
-            ...this.formulario.value,
-            importe: importe.toFixed(2),
-            concepto: this.formulario.value.concepto?.trim()
-                ? this.formulario.value.concepto
-                : 'ORDEN DE PAGO',
+...this.formulario.value,
+importe: importe.toFixed(2),
+concepto: this.formulario.value.concepto?.trim()
+? this.formulario.value.concepto
+: 'ORDEN DE PAGO',
 
-            masivaT: 0,
+masivaT: 0,
 
-            fecha: new Date(),
+fecha: new Date(),
 
-            titular: this.formulario.value.fullName || beneficiario?.fullName,
+titular: this.formulario.value.fullName || beneficiario?.fullName,
 
-            nameIns: this.formulario.value.nameInstitution || beneficiario?.nameInstitution,
+nameIns: this.formulario.value.nameInstitution || beneficiario?.nameInstitution,
 
-            saldoS: this.saldo,
+saldoS: this.saldo,
 
-            idIns: this.formulario.value.idInstitution || beneficiario?.idInstitution,
+idIns: this.formulario.value.idInstitution || beneficiario?.idInstitution,
 
-            accountNumber: this.formulario.value.accountNumber || beneficiario?.accountNumber,
+accountNumber: this.formulario.value.accountNumber || beneficiario?.accountNumber,
 
-            cuenta: beneficiario?.cardNumber || beneficiario?.accountNumber,
+cuenta: beneficiario?.cardNumber || beneficiario?.accountNumber,
 
-            cuentaMascara: this.formulario.value.cardNumberMask || beneficiario?.cardNumberMask || beneficiario?.accountNumberMask,
+cuentaMascara: this.formulario.value.cardNumberMask || beneficiario?.cardNumberMask || beneficiario?.accountNumberMask,
 
-            tarjeta: beneficiario?.cardNumber,
+tarjeta: beneficiario?.cardNumber,
 
-            tipoCuenta: beneficiario?.accountType || beneficiario?.typeAccount || 'Tarjeta',
+tipoCuenta: beneficiario?.accountType || beneficiario?.typeAccount || 'Tarjeta',
 
-            tipoBeneficiario: beneficiario?.beneficiaryType || beneficiario?.typeBeneficiary || 'Persona física',
+tipoBeneficiario: beneficiario?.beneficiaryType || beneficiario?.typeBeneficiary || 'Persona física',
 
             mail: this.sessionAuth.getSessionValue('mail') || ''
 
-            //mail: this.sesion?.mail
+//mail: this.sesion?.mail
 
-        };
+};
 
-        this.payloadPendiente = payload;
+this.payloadPendiente = payload;
 
-        this.limpiarMensajeEnvio();
-        this.solicitarToken(false);
+this.limpiarMensajeEnvio();
+this.solicitarToken(false);
 
-    }
+}
 
-    validarToken(): void {
+validarToken(): void {
 
-        const codigo = this.token.trim();
-        const guid = this.obtenerGuid();
+const codigo = this.token.trim();
+const guid = this.obtenerGuid();
 
-        if (!codigo) {
-            this.tokenError = 'Captura el token recibido por SMS.';
-            return;
-        }
+if (!codigo) {
+this.tokenError = 'Captura el token recibido por SMS.';
+return;
+}
 
-        if (!guid || !this.payloadPendiente || this.validandoToken) {
-            this.tokenError = !guid
-                ? 'No se encontró el identificador de la sesión.'
-                : 'No hay una orden pendiente por validar.';
-            return;
-        }
+if (!guid || !this.payloadPendiente || this.validandoToken) {
+this.tokenError = !guid
+? 'No se encontró el identificador de la sesión.'
+: 'No hay una orden pendiente por validar.';
+return;
+}
 
-        this.validandoToken = true;
-        this.tokenError = '';
-        this.tokenMensaje = '';
+this.validandoToken = true;
+this.tokenError = '';
+this.tokenMensaje = '';
 
-        this.ordenPagoService.validarToken(codigo, guid).pipe(
-            finalize(() => this.validandoToken = false)
-        ).subscribe({
-            next: resp => {
-                if (!this.esRespuestaExitosa(resp)) {
-                    this.tokenError = this.obtenerMensajeRespuesta(resp, 'El token capturado no es válido.');
-                    return;
-                }
+this.ordenPagoService.validarToken(codigo, guid).pipe(
+finalize(() => this.validandoToken = false)
+).subscribe({
+next: resp => {
+if (!this.esRespuestaExitosa(resp)) {
+this.tokenError = this.obtenerMensajeRespuesta(resp, 'El token capturado no es válido.');
+return;
+}
 
-                this.mostrarModalToken = false;
-                this.ejecutarSpei();
-            },
-            error: err => {
-                console.error('Error al validar el token:', err);
-                this.tokenError = this.obtenerMensajeRespuesta(err?.error, 'No fue posible validar el token.');
-            }
-        });
+this.mostrarModalToken = false;
+this.ejecutarSpei();
+},
+error: err => {
+console.error('Error al validar el token:', err);
+this.tokenError = this.obtenerMensajeRespuesta(err?.error, 'No fue posible validar el token.');
+}
+});
 
-    }
+}
 
-    formatearImporte(event: any): void {
+formatearImporte(event: any): void {
 
-        this.mostrarErrorImporte = false;
+this.mostrarErrorImporte = false;
 
-        let valor = event.target.value;
+let valor = event.target.value;
 
-        valor = valor.replace(/\D/g, '');
+valor = valor.replace(/\D/g, '');
 
-        if (!valor) {
+if (!valor) {
 
-            this.formulario.patchValue(
-                { importe: '' },
-                { emitEvent: false }
-            );
+this.formulario.patchValue(
+{ importe: '' },
+{ emitEvent: false }
+);
 
-            return;
-        }
+return;
+}
 
-        const numero = Math.min(Number(valor) / 100, this.importeMaximo);
+const numero = Math.min(Number(valor) / 100, this.importeMaximo);
 
-        const formateado = numero.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+const formateado = numero.toLocaleString('en-US', {
+minimumFractionDigits: 2,
+maximumFractionDigits: 2
+});
 
-        event.target.value = formateado;
+event.target.value = formateado;
 
-        this.formulario.patchValue(
-            { importe: formateado },
-            { emitEvent: false }
-        );
+this.formulario.patchValue(
+{ importe: formateado },
+{ emitEvent: false }
+);
 
-    }
+}
 
-    obtenerNombreBeneficiario(): string {
-        const beneficiario = this.obtenerBeneficiarioSeleccionado();
+obtenerNombreBeneficiario(): string {
+const beneficiario = this.obtenerBeneficiarioSeleccionado();
 
-        return beneficiario?.fullName || '';
+return beneficiario?.fullName || '';
 
-    }
+}
 
-    obtenerBancoBeneficiario(): string {
-        const beneficiario = this.obtenerBeneficiarioSeleccionado();
+obtenerBancoBeneficiario(): string {
+const beneficiario = this.obtenerBeneficiarioSeleccionado();
 
-        return beneficiario?.nameInstitution || '';
+return beneficiario?.nameInstitution || '';
 
-    }
+}
 
-    obtenerCuentaBeneficiario(): string {
-        const beneficiario = this.obtenerBeneficiarioSeleccionado();
-        const cuenta = beneficiario?.cardNumberMask
-            || beneficiario?.accountNumberMask
-            || beneficiario?.cardNumber
-            || beneficiario?.accountNumber
-            || '';
+obtenerCuentaBeneficiario(): string {
+const beneficiario = this.obtenerBeneficiarioSeleccionado();
+const cuenta = beneficiario?.cardNumberMask
+|| beneficiario?.accountNumberMask
+|| beneficiario?.cardNumber
+|| beneficiario?.accountNumber
+|| '';
 
-        return cuenta ? this.enmascararCuenta(cuenta) : '';
-    }
+return cuenta ? this.enmascararCuenta(cuenta) : '';
+}
 
-    obtenerTextoCuentaOrdenante(): string {
-        const cuenta = this.cuentas.find(
-            item => String(this.obtenerValorCuenta(item)) === String(this.formulario.value.cuentaOr || '')
-        );
+obtenerTextoCuentaOrdenante(): string {
+const cuenta = this.cuentas.find(
+item => String(this.obtenerValorCuenta(item)) === String(this.formulario.value.cuentaOr || '')
+);
 
-        return cuenta ? this.obtenerTextoCuenta(cuenta) : '';
+return cuenta ? this.obtenerTextoCuenta(cuenta) : '';
 
-    }
+}
 
-    reenviarToken(): void {
-        this.solicitarToken(true);
-    }
+reenviarToken(): void {
+this.solicitarToken(true);
+}
 
-    cerrarModalToken(): void {
-        if (this.validandoToken || this.reenviandoToken) return;
-        this.mostrarModalToken = false;
-        this.token = '';
-        this.tokenError = '';
-        this.tokenMensaje = '';
-    }
+cerrarModalToken(): void {
+if (this.validandoToken || this.reenviandoToken) return;
+this.mostrarModalToken = false;
+this.token = '';
+this.tokenError = '';
+this.tokenMensaje = '';
+}
 
-    cerrarModalOperacionNoPermitida(): void {
-        this.mostrarModalOperacionNoPermitida = false;
-    }
+cerrarModalOperacionNoPermitida(): void {
+this.mostrarModalOperacionNoPermitida = false;
+}
 
-    cerrarModalErrorOperacion(): void {
-        this.mostrarModalErrorOperacion = false;
-        this.mensajeErrorOperacion = '';
-    }
+cerrarModalErrorOperacion(): void {
+this.mostrarModalErrorOperacion = false;
+this.mensajeErrorOperacion = '';
+}
 
-    cerrarModalValidacionOrden(): void {
-        this.mostrarModalValidacionOrden = false;
-        this.mensajeValidacionOrden = '';
-    }
+cerrarModalValidacionOrden(): void {
+this.mostrarModalValidacionOrden = false;
+this.mensajeValidacionOrden = '';
+}
 
-    limpiarErrorToken(): void {
-        this.tokenError = '';
-    }
+limpiarErrorToken(): void {
+this.tokenError = '';
+}
 
-    cerrarComprobante(): void {
-        this.comprobanteSpei = null;
-    }
+cerrarComprobante(): void {
+this.comprobanteSpei = null;
+}
 
-    obtenerTelefonoSesion(): string {
-        const telefono = String(
-            this.sesion?.tel || this.sesion?.telefono || this.sesion?.phone ||
+obtenerTelefonoSesion(): string {
+const telefono = String(
+this.sesion?.tel || this.sesion?.telefono || this.sesion?.phone ||
             this.sessionAuth.getSessionValue('tel') || ''
-        );
+);
 
-        return telefono ? `terminación ${telefono.slice(-4)}` : 'registrado';
-    }
+return telefono ? `terminación ${telefono.slice(-4)}` : 'registrado';
+}
 
-    private solicitarToken(esReenvio: boolean): void {
-        const guid = this.obtenerGuid();
+private solicitarToken(esReenvio: boolean): void {
+const guid = this.obtenerGuid();
 
-        if (!guid) {
-            this.tipoMensajeEnvio = 'error';
-            this.mensajeEnvio = 'No se encontró el identificador de la sesión para enviar el token.';
-            return;
-        }
+if (!guid) {
+this.tipoMensajeEnvio = 'error';
+this.mensajeEnvio = 'No se encontró el identificador de la sesión para enviar el token.';
+return;
+}
 
-        if (esReenvio && this.reenviandoToken) return;
-        if (!esReenvio && this.finalizandoEnvio) return;
+if (esReenvio && this.reenviandoToken) return;
+if (!esReenvio && this.finalizandoEnvio) return;
 
-        if (esReenvio) {
-            this.reenviandoToken = true;
-        } else {
-            this.finalizandoEnvio = true;
-        }
+if (esReenvio) {
+this.reenviandoToken = true;
+} else {
+this.finalizandoEnvio = true;
+}
 
-        this.tokenError = '';
-        this.tokenMensaje = '';
+this.tokenError = '';
+this.tokenMensaje = '';
 
-        this.ordenPagoService.enviarToken(guid).pipe(
-            finalize(() => {
-                this.finalizandoEnvio = false;
-                this.reenviandoToken = false;
-            })
-        ).subscribe({
-            next: resp => {
-                if (this.respuestaEsFallo(resp)) {
-                    const mensaje = this.obtenerMensajeRespuesta(resp, 'No fue posible enviar el token por SMS.');
-                    if (esReenvio) this.tokenError = mensaje;
-                    else {
-                        this.tipoMensajeEnvio = 'error';
-                        this.mensajeEnvio = mensaje;
-                    }
-                    return;
-                }
+this.ordenPagoService.enviarToken(guid).pipe(
+finalize(() => {
+this.finalizandoEnvio = false;
+this.reenviandoToken = false;
+})
+).subscribe({
+next: resp => {
+if (this.respuestaEsFallo(resp)) {
+const mensaje = this.obtenerMensajeRespuesta(resp, 'No fue posible enviar el token por SMS.');
+if (esReenvio) this.tokenError = mensaje;
+else {
+this.tipoMensajeEnvio = 'error';
+this.mensajeEnvio = mensaje;
+}
+return;
+}
 
-                this.mostrarModalToken = true;
-                this.token = '';
-                this.tokenMensaje = esReenvio
-                    ? 'Se envió un nuevo token por SMS.'
-                    : 'Token enviado por SMS correctamente.';
-            },
-            error: err => {
-                console.error('Error al enviar el token:', err);
-                const mensaje = this.obtenerMensajeRespuesta(err?.error, 'No fue posible enviar el token por SMS.');
-                if (esReenvio) this.tokenError = mensaje;
-                else {
-                    this.tipoMensajeEnvio = 'error';
-                    this.mensajeEnvio = mensaje;
-                }
-            }
-        });
-    }
+this.mostrarModalToken = true;
+this.token = '';
+this.tokenMensaje = esReenvio
+? 'Se envió un nuevo token por SMS.'
+: 'Token enviado por SMS correctamente.';
+},
+error: err => {
+console.error('Error al enviar el token:', err);
+const mensaje = this.obtenerMensajeRespuesta(err?.error, 'No fue posible enviar el token por SMS.');
+if (esReenvio) this.tokenError = mensaje;
+else {
+this.tipoMensajeEnvio = 'error';
+this.mensajeEnvio = mensaje;
+}
+}
+});
+}
 
-    private ejecutarSpei(): void {
-        const payload = this.payloadPendiente;
-        if (!payload) return;
+private ejecutarSpei(): void {
+const payload = this.payloadPendiente;
+if (!payload) return;
 
-        this.finalizandoEnvio = true;
-        this.limpiarMensajeEnvio();
+this.finalizandoEnvio = true;
+this.limpiarMensajeEnvio();
 
-        this.ordenPagoService.realizarSpei(payload).pipe(
-            finalize(() => this.finalizandoEnvio = false)
-        ).subscribe({
-            next: resp => {
-                if (this.esSaldoInsuficiente(resp)) {
-                    this.mensajeErrorOperacion = 'Saldos insuficientes';
-                    this.mostrarModalErrorOperacion = true;
-                    return;
-                }
+this.ordenPagoService.realizarSpei(payload).pipe(
+finalize(() => this.finalizandoEnvio = false)
+).subscribe({
+next: resp => {
+if (this.esSaldoInsuficiente(resp)) {
+this.mensajeErrorOperacion = 'Saldos insuficientes';
+this.mostrarModalErrorOperacion = true;
+return;
+}
 
-                if (this.respuestaEsFallo(resp)) {
-                    this.mensajeErrorOperacion = this.obtenerMensajeRespuesta(
-                        resp,
-                        'No fue posible realizar el envío. Intenta nuevamente.'
-                    );
-                    this.mostrarModalErrorOperacion = true;
-                    return;
-                }
+if (this.respuestaEsFallo(resp)) {
+this.mensajeErrorOperacion = this.obtenerMensajeRespuesta(
+resp,
+'No fue posible realizar el envío. Intenta nuevamente.'
+);
+this.mostrarModalErrorOperacion = true;
+return;
+}
 
-                if (!this.esSpeiExitoso(resp)) {
-                    this.tipoMensajeEnvio = 'error';
-                    this.mensajeEnvio = this.obtenerMensajeRespuesta(
-                        resp,
-                        'El servicio SPEI no confirmó la operación con código 00.'
-                    );
-                    return;
-                }
+if (!this.esSpeiExitoso(resp)) {
+this.tipoMensajeEnvio = 'error';
+this.mensajeEnvio = this.obtenerMensajeRespuesta(
+resp,
+'El servicio SPEI no confirmó la operación con código 00.'
+);
+return;
+}
 
-                this.comprobanteSpei = this.crearComprobante(resp, payload);
-                this.tipoMensajeEnvio = 'success';
-                this.mensajeEnvio = 'Envío realizado correctamente.';
-                this.reiniciarFlujo();
-            },
-            error: err => {
-                console.error('Error al liberar el SPEI:', err);
-                this.mensajeErrorOperacion = this.esSaldoInsuficiente(err?.error)
-                    ? 'Saldos insuficientes'
-                    : this.obtenerMensajeRespuesta(err?.error, 'No fue posible realizar el envío. Intenta nuevamente.');
-                this.mostrarModalErrorOperacion = true;
-            }
-        });
-    }
+this.comprobanteSpei = this.crearComprobante(resp, payload);
+this.tipoMensajeEnvio = 'success';
+this.mensajeEnvio = 'Envío realizado correctamente.';
+this.reiniciarFlujo();
+},
+error: err => {
+console.error('Error al liberar el SPEI:', err);
+this.mensajeErrorOperacion = this.esSaldoInsuficiente(err?.error)
+? 'Saldos insuficientes'
+: this.obtenerMensajeRespuesta(err?.error, 'No fue posible realizar el envío. Intenta nuevamente.');
+this.mostrarModalErrorOperacion = true;
+}
+});
+}
 
-    private crearComprobante(resp: any, payload: any): any {
-        const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
-        const datos = rows || resp?.data?.rows || resp?.data || resp || {};
-        const fechaOperacion = datos?.date || datos?.createdAt || new Date();
-        const fecha = new Date(fechaOperacion);
+private crearComprobante(resp: any, payload: any): any {
+const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
+const datos = rows || resp?.data?.rows || resp?.data || resp || {};
+const fechaOperacion = datos?.date || datos?.createdAt || new Date();
+const fecha = new Date(fechaOperacion);
 
-        return {
-            autorizacion: datos?.id || datos?.authorization || datos?.authorizationNumber || 'ND',
-            fecha: Number.isNaN(fecha.getTime()) ? String(fechaOperacion) : fecha.toLocaleDateString('es-MX'),
-            hora: Number.isNaN(fecha.getTime()) ? '' : fecha.toLocaleTimeString('es-MX'),
-            cuentaRetiro: this.enmascararCuenta(payload.cuentaOr),
-            cuentaBeneficiaria: payload.cuentaMascara || this.enmascararCuenta(payload.accountNumber || payload.cuenta),
-            banco: payload.nameIns || 'ND',
-            monto: Number(payload.importe || 0),
-            claveRastreo: datos?.internalReference || datos?.trackingKey || datos?.claveRastreo || 'NA',
-            tipoCuenta: payload.tipoCuenta || 'Tarjeta',
-            tipoBeneficiario: payload.tipoBeneficiario || 'Persona física',
-            referenciaNumerica: datos?.numericReference || payload.referencia || 'NA',
-            concepto: datos?.description || payload.concepto || 'NA'
-        };
-    }
+return {
+autorizacion: datos?.id || datos?.authorization || datos?.authorizationNumber || 'ND',
+fecha: Number.isNaN(fecha.getTime()) ? String(fechaOperacion) : fecha.toLocaleDateString('es-MX'),
+hora: Number.isNaN(fecha.getTime()) ? '' : fecha.toLocaleTimeString('es-MX'),
+cuentaRetiro: this.enmascararCuenta(payload.cuentaOr),
+cuentaBeneficiaria: payload.cuentaMascara || this.enmascararCuenta(payload.accountNumber || payload.cuenta),
+banco: payload.nameIns || 'ND',
+monto: Number(payload.importe || 0),
+claveRastreo: datos?.internalReference || datos?.trackingKey || datos?.claveRastreo || 'NA',
+tipoCuenta: payload.tipoCuenta || 'Tarjeta',
+tipoBeneficiario: payload.tipoBeneficiario || 'Persona física',
+referenciaNumerica: datos?.numericReference || payload.referencia || 'NA',
+concepto: datos?.description || payload.concepto || 'NA'
+};
+}
 
-    private obtenerGuid(): string {
-        return this.sessionAuth.getSessionValue('validate') || '';
-    }
+private obtenerGuid(): string {
+    return this.sessionAuth.getSessionValue('validate') || '';
+}
 
-    private obtenerBeneficiarioSeleccionado(): any {
-        return this.beneficiarios.find(
-            beneficiario => String(this.obtenerValorBeneficiario(beneficiario)) === String(this.formulario.value.cuentaD || '')
-        );
-    }
+private obtenerBeneficiarioSeleccionado(): any {
+return this.beneficiarios.find(
+beneficiario => String(this.obtenerValorBeneficiario(beneficiario)) === String(this.formulario.value.cuentaD || '')
+);
+}
 
-    private abrirModalValidacionOrden(mensaje: string): void {
-        this.mensajeValidacionOrden = mensaje;
-        this.mostrarModalValidacionOrden = true;
-    }
+private abrirModalValidacionOrden(mensaje: string): void {
+this.mensajeValidacionOrden = mensaje;
+this.mostrarModalValidacionOrden = true;
+}
 
-    private esRespuestaExitosa(resp: any): boolean {
-        const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
-        if (success !== undefined && success !== null) {
-            return success === true || success === 1 || String(success).toLowerCase() === 'true';
-        }
+private esRespuestaExitosa(resp: any): boolean {
+const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
+if (success !== undefined && success !== null) {
+return success === true || success === 1 || String(success).toLowerCase() === 'true';
+}
 
-        const codigo = resp?.code ?? resp?.error?.code ?? resp?.data?.code ?? resp?.data?.error?.code ??
-            resp?.responseCode ?? resp?.rows?.code ?? resp?.rows?.error?.code;
-        return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
-    }
+const codigo = resp?.code ?? resp?.error?.code ?? resp?.data?.code ?? resp?.data?.error?.code ??
+resp?.responseCode ?? resp?.rows?.code ?? resp?.rows?.error?.code;
+return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
+}
 
-    private respuestaEsFallo(resp: any): boolean {
-        const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
-        return success === false || success === 0 || String(success).toLowerCase() === 'false';
-    }
+private respuestaEsFallo(resp: any): boolean {
+const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
+return success === false || success === 0 || String(success).toLowerCase() === 'false';
+}
 
-    private esSpeiExitoso(resp: any): boolean {
-        const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
-        const codigo = resp?.code ?? resp?.error?.code ?? resp?.responseCode ?? rows?.code ??
-            rows?.error?.code ?? rows?.responseCode ?? resp?.data?.code ?? resp?.data?.error?.code ??
-            resp?.data?.responseCode ?? resp?.data?.rows?.code;
+private esSpeiExitoso(resp: any): boolean {
+const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
+const codigo = resp?.code ?? resp?.error?.code ?? resp?.responseCode ?? rows?.code ??
+rows?.error?.code ?? rows?.responseCode ?? resp?.data?.code ?? resp?.data?.error?.code ??
+resp?.data?.responseCode ?? resp?.data?.rows?.code;
 
-        return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
-    }
+return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
+}
 
-    private esSaldoInsuficiente(resp: any): boolean {
-        const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
-        return [resp?.responseCode, rows?.responseCode, resp?.data?.responseCode,
-            resp?.response?.responseCode, resp?.error?.responseCode]
-            .some(codigo => String(codigo) === '51');
-    }
+private esSaldoInsuficiente(resp: any): boolean {
+const rows = Array.isArray(resp?.rows) ? resp.rows[0] : resp?.rows;
+return [resp?.responseCode, rows?.responseCode, resp?.data?.responseCode,
+resp?.response?.responseCode, resp?.error?.responseCode]
+.some(codigo => String(codigo) === '51');
+}
 
-    private obtenerMensajeRespuesta(resp: any, respaldo: string): string {
-        return resp?.message || resp?.error?.message || resp?.data?.message ||
-            resp?.rows?.message || resp?.description || respaldo;
-    }
+private obtenerMensajeRespuesta(resp: any, respaldo: string): string {
+return resp?.message || resp?.error?.message || resp?.data?.message ||
+resp?.rows?.message || resp?.description || respaldo;
+}
 
-    private enmascararCuenta(cuenta: unknown): string {
-        const valor = String(cuenta || '');
-        if (!valor) return 'ND';
-        if (valor.includes('*')) return valor;
-        return `**** **** ${valor.slice(-4)}`;
-    }
+private enmascararCuenta(cuenta: unknown): string {
+const valor = String(cuenta || '');
+if (!valor) return 'ND';
+if (valor.includes('*')) return valor;
+return `**** **** ${valor.slice(-4)}`;
+}
 
-    private reiniciarFlujo(): void {
-        this.pasoActual = 1;
-        this.saldo = 0;
-        this.mostrarErrorImporte = false;
-        this.payloadPendiente = null;
-        this.token = '';
-        this.mostrarModalToken = false;
-        this.formulario.reset({
-            cuentaOr: '',
-            cuentaD: '',
-            fullName: '',
-            accountNumber: '',
-            cardNumberMask: '',
-            idInstitution: '',
-            nameInstitution: '',
-            importe: '',
-            concepto: '',
-            referencia: ''
-        });
-    }
+private reiniciarFlujo(): void {
+this.pasoActual = 1;
+this.saldo = 0;
+this.mostrarErrorImporte = false;
+this.payloadPendiente = null;
+this.token = '';
+this.mostrarModalToken = false;
+this.formulario.reset({
+cuentaOr: '',
+cuentaD: '',
+fullName: '',
+accountNumber: '',
+cardNumberMask: '',
+idInstitution: '',
+nameInstitution: '',
+importe: '',
+concepto: '',
+referencia: ''
+});
+}
 
-    private limpiarMensajeEnvio(): void {
-        this.mensajeEnvio = '';
-    }
+private limpiarMensajeEnvio(): void {
+this.mensajeEnvio = '';
+}
 
 }
