@@ -27,7 +27,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
       { ref: root, name: 'Entidad', levelType: 4, depth: 0 },
       { ref: child, name: 'Sucursal', levelType: 5, depth: 1 }
     ] }));
-    api.consultarLiquidacionNodo.and.returnValue(of({ success: true, dispersionAccount: null, cuentaCLConfirmada: null, hasPlatformAccess: false }));
+    api.consultarLiquidacionNodo.and.returnValue(of({ success: true, status: 31, permissions: {editLiquidation:true,editAccess:true}, dispersionAccount: null, cuentaCLConfirmada: null, hasPlatformAccess: false }));
     api.subirDocumentoNodo.and.returnValue(of({success:true}));
     api.consultarDocumentos.and.returnValue(of({ success: true, documents: [document] }));
     TestBed.configureTestingModule({ providers: [provideHttpClient(), { provide: ActivatedRoute, useValue: {} },
@@ -69,7 +69,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
 
   function load() { c.consultarCuentaComercio(); }
   function accountNetwork() {
-    api.consultarLiquidacionNodo.and.returnValue(of({ success: true, dispersionAccount: 'NETWORK', cuentaCLConfirmada: null, hasPlatformAccess: false }));
+    api.consultarLiquidacionNodo.and.returnValue(of({ success: true, status: 31, permissions: {editLiquidation:true,editAccess:true}, dispersionAccount: 'NETWORK', cuentaCLConfirmada: null, hasPlatformAccess: false }));
     load();
   }
   function fillAccess() {
@@ -174,7 +174,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
   });
 
   it('OTHER_BANK sin confirmación de cuenta CL sigue pendiente', () => {
-    api.consultarLiquidacionNodo.and.returnValue(of({ success: true, dispersionAccount: 'OTHER_BANK', cuentaCLConfirmada: null }));
+    api.consultarLiquidacionNodo.and.returnValue(of({ success: true, status: 31, permissions: {editLiquidation:true,editAccess:true}, dispersionAccount: 'OTHER_BANK', cuentaCLConfirmada: null }));
     load();
     expect(c.liquidacionCompleta).toBeFalse();
     expect(c.pasoActivo).toBe('liquidacion');
@@ -205,18 +205,19 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
 
   it('no deja que la liquidación tardía de la raíz cambie el estado de otra selección', () => {
     const old = new Subject<any>();
-    api.consultarLiquidacionNodo.and.returnValues(old, of({ success: true, dispersionAccount: null, cuentaCLConfirmada: null }));
+    api.consultarLiquidacionNodo.and.returnValues(old, of({ success: true, status: 31, permissions: {editLiquidation:true,editAccess:true}, dispersionAccount: null, cuentaCLConfirmada: null }));
     load(); c.seleccionarNodo(child);
-    old.next({ success: true, dispersionAccount: 'NETWORK', hasPlatformAccess: true }); old.complete();
+    old.next({ success: true, status: 31, permissions: {editLiquidation:true,editAccess:true}, dispersionAccount: 'NETWORK', hasPlatformAccess: true }); old.complete();
     expect(c.nodoSeleccionado).toBe(child);
     expect(c.liquidacionCompleta).toBeFalse();
     expect(c.accesosCompletos).toBeFalse();
   });
 
-  it('registra liquidación por nodeRef una sola vez y sólo confirma después de la respuesta', () => {
+  for (const [option, modality] of [['otros-bancos','OTHER_BANK'],['otros-bancos-en-red','OTHER_BANK_AND_NETWORK']])
+  it(`registra ${modality} por nodeRef una sola vez y sólo confirma después de la respuesta`, () => {
     load();
     const saved = new Subject<any>(); api.guardarLiquidacion.and.returnValue(saved);
-    c.liquidacionForm.patchValue({ cuentaFueraRed: 'otros-bancos', idInstitution: 1, idActivity: 2 });
+    c.liquidacionForm.patchValue({ cuentaFueraRed: option, idInstitution: 1, idActivity: 2 });
     c.liquidacionForm.disable();
     (c as any).cartaLiquidacionArchivo = new File(['%PDF-1.7'], 'carta.pdf', { type: 'application/pdf' });
     (c as any).caratulaEdcArchivo = new File(['%PDF-1.7'], 'edc.pdf', { type: 'application/pdf' });
@@ -224,6 +225,8 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(api.guardarLiquidacion).toHaveBeenCalledTimes(1);
     const body = api.guardarLiquidacion.calls.mostRecent().args[0];
     expect(body.get('nodeRef')).toBe(root);
+    expect(body.get('dispersionAccount')).toBe(modality);
+    expect(body.get('idStatus')).toBeNull();
     expect(JSON.parse(body.get('datosLiquidacion') as string).identifier).toBeUndefined();
     expect(c.liquidacionCompleta).toBeFalse();
     saved.next({ success: true }); saved.complete();
@@ -275,4 +278,80 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(c.documentosProspecto).toEqual([]);
     expect(c.liquidacionCompleta).toBeFalse();
   });
+  for (const status of [25, 26]) it(`estatus ${status}: cierra ambas secciones y bloquea envíos directos sin afectar documentos`, () => {
+    api.consultarLiquidacionNodo.and.returnValue(of({success:true,status,dispersionAccount:'NETWORK',
+      permissions:{editLiquidation:false,editAccess:false},hasPlatformAccess:false}));
+    load(); fillAccess();
+    expect(c.liquidacionPublicaBloqueada).toBeTrue();
+    expect(c.accesosPublicosBloqueados).toBeTrue();
+    c.pasoActivo='liquidacion';
+    c.alternarSeccionFinal('accesos');
+    expect(c.pasoActivo).toBe('liquidacion');
+    c.pasoActivo='accesos';c.alternarSeccionFinal('liquidacion');
+    expect(c.pasoActivo).toBe('accesos');
+    c.continuarLiquidacion();c.modalLiquidacion='en-red';c.aceptarModalLiquidacion();c.finalizar();
+    expect(api.guardarLiquidacion).not.toHaveBeenCalled();
+    expect(api.guardarDispersionEnRed).not.toHaveBeenCalled();
+    expect(api.guardarAccesos).not.toHaveBeenCalled();
+    expect(api.consultarDocumentos).toHaveBeenCalled();
+    expect(c.documentosVisibles.length).toBe(1);
+  });
+
+  for (const status of [32, 33]) it(`estatus ${status}: impide otra liquidación y conserva acceso permitido`, () => {
+    api.consultarLiquidacionNodo.and.returnValue(of({success:true,status,dispersionAccount:'OTHER_BANK',
+      permissions:{editLiquidation:false,editAccess:true},hasPlatformAccess:false}));
+    load();
+    expect(c.liquidacionPublicaBloqueada).toBeTrue();
+    expect(c.accesosPublicosBloqueados).toBeFalse();
+    c.continuarLiquidacion();c.modalLiquidacion='en-red';c.aceptarModalLiquidacion();
+    expect(api.guardarLiquidacion).not.toHaveBeenCalled();
+    expect(api.guardarDispersionEnRed).not.toHaveBeenCalled();
+  });
+
+  it('sin permisos de BFF no permite capturar aunque el árbol muestre 31', () => {
+    api.consultarLiquidacionNodo.and.returnValue(of({success:true,status:31,dispersionAccount:null}));
+    load();
+    expect(c.liquidacionPublicaBloqueada).toBeTrue();
+    expect(c.accesosPublicosBloqueados).toBeTrue();
+    c.modalLiquidacion='en-red';c.aceptarModalLiquidacion();c.finalizar();
+    expect(api.guardarDispersionEnRed).not.toHaveBeenCalled();
+    expect(api.guardarAccesos).not.toHaveBeenCalled();
+  });
+
+  it('muestra bloqueo y no renderiza formularios públicos en 25/26', () => {
+    spyOn(RegistroProspectoClienteComponent.prototype,'ngOnInit').and.stub();
+    const fixture=TestBed.createComponent(RegistroProspectoClienteComponent);
+    c=fixture.componentInstance;
+    c.link='fixture-link';c.cargando=false;c.showTokenModal=false;(c as any).tokenSmsValidado=true;
+    for(const status of [25,26]) {
+      api.consultarLiquidacionNodo.and.returnValue(of({success:true,status,dispersionAccount:null,
+        permissions:{editLiquidation:false,editAccess:false}}));
+      load();fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('no están habilitados');
+      expect(fixture.nativeElement.querySelector('app-step-liquidacion')).toBeNull();
+      expect(fixture.nativeElement.querySelector('app-step-accesos')).toBeNull();
+    }
+    fixture.destroy();
+  });
+
+  it('si el estatus cambia en el proveedor, revoca ambos permisos y no repite solicitudes', () => {
+    load();
+    api.guardarDispersionEnRed.and.returnValue(throwError(() => ({status:409,error:{code:'SEGUIMIENTO_STATUS_FORBIDDEN'}})));
+    c.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');c.modalLiquidacion='en-red';
+    c.aceptarModalLiquidacion();c.aceptarModalLiquidacion();c.continuarLiquidacion();c.finalizar();
+    expect(api.guardarDispersionEnRed).toHaveBeenCalledTimes(1);
+    expect(api.guardarLiquidacion).not.toHaveBeenCalled();expect(api.guardarAccesos).not.toHaveBeenCalled();
+    expect(c.liquidacionPublicaBloqueada).toBeTrue();expect(c.accesosPublicosBloqueados).toBeTrue();
+  });
+
+  it('en 33 muestra liquidación bancaria confirmada y conserva los accesos pendientes', () => {
+    api.consultarLiquidacionNodo.and.returnValue(of({success:true,status:33,dispersionAccount:'OTHER_BANK',
+      cuentaCLConfirmada:true,permissions:{editLiquidation:false,editAccess:true},hasPlatformAccess:false}));
+    load();
+    expect(c.liquidacionCompleta).toBeTrue();expect(c.pasoActivo).toBe('accesos');
+    expect(c.liquidacionPublicaBloqueada).toBeTrue();expect(c.accesosPublicosBloqueados).toBeFalse();
+    c.modalLiquidacion='en-red';c.aceptarModalLiquidacion();
+    expect(api.guardarDispersionEnRed).not.toHaveBeenCalled();expect(api.guardarLiquidacion).not.toHaveBeenCalled();
+  });
+
 });

@@ -1088,7 +1088,7 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.codigoNotificacionBff).toBe('');
   });
 
-  it('guardar revisión recarga 30 sin activar automáticamente aunque todos estén aprobados', () => {
+  it('guardar revisión consulta el estatus externo sin activar automáticamente aunque todos estén aprobados', () => {
     cargarRevision();
     component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
     component.guardarRevisionDocumentos();
@@ -1103,6 +1103,24 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.estatusDocumentalBff).toBe('30 - EN REVISIÓN DOCUMENTACIÓN');
     expect(component.mostrarRegistrarClienteDocumentos).toBeTrue();
     http.expectNone(r => r.method === 'POST');
+  });
+
+  for (const operation of ['review', 'register']) it(`${operation} conserva el estatus devuelto por el proveedor sin pedir otra escritura`, () => {
+    cargarRevision();
+    component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
+    (component as any).registroPermitidoBff = operation === 'register';
+    if (operation === 'register') component.registrarClienteProspecto();
+    else component.guardarRevisionDocumentos();
+    const write = http.expectOne(r => r.method === (operation === 'register' ? 'POST' : 'PUT'));
+    expect(write.request.body.idStatus).toBeUndefined();
+    write.flush({success:true});
+    const status = operation === 'register' ? '30' : '26';
+    http.expectOne(`/api/comercios/${ref}/contexto`).flush({...response(),commerce:{...response().commerce,status}});
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({success:true,
+      documents:[{ref:other,name:'Acta',status:'APPROVED'}],internalObservations:null,
+      permissions:{reviewDocuments:true,registerClient:operation === 'register',sendObservations:false,notificationEmail:null}});
+    expect(component.contextoBff?.commerce.status).toBe(status);
+    http.expectNone(r => r.method === 'PUT' || r.method === 'POST');
   });
 
   for (const operation of ['REVIEW', 'REGISTER']) it(`recarga tras ${operation} parcial sin reintentar escrituras`, () => {

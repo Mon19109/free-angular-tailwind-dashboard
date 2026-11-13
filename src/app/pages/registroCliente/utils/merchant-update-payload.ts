@@ -2,7 +2,7 @@ import { MerchantUpdateDataPayload } from '../../../services/merchant-update-dat
 
 type Registro = Record<string, unknown>;
 const camposCuenta = [
-  'typeAffiliation', 'idStatus', 'name', 'paternalSurname', 'maternalSurname', 'nameCommerce',
+  'typeAffiliation', 'name', 'paternalSurname', 'maternalSurname', 'nameCommerce',
   'businessName', 'idBussinesLine', 'businessActivityCode', 'idActivity', 'commerceGuid',
   'commerceAddress', 'rfc', 'curp', 'fiscalRegime', 'capitalRegime', 'contacts',
   'dispersionAccount', 'idbusinessModel', 'typePerson', 'activityDescription',

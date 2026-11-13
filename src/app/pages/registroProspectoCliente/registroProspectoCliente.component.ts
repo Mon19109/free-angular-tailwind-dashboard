@@ -219,6 +219,19 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   nodoSeleccionado = '';
   usuarioActivo = 'admin';
   cargandoCuenta = false;
+  private permisosPublicosNodo = '';
+  private liquidacionPermitidaPublica = false;
+  private accesosPermitidosPublicos = false;
+  estatusPublico: number | null = null;
+
+  get liquidacionPublicaBloqueada(): boolean {
+    return !this.modoInterno && (!this.liquidacionConsultada || this.permisosPublicosNodo !== this.nodoSeleccionado
+      || !this.liquidacionPermitidaPublica || this.pasosFinalesBloqueadosPorEstatus);
+  }
+  get accesosPublicosBloqueados(): boolean {
+    return !this.modoInterno && (!this.liquidacionConsultada || this.permisosPublicosNodo !== this.nodoSeleccionado
+      || !this.accesosPermitidosPublicos || this.pasosFinalesBloqueadosPorEstatus);
+  }
   liquidacionConsultada = false;
   liquidacionExistente = false;
   errorLiquidacion = '';
@@ -444,6 +457,7 @@ if (this.prospecto) this.consultarCuentaComercio();
       this.abrirAccesos();
       return;
     }
+    if (this.liquidacionPublicaBloqueada) return;
     if (this.liquidacionForm.controls.cuentaFueraRed.value === 'en-red') {
       this.modalLiquidacion = 'en-red';
       return;
@@ -560,15 +574,18 @@ const formData = new FormData();
     const resultado = respuesta as { success?: boolean };
 
     if (resultado?.success !== true) {
+      this.liquidacionPermitidaPublica = false;
       this.error = 'El BFF no confirmó el registro de liquidación.';
       return;
     }
 
+    this.liquidacionPermitidaPublica = false;
     this.liquidacionRegistrada = true;
     this.modalLiquidacion = 'guardada';
   },
           error: error => {
             if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
+            this.liquidacionPermitidaPublica = false;
             this.manejarErrorAutorizacionPublica(error);
             this.error =
               'No fue posible completar la liquidación. Ocurrió un problema al procesar la información. Por favor, contacta al administrador para verificar el estado de tu solicitud antes de volver a intentarlo.';
@@ -633,6 +650,7 @@ const formData = new FormData();
       return;
     }
     if (this.modalLiquidacion === 'en-red') {
+      if (this.liquidacionPublicaBloqueada) return;
       if (!this.modoInterno) {
   const nodeRef = this.nodoSeleccionado.trim();
 
@@ -653,16 +671,19 @@ const formData = new FormData();
       const resultado = respuesta as { success?: boolean };
 
       if (resultado?.success !== true) {
+        this.liquidacionPermitidaPublica = false;
         this.error = 'El BFF no confirmó la configuración de dispersión.';
         return;
       }
 
+      this.liquidacionPermitidaPublica = false;
       this.liquidacionRegistrada = true;
       this.modalLiquidacion = null;
       this.abrirAccesos();
     },
       error: error => {
         if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
+        this.liquidacionPermitidaPublica = false;
         this.manejarErrorAutorizacionPublica(error);
         this.error =
           'No fue posible confirmar la dispersión. Contacta al administrador antes de volver a intentarlo.';
@@ -695,6 +716,7 @@ const formData = new FormData();
   }
 
   private cambiarOpcionLiquidacion(valor: string): void {
+    if (this.liquidacionPublicaBloqueada) return;
     if (valor === 'en-red') this.modalLiquidacion = 'en-red';
     else this.opcionLiquidacionAnterior = valor;
     this.actualizarEstadoLiquidacion();
@@ -711,6 +733,7 @@ const formData = new FormData();
   }
 
   private abrirAccesos(): void {
+    if (this.accesosPublicosBloqueados) return;
     if (!this.liquidacionCompleta || this.cargandoCuenta || !this.nodoRequiereAccesos) return;
     this.error = '';
     if (this.soloLiquidacion) {
@@ -724,12 +747,14 @@ const formData = new FormData();
   }
 
   seleccionarArchivoLiquidacion(event: Event, tipo: 'carta' | 'edc'): void {
+    if (this.liquidacionPublicaBloqueada) return;
     const input = event.target as HTMLInputElement;
     const archivo = input.files?.[0] ?? null;
     this.asignarArchivoLiquidacion(archivo, tipo);
   }
 
   soltarArchivoLiquidacion(event: DragEvent, tipo: 'carta' | 'edc'): void {
+    if (this.liquidacionPublicaBloqueada) return;
     event.preventDefault();
     event.stopPropagation();
     const archivo = event.dataTransfer?.files?.[0] ?? null;
@@ -801,6 +826,7 @@ const formData = new FormData();
       this.seccionInternaChange.emit(this.seccionInterna === seccion ? null : seccion);
       return;
     }
+    if (seccion === 'liquidacion' ? this.liquidacionPublicaBloqueada : this.accesosPublicosBloqueados) return;
     if (seccion === 'liquidacion') this.volverLiquidacion();
     else if (this.liquidacionCompleta) this.abrirAccesos();
   }
@@ -829,7 +855,7 @@ const formData = new FormData();
   }
 
   private finalizarAccesosPublicos(): void {
-    if (!this.tokenSmsValidado || this.registroFinalizado || this.guardando || this.guardandoLiquidacion
+    if (this.accesosPublicosBloqueados || !this.tokenSmsValidado || this.registroFinalizado || this.guardando || this.guardandoLiquidacion
       || this.cargandoCuenta || !this.nodoRequiereAccesos || this.accesosCompletos) return;
     this.actualizarValidadoresAccesos();
     this.accesosForm.markAllAsTouched();
@@ -869,6 +895,7 @@ const formData = new FormData();
       },
       error: error => {
         if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
+        this.accesosPermitidosPublicos = false;
         this.manejarErrorAutorizacionPublica(error);
         this.error = this.accesosCompletos
           ? 'Los accesos están confirmados, pero no fue posible confirmar la finalización. Contacta al administrador; no se repetirán los registros.'
@@ -1516,6 +1543,7 @@ const formData = new FormData();
   }
 
   private consultarCuentaNodoPublico(): void {
+    this.permisosPublicosNodo = '';
     if (!this.tokenSmsValidado || this.errorProspecto || !this.documentosDelNodoDisponibles) return;
     const node = this.nodoSeleccionado, version = ++this.consultaInformacionVersion, navigation = this.seguimientoVersion;
     const vigente = () => version === this.consultaInformacionVersion && node === this.nodoSeleccionado
@@ -1549,6 +1577,7 @@ const formData = new FormData();
   }
 
   private consultarLiquidacionNodo(): void {
+    this.permisosPublicosNodo = '';
     if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto)) return;
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
     if (!nodo || !this.nodoRequiereAccesos) return;
@@ -1581,6 +1610,8 @@ const formData = new FormData();
           success?: boolean;
           dispersionAccount?: string | null;
           cuentaCLConfirmada?: boolean | null;
+          status?: number | null;
+          permissions?: { editLiquidation?: boolean; editAccess?: boolean };
           hasPlatformAccess?: boolean | null;
           typeOfBusiness?: number | null;
         };
@@ -1589,6 +1620,11 @@ const formData = new FormData();
           this.errorLiquidacion = 'No fue posible consultar la liquidación.';
           return;
         }
+
+        this.estatusPublico = Number.isSafeInteger(datos.status) ? datos.status! : null;
+        this.liquidacionPermitidaPublica = datos.permissions?.editLiquidation === true;
+        this.accesosPermitidosPublicos = datos.permissions?.editAccess === true;
+        this.permisosPublicosNodo = nodeRef;
 
         const opciones: Record<string, string> = {
           NETWORK: 'en-red',
@@ -1603,7 +1639,8 @@ const formData = new FormData();
 
         this.cuentaComercio = { ...this.cuentaComercio, dispersionAccount: datos.dispersionAccount, hasPlatformAccess: datos.hasPlatformAccess, typeOfBusiness: datos.typeOfBusiness };
         this.liquidacionConsultada = true;
-       this.liquidacionExistente = !!opcion;
+        this.liquidacionExistente = opcion === 'en-red'
+          || (!!opcion && datos.cuentaCLConfirmada === true);
         this.liquidacionRegistrada = false;
 
         if (opcion) {
@@ -1701,14 +1738,9 @@ const formData = new FormData();
   }
 
   get pasosFinalesBloqueadosPorEstatus(): boolean {
-  if (this.modoInterno) return false;
-
-  const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
-
-  if (!nodo || !nodo.status) return false;
-
-  return [26, 30].includes(nodo.status);
-}
+    return !this.modoInterno && (this.permisosPublicosNodo !== this.nodoSeleccionado
+      || this.estatusPublico === null || [25, 26].includes(this.estatusPublico));
+  }
 
   get nodoRequiereAccesos(): boolean {
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
@@ -1842,6 +1874,11 @@ const formData = new FormData();
   private manejarErrorAutorizacionPublica(error: unknown): void {
     if (this.modoInterno) return;
     const respuesta = error as { status?: number; error?: { code?: string } };
+    if (respuesta.error?.code === 'SEGUIMIENTO_STATUS_FORBIDDEN') {
+      this.permisosPublicosNodo = '';
+      this.liquidacionPermitidaPublica = false;
+      this.accesosPermitidosPublicos = false;
+    }
     if (respuesta?.status === 401 || (respuesta?.status === 403
       && ['SEGUIMIENTO_SMS_REQUIRED', 'SEGUIMIENTO_SCOPE_INVALID'].includes(respuesta.error?.code ?? ''))) {
       this.mostrarErrorProspecto('La autorización del seguimiento ya no está vigente. Abre nuevamente el enlace para verificar el acceso.');

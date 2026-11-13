@@ -32,4 +32,17 @@ describe('Payload de edición de comercio', () => {
     expect(resultado['fiscalRegime']).toBe('606');
     expect(resultado['idActivity']).toBe(27);
   });
+  it('no copia ni aplica idStatus al guardar información general', () => {
+    for (const idStatus of [25, 26, 30, 31, 33]) {
+      const original = { ...cuenta, idStatus };
+      const resultado = crearMerchantUpdatePayload(original,
+        { nombreComercial: 'Antes', idStatus }, { nombreComercial: 'Después', idStatus: 26 });
+      expect(Object.hasOwn(resultado, 'idStatus')).toBeFalse();
+      expect(resultado['nameCommerce']).toBe('Después');
+      expect(resultado['commerceAddress']).toEqual(original.commerceAddress);
+      expect(resultado['contacts']).toEqual(original.contacts);
+      expect(original.idStatus).toBe(idStatus);
+    }
+  });
+
 });

@@ -2462,7 +2462,7 @@ this.comercioForm.patchValue(
         if (!vigente()) return;
         this.registrandoCliente = false;
         if (error.error?.code === 'COMERCIOS_REGISTER_PARTIALLY_COMPLETED') {
-          this.mensajeObservacionesCliente = 'La activación se confirmó, pero no se pudo verificar el estatus final. No repitas el registro; verifica el comercio.';
+          this.mensajeObservacionesCliente = 'La activación se confirmó, pero no se pudo completar la verificación final de sesión y referencias. No repitas el registro; vuelve a consultar el comercio.';
           this.refrescarEstadoDocumentalBff();
           return;
         }
@@ -2877,7 +2877,7 @@ this.comercioForm.patchValue(
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
         if (error.error?.code === 'COMERCIOS_REVIEW_PARTIALLY_COMPLETED') {
-          this.mensajeObservacionesCliente = 'La revisión se guardó, pero no se pudo verificar el cambio de estatus. Verifica el comercio antes de continuar.';
+          this.mensajeObservacionesCliente = 'La revisión se guardó, pero no se pudo completar la verificación final de sesión y referencias. Vuelve a consultar el comercio antes de continuar.';
           this.refrescarEstadoDocumentalBff();
           return;
         }

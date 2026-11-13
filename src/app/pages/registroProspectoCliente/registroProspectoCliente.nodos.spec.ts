@@ -11,7 +11,7 @@ describe('Seguimiento: consultas independientes por nodo', () => {
   let service: jasmine.SpyObj<SeguimientoProspectoService>;
   const documentos = (name: string): { success: true; documents: DocumentoSeguimiento[] } => ({ success: true,
     documents: [{ ref: name, name, documentType: null, status: 'APPROVED' }] });
-  const liquidacion = { success: true, dispersionAccount: 'NETWORK', cuentaCLConfirmada: true, hasPlatformAccess: false };
+  const liquidacion = { success: true, status: 31, permissions: {editLiquidation:true,editAccess:true}, dispersionAccount: 'NETWORK', cuentaCLConfirmada: true, hasPlatformAccess: false };
   beforeEach(() => {
     service = jasmine.createSpyObj<SeguimientoProspectoService>('Seguimiento', ['consultarDocumentos', 'consultarLiquidacionNodo', 'consultarCuenta']);
     service.consultarCuenta.and.callFake(ref => of({ success: true, entityInfo: { typePerson: 'PM', businessName: ref, nameCommerce: ref } }));
@@ -45,7 +45,7 @@ describe('Seguimiento: consultas independientes por nodo', () => {
     service.consultarLiquidacionNodo.and.returnValue(of(liquidacion));
     c.seleccionarNodo('sucursal'); c.seleccionarNodo('entidad');
     oldDocs.next(documentos('respuesta anterior'));
-    oldSettlement.next({ success: true, dispersionAccount: null, hasPlatformAccess: true });
+    oldSettlement.next({ success: true, status: 31, permissions: {editLiquidation:true,editAccess:true}, dispersionAccount: null, hasPlatformAccess: true });
     oldDocs.complete(); oldSettlement.complete();
     expect(c.documentosVisibles[0].nombre).toBe('entidad');
     expect(c.liquidacionExistente).toBeTrue(); expect(c.cargandoCuenta).toBeFalse();
