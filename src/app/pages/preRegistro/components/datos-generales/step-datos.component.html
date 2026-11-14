@@ -116,7 +116,7 @@
       }
 
       @if (tiene('giroComercial') && esPersonaMoral) {
-      <div class="field">
+      <div class="field" [style.display]="preregistroPublico ? 'none' : null">
         <label for="giroComercial">Familia del giro <b>*</b></label>
         <input id="giroComercial" formControlName="giroComercial" readonly placeholder="Selecciona desde Búsqueda Avanzada"
           [class.invalid]="esInvalido('giroComercial')" />
@@ -127,13 +127,13 @@
       @if (tiene('descripcionGiro') && esPersonaMoral) {
       <div class="field">
         <label for="descripcionGiro">Descripción del giro <b>*</b></label>
-        <input id="descripcionGiro" formControlName="descripcionGiro" readonly placeholder="Selecciona desde Búsqueda Avanzada" [class.invalid]="esInvalido('descripcionGiro')" />
+        <input id="descripcionGiro" formControlName="descripcionGiro" readonly [placeholder]="preregistroPublico ? 'Selecciona aquí giro comercial' : 'Selecciona desde Búsqueda Avanzada'" [class.invalid]="esInvalido('descripcionGiro')" />
         @if (esInvalido('descripcionGiro')) { <small>{{ mensajeCampo('descripcionGiro') }}</small> }
       </div>
       }
 
       @if (tiene('mcc') && esPersonaMoral) {
-      <div class="field">
+      <div class="field" [style.display]="preregistroPublico ? 'none' : null">
         <label for="mcc">MCC <b>*</b></label>
         <input id="mcc" formControlName="mcc" readonly placeholder="Selecciona desde Búsqueda Avanzada" [class.invalid]="esInvalido('mcc')" />
         @if (esInvalido('mcc')) { <small>{{ mensajeCampo('mcc') }}</small> }
@@ -144,7 +144,7 @@
       <div class="field field-btn-avanzada">
         <span class="label-spacer"></span>
         <button type="button" class="btn-busqueda-avanzada" (click)="abrirModalGiro()">
-          Búsqueda Avanzada
+          {{ preregistroPublico ? 'SELECCIONA AQUÍ GIRO COMERCIAL' : 'Búsqueda Avanzada' }}
         </button>
       </div>
       }
@@ -514,7 +514,12 @@
   <div class="step-actions">
     <button type="button" class="button ghost" (click)="volver.emit()">Anterior</button>
     @if (mostrarContinuar) {
-    <button type="submit" class="button primary">{{ textoContinuar }}</button>
+    <button type="submit" class="button primary" [class.preregistro-siguiente]="preregistroPublico && textoContinuar === 'SIGUIENTE'">
+      @if (preregistroPublico && textoContinuar === 'SIGUIENTE') {
+      <span class="continuar-medida" aria-hidden="true">Guardar y continuar</span>
+      }
+      <span>{{ textoContinuar }}</span>
+    </button>
     }
   </div>
 

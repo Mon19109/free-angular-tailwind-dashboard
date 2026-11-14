@@ -473,7 +473,7 @@ export class PreRegistroComponent {
 
   // ── Formularios ──────────────────────────────────────────────────────────────
   readonly afiliacionForm = this.fb.nonNullable.group({
-    afiliacion: ['', [Validators.required, Validators.maxLength(20), Validators.pattern(/^[0-9]+$/)]],
+    afiliacion: ['2501112', [Validators.required, Validators.maxLength(20), Validators.pattern(/^[0-9]+$/)]],
   });
 
   readonly comercioForm = this.fb.nonNullable.group({
@@ -1710,7 +1710,7 @@ export class PreRegistroComponent {
           this.validandoAfiliacion = false;
           if (version !== this.versionAfiliacion) return;
           if (response?.success !== true) {
-            this.errorAfiliacion = response?.error?.message || 'No fue posible validar el número de afiliación.';
+            this.errorAfiliacion = response?.error?.message || response?.message || 'No fue posible validar el número de afiliación.';
             return;
           }
           if (typeof response.comprobante !== 'string' || !/^[0-9a-f]{64}$/.test(response.comprobante)) {
@@ -1743,7 +1743,11 @@ export class PreRegistroComponent {
               ? 'El servicio de afiliación no está disponible en este dominio (HTTP 404). Sigue pendiente habilitar el acceso público a /preregistro/validar.'
               : error instanceof HttpErrorResponse && error.status === 0
                 ? 'No se pudo conectar con el servicio de afiliación. Revisa tu conexión y vuelve a validar.'
-                : 'No fue posible validar la afiliación. Revisa el número e intenta validarlo nuevamente.';
+                : error instanceof HttpErrorResponse && error.status >= 500
+                  ? 'El servicio de validación de afiliación no está disponible temporalmente. Intenta nuevamente en unos momentos.'
+                  : error instanceof HttpErrorResponse && error.status === 422 && error.error?.code === 'AFILIACION_REJECTED'
+                    ? error.error.message || 'El proveedor rechazó la validación de la afiliación. Revisa el número e intenta nuevamente.'
+                    : 'No fue posible validar la afiliación. Revisa el número e intenta validarlo nuevamente.';
         },
       });
   }

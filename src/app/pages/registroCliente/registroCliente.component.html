@@ -76,6 +76,11 @@
           </div>
         </div>
 
+        <div *ngIf="nivelSeleccionado === 'caja'" role="note"
+          class="mb-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-white/5 dark:text-gray-300">
+          Usuario de Cajas para operar la terminal TPV
+        </div>
+
         <p *ngIf="soloConsulta && !modoContextoBff" class="consulta-indicaciones" role="status">Selecciona un nodo para consultar o editar sus datos. La revisión de documentos corresponde al administrador.</p>
         <p *ngIf="errorCuentaComercio" class="registration-message error" role="alert">{{ errorCuentaComercio }}</p>
         <p *ngIf="nivelSeleccionado !== 'caja' && errorDocumentosProspecto" class="registration-message error" role="alert">{{ errorDocumentosProspecto }}</p>

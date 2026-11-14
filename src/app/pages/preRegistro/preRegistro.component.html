@@ -318,6 +318,11 @@
             }
             @switch (paso.numero) {
             @case (1) {
+            @if (comercioForm.getRawValue().nivel === 'Caja') {
+            <div role="note" class="mb-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-white/5 dark:text-gray-300">
+              Usuario de Cajas para operar la terminal TPV
+            </div>
+            }
             <app-step-comercio [form]="comercioForm" [datosForm]="datosForm" [niveles]="nivelesComercioVisibles" [tiposComercio]="tiposComercio"
               [nombreCaja]="nombreCajaSeleccionada"
               [editarNombreCaja]="true"
@@ -330,7 +335,7 @@
               (continuar)="continuarComercio()" (volver)="volverDesdeComercio()" (abrirComisionista)="mostrarComisionista = true" />
             }
             @case (2) {
-            <app-step-datos [preregistroPublico]="true" [form]="datosForm" [campos]="camposDatosGenerales" [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' ||
+            <app-step-datos textoContinuar="SIGUIENTE" [preregistroPublico]="true" [form]="datosForm" [campos]="camposDatosGenerales" [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' ||
                 comercioForm.getRawValue().nivel === 'Comisionista' 
                 ? comercioForm.getRawValue().nivel 
                 : comercioForm.getRawValue().tipoComercio" [regimenesFiscales]="datos.regimenesFiscales ?? []"

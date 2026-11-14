@@ -3425,3 +3425,16 @@ small {
   grid-template-columns: 44px minmax(220px, 1fr) minmax(130px, .5fr) 116px;
   min-width: 570px;
 }
+
+/* Conserva el ancho de la etiqueta anterior solo en Datos Generales de Preregistro. */
+.button.preregistro-siguiente {
+  display: inline-grid;
+}
+
+.preregistro-siguiente > span {
+  grid-area: 1 / 1;
+}
+
+.preregistro-siguiente .continuar-medida {
+  visibility: hidden;
+}
