@@ -56,8 +56,8 @@ export class DashboardPreregistroClientesComponent {
   { paso: 4, nombre: 'PENDIENTE CUENTAS LIQUIDACIÓN', status: '31', color: '#ec4899' },
   { paso: 5, nombre: 'EN VALIDACIÓN CARTA Y CARÁTULA EDC', status: '33', color: '#f43f5e' },
   { paso: 6, nombre: 'PENDIENTE DE AFILIACIÓN', status: '34', color: '#f97316' },
-  { paso: 7, nombre: 'PENDIENTE FIRMA DE CONTRATO', status: 'PENDIENTE_FIRMA_CONTRATO', color: '#eab308' },
-  { paso: 8, nombre: 'CLIENTE ', status: '19', color: '#10b981' }
+  { paso: 7, nombre: 'ACCESO A CLIENTE', status: '19', color: '#10b981' },
+  { paso: 8, nombre: 'PENDIENTE FIRMA DE CONTRATO', status: 'PENDIENTE_FIRMA_CONTRATO', color: '#eab308' }
 ];
 
   pasoSeleccionado: number | null = 1;
@@ -167,11 +167,12 @@ totalesPorPaso: Record<number, number | null> = {};
     '34': 6,
     'PENDIENTE_DE_AFILIACION': 6,
 
-    'PENDIENTE_FIRMA_CONTRATO': 7,
-    'PENDIENTE_FIRMA_DE_CONTRATO': 7,
+    'PENDIENTE_FIRMA_CONTRATO': 8,
+    'PENDIENTE_FIRMA_DE_CONTRATO': 8,
 
-    '19': 8,
-    'PENDIENTE_AUTORIZACION_CORE': 8
+    '19': 7,
+    'PENDIENTE_AUTORIZACION_CORE': 7
+
   };
 
   return equivalencias[valor] ?? null;
