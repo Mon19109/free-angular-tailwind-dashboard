@@ -1,3 +1,4 @@
+import { DOCUMENTOS_ADICIONALES, documentoAdicional, archivoAdicionalValido } from '../../shared/utils/documentos-adicionales';
 import { SessionRefreshService } from '../../services/session-refresh.service';
 import { AuthService } from '../../services/auth.service';
 import { ConsultaComerciosService, ComercioContexto } from '../../services/consulta-comercios.service';
@@ -524,7 +525,8 @@ enviarCredenciales(): void {
     { numero: 12, nombre: 'Identificación Oficial del Representante Legal', obligatorio: false },
     { numero: 13, nombre: 'Identificación Oficial de un tercero', obligatorio: false },
     { numero: 14, nombre: 'Carátula de Estado Cuenta para Liquidación', obligatorio: true },
-    { numero: 15, nombre: 'Carta de Liquidación Otros Bancos', obligatorio: true }
+    { numero: 15, nombre: 'Carta de Liquidación Otros Bancos', obligatorio: true },
+    ...DOCUMENTOS_ADICIONALES
   ];
 
   readonly documentosPorTipoComercio: Record<string, Array<Pick<DocumentoRequerido, 'numero' | 'obligatorio'>>> = {
@@ -2650,7 +2652,7 @@ this.comercioForm.patchValue(
       this.documentoCatalogoDesdeProspecto(documento, this.nombreDocumentoDesdeProspecto(documento))?.numero
     ));
     return this.documentos.filter(documento => !cargados.has(documento.numero)
-      && (!this.modoContextoBff || documento.numero <= 14));
+      && (!this.modoContextoBff || documento.numero <= 14 || !!documentoAdicional(documento.numero)));
   }
 
   get puedeSubirDocumentoBff(): boolean {
@@ -2675,8 +2677,9 @@ this.comercioForm.patchValue(
     const tipos: Record<string, string> = esImagen
       ? { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' }
       : { pdf: 'application/pdf' };
-    if (!tipos[extension] || (archivo.type && archivo.type !== tipos[extension]) || archivo.size <= 0 || archivo.size > 10 * 1024 * 1024) {
-      this.mensajeCargaDocumento = `Selecciona un archivo ${esImagen ? 'PNG o JPG' : 'PDF'} válido, de máximo 10 MB.`;
+    const adicional = documentoAdicional(documento.numero);
+    if (adicional ? !archivoAdicionalValido(archivo, documento.numero) : (!tipos[extension] || (archivo.type && archivo.type !== tipos[extension]) || archivo.size <= 0 || archivo.size > 10 * 1024 * 1024)) {
+      this.mensajeCargaDocumento = `Selecciona un archivo ${adicional?.extension.toUpperCase() ?? (esImagen ? 'PNG o JPG' : 'PDF')} válido, de máximo 10 MB.`;
       return;
     }
     if (this.modoContextoBff) {
@@ -2711,7 +2714,7 @@ this.comercioForm.patchValue(
       10: 'CONS', 11: 'EFIRMA', 12: 'INERL', 13: 'INETER',
       14: 'CARATULA_EDO_CTA', 15: 'CARTA_LIQUIDACION',
     };
-    const sufijo = sufijos[documento.numero];
+    const sufijo = adicional?.sufijo ?? sufijos[documento.numero];
     if (!sufijo) return;
     const nodoId = this.nodoSeleccionado;
     const token = this.sesionPortal.getToken() || '';
@@ -3664,7 +3667,7 @@ this.comercioForm.patchValue(
       CARTA_LIQ: 15,
     };
 
-    const numero = numeroPorSufijo[sufijo];
+    const numero = DOCUMENTOS_ADICIONALES.find(documento => documento.sufijo === sufijo || documento.sufijo === documentoProspecto.documentType)?.numero ?? numeroPorSufijo[sufijo];
     if (numero) return this.documentos.find(documento => documento.numero === numero);
 
     const nombreNormalizado = this.normalizarTexto(nombre);
@@ -3697,7 +3700,7 @@ this.comercioForm.patchValue(
       CARTA_LIQ: 'Carta de Liquidación Otros Bancos',
     };
 
-    return nombresPorSufijo[sufijo] ?? this.nombreArchivoDesdeS3Key(s3Key) ?? 'Documento del comercio';
+    return DOCUMENTOS_ADICIONALES.find(documento => documento.sufijo === sufijo)?.nombre ?? nombresPorSufijo[sufijo] ?? this.nombreArchivoDesdeS3Key(s3Key) ?? 'Documento del comercio';
   }
 
   private sufijoDocumentoDesdeS3Key(s3Key: string): string {

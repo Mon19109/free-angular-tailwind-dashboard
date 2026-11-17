@@ -1,3 +1,4 @@
+import { documentoAdicional } from '../../../../shared/utils/documentos-adicionales';
 import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DocumentoRequerido } from '../../models/preregistro.models';
@@ -71,6 +72,25 @@ export class StepDocumentosComponent implements OnChanges {
 
   get documentoNuevo(): DocumentoRequerido | undefined {
     return this.documentosDisponibles.find(documento => documento.numero === this.tipoDocumentoNuevo);
+  }
+
+  etiquetaDocumentoDisponible(documento: DocumentoRequerido): string {
+    const adicional = documentoAdicional(documento.numero);
+    return adicional ? `${documento.nombre} .${adicional.extension.toUpperCase()}` : documento.nombre;
+  }
+
+  get formatosDocumentoNuevo(): string {
+    const adicional = documentoAdicional(this.documentoNuevo?.numero);
+    if (adicional) return `.${adicional.extension},${adicional.mime}`;
+    return this.cargaPublica ? 'application/pdf,image/png,image/jpeg'
+      : this.documentoNuevo?.nombre.toLowerCase().startsWith('imagen')
+        ? '.png,.jpg,.jpeg,image/png,image/jpeg' : '.pdf,application/pdf';
+  }
+
+  get ayudaDocumentoNuevo(): string {
+    const adicional = documentoAdicional(this.documentoNuevo?.numero);
+    return adicional ? `Formato ${adicional.extension.toUpperCase()}.`
+      : 'PDF para documentos; PNG o JPG para imágenes.';
   }
 
   elegirArchivoNuevo(event: Event): void {

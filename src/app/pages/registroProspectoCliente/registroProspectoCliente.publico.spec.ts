@@ -110,6 +110,26 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(api.consultarDocumentos).toHaveBeenCalledTimes(3);
   });
 
+  for (const numero of [16, 17, 18]) it(`carga el nuevo documento público ${numero} con su formato`, async () => {
+    load(); c.seleccionarNodo(child);
+    const documento = c.documentosCargaPublica.find(doc => doc.numero === numero)!;
+    const archivo = numero === 17
+      ? new File([new Uint8Array([80,75,3,4,0,0,0,0])], 'catalogo.XLSM', { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' })
+      : new File(['%PDF-1.4'], 'documento.PDF', { type: 'application/pdf' });
+    await c.subirDocumentoPublico({ archivo, documento });
+    expect(api.subirDocumentoNodo).toHaveBeenCalledWith(child, numero, archivo);
+  });
+
+  it('rechaza extensión incorrecta y contenido XLSM inválido', async () => {
+    load();
+    const documento = c.documentosCargaPublica.find(doc => doc.numero === 17)!;
+    for (const archivo of [new File(['%PDF-1.4'], 'catalogo.pdf', { type: 'application/pdf' }),
+      new File(['invalid'], 'catalogo.xlsm', { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' })]) {
+      await c.subirDocumentoPublico({ archivo, documento });
+    }
+    expect(api.subirDocumentoNodo).not.toHaveBeenCalled();
+  });
+
   it('rechaza la firma binaria inválida sin enviar el archivo', async () => {
     load();
     await c.subirDocumentoPublico({ archivo: new File(['not-pdf'], 'file.pdf', { type: 'application/pdf' }),

@@ -650,6 +650,36 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(component.documentosDisponiblesParaSubir.some(doc => doc.numero === 1)).toBeFalse();
   });
 
+  for (const [numero, extension, mime] of [
+    [16, 'pdf', 'application/pdf'],
+    [17, 'xlsm', 'application/vnd.ms-excel.sheet.macroEnabled.12'],
+    [18, 'pdf', 'application/pdf'],
+  ] as const) it(`sube el nuevo documento ${numero} y lo retira de los disponibles`, () => {
+    cargarRevision();
+    const documento = component.documentosDisponiblesParaSubir.find(doc => doc.numero === numero)!;
+    expect(documento).toBeDefined();
+    component.subirDocumentoFaltante({ archivo: new File(['fixture'], `archivo.${extension}`, { type: mime }), documento });
+    const upload = http.expectOne(request => request.method === 'POST');
+    expect(upload.request.body.get('documentos')).toBe(JSON.stringify([{ numeroDocumento: numero }]));
+    upload.flush({ success: true, uploaded: 1 });
+    http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true,
+      documents: [{ ref: other, name: documento.nombre, status: 'IN_REVIEW' }],
+      permissions: { reviewDocuments: true, sendObservations: false, notificationEmail: null } });
+    expect(component.documentosDisponiblesParaSubir.some(doc => doc.numero === numero)).toBeFalse();
+  });
+
+  it('rechaza PDF para catálogo y XLSM para los nuevos documentos PDF', () => {
+    cargarRevision();
+    for (const numero of [16, 17, 18]) {
+      const documento = component.documentosDisponiblesParaSubir.find(doc => doc.numero === numero)!;
+      const archivo = numero === 17 ? new File(['%PDF-1.4'], 'archivo.pdf', { type: 'application/pdf' })
+        : new File(['PK'], 'archivo.xlsm', { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
+      component.subirDocumentoFaltante({ archivo, documento });
+      expect(component.mensajeCargaDocumento).toContain('válido');
+    }
+    http.expectNone(request => request.method === 'POST');
+  });
+
   it('muestra Agregar documento solo al rol 2 con permiso y lectura válidos', () => {
     http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
     const fixture = TestBed.createComponent(RegistroClienteComponent);

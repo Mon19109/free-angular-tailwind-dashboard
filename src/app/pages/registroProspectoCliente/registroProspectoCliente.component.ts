@@ -1,3 +1,4 @@
+import { DOCUMENTOS_ADICIONALES, documentoAdicional, archivoAdicionalValido } from '../../shared/utils/documentos-adicionales';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
@@ -1354,24 +1355,28 @@ const formData = new FormData();
     return !this.modoInterno && this.tokenSmsValidado && !!node && node.levelType !== 6 && node.nivel !== 'caja';
   }
   get documentosCargaPublica(): DocumentoRequerido[] {
-    return this.tiposDocumentoPublico.map((nombre, index) => ({ numero: index + 1, nombre, obligatorio: false }));
+    return [...this.tiposDocumentoPublico.map((nombre, index) => ({ numero: index + 1, nombre, obligatorio: false })), ...DOCUMENTOS_ADICIONALES];
   }
   async subirDocumentoPublico(event: { archivo: File; documento: DocumentoRequerido }): Promise<void> {
     const file = event.archivo;
     if (!file || !this.permiteCargaPublica || this.subiendoDocumentoPublico) return;
-    if (!file.size || file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) {
+    if (!this.documentosCargaPublica.some(documento => documento.numero === event.documento.numero)) return;
+    const adicional = documentoAdicional(event.documento.numero);
+    if (adicional ? !archivoAdicionalValido(file, event.documento.numero) : (!file.size || file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/png', 'image/jpeg'].includes(file.type))) {
+      if (adicional) { this.mensajeDocumentoPublico = `Selecciona un archivo ${adicional.extension.toUpperCase()} válido de hasta 10 MiB.`; return; }
       this.mensajeDocumentoPublico = 'Selecciona un PDF, PNG o JPEG de hasta 10 MiB.'; return;
     }
     const node = this.nodoSeleccionado, navigation = this.seguimientoVersion;
     this.subiendoDocumentoPublico = true;
     try {
       const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
-      const signature = file.type === 'application/pdf' ? [37,80,68,70,45]
+      const signature = adicional?.extension === 'xlsm' ? [80,75,3,4]
+        : adicional?.extension === 'pdf' || file.type === 'application/pdf' ? [37,80,68,70,45]
         : file.type === 'image/png' ? [137,80,78,71,13,10,26,10] : [255,216,255];
       if (!signature.every((value, i) => bytes[i] === value)) throw new Error('Invalid signature');
     } catch {
       this.subiendoDocumentoPublico = false;
-      this.mensajeDocumentoPublico = 'El contenido del archivo no coincide con un PDF, PNG o JPEG válido.'; return;
+      this.mensajeDocumentoPublico = adicional ? `El contenido del archivo no coincide con un ${adicional.extension.toUpperCase()} válido.` : 'El contenido del archivo no coincide con un PDF, PNG o JPEG válido.'; return;
     }
     this.numeroDocumentoPublico = event.documento.numero;
     if (node !== this.nodoSeleccionado || navigation !== this.seguimientoVersion || !this.permiteCargaPublica) { this.subiendoDocumentoPublico = false; return; }
