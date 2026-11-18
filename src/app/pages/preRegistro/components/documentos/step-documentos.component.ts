@@ -76,7 +76,7 @@ export class StepDocumentosComponent implements OnChanges {
 
   etiquetaDocumentoDisponible(documento: DocumentoRequerido): string {
     const adicional = documentoAdicional(documento.numero);
-    return adicional ? `${documento.nombre} .${adicional.extension.toUpperCase()}` : documento.nombre;
+   return documento.nombre;
   }
 
   get formatosDocumentoNuevo(): string {
