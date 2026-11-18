@@ -190,7 +190,7 @@ export class PreRegistroComponent {
 
   readonly niveles = ['Sub Afiliado', 'Entidad', 'Sucursal', 'Caja', 'Referenciador', 'Comisionista'];
   readonly modosReserva: ModoReserva[] = ['NINGUNO', 'MANUAL', 'TRANSACCIONAL', 'AUTOMÁTICO', 'COMPLETO'];
-  readonly tiposCuenta = ['CLABE', 'SPEI', 'Tarjeta'];
+  readonly tiposCuenta = ['CLABE'];
   readonly tiposPersona = ['PF', 'PM'];
   private readonly bancosPorClaveClabe: Record<string, string> = {
     '002': 'BANAMEX',
@@ -801,7 +801,7 @@ export class PreRegistroComponent {
     correoBeneficiario: ['', [Validators.required, Validators.email]],
     direccionBeneficiario: ['', Validators.required], rfcBeneficiario: ['', [Validators.required, Validators.maxLength(13), this.rfcValidator()]],
     actividadBeneficiario: ['', Validators.required], giroBeneficiario: ['', Validators.required],
-    tipoCuenta: ['', Validators.required],
+    tipoCuenta: ['CLABE', Validators.required],
     cuentaClabe: ['', Validators.required],
     nombreBanco: ['', Validators.required], direccionBanco: ['', Validators.required],
     telefonoBanco: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10), Validators.pattern(/^\d{10}$/)]],
@@ -2922,7 +2922,7 @@ maternalSurname: tipoPersona === 'PF'
     this.comisionistaForm.reset({ tipo: 'existente', afiliacion: '', correo: '', confirmarCorreo: '', telefono: '', nombre: '', paterno: '', materno: '', rfc: '' });
     this.datosForm.reset({ razonSocial: '', nombreComercial: '', rfc: '', regimenFiscal: '', giroComercial: '', descripcionGiro: '', mcc: '', mismaInfoAcceso: false, mismaInfoAccesoRepresentante: false, nombreAcceso: '', apellidoPaternoAcceso: '', apellidoMaternoAcceso: '', nombre: '', apellidoPaterno: '', apellidoMaterno: '', curp: '', actividad: '', actividadId: '', tipoPersona: '', correo: '', telefono: '', departamento: '', ciudad: '', direccionComercial: '', nombreContactoComercial: '', apellidoPaternoContactoComercial: '', apellidoMaternoContactoComercial: '' });
     this.accesosForm.reset({ modoReserva: 'NINGUNO', cajasTPV: '1', tieneSupervisor: 'si', reservaSplit: '', adminNombre: '', adminPaterno: '', adminMaterno: '', adminCorreo: '', adminConfirmarCorreo: '', adminTelefono: '', perfilReservaNombre: '', perfilReservaPaterno: '', perfilReservaMaterno: '', perfilReservaCorreo: '', perfilReservaConfirmarCorreo: '', perfilReservaTelefono: '', pinAdministrador: '', pinCorreo: '', pinConfirmarCorreo: '', pinContrasena: '' });
-    this.liquidacionForm.reset({ cuentaFueraRed: 'no', digitoVerificador: '', tipoPersonaBeneficiario: 'fisica', beneficiarioIgualComercio: false, nombreBeneficiario: '', apellidoPaternoBeneficiario: '', apellidoMaternoBeneficiario: '', correoBeneficiario: '', direccionBeneficiario: '', rfcBeneficiario: '', actividadBeneficiario: '', giroBeneficiario: '', tipoCuenta: '', cuentaClabe: '', nombreBanco: '', direccionBanco: '', telefonoBanco: '', emailBanco: '' });
+    this.liquidacionForm.reset({ cuentaFueraRed: 'no', digitoVerificador: '', tipoPersonaBeneficiario: 'fisica', beneficiarioIgualComercio: false, nombreBeneficiario: '', apellidoPaternoBeneficiario: '', apellidoMaternoBeneficiario: '', correoBeneficiario: '', direccionBeneficiario: '', rfcBeneficiario: '', actividadBeneficiario: '', giroBeneficiario: '',tipoCuenta: 'CLABE', cuentaClabe: '', nombreBanco: '', direccionBanco: '', telefonoBanco: '', emailBanco: '' });
     this.documentos.forEach(d => { d.archivo = undefined; d.archivoNombre = undefined; });
     this.documentosSucursalMismaEntidad = {};
     this.actualizarValidadoresAccesos('NINGUNO');
@@ -2986,7 +2986,20 @@ maternalSurname: tipoPersona === 'PF'
       if (draft.comisionista) this.comisionistaForm.patchValue(draft.comisionista);
       if (draft.datos) this.datosForm.patchValue(draft.datos as any);
       if (draft.accesos) this.accesosForm.patchValue(draft.accesos as any);
-      if (draft.liquidacion) this.liquidacionForm.patchValue(draft.liquidacion as any);
+      if (draft.liquidacion) {
+      const tipoAnterior = draft.liquidacion['tipoCuenta'];
+      const cuentaAnterior = draft.liquidacion['cuentaClabe'];
+
+       this.liquidacionForm.patchValue({
+       ...draft.liquidacion,
+       tipoCuenta: 'CLABE',
+       cuentaClabe: tipoAnterior === 'CLABE'
+       ? String(cuentaAnterior ?? '').replace(/\D/g, '').slice(0, 18)
+       : ''
+      } as any);
+
+  this.actualizarValidadorCuentaLiquidacion('CLABE');
+}
       this.documentosSucursalMismaEntidad = draft.documentosSucursalMismaEntidad ?? {};
       this.documentos.forEach(d => {
         const saved = draft.documentos?.find(s => s.numero === d.numero);
@@ -4046,21 +4059,22 @@ this.arbolNegocioForm.controls.nombresArbol.setValue(
     return validadores;
   }
 
-  private actualizarValidadorCuentaLiquidacion(tipoCuenta: string): void {
-    const cuenta = this.liquidacionForm.controls.cuentaClabe;
-    const longitudEsperada = tipoCuenta === 'Tarjeta' ? 16 : 18;
-    const validadores = tipoCuenta === 'Tarjeta'
-      ? [Validators.required, this.numeroCuentaValidator(16, 'tarjetaInvalida')]
-      : [Validators.required, this.numeroCuentaValidator(18, 'clabeInvalida')];
-    const valor = `${cuenta.value ?? ''}`.trim();
+ private actualizarValidadorCuentaLiquidacion(_tipoCuenta: string): void {
+  const cuenta = this.liquidacionForm.controls.cuentaClabe;
 
-    if (valor && valor.length > longitudEsperada) {
-      cuenta.setValue(valor.slice(0, longitudEsperada), { emitEvent: false });
-    }
+  const valor = `${cuenta.value ?? ''}`.replace(/\D/g, '');
 
-    cuenta.setValidators(validadores);
-    cuenta.updateValueAndValidity({ emitEvent: false });
+  if (valor !== cuenta.value) {
+    cuenta.setValue(valor.slice(0, 18), { emitEvent: false });
   }
+
+  cuenta.setValidators([
+    Validators.required,
+    this.numeroCuentaValidator(18, 'clabeInvalida')
+  ]);
+
+  cuenta.updateValueAndValidity({ emitEvent: false });
+}
 
   private setValidators(control: AbstractControl, validators: ValidatorFn[] = []): void {
     control.setValidators(validators);
@@ -4154,7 +4168,6 @@ this.arbolNegocioForm.controls.nombresArbol.setValue(
   }
 
   private actualizarBancoDesdeClabe(clabe: string): void {
-    if (this.liquidacionForm.controls.tipoCuenta.value === 'Tarjeta') return;
     const valor = `${clabe ?? ''}`.trim();
     if (!/^\d{18}$/.test(valor)) return;
     const banco = this.bancosPorClaveClabe[valor.slice(0, 3)];
