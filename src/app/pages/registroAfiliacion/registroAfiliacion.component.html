@@ -1,0 +1,92 @@
+
+<div class="afiliacion-page">
+  <div class="afiliacion-header">
+    <div>
+      <h1>Registro de afiliación</h1>
+      <p *ngIf="nombreComercio">
+        {{ nombreComercio }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="btn-regresar"
+      (click)="regresar()">
+      <i class="fa-solid fa-arrow-left"></i>
+      Regresar
+    </button>
+  </div>
+
+  <div class="afiliacion-card">
+    <div class="afiliacion-card-header">
+      <h2>
+        Registro de afiliación
+        <span *ngIf="nombreComercio">
+          - {{ nombreComercio }}
+        </span>
+      </h2>
+    </div>
+
+    <div class="afiliacion-form">
+      <div class="afiliacion-grid">
+        <div class="campo">
+          <label for="afiliacionProsa">
+            Afiliación PROSA
+          </label>
+          <input
+            id="afiliacionProsa"
+            type="text"
+            name="afiliacionProsa"
+            [(ngModel)]="afiliacionProsa"
+          />
+        </div>
+
+        <div class="campo">
+          <label for="giroProsa">
+            GIRO PROSA
+          </label>
+          <input
+            id="giroProsa"
+            type="text"
+            name="giroProsa"
+            [(ngModel)]="giroProsa"
+          />
+        </div>
+
+        <div class="campo">
+          <label for="afiliacionAmex">
+            Afiliación AMEX
+          </label>
+          <input
+            id="afiliacionAmex"
+            type="text"
+            name="afiliacionAmex"
+            [(ngModel)]="afiliacionAmex"
+          />
+        </div>
+
+        <div class="campo">
+          <label for="giroAmex">
+            GIRO AMEX
+          </label>
+          <input
+            id="giroAmex"
+            type="text"
+            name="giroAmex"
+            [(ngModel)]="giroAmex"
+          />
+        </div>
+      </div>
+
+      <div class="afiliacion-actions">
+        <button
+          type="button"
+          class="btn-actualizar"
+          disabled
+          title="Pendiente de integración con el servicio">
+          Actualizar datos
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

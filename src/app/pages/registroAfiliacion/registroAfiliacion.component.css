@@ -1,0 +1,153 @@
+
+:host {
+  display: block;
+}
+
+.afiliacion-page {
+  padding: 24px;
+  color: #f3f4f6;
+}
+
+.afiliacion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.afiliacion-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.afiliacion-header p {
+  margin-top: 6px;
+  color: #9ca3af;
+}
+
+.afiliacion-card {
+  overflow: hidden;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  background: #111827;
+}
+
+.afiliacion-card-header {
+  padding: 18px 24px;
+  background: #1f2937;
+}
+
+.afiliacion-card-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.afiliacion-form {
+  padding: 24px;
+}
+
+.afiliacion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.campo input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  background: #0b1220;
+  color: #fff;
+  outline: none;
+}
+
+.campo input:focus {
+  border-color: #fbbf24;
+}
+
+.afiliacion-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 28px;
+}
+
+.btn-actualizar {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  background: #fbbf24;
+  color: #111827;
+  font-weight: 700;
+}
+
+.btn-actualizar:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-regresar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: inherit;
+}
+
+:host-context(html:not(.dark)) .afiliacion-page {
+  color: #111827;
+}
+
+:host-context(html:not(.dark)) .afiliacion-header p {
+  color: #64748b;
+}
+
+:host-context(html:not(.dark)) .afiliacion-card {
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
+:host-context(html:not(.dark)) .afiliacion-card-header {
+  background: #f8fafc;
+}
+
+:host-context(html:not(.dark)) .afiliacion-card-header h2 {
+  color: #111827;
+}
+
+:host-context(html:not(.dark)) .campo input {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #111827;
+}
+
+@media (max-width: 768px) {
+  .afiliacion-page {
+    padding: 16px;
+  }
+
+  .afiliacion-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .afiliacion-grid {
+    grid-template-columns: 1fr;
+  }
+}
