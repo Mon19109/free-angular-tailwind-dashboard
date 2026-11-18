@@ -89,21 +89,17 @@ export class StepLiquidacionComponent implements OnInit {
     return valor === 'otros-bancos' || valor === 'en-red' || valor === 'otros-bancos-en-red' || valor === 'si';
   }
 
-  get tipoCuenta(): string {
-    return this.form.get('tipoCuenta')?.value ?? '';
-  }
+ get etiquetaCuenta(): string {
+  return 'Cuenta CLABE';
+}
 
-  get etiquetaCuenta(): string {
-    return this.tipoCuenta === 'Tarjeta' ? 'Número de tarjeta' : 'CLABE / número de cuenta';
-  }
+get longitudCuenta(): number {
+  return 18;
+}
 
-  get longitudCuenta(): number {
-    return this.tipoCuenta === 'Tarjeta' ? 16 : 18;
-  }
-
-  get longitudCuentaFormateada(): number {
-    return this.tipoCuenta === 'Tarjeta' ? 19 : 21;
-  }
+get longitudCuentaFormateada(): number {
+  return 23;
+}
 
   formatearCuenta(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -115,9 +111,8 @@ export class StepLiquidacionComponent implements OnInit {
   }
 
   private agruparCuenta(valor: string): string {
-    const grupos = this.tipoCuenta === 'Tarjeta' ? 4 : 3;
-    return valor.match(new RegExp(`.{1,${grupos}}`, 'g'))?.join(' ') || '';
-  }
+  return valor.match(/.{1,3}/g)?.join(' ') || '';
+}
 
   get girosFiltrados(): GiroBusqueda[] {
     const term = (this.terminoBusqueda.value ?? '').trim();
