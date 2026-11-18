@@ -2,7 +2,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-registro-afiliacion',
@@ -20,10 +20,7 @@ export class RegistroAfiliacionComponent implements OnInit {
   afiliacionAmex = '';
   giroAmex = '';
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router
-  ) {}
+ constructor(private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.referenciaComercio =
@@ -34,7 +31,4 @@ export class RegistroAfiliacionComponent implements OnInit {
       typeof nombre === 'string' ? nombre : '';
   }
 
-  regresar(): void {
-    this.router.navigate(['/dashboard_preregistro_clientes']);
-  }
 }
