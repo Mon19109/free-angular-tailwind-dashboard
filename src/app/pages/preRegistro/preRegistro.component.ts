@@ -330,7 +330,7 @@ export class PreRegistroComponent {
     { numero: 11, nombre: 'E-Firma', obligatorio: false },
     { numero: 12, nombre: 'Identificación Oficial del Representante Legal', obligatorio: true },
     { numero: 13, nombre: 'Identificación Oficial de un tercero', obligatorio: false },
-    { numero: 14, nombre: 'Carátula de Estado Cuenta para Liquidación', obligatorio: true },
+    { numero: 14, nombre: 'Carátula de Estado de Cuenta', obligatorio: true },
   ];
 
   readonly documentosPorTipoComercio: Record<string, ReglaDocumento[]> = {

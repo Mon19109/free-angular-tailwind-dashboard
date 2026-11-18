@@ -524,8 +524,8 @@ enviarCredenciales(): void {
     { numero: 11, nombre: 'E-Firma', obligatorio: false },
     { numero: 12, nombre: 'Identificación Oficial del Representante Legal', obligatorio: false },
     { numero: 13, nombre: 'Identificación Oficial de un tercero', obligatorio: false },
-    { numero: 14, nombre: 'Carátula de Estado Cuenta para Liquidación', obligatorio: true },
-    { numero: 15, nombre: 'Carta de Liquidación Otros Bancos', obligatorio: true },
+    { numero: 14, nombre: 'Carátula de Estado de Cuenta', obligatorio: true },
+    { numero: 15, nombre: 'Carta de Pago a Participantes', obligatorio: true },
     ...DOCUMENTOS_ADICIONALES
   ];
 
@@ -3696,8 +3696,8 @@ this.comercioForm.patchValue(
       CSF: 'Constancia Situación Fiscal',
       EFIRMA: 'E-Firma',
       ID_REP: 'Identificación Oficial del Representante Legal',
-      CAR_EST_CTA: 'Carátula de Estado Cuenta para Liquidación',
-      CARTA_LIQ: 'Carta de Liquidación Otros Bancos',
+      CAR_EST_CTA: 'Carátula de Estado de Cuenta',
+      CARTA_LIQ: 'Carta de Pago a Participantes',
     };
 
     return DOCUMENTOS_ADICIONALES.find(documento => documento.sufijo === sufijo)?.nombre ?? nombresPorSufijo[sufijo] ?? this.nombreArchivoDesdeS3Key(s3Key) ?? 'Documento del comercio';

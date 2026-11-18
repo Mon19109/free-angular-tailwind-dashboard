@@ -471,7 +471,7 @@ if (this.prospecto) this.consultarCuentaComercio();
       return;
     }
     if (this.validandoArchivos || this.erroresArchivos.carta || this.erroresArchivos.edc || !this.cartaLiquidacionArchivo || !this.caratulaEdcArchivo) {
-      this.error = 'Adjunta la Carta de Liquidación y la Carátula EDC en PDF antes de continuar.';
+      this.error = 'Adjunta la Carta de Pago a Participantes y la Carátula de Estado de Cuenta en PDF antes de continuar.';
       return;
     }
     const guid = this.texto(this.cuentaComercio?.['commerceGuid']).trim();

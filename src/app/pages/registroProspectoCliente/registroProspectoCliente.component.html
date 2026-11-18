@@ -395,7 +395,7 @@
                 <span class="liquidation-documents-icon"><i class="fa-solid fa-file-shield"></i></span>
                 <div>
                   <h3>Documentos de liquidación</h3>
-                  <p>Adjunta la Carta de Liquidación y la Carátula EDC en PDF. Ambos documentos son obligatorios.</p>
+                 <p>Adjunta la Carta de Pago a Participantes y la Carátula de Estado de Cuenta en PDF. Ambos documentos son obligatorios.</p>
                 </div>
               </div>
 
@@ -419,7 +419,7 @@
                     (change)="seleccionarArchivoLiquidacion($event, 'carta')" />
                   <span class="upload-icon"><i class="fa-solid fa-file-arrow-up"></i></span>
                   <span class="upload-copy">
-                    <strong>Carta de Liquidación *</strong>
+                    <strong>Carta de Pago a Participantes *</strong>
                     <small>{{ cartaLiquidacionArchivoNombre || 'Selecciona el archivo' }}</small>
                   </span>
                   <span class="upload-action">
@@ -450,7 +450,7 @@
                     (change)="seleccionarArchivoLiquidacion($event, 'edc')" />
                   <span class="upload-icon"><i class="fa-solid fa-file-invoice"></i></span>
                   <span class="upload-copy">
-                    <strong>Carátula EDC *</strong>
+                  <strong>Carátula de Estado de Cuenta *</strong>
                     <small>{{ caratulaEdcArchivoNombre || 'Selecciona el archivo' }}</small>
                   </span>
                   <span class="upload-action">
