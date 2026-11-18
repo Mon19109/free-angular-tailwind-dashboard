@@ -105,12 +105,12 @@ export const routes: Routes = [
   },
   {
     path: 'seguimiento',
-    redirectTo: '',
+    component: RegistroProspectoClienteComponent,
     pathMatch: 'full'
   },
   {
-    path: 'seguimiento/:invalidLink',
-    redirectTo: '',
+    path: 'seguimiento/:link',
+    component: RegistroProspectoClienteComponent,
     pathMatch: 'full'
   },
   {

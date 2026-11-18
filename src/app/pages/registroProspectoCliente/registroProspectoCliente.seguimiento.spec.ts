@@ -12,7 +12,7 @@ import {
 } from '../../services/seguimiento-navigation.service';
 import { of } from 'rxjs';
 
-describe('Seguimiento: recuperación de SMS y estado real',()=>{
+describe('Seguimiento: acceso directo por enlace y estado real',()=>{
   let c: RegistroProspectoClienteComponent, http: HttpTestingController;
   beforeEach(async ()=>{
     TestBed.configureTestingModule({providers:[provideHttpClient(withInterceptors([authTokenInterceptor])),provideHttpClientTesting(),
@@ -29,21 +29,23 @@ describe('Seguimiento: recuperación de SMS y estado real',()=>{
     spyOn(c,'consultarCuentaComercio');
   });
   afterEach(()=>http.verify());
-  function load(smsValidated:boolean,status:string){
+  function load(linkAuthorized:boolean,status:string){
     (c as any).cargarProspecto();
-    http.expectOne('/api/seguimiento-prospecto/prospecto').flush({success:true,accountResponse:{aliasUser:false},smsValidated,registration:{status}});
+    http.expectOne('/api/seguimiento-prospecto/prospecto').flush({success:true,accountResponse:{aliasUser:false},linkAuthorized,registration:{status}});
   }
-  it('refrescar una sesión validada no vuelve a validar SMS y conserva la etapa pendiente',()=>{
-    load(true,'PARTIAL');expect(c.showTokenModal).toBeFalse();expect(c.registroFinalizado).toBeFalse();expect(c.consultarCuentaComercio).toHaveBeenCalledTimes(1);
-    c.tokenValue='123456';c.validarTokenSms();http.expectNone(r=>r.url.includes('validar-sms'));
-    load(true,'PARTIAL');expect(c.showTokenModal).toBeFalse();
+  it('abre y recarga directamente sin formulario ni peticiones SMS',()=>{
+    load(true,'PARTIAL'); expect(c.enlaceAutorizado).toBeTrue();
+    expect(c.registroFinalizado).toBeFalse(); expect(c.consultarCuentaComercio).toHaveBeenCalledTimes(1);
+    load(true,'PARTIAL'); expect(c.consultarCuentaComercio).toHaveBeenCalledTimes(2);
+    http.expectNone(r=>/sms/i.test(r.url));
   });
-  it('una sesión nueva exige SMS aunque la liquidación esté configurada',()=>{
-    load(false,'PARTIAL');expect(c.showTokenModal).toBeTrue();expect(c.registroFinalizado).toBeFalse();expect(c.consultarCuentaComercio).not.toHaveBeenCalled();
+  it('un enlace no autorizado no permite consultar la cuenta',()=>{
+    load(false,'PARTIAL'); expect(c.enlaceAutorizado).toBeFalse();
+    expect(c.consultarCuentaComercio).not.toHaveBeenCalled(); http.expectNone(()=>true);
   });
-  it('registro completo se muestra sin SMS ni nuevas escrituras',()=>{
-    load(false,'COMPLETED');expect(c.registroFinalizado).toBeTrue();expect(c.showTokenModal).toBeFalse();
-    c.validarTokenSms();c.continuarLiquidacion();c.aceptarModalLiquidacion();c.finalizar();http.expectNone(()=>true);
+  it('registro completo no permite nuevas escrituras',()=>{
+    load(false,'COMPLETED'); expect(c.registroFinalizado).toBeTrue();
+    c.continuarLiquidacion(); c.aceptarModalLiquidacion(); c.finalizar(); http.expectNone(()=>true);
   });
   it('accesos usa referencia y datos del formulario, nunca Sirio/perfil/token',()=>{
     const users=[{kind:'admin',name:'Prueba',paternalSurname:'Prueba',maternalSurname:'Prueba',email:'prueba@example.invalid',phoneNumber:'5512345678'}];

@@ -89,7 +89,6 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   ngOnChanges(changes?: SimpleChanges): void {
     if (changes && !changes['modoInterno'] && !changes['arbolInterno'] && !changes['nodoInterno']) return;
     if (!this.modoInterno) return;
-    this.showTokenModal = false;
     this.cargando = false;
     this.arbolRealCargado = true;
     this.arbol = this.arbolInterno;
@@ -251,14 +250,9 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private consultaCatalogoVersion = 0;
   cargandoArbol = false;
   errorArbol = '';
-  showTokenModal = true;
   registroFinalizado = false;
   private readonly meta = inject(Meta);
-  tokenValue = '';
-  tokenErrorMessage = '';
-  validandoToken = false;
-  //private tokenSmsValidado = false;
-  tokenSmsValidado = false;
+  enlaceAutorizado = false;
   readonly mostrarSoloPasosFinales = true;
   seccionInformativaAbierta: 'comercio' | 'datos' | 'documentos' | null = 'comercio';
   cargandoDocumentos = false;
@@ -342,46 +336,6 @@ this.link = params.get('link') || pathLink;
     this.cargarProspecto();
   }
 
-  validarTokenSms(): void {
-    if (this.tokenSmsValidado || this.registroFinalizado || this.validandoToken || this.cargando || this.errorProspecto) return;
-    const token = this.tokenValue.trim();
-    if (!token) {
-      this.tokenErrorMessage = 'Captura el token enviado por SMS.';
-      return;
-    }
-
-    this.validandoToken = true;
-    this.tokenSmsValidado = false;
-    this.tokenErrorMessage = '';
-    const version = this.seguimientoVersion;
-    this.prospectoService.validarTokenSms({
-      tokenSms: token
-    }).pipe(
-      finalize(() => { if (this.seguimientoVersion === version) this.validandoToken = false; })
-    ).subscribe({
-      next: (resp: any) => {
-        if (this.seguimientoVersion !== version) return;
-        if (resp?.success !== true) {
-          this.tokenErrorMessage = 'No fue posible confirmar la validación del token.';
-          return;
-        }
-
-       this.showTokenModal = false;
-this.tokenSmsValidado = true;
-if (this.prospecto) this.consultarCuentaComercio();
-        else this.cargarProspecto();
-      },
-      error: (error: unknown) => {
-        if (this.seguimientoVersion !== version) return;
-        this.tokenErrorMessage = 'No fue posible validar el token. Inténtalo nuevamente.';
-      }
-    });
-  }
-
-  clearTokenError(): void {
-    this.tokenErrorMessage = '';
-  }
-
   @HostListener('window:pageshow', ['$event'])
   restaurarNavegacionPublica(event: PageTransitionEvent): void {
     if (this.modoInterno || !event.persisted) return;
@@ -392,11 +346,7 @@ if (this.prospecto) this.consultarCuentaComercio();
     this.consultaCatalogoVersion++;
     this.consultaDocumentosVersion++;
     this.consultaArbolVersion++;
-    this.tokenSmsValidado = false;
-    this.showTokenModal = false;
-    this.validandoToken = false;
-    this.tokenValue = '';
-    this.tokenErrorMessage = '';
+    this.enlaceAutorizado = false;
     this.registroFinalizado = false;
     this.error = '';
     this.errorProspecto = '';
@@ -437,7 +387,7 @@ if (this.prospecto) this.consultarCuentaComercio();
       error: () => {
         if (this.seguimientoVersion !== version) return;
         this.cargando = false;
-        this.mostrarErrorProspecto('No fue posible iniciar una nueva verificación del seguimiento. Abre nuevamente el enlace.');
+        this.mostrarErrorProspecto('No fue posible iniciar el seguimiento. Abre nuevamente el enlace.');
       }
     });
   }
@@ -446,13 +396,8 @@ if (this.prospecto) this.consultarCuentaComercio();
     this.seccionInformativaAbierta = this.seccionInformativaAbierta === seccion ? null : seccion;
   }
 
-  closeTokenModal(): void {
-    if (this.validandoToken) return;
-    this.cerrarPagina();
-  }
-
   continuarLiquidacion(): void {
-    if (!this.modoInterno && (!this.tokenSmsValidado || this.registroFinalizado)) return;
+    if (!this.modoInterno && (!this.enlaceAutorizado || this.registroFinalizado)) return;
   if (!this.nodoRequiereAccesos || this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
     if (this.liquidacionCompleta) {
       this.abrirAccesos();
@@ -633,7 +578,7 @@ const formData = new FormData();
   }
 
   aceptarModalLiquidacion(): void {
-    if (!this.modoInterno && (!this.tokenSmsValidado || this.registroFinalizado)) return;
+    if (!this.modoInterno && (!this.enlaceAutorizado || this.registroFinalizado)) return;
  if (!this.modoInterno && this.modalLiquidacion === 'guardada') {
   if (!this.liquidacionRegistrada || this.guardandoLiquidacion) {
     this.error = 'La liquidación todavía no está confirmada.';
@@ -856,7 +801,7 @@ const formData = new FormData();
   }
 
   private finalizarAccesosPublicos(): void {
-    if (this.accesosPublicosBloqueados || !this.tokenSmsValidado || this.registroFinalizado || this.guardando || this.guardandoLiquidacion
+    if (this.accesosPublicosBloqueados || !this.enlaceAutorizado || this.registroFinalizado || this.guardando || this.guardandoLiquidacion
       || this.cargandoCuenta || !this.nodoRequiereAccesos || this.accesosCompletos) return;
     this.actualizarValidadoresAccesos();
     this.accesosForm.markAllAsTouched();
@@ -891,7 +836,7 @@ const formData = new FormData();
         this.accesosCompletadosPorNodo.add(nodeRef);
         this.cuentaComercio = { ...this.cuentaComercio, hasPlatformAccess: true };
         this.registroFinalizado = completed;
-        if (completed) { this.tokenSmsValidado = false; this.showTokenModal = false; }
+        if (completed) this.enlaceAutorizado = false;
         if (!completed) this.modalAccesos = this.buscarNodo(this.arbol, nodeRef)?.nombre ?? 'Comercio';
       },
       error: error => {
@@ -1011,7 +956,7 @@ const formData = new FormData();
       const clean = new URL(window.location.href);
       clean.searchParams.delete('link');
       for (const key of ['prospectId', 'prospect', 'id']) clean.searchParams.delete(key);
-      clean.pathname = clean.pathname.replace(/(\/registro-prospecto)\/[^/]+\/?$/, '$1');
+      clean.pathname = clean.pathname.replace(/(\/(?:registro-prospecto|seguimiento))\/[^/]+\/?$/, '$1');
       window.history.replaceState(window.history.state, '', clean.pathname + clean.search + clean.hash);
     }
 
@@ -1026,12 +971,15 @@ const formData = new FormData();
         }
         this.enlaceVinculado = true;
         this.registroFinalizado = resp.registration?.status === 'COMPLETED';
-        this.tokenSmsValidado = resp.smsValidated === true && !this.registroFinalizado;
-        this.showTokenModal = !this.tokenSmsValidado && !this.registroFinalizado;
+        this.enlaceAutorizado = resp.linkAuthorized === true && !this.registroFinalizado;
         this.prospecto = resp.accountResponse;
         if (this.registroFinalizado) return;
+        if (!this.enlaceAutorizado) {
+          this.mostrarErrorProspecto('No fue posible autorizar el enlace de seguimiento.');
+          return;
+        }
         this.precargarDatosProspecto();
-        if (this.tokenSmsValidado) {
+        if (this.enlaceAutorizado) {
           this.consultarCuentaComercio();
         }
       },
@@ -1044,8 +992,7 @@ const formData = new FormData();
 
   private mostrarErrorProspecto(mensaje: string): void {
     this.errorProspecto = mensaje;
-    this.showTokenModal = false;
-    this.tokenSmsValidado = false;
+    this.enlaceAutorizado = false;
     this.prospecto = null;
   }
 
@@ -1298,7 +1245,7 @@ const formData = new FormData();
   }
 
   private consultarDocumentos(commerceId = ''): void {
-    if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto || !this.documentosDelNodoDisponibles)) return;
+    if (!this.modoInterno && (!this.enlaceAutorizado || this.errorProspecto || !this.documentosDelNodoDisponibles)) return;
     if (this.modoInterno && !commerceId) return;
 
     this.cargandoDocumentos = true;
@@ -1306,7 +1253,7 @@ const formData = new FormData();
     const nodoId = this.nodoSeleccionado;
     const version = ++this.consultaDocumentosVersion;
     const sigueVigente = () => this.nodoSeleccionado === nodoId && this.consultaDocumentosVersion === version
-      && (this.modoInterno || (this.tokenSmsValidado && !this.errorProspecto));
+      && (this.modoInterno || (this.enlaceAutorizado && !this.errorProspecto));
     const consulta: Observable<DocumentoProspectoApi[]> = this.modoInterno
       ? this.documentosService.consultarDocumentos(commerceId, this.obtenerBearerConsulta()).pipe(
         map(respuesta => respuesta.legalDocuments || respuesta.documents || [])
@@ -1352,7 +1299,7 @@ const formData = new FormData();
   ];
   get permiteCargaPublica(): boolean {
     const node = this.buscarNodo(this.arbol, this.nodoSeleccionado);
-    return !this.modoInterno && this.tokenSmsValidado && !!node && node.levelType !== 6 && node.nivel !== 'caja';
+    return !this.modoInterno && this.enlaceAutorizado && !!node && node.levelType !== 6 && node.nivel !== 'caja';
   }
   get documentosCargaPublica(): DocumentoRequerido[] {
     return [...this.tiposDocumentoPublico.map((nombre, index) => ({ numero: index + 1, nombre, obligatorio: false })), ...DOCUMENTOS_ADICIONALES];
@@ -1405,7 +1352,7 @@ const formData = new FormData();
     if (!this.modoInterno) {
       this.errorDocumentos = '';
 
-      if (!this.tokenSmsValidado || !this.nodoSeleccionado) {
+      if (!this.enlaceAutorizado || !this.nodoSeleccionado) {
         this.errorDocumentos = 'No hay una sesión de seguimiento válida.';
         return;
       }
@@ -1473,7 +1420,7 @@ const formData = new FormData();
 
   seleccionarNodo(id: string): void {
     if (this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico) return;
-    if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto || !this.buscarNodo(this.arbol, id))) return;
+    if (!this.modoInterno && (!this.enlaceAutorizado || this.errorProspecto || !this.buscarNodo(this.arbol, id))) return;
     this.error = '';
     if (id === this.nodoSeleccionado) return;
     this.nodeReadsCancelled.next();
@@ -1549,10 +1496,10 @@ const formData = new FormData();
 
   private consultarCuentaNodoPublico(): void {
     this.permisosPublicosNodo = '';
-    if (!this.tokenSmsValidado || this.errorProspecto || !this.documentosDelNodoDisponibles) return;
+    if (!this.enlaceAutorizado || this.errorProspecto || !this.documentosDelNodoDisponibles) return;
     const node = this.nodoSeleccionado, version = ++this.consultaInformacionVersion, navigation = this.seguimientoVersion;
     const vigente = () => version === this.consultaInformacionVersion && node === this.nodoSeleccionado
-      && navigation === this.seguimientoVersion && this.tokenSmsValidado && !this.errorProspecto;
+      && navigation === this.seguimientoVersion && this.enlaceAutorizado && !this.errorProspecto;
     this.cargandoCuenta = true;
     this.errorLiquidacion = '';
     let cargandoLiquidacion = false;
@@ -1583,7 +1530,7 @@ const formData = new FormData();
 
   private consultarLiquidacionNodo(): void {
     this.permisosPublicosNodo = '';
-    if (!this.modoInterno && (!this.tokenSmsValidado || this.errorProspecto)) return;
+    if (!this.modoInterno && (!this.enlaceAutorizado || this.errorProspecto)) return;
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
     if (!nodo || !this.nodoRequiereAccesos) return;
     this.liquidacionConsultada = false;
@@ -1609,7 +1556,7 @@ const formData = new FormData();
     }))
     .subscribe({
       next: respuesta => {
-        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.tokenSmsValidado || this.errorProspecto) return;
+        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.enlaceAutorizado || this.errorProspecto) return;
 
         const datos = respuesta as {
           success?: boolean;
@@ -1661,7 +1608,7 @@ const formData = new FormData();
         this.pasoActivo = this.liquidacionCompleta ? 'accesos' : 'liquidacion';
       },
       error: error => {
-        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.tokenSmsValidado || this.errorProspecto) return;
+        if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.enlaceAutorizado || this.errorProspecto) return;
         this.manejarErrorAutorizacionPublica(error);
         this.errorLiquidacion = 'No fue posible consultar la liquidación. Reintenta.';
       }
@@ -1885,14 +1832,14 @@ const formData = new FormData();
       this.accesosPermitidosPublicos = false;
     }
     if (respuesta?.status === 401 || (respuesta?.status === 403
-      && ['SEGUIMIENTO_SMS_REQUIRED', 'SEGUIMIENTO_SCOPE_INVALID'].includes(respuesta.error?.code ?? ''))) {
+      && ['SEGUIMIENTO_LINK_REQUIRED', 'SEGUIMIENTO_SCOPE_INVALID'].includes(respuesta.error?.code ?? ''))) {
       this.mostrarErrorProspecto('La autorización del seguimiento ya no está vigente. Abre nuevamente el enlace para verificar el acceso.');
     }
   }
 
   consultarCuentaComercio(): void {
    if (!this.modoInterno) {
-  if (!this.tokenSmsValidado || this.registroFinalizado) return;
+  if (!this.enlaceAutorizado || this.registroFinalizado) return;
   if (this.cargandoCuenta) return;
   if (this.arbolRealCargado) { this.consultarLiquidacionNodo(); return; }
 
@@ -2052,7 +1999,7 @@ const formData = new FormData();
   }
 
   private consultarArbolPublico(): void {
-  if (this.modoInterno || !this.tokenSmsValidado || this.cargandoArbol) return;
+  if (this.modoInterno || !this.enlaceAutorizado || this.cargandoArbol) return;
 
   this.cargandoArbol = true;
   this.errorArbol = '';

@@ -150,13 +150,6 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component['salirPaginaEnBlanco']).toHaveBeenCalledTimes(1);
   }));
 
-  it('la X y Cancelar del token intentan cerrar y salen del registro si el navegador lo impide', fakeAsync(() => {
-    component.showTokenModal = true;
-    component.closeTokenModal();
-    expect(window.close).toHaveBeenCalledTimes(1);
-    tick(100);
-    expect(component['salirPaginaEnBlanco']).toHaveBeenCalledTimes(1);
-  }));
 
   function iniciarModoInterno() {
     component.modoInterno = true;
@@ -180,7 +173,6 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
 
   it('usa la sesión interna para liquidación y avanza por nodo sin SMS ni enlace externo', () => {
     iniciarModoInterno();
-    expect(component.showTokenModal).toBeFalse();
     expect(component.cargando).toBeFalse();
     component.liquidacionForm.controls.cuentaFueraRed.setValue('en-red');
     component.aceptarModalLiquidacion();
@@ -238,21 +230,6 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
     expect(component.liquidacionCompleta).toBeTrue();
   });
 
-  for (const response of [null, {}, { success: false }, { success: 'true' }, { success: true }]) {
-    it(`SMS exige confirmación booleana explícita: ${JSON.stringify(response)}`, () => {
-      component.cargando = false;
-      component.prospecto = { commerceGuid: 'fixture-guid' };
-      component.tokenValue = '123456';
-      const read = spyOn(component, 'consultarCuentaComercio');
-      component.validarTokenSms();
-      http.expectOne(req => req.url === '/api/seguimiento-prospecto/validar-sms').flush(response);
-      const confirmed = response?.success === true;
-      expect((component as any).tokenSmsValidado).toBe(confirmed);
-      expect(read.calls.count()).toBe(confirmed ? 1 : 0);
-      if (!confirmed) expect(component.tokenErrorMessage).toContain('No fue posible confirmar');
-    });
-  }
-
   for (const status of [200, 400]) {
     it(`muestra el mensaje del prospecto y oculta SMS cuando el enlace falla con HTTP ${status}`, () => {
       component['cargarProspecto']();
@@ -260,11 +237,8 @@ describe('RegistroProspectoCliente: consulta de liquidación', () => {
       const message = 'Enlace ya fue completado, verifique o reporte al Administrador.';
       request.flush({ success: false, error: { name: '', message, code: '4005' } }, { status, statusText: status === 200 ? 'OK' : 'Bad Request' });
       expect(component.errorProspecto).toBe(message);
-      expect(component.showTokenModal).toBeFalse();
       expect(component.cargando).toBeFalse();
       expect(component.prospecto).toBeNull();
-      component.tokenValue = '123456';
-      component.validarTokenSms();
       component.continuarLiquidacion();
       component.finalizar();
       http.expectNone(() => true);
