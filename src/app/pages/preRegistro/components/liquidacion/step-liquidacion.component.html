@@ -177,14 +177,6 @@
     </div>
 
     <div class="form-grid cols-3">
-      <div class="field">
-        <label for="tipoCuenta">Tipo de Cuenta <b>*</b></label>
-        <select id="tipoCuenta" formControlName="tipoCuenta" [class.invalid]="esInvalido('tipoCuenta')">
-          <option value="">Seleccione tipo de cuenta</option>
-          @for (tipo of tiposCuenta; track tipo) { <option [value]="tipo">{{ tipo }}</option> }
-        </select>
-        @if (esInvalido('tipoCuenta')) { <small>{{ mensajeCampo('tipoCuenta') }}</small> }
-      </div>
 
       <div class="field lookup-field">
         <label for="cuentaClabe">{{ etiquetaCuenta }} <b>*</b></label>
