@@ -15,7 +15,25 @@ import {
 } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { concatMap, finalize, from, map, Observable, of, Subject, takeUntil, switchMap, tap, throwError, toArray } from 'rxjs';
+//import { concatMap, finalize, from, map, Observable, of, Subject, takeUntil, switchMap, tap, throwError, toArray } from 'rxjs';
+import {
+  catchError,
+  concatMap,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  from,
+  map,
+  Observable,
+  of,
+  Subject,
+  startWith,
+  switchMap,
+  takeUntil,
+  tap,
+  throwError,
+  toArray
+} from 'rxjs';
 import { StepAccesosComponent, UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -99,6 +117,118 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private readonly fb = inject(FormBuilder);
   private readonly registroAccesosService = inject(RegistroAccesosService);
   private readonly seguimientoProspectoService = inject(SeguimientoProspectoService);
+  readonly estadosCorreos: Record<
+  string,
+  'pendiente' | 'verificando' | 'disponible' | 'registrado' | 'error'
+> = {};
+
+private iniciarValidacionCorreos(): void {
+  const prefijos: PrefijoAcceso[] = [
+    'admin',
+    'fac',
+    'tkt',
+    'controlador',
+    'supervisor'
+  ];
+
+  for (const prefijo of prefijos) {
+    const control = this.accesosForm.get(`${prefijo}Correo`);
+
+    if (!control) continue;
+
+    control.valueChanges.pipe(
+      startWith(control.value),
+      tap(() => {
+        this.estadosCorreos[prefijo] = 'pendiente';
+        delete this.correosVerificados[prefijo];
+      }),
+      debounceTime(600),
+      distinctUntilChanged(),
+      switchMap(valor => {
+        if (this.modoInterno) return of(null);
+
+        const email = String(valor ?? '').trim();
+        const nodeRef = this.nodoSeleccionado;
+
+        if (
+          !nodeRef ||
+          !email ||
+          control.invalid ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+        ) {
+          return of(null);
+        }
+
+        this.estadosCorreos[prefijo] = 'verificando';
+
+        return this.seguimientoProspectoService
+          .verificarCorreo(nodeRef, email)
+          .pipe(
+            map(resultado => ({
+              nodeRef,
+              email,
+              available: resultado.available
+            })),
+            catchError(() => {
+              this.estadosCorreos[prefijo] = 'error';
+              return of(null);
+            })
+          );
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(resultado => {
+      if (!resultado) return;
+
+      if (
+        this.modoInterno ||
+        this.nodoSeleccionado !== resultado.nodeRef ||
+        String(control.value ?? '').trim() !== resultado.email
+      ) {
+        return;
+      }
+
+      this.estadosCorreos[prefijo] = resultado.available
+        ? 'disponible'
+        : 'registrado';
+
+      if (resultado.available) {
+        this.correosVerificados[prefijo] = {
+          nodeRef: resultado.nodeRef,
+          email: resultado.email
+        };
+      }
+    });
+  }
+}
+
+private correosAccesosDisponibles(): boolean {
+  if (this.modoInterno) return true;
+
+  return this.usuariosAcceso.every(usuario => {
+    const prefijo = usuario.prefijo;
+    const email = String(
+      this.accesosForm.get(`${prefijo}Correo`)?.value ?? ''
+    ).trim();
+
+    const verificado = this.correosVerificados[prefijo];
+
+    return (
+      this.estadosCorreos[prefijo] === 'disponible' &&
+      verificado?.nodeRef === this.nodoSeleccionado &&
+      verificado?.email === email
+    );
+  });
+}
+
+
+
+
+
+
+private readonly correosVerificados: Record<string, {
+  nodeRef: string;
+  email: string;
+}> = {};
   private readonly seguimientoNavigation = inject(SeguimientoNavigationService);
   private seguimientoVersion = 0;
   private consultaArbolVersion = 0;
@@ -299,6 +429,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private accesosPorNodo: Record<string, ReturnType<typeof this.accesosForm.getRawValue>> = {};
 
   ngOnInit(): void {
+    this.iniciarValidacionCorreos();
     if (!this.modoInterno) {
       const previous = this.meta.getTag('name="referrer"')?.content;
       this.meta.updateTag({ name: 'referrer', content: 'no-referrer' });
@@ -810,6 +941,28 @@ const formData = new FormData();
       this.error = 'Completa la liquidación y los datos de los accesos requeridos.';
       return;
     }
+    if (!this.correosAccesosDisponibles()) {
+  this.error =
+    'Verifica que todos los correos electrónicos estén disponibles antes de enviar la información.';
+
+  const pendiente = this.usuariosAcceso.find(usuario => {
+    const prefijo = usuario.prefijo;
+    const email = String(
+      this.accesosForm.get(`${prefijo}Correo`)?.value ?? ''
+    ).trim();
+    const verificado = this.correosVerificados[prefijo];
+
+    return (
+      this.estadosCorreos[prefijo] !== 'disponible' ||
+      verificado?.nodeRef !== this.nodoSeleccionado ||
+      verificado?.email !== email
+    );
+  });
+
+  if (pendiente) this.usuarioActivo = pendiente.prefijo;
+
+  return;
+}
     const nodeRef = this.nodoSeleccionado;
     const version = this.consultaCuentaVersion;
     const users = this.usuariosAcceso.map(usuario => {
@@ -1429,13 +1582,31 @@ const formData = new FormData();
     if (this.nodoSeleccionado && this.nodoRequiereAccesos && this.liquidacionConsultada) {
       this.liquidacionPorNodo[this.nodoSeleccionado] = this.estadoLiquidacionActual();
     }
-    this.nodoSeleccionado = id;
-    this.mensajeDocumentoPublico = '';
+    //this.nodoSeleccionado = id;
+   // this.mensajeDocumentoPublico = '';
+   this.nodoSeleccionado = id;
+
+if (!this.modoInterno) {
+  for (const prefijo of ['admin', 'fac', 'tkt', 'controlador', 'supervisor']) {
+    this.estadosCorreos[prefijo] = 'pendiente';
+    delete this.correosVerificados[prefijo];
+  }
+}
+
+this.mensajeDocumentoPublico = '';
     this.restaurarLiquidacionNodo();
     const accesos = this.accesosPorNodo[id];
     this.accesosForm.enable({ emitEvent: false });
     this.accesosForm.reset();
     if (accesos) this.accesosForm.patchValue(accesos, { emitEvent: false });
+   if (!this.modoInterno) {
+  for (const prefijo of ['admin', 'fac', 'tkt', 'controlador', 'supervisor']) {
+    const control = this.accesosForm.get(`${prefijo}Correo`);
+    if (control?.value) {
+      control.setValue(control.value, { emitEvent: true });
+    }
+  }
+}
     this.asegurarUsuarioActivo();
     this.actualizarValidadoresAccesos();
   }

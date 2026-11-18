@@ -127,4 +127,17 @@ export class StepAccesosComponent {
     const errorKey = `${prefijo}CorreosDistintos`;
     return !!(this.form.hasError(errorKey) && this.form.get(this.campo(prefijo, 'ConfirmarCorreo'))?.touched);
   }
+
+  @Input() validarCorreosDisponibilidad = false;
+
+@Input() estadosCorreos: Record<
+  string,
+  'pendiente' | 'verificando' | 'disponible' | 'registrado' | 'error'
+> = {};
+
+estadoCorreo(
+  prefijo: string
+): 'pendiente' | 'verificando' | 'disponible' | 'registrado' | 'error' {
+  return this.estadosCorreos[prefijo] ?? 'pendiente';
+}
 }

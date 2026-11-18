@@ -63,11 +63,55 @@
           </div>
 
           <div class="field">
-            <label [for]="campo(usuario.prefijo, 'Correo')">Correo electrónico <b>*</b></label>
-            <input maxlength="100" [id]="campo(usuario.prefijo, 'Correo')" type="email" [formControlName]="campo(usuario.prefijo, 'Correo')" placeholder="ejemplo@correo.com"
-              [class.invalid]="esInvalido(campo(usuario.prefijo, 'Correo'))" />
-            @if (esInvalido(campo(usuario.prefijo, 'Correo'))) { <small>Debes llenar este campo.</small> }
-          </div>
+  <label [for]="campo(usuario.prefijo, 'Correo')">
+    Correo electrónico <b>*</b>
+  </label>
+
+  <input
+    maxlength="100"
+    type="email"
+    [id]="campo(usuario.prefijo, 'Correo')"
+    [formControlName]="campo(usuario.prefijo, 'Correo')"
+    placeholder="ejemplo@correo.com"
+    [class.invalid]="
+      esInvalido(campo(usuario.prefijo, 'Correo')) ||
+      (validarCorreosDisponibilidad &&
+        estadoCorreo(usuario.prefijo) === 'registrado')
+    "
+  />
+
+  @if (esInvalido(campo(usuario.prefijo, 'Correo'))) {
+    <small>Ingresa un correo electrónico válido.</small>
+  }
+
+  @if (validarCorreosDisponibilidad &&
+     form.get(campo(usuario.prefijo, 'Correo'))?.valid) {
+
+    @switch (estadoCorreo(usuario.prefijo)) {
+      @case ('verificando') {
+        <small>Verificando correo electrónico...</small>
+      }
+
+      @case ('disponible') {
+        <small class="correo-disponible">
+          Correo electrónico disponible.
+        </small>
+      }
+
+      @case ('registrado') {
+        <small>
+          Este correo electrónico ya está registrado.
+        </small>
+      }
+
+      @case ('error') {
+        <small>
+          No fue posible verificar el correo electrónico.
+        </small>
+      }
+    }
+  }
+</div>
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'ConfirmarCorreo')">Confirmar correo electrónico <b>*</b></label>

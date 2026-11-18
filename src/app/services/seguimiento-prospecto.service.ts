@@ -15,6 +15,31 @@ export class SeguimientoProspectoService {
   private readonly http = inject(HttpClient);
   private readonly navigation = inject(SeguimientoNavigationService);
 
+verificarCorreo(
+  nodeRef: string,
+  email: string
+): Observable<{ success: boolean; available: boolean }> {
+  return this.navigation.request(options =>
+    this.http.post<{ success: boolean; available: boolean }>(
+      `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/verificar-correo`,
+      { email },
+      options
+    )
+  ).pipe(
+    map(response => {
+      if (
+        response?.success !== true ||
+        typeof response.available !== 'boolean'
+      ) {
+        throw new Error('No fue posible verificar el correo electrónico.');
+      }
+
+      return response;
+    })
+  );
+}
+
+
   guardarAccesos(nodeRef: string, users: Array<{kind: string; name: string; paternalSurname: string; maternalSurname: string; email: string; phoneNumber: string}>): Observable<{success: boolean; registration?: {status: string}}> {
     return this.navigation.request(options => this.http.post<{success: boolean; registration?: {status: string}}>(
       `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/accesos`, { users },

@@ -439,15 +439,17 @@
           }
           @if (seccionFinalAbierta === 'accesos' && liquidacionConsultada && !accesosCompletos && liquidacionCompleta && !accesosPublicosBloqueados) {
           <div class="section-body">
-            <app-step-accesos
-              [form]="accesosForm"
-              [usuarios]="usuariosAcceso"
-              [mostrarResumenUsuarios]="true"
-              [usuarioActivo]="usuarioActivo"
-              (usuarioActivoChange)="usuarioActivo = $event"
-              textoContinuar="Enviar información"
-              (volver)="volverLiquidacion()"
-              (continuar)="finalizar()" />
+           <app-step-accesos
+  [form]="accesosForm"
+  [usuarios]="usuariosAcceso"
+  [mostrarResumenUsuarios]="true"
+  [usuarioActivo]="usuarioActivo"
+  (usuarioActivoChange)="usuarioActivo = $event"
+  textoContinuar="Enviar información"
+  [validarCorreosDisponibilidad]="!modoInterno"
+  [estadosCorreos]="estadosCorreos"
+  (volver)="volverLiquidacion()"
+  (continuar)="finalizar()" />
           </div>
           }
         </article>
