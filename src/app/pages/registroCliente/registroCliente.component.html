@@ -251,7 +251,7 @@
               [guardandoBorrador]="guardandoRevisionDocumentos"
               [deshabilitarFinalizar]="modoContextoBff ? !puedeFinalizarDocumentosBff : registrandoCliente || guardandoRevisionDocumentos"
               [mensajeNotificacion]="modoContextoBff ? '' : mensajeObservacionesCliente"
-              [textoFinalizar]="modoContextoBff ? (registrandoCliente ? 'Registrando...' : mostrarRegistrarClienteDocumentos ? 'Registrar Cliente' : esUltimoNodoSeleccionado ? 'Guardar revisión' : 'Siguiente') : textoFinalizarDocumentos"
+              [textoFinalizar]="modoContextoBff ? (registrandoCliente ? 'Registrando...' : guardandoRevisionDocumentos ? 'Guardando revisión...' : mostrarRegistrarClienteDocumentos ? 'Registrar Cliente' : (esProspectoAdminBff || esUltimoNodoSeleccionado) ? 'Guardar revisión' : 'Siguiente') : textoFinalizarDocumentos"
               (seleccionarArchivo)="seleccionarArchivo($event.event, $event.documento)"
               (verArchivo)="verDocumentoProspecto($event)"
               (validarArchivo)="actualizarEstatusDocumento($event.documento, $event.estado)"

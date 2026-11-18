@@ -1386,4 +1386,93 @@ describe('Registro Cliente con contexto BFF', () => {
     expect(notification.request.body).toEqual({observations:'Comentario autorizado',email:'cuenta@example.test'}); notification.flush({success:true});
   });
 
+  describe('Registrar Cliente desde revisión en estatus 26', () => {
+    const revisionUrl = `/api/comercios/${ref}/nodos/${ref}/documentos/revision`;
+    const registroUrl = `/api/comercios/${ref}/nodos/${ref}/registrar`;
+    function listo(status = '26 - PROSPECTO_ADMIN') {
+      cargarRevision();
+      component.contextoBff!.commerce.status = status;
+      component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
+    }
+    it('actualiza inmediatamente al validar el último documento y revierte al rechazarlo', () => {
+      cargarRevision(); component.contextoBff!.commerce.status = '26';
+      expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+      component.actualizarEstatusDocumento(component.documentosVisibles[0], 'APPROVED');
+      expect(component.mostrarRegistrarClienteDocumentos).toBeTrue();
+      component.actualizarEstatusDocumento(component.documentosVisibles[0], 'REJECTED');
+      expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+      http.expectNone(r => r.method === 'PUT' || r.method === 'POST');
+    });
+    it('envía PUT antes de POST, bloquea doble clic y usa el contexto confirmado al terminar', () => {
+      listo();
+      component.continuarDesdeDocumentos(); component.continuarDesdeDocumentos();
+      const save = http.expectOne(revisionUrl);
+      expect(save.request.body.documents).toEqual([{ ref: other, status: 'APPROVED' }]);
+      expect(component.puedeFinalizarDocumentosBff).toBeFalse();
+      http.expectNone(registroUrl);
+      save.flush({ success: true });
+      const register = http.expectOne(registroUrl);
+      expect(register.request.method).toBe('POST');
+      component.continuarDesdeDocumentos(); component.registrarClienteProspecto();
+      http.expectNone(registroUrl); http.expectNone(revisionUrl);
+      expect(component.registrandoCliente).toBeTrue();
+      register.flush({ success: true });
+      expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+      component.continuarDesdeDocumentos(); http.expectNone(registroUrl);
+      http.expectOne(`/api/comercios/${ref}/contexto`).flush({ ...response(), commerce: { ...response().commerce, status: '31' } });
+      http.expectOne(`/api/comercios/${ref}/nodos/${ref}/documentos`).flush({ success: true, documents: [], permissions: {} });
+      expect(component.estatusDocumentalBff).toBe('31 - PENDIENTE CUENTAS LIQUIDACIÓN');
+    });
+    for (const businessFailure of [false, true]) {
+      it(`guardado fallido conserva edición y no registra (negocio=${businessFailure})`, () => {
+        listo(); component.continuarDesdeDocumentos();
+        const save = http.expectOne(revisionUrl);
+        if (businessFailure) save.flush({ success: false });
+        else save.flush({ code: 'COMERCIOS_REVIEW_UNAVAILABLE' }, { status: 502, statusText: 'Failure' });
+        expect(component.documentosProspecto[0].status).toBe('APPROVED');
+        expect(component.mensajeObservacionesCliente).toBeTruthy();
+        expect(component.guardandoRevisionDocumentos).toBeFalse();
+        http.expectNone(registroUrl);
+      });
+    }
+    it('error de registro no repite revisión ni muestra éxito', () => {
+      listo(); const modal = spyOn<any>(component, 'mostrarModalRegistro');
+      component.continuarDesdeDocumentos(); http.expectOne(revisionUrl).flush({ success: true });
+      http.expectOne(registroUrl).flush({ code: 'COMERCIOS_REGISTER_UNAVAILABLE' }, { status: 502, statusText: 'Failure' });
+      expect(component.mensajeObservacionesCliente).toContain('No fue posible registrar');
+      expect(modal).not.toHaveBeenCalled();
+      http.expectNone(r => r.method === 'PUT' || r.method === 'POST');
+    });
+    it('documento pendiente guarda únicamente la revisión', () => {
+      cargarRevision(); component.contextoBff!.commerce.status = 'PROSPECTO_ADMIN';
+      expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+      component.continuarDesdeDocumentos();
+      http.expectOne(revisionUrl).flush({ success: false }); http.expectNone(registroUrl);
+    });
+    it('otro estatus conserva la acción de guardar sin registro automático', () => {
+      listo('ACTIVO'); expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+      component.continuarDesdeDocumentos();
+      http.expectOne(revisionUrl).flush({ success: false }); http.expectNone(registroUrl);
+    });
+    it('un nodo intermedio conserva la restricción de registro del BFF', () => {
+      listo(); spyOnProperty(component, 'esUltimoNodoSeleccionado', 'get').and.returnValue(false);
+      expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+      component.continuarDesdeDocumentos(); http.expectOne(revisionUrl).flush({ success: false });
+      http.expectNone(registroUrl);
+    });
+    it('registro sin confirmación explícita no muestra éxito ni reintenta', () => {
+      listo(); const modal = spyOn<any>(component, 'mostrarModalRegistro');
+      component.continuarDesdeDocumentos(); http.expectOne(revisionUrl).flush({ success: true });
+      http.expectOne(registroUrl).flush({ success: false });
+      expect(component.mensajeObservacionesCliente).toBe('El registro no fue confirmado.');
+      expect(modal).not.toHaveBeenCalled();
+      http.expectNone(r => r.method === 'PUT' || r.method === 'POST');
+    });
+    it('lista vacía no habilita registro', () => {
+      listo(); component.documentosProspecto = [];
+      expect(component.mostrarRegistrarClienteDocumentos).toBeFalse();
+      component.continuarDesdeDocumentos(); http.expectNone(registroUrl); http.expectNone(revisionUrl);
+    });
+  });
+
 });

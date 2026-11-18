@@ -1067,7 +1067,7 @@ enviarCredenciales(): void {
   get puedeRevisarDocumentosBff(): boolean {
     return this.modoContextoBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
       && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto
-      && !this.guardandoRevisionDocumentos && !this.errorDocumentosProspecto && this.documentosProspecto.length > 0;
+      && !this.guardandoRevisionDocumentos && !this.registrandoCliente && !this.errorDocumentosProspecto && this.documentosProspecto.length > 0;
   }
   get puedeNotificarBff(): boolean {
     return this.modoContextoBff && this.nivelSeleccionado !== 'caja' && this.puedeVerRevisionDocumental && this.notificacionPermitidaBff
@@ -2141,7 +2141,7 @@ this.comercioForm.patchValue(
   seleccionarNodo(nodo: NodoRegistro): void {
     if (this.enviandoCredenciales) return;
     if (this.modoContextoBff) {
-      if (this.renovandoContextoBff || this.contextoIrrecuperable) return;
+      if (this.renovandoContextoBff || this.contextoIrrecuperable || this.guardandoRevisionDocumentos || this.registrandoCliente) return;
       const seleccionado = this.buscarNodo(this.arbolServicio, nodo.id);
       if (!seleccionado) return;
       this.limpiarDetalleBff();
@@ -2416,7 +2416,21 @@ this.comercioForm.patchValue(
     return false;
   }
 
+  private readonly registrosConfirmadosBff = new Set<string>();
+
+  get esProspectoAdminBff(): boolean {
+    return this.modoContextoBff && this.estatusDocumentalBff === '26 - PROSPECTO_ADMIN';
+  }
+
+  private get revisionListaParaRegistrarBff(): boolean {
+    return this.esProspectoAdminBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
+      && this.esUltimoNodoSeleccionado && !this.registrosConfirmadosBff.has(this.contextoBff?.commerce.ref || '')
+      && !this.cargandoDocumentosProspecto && !this.errorDocumentosProspecto
+      && this.documentosValidadosParaRegistro(this.documentosProspecto);
+  }
+
   get mostrarRegistrarClienteDocumentos(): boolean {
+    if (this.esProspectoAdminBff) return this.revisionListaParaRegistrarBff;
     if (this.modoContextoBff) return this.puedeVerRevisionDocumental && this.registroPermitidoBff && this.esUltimoNodoSeleccionado;
     return this.habilitarMesaDigitalEdicion && this.mostrarMesaDigitalProspecto && this.esUltimoNodoSeleccionado;
   }
@@ -2443,10 +2457,14 @@ this.comercioForm.patchValue(
     return `No fue posible registrar el cliente. ${this.codigoBffSeguro(error?.error?.code)}`.trim();
   }
 
-  private registrarClienteBff(): void {
+  private registrarClienteBff(revisionGuardada = false): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
-    if (!ref || !this.mostrarRegistrarClienteDocumentos || !this.puedeFinalizarDocumentosBff) return;
+    if (!ref || this.registrosConfirmadosBff.has(ref) || !this.mostrarRegistrarClienteDocumentos || !this.puedeFinalizarDocumentosBff) return;
+    if (this.esProspectoAdminBff && !revisionGuardada) {
+      this.guardarRevisionBff(false, () => this.registrarClienteBff(true));
+      return;
+    }
     const generation = this.consultaCuentaActual;
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
     this.registrandoCliente = true;
@@ -2456,6 +2474,7 @@ this.comercioForm.patchValue(
         if (!vigente()) return;
         this.registrandoCliente = false;
         if (response?.success !== true) { this.mensajeObservacionesCliente = 'El registro no fue confirmado.'; return; }
+        this.registrosConfirmadosBff.add(ref);
         this.registroPermitidoBff = false;
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Cliente registrado correctamente.');
         this.refrescarEstadoDocumentalBff();
@@ -2464,6 +2483,7 @@ this.comercioForm.patchValue(
         if (!vigente()) return;
         this.registrandoCliente = false;
         if (error.error?.code === 'COMERCIOS_REGISTER_PARTIALLY_COMPLETED') {
+          this.registrosConfirmadosBff.add(ref);
           this.mensajeObservacionesCliente = 'La activación se confirmó, pero no se pudo completar la verificación final de sesión y referencias. No repitas el registro; vuelve a consultar el comercio.';
           this.refrescarEstadoDocumentalBff();
           return;
@@ -2856,10 +2876,10 @@ this.comercioForm.patchValue(
     });
   }
 
-  private guardarRevisionBff(avanzar: boolean): void {
+  private guardarRevisionBff(avanzar: boolean, alGuardar?: () => void): void {
     const ref = this.contextoBff?.commerce.ref;
     const nodeRef = this.nodoSeleccionado;
-    if (!ref || !this.puedeRevisarDocumentosBff) return;
+    if (!ref || this.registrandoCliente || !this.puedeRevisarDocumentosBff) return;
     const documents = this.documentosProspecto.map(doc => ({ ref: String(doc['ref'] ?? ''), status: this.estatusDocumentoParaEnvio(doc) }));
     if (!documents.length || documents.length > 100 || documents.some(doc => !doc.ref || !['APPROVED', 'REJECTED', 'IN_REVIEW'].includes(doc.status))) return;
     const notes = this.observacionesInternasMesaDigital.trim();
@@ -2873,6 +2893,7 @@ this.comercioForm.patchValue(
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
         if (response?.success !== true) { this.mensajeObservacionesCliente = 'El guardado no fue confirmado.'; return; }
+        if (alGuardar) { alGuardar(); return; }
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
         this.refrescarEstadoDocumentalBff(avanzar);
       },
