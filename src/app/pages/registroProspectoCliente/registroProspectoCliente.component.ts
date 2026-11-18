@@ -196,7 +196,7 @@ export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
     giroBeneficiario: ['', Validators.required],
     idActivity: this.fb.control<number | null>(null),
     giro: this.fb.control<number | null>(null),
-    tipoCuenta: ['', Validators.required],
+    tipoCuenta: ['CLABE', Validators.required],
     cuentaClabe: ['', Validators.required],
     idInstitution: this.fb.control<number | null>(null),
     accountNumber: this.fb.control<string | null>(null),
@@ -381,7 +381,8 @@ this.link = params.get('link') || pathLink;
     this.perfilesEnviadosPorNodo = {};
     Object.keys(this.liquidacionPorNodo).forEach(key => delete this.liquidacionPorNodo[key]);
     this.accesosForm.reset({}, { emitEvent: false });
-    this.liquidacionForm.reset({}, { emitEvent: false });
+    //this.liquidacionForm.reset({}, { emitEvent: false });
+    this.liquidacionForm.reset({ tipoCuenta: 'CLABE' }, { emitEvent: false });
     this.seguimientoNavigation.restartForNavigation().subscribe({
       next: () => { if (this.seguimientoVersion === version) this.cargarProspecto(); },
       error: () => {
@@ -1469,7 +1470,11 @@ const formData = new FormData();
       : [];
     this.cargandoDocumentos = false;
     this.errorDocumentos = '';
-    this.liquidacionForm.reset(estado?.datos, { emitEvent: false });
+    //this.liquidacionForm.reset(estado?.datos, { emitEvent: false });
+    this.liquidacionForm.reset({
+  ...estado?.datos,
+  tipoCuenta: estado?.datos?.tipoCuenta || 'CLABE'
+}, { emitEvent: false });
     this.cuentaComercio = this.modoInterno ? estado?.cuenta ?? null : null;
     this.liquidacionConsultada = !!estado;
     this.liquidacionExistente = estado?.existente ?? false;
