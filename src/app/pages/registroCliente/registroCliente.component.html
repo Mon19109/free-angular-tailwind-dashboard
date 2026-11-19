@@ -215,20 +215,31 @@
                 <p *ngIf="liquidacionDesconocida">No se encontró información.</p>
                 <p *ngIf="!opcionLiquidacionConsulta && !liquidacionDesconocida">No se encontraron datos de la cuenta de liquidación.</p>
                 <p *ngIf="opcionLiquidacionConsulta">Destino de las liquidaciones: <strong>{{ opcionLiquidacionConsulta }}</strong></p>
-                <table *ngIf="cuentasLiquidacionConsulta.length" class="mt-3 w-full text-left text-sm" aria-label="Cuentas de liquidación">
-                  <thead>
-                    <tr>
-                      <th scope="col" class="border-b border-gray-200 px-3 py-2 dark:border-gray-700">Institución bancaria</th>
-                      <th scope="col" class="border-b border-gray-200 px-3 py-2 dark:border-gray-700">Cuenta CLABE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let cuenta of cuentasLiquidacionConsulta">
-                      <td class="px-3 py-2">{{ cuenta.institutionName }}</td>
-                      <td class="px-3 py-2">{{ cuenta.account }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div *ngIf="cuentasLiquidacionConsulta.length" class="settlement-accounts">
+                  <h4 class="settlement-accounts-title">
+                    <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+                    Cuentas de liquidación
+                  </h4>
+                  <table class="settlement-accounts-table" aria-label="Cuentas de liquidación">
+                    <thead>
+                      <tr>
+                        <th scope="col">Institución bancaria</th>
+                        <th scope="col">Cuenta CLABE</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let cuenta of cuentasLiquidacionConsulta">
+                        <td>
+                          <span class="settlement-institution">
+                            <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+                            <span>{{ cuenta.institutionName }}</span>
+                          </span>
+                        </td>
+                        <td><span class="settlement-account-number">{{ cuenta.account }}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </ng-container>
             </div>
 

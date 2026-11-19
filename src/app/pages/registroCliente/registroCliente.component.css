@@ -1767,3 +1767,88 @@ text-overflow: clip;
 :host-context(html:not(.dark)) .tree-state {
   color: #64748b;
 }
+.settlement-accounts {
+  margin-top: 16px;
+  border: 1px solid var(--reg-line);
+  border-radius: 14px;
+  background: var(--reg-card);
+  color: var(--reg-text);
+}
+
+.settlement-accounts-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 16px 18px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settlement-accounts-title > i {
+  color: var(--reg-gold-dark);
+}
+
+.settlement-accounts-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 14px;
+}
+
+.settlement-accounts-table th,
+.settlement-accounts-table td {
+  padding: 14px 18px;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  color: var(--reg-text);
+}
+
+.settlement-accounts-table th {
+  border-block: 1px solid var(--reg-line);
+  background: var(--reg-panel);
+  color: var(--reg-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settlement-accounts-table tbody tr + tr td {
+  border-top: 1px solid var(--reg-line);
+}
+
+.settlement-institution {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.settlement-institution > i {
+  flex-shrink: 0;
+  color: var(--reg-muted);
+  font-size: 13px;
+}
+
+.settlement-account-number {
+  display: inline-block;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--reg-line);
+  border-radius: 8px;
+  background: var(--reg-panel);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .settlement-accounts-title { padding: 14px 12px; }
+  .settlement-accounts-table th:first-child { width: 40%; }
+  .settlement-accounts-table th,
+  .settlement-accounts-table td { padding: 12px 10px; }
+  .settlement-institution { gap: 6px; }
+  .settlement-account-number { padding: 5px 6px; font-size: 12px; }
+}
