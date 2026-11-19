@@ -1,3 +1,5 @@
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { StepAccesosComponent } from '../preRegistro/components/accesos/step-accesos.component';
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
@@ -370,4 +372,60 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(api.guardarDispersionEnRed).not.toHaveBeenCalled();expect(api.guardarLiquidacion).not.toHaveBeenCalled();
   });
 
+});
+
+// Pruebas específicas del bloqueo por disponibilidad del correo público.
+describe('Accesos públicos: disponibilidad del correo y bloqueo de cuenta', () => {
+  function crear() {
+    TestBed.configureTestingModule({ imports: [StepAccesosComponent] });
+    const fixture = TestBed.createComponent(StepAccesosComponent);
+    const c = fixture.componentInstance;
+    c.usuarios = ['fac', 'tkt'].map(prefijo => ({ prefijo, titulo: prefijo, descripcion: '' }));
+    c.usuarioActivo = 'fac'; c.mostrarResumenUsuarios = true;
+    c.validarCorreosDisponibilidad = true;
+    c.form = new FormGroup(Object.fromEntries(c.usuarios.flatMap(usuario =>
+      ['Nombre', 'Paterno', 'Materno', 'Correo', 'ConfirmarCorreo', 'Telefono'].map(campo =>
+        [usuario.prefijo + campo, new FormControl(campo.includes('Correo') ? 'persona@example.com' : 'Capturado',
+          campo === 'Correo' ? [Validators.required, Validators.email] : [Validators.required])]))));
+    c.estadosCorreos = { fac: 'disponible', tkt: 'disponible' };
+    fixture.detectChanges();
+    return { fixture, c, input: (campo: string) => fixture.nativeElement.querySelector('#fac' + campo) as HTMLInputElement };
+  }
+  for (const estado of ['pendiente', 'verificando', 'registrado', 'error'] as const) {
+    it(`${estado}: bloquea campos posteriores y todas las rutas de cambio de cuenta`, () => {
+      const { fixture, c, input } = crear(); c.estadosCorreos['fac'] = estado; fixture.detectChanges();
+      const cambiar = spyOn(c.usuarioActivoChange, 'emit'); const enviar = spyOn(c.continuar, 'emit');
+      expect(input('ConfirmarCorreo').readOnly).toBeTrue(); expect(input('Telefono').readOnly).toBeTrue();
+      expect(input('Correo').readOnly).toBeFalse(); expect(input('Nombre').readOnly).toBeFalse();
+      const siguientes = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+      expect(siguientes.filter(button => button.textContent?.includes('tkt')).every(button => button.disabled)).toBeTrue();
+      c.irUsuarioSiguiente(); c.seleccionarUsuario('tkt'); c.submit();
+      expect(cambiar).not.toHaveBeenCalled(); expect(enviar).not.toHaveBeenCalled();
+      expect(c.form.valid).toBeTrue(); // No se alteran los validadores ni los valores capturados.
+    });
+  }
+  it('disponible: no muestra el mensaje de éxito y permite editar y avanzar', () => {
+    const { fixture, c, input } = crear(); const cambiar = spyOn(c.usuarioActivoChange, 'emit');
+    expect(fixture.nativeElement.textContent).not.toContain('Correo electrónico disponible.');
+    expect(input('ConfirmarCorreo').readOnly).toBeFalse(); expect(input('Telefono').readOnly).toBeFalse();
+    c.irUsuarioSiguiente(); expect(cambiar).toHaveBeenCalledWith('tkt');
+  });
+  it('correo inválido no desbloquea aunque conserve estado disponible', () => {
+    const { fixture, c, input } = crear(); c.form.get('facCorreo')!.setValue('invalido'); fixture.detectChanges();
+    expect(input('ConfirmarCorreo').readOnly).toBeTrue(); expect(input('Telefono').readOnly).toBeTrue();
+    expect(c.correoBloqueado('fac')).toBeTrue();
+  });
+  it('cambiar el correo y pasar a pendiente vuelve a bloquear hasta la nueva confirmación', () => {
+    const { fixture, c, input } = crear();
+    c.form.get('facCorreo')!.setValue('nuevo@example.com'); c.estadosCorreos['fac'] = 'pendiente'; fixture.detectChanges();
+    expect(input('Telefono').readOnly).toBeTrue();
+    c.estadosCorreos['fac'] = 'disponible'; fixture.detectChanges(); expect(input('Telefono').readOnly).toBeFalse();
+  });
+  it('sin validación pública conserva campos y navegación existentes', () => {
+    const { fixture, c, input } = crear(); c.validarCorreosDisponibilidad = false;
+    c.estadosCorreos['fac'] = 'registrado'; fixture.detectChanges();
+    const cambiar = spyOn(c.usuarioActivoChange, 'emit');
+    expect(input('ConfirmarCorreo').readOnly).toBeFalse(); expect(input('Telefono').readOnly).toBeFalse();
+    c.irUsuarioSiguiente(); expect(cambiar).toHaveBeenCalledWith('tkt');
+  });
 });

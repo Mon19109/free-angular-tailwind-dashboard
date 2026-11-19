@@ -40,7 +40,7 @@ export class StepAccesosComponent {
 
   submit(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.usuarios.some(usuario => this.correoBloqueado(usuario.prefijo))) return;
     this.continuar.emit();
   }
 
@@ -110,6 +110,7 @@ export class StepAccesosComponent {
   }
 
   seleccionarUsuario(prefijo: string): void {
+    if (prefijo !== this.usuarioActual?.prefijo && this.correoBloqueado(this.usuarioActual?.prefijo ?? '')) return;
     this.usuarioActivoChange.emit(prefijo);
   }
 
@@ -126,6 +127,11 @@ export class StepAccesosComponent {
   correosDistintos(prefijo: string): boolean {
     const errorKey = `${prefijo}CorreosDistintos`;
     return !!(this.form.hasError(errorKey) && this.form.get(this.campo(prefijo, 'ConfirmarCorreo'))?.touched);
+  }
+
+  correoBloqueado(prefijo: string): boolean {
+    return this.validarCorreosDisponibilidad &&
+      (this.estadoCorreo(prefijo) !== 'disponible' || !this.form.get(this.campo(prefijo, 'Correo'))?.valid);
   }
 
   @Input() validarCorreosDisponibilidad = false;
