@@ -1852,3 +1852,130 @@ text-overflow: clip;
   .settlement-institution { gap: 6px; }
   .settlement-account-number { padding: 5px 6px; font-size: 12px; }
 }
+
+/* ==========================================
+   ACCESOS A PLATAFORMA Y TPV
+   ========================================== */
+
+.platform-access-section {
+  width: 100%;
+}
+
+.platform-access-description {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.platform-access-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 16px;
+}
+
+.platform-access-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+}
+
+.platform-access-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.platform-access-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.platform-access-profile i {
+  color: #2563eb;
+  font-size: 17px;
+}
+
+.platform-access-status {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.platform-access-email {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #475569;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.platform-access-email i {
+  margin-top: 2px;
+  color: #64748b;
+}
+
+/* MODO OSCURO */
+
+:host-context(.dark) .platform-access-description {
+  color: #cbd5e1;
+}
+
+:host-context(.dark) .platform-access-card {
+  background: #111827;
+  border-color: #334155;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+}
+
+:host-context(.dark) .platform-access-profile {
+  color: #f8fafc;
+}
+
+:host-context(.dark) .platform-access-profile i {
+  color: #60a5fa;
+}
+
+:host-context(.dark) .platform-access-status {
+  background: rgba(245, 158, 11, 0.13);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+:host-context(.dark) .platform-access-email {
+  color: #cbd5e1;
+}
+
+:host-context(.dark) .platform-access-email i {
+  color: #94a3b8;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 640px) {
+  .platform-access-card {
+    padding: 15px;
+  }
+
+  .platform-access-list {
+    grid-template-columns: 1fr;
+  }
+}

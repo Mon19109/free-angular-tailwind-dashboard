@@ -284,6 +284,11 @@ export class RegistroClienteComponent {
   modoReservaActual: ModoReserva = 'NINGUNO';
   archivosInvalidos = false;
   accesosRegistrados = false;
+  cuentasAccesoPlataforma: {
+  profileDescription: string;
+  statusDescription: string;
+  email: string;
+}[] = [];
   accesosDisponiblesBff: boolean | null = null;
   private readonly sesionPortal = inject(AuthService);
   get puedeVerRevisionDocumental(): boolean {
@@ -647,6 +652,7 @@ enviarCredenciales(): void {
     this.camposEdicionBff = [];
     this.guardandoDatosNodo = false;
     this.accesosRegistrados = false;
+    this.cuentasAccesoPlataforma = [];
     this.accesosDisponiblesBff = null;
     this.consultaPldBff?.unsubscribe();
     this.consultaDocumentosBff?.unsubscribe();
@@ -1668,8 +1674,38 @@ this.comercioForm.patchValue(
       opcionesDispersion[this.valorCuenta(cuenta, ['dispersionAccount'])] || '', { emitEvent: false }
     );
     this.accesosRegistrados = cuenta['hasPlatformAccess'] === true;
-    if (this.modoContextoBff) this.accesosDisponiblesBff = typeof cuenta['hasPlatformAccess'] === 'boolean'
-      ? cuenta['hasPlatformAccess'] : null;
+
+const accesos = cuenta['platformAccess'];
+
+this.cuentasAccesoPlataforma = Array.isArray(accesos)
+  ? accesos
+      .filter(acceso =>
+        acceso !== null &&
+        typeof acceso === 'object' &&
+        !Array.isArray(acceso)
+      )
+      .map(acceso => ({
+        profileDescription:
+          typeof acceso.profileDescription === 'string'
+            ? acceso.profileDescription
+            : '',
+        statusDescription:
+          typeof acceso.statusDescription === 'string'
+            ? acceso.statusDescription
+            : '',
+        email:
+          typeof acceso.email === 'string'
+            ? acceso.email
+            : ''
+      }))
+  : [];
+
+if (this.modoContextoBff) {
+  this.accesosDisponiblesBff =
+    typeof cuenta['hasPlatformAccess'] === 'boolean'
+      ? cuenta['hasPlatformAccess']
+      : null;
+} 
     if (!this.modoContextoBff) {
       this.asegurarUsuarioAccesoActivo();
       this.actualizarModoEdicionNodo(this.nodoSeleccionado);
@@ -2206,6 +2242,7 @@ this.comercioForm.patchValue(
       this.cargandoDocumentosProspecto = false;
       this.errorDocumentosProspecto = '';
       this.accesosRegistrados = false;
+      this.cuentasAccesoPlataforma = [];
       this.resultadosSiprelad = [];
       this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
     }

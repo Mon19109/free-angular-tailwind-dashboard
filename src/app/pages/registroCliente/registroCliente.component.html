@@ -200,14 +200,83 @@
               (volver)="continuarSeccion('comercio')" />
             </fieldset>
 
-            <div *ngIf="seccion.id === 'accesos'" role="status">
-              <p *ngIf="cargandoCuentaComercio">Cargando accesos a plataforma...</p>
-              <ng-container *ngIf="!cargandoCuentaComercio && !errorCuentaComercio">
-                <p *ngIf="modoContextoBff && accesosDisponiblesBff === null">No hay información de accesos disponible para este nodo.</p>
-                <p *ngIf="!modoContextoBff || accesosDisponiblesBff !== null">{{ accesosRegistrados ? 'Este comercio cuenta con una cuenta registrada en la plataforma.' : 'No se encontraron accesos registrados a la plataforma.' }}</p>
-                <p *ngIf="accesosRegistrados && usuariosAcceso.length">{{ usuariosAcceso[0].titulo }}</p>
-              </ng-container>
+            <div *ngIf="seccion.id === 'accesos'" class="platform-access-section" role="status">
+
+  <p *ngIf="cargandoCuentaComercio">
+    Cargando accesos a plataforma...
+  </p>
+
+  <ng-container *ngIf="!cargandoCuentaComercio && !errorCuentaComercio">
+
+    <!-- Consulta de Comercios mediante BFF -->
+    <ng-container *ngIf="modoContextoBff; else accesosLegacy">
+
+      <p *ngIf="accesosDisponiblesBff === null && !cuentasAccesoPlataforma.length">
+        No hay información de accesos disponible para este nodo.
+      </p>
+
+      <ng-container *ngIf="cuentasAccesoPlataforma.length > 0">
+
+        <p class="platform-access-description">
+          Cuentas registradas en la plataforma:
+        </p>
+
+        <div class="platform-access-list">
+
+          <article
+            *ngFor="let acceso of cuentasAccesoPlataforma"
+            class="platform-access-card">
+
+            <div class="platform-access-card-header">
+
+              <div class="platform-access-profile">
+                <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                <span>{{ acceso.profileDescription || 'Perfil no disponible' }}</span>
+              </div>
+
+              <span class="platform-access-status">
+                {{ acceso.statusDescription || 'Estado no disponible' }}
+              </span>
+
             </div>
+
+            <div class="platform-access-email">
+              <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+              <span>{{ acceso.email || 'Correo no disponible' }}</span>
+            </div>
+
+          </article>
+
+        </div>
+
+      </ng-container>
+
+      <p *ngIf="accesosDisponiblesBff === false && !cuentasAccesoPlataforma.length">
+        No se encontraron accesos registrados a la plataforma.
+      </p>
+
+      <p *ngIf="accesosDisponiblesBff === true && !cuentasAccesoPlataforma.length">
+        El comercio tiene acceso a la plataforma, pero no hay detalles de las cuentas disponibles.
+      </p>
+
+    </ng-container>
+
+    <!-- Comportamiento anterior fuera del modo BFF -->
+    <ng-template #accesosLegacy>
+      <p>
+        {{ accesosRegistrados
+          ? 'Este comercio cuenta con una cuenta registrada en la plataforma.'
+          : 'No se encontraron accesos registrados a la plataforma.' }}
+      </p>
+
+      <p *ngIf="accesosRegistrados && usuariosAcceso.length">
+        {{ usuariosAcceso[0].titulo }}
+      </p>
+    </ng-template>
+
+  </ng-container>
+
+</div>
 
             <div *ngIf="seccion.id === 'liquidacion'" role="status">
               <p *ngIf="cargandoCuentaComercio">Cargando cuenta de liquidación...</p>
