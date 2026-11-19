@@ -1041,6 +1041,14 @@ enviarCredenciales(): void {
     return opciones[this.liquidacionForm.controls.cuentaFueraRed.value] || '';
   }
 
+  get cuentasLiquidacionConsulta(): Array<{ institutionName: string; account: string }> {
+    const cuentas = this.modoContextoBff ? this.cuentaNodoActual?.['settlementAccounts'] : null;
+    if (!Array.isArray(cuentas)) return [];
+    return cuentas.filter((cuenta): cuenta is { institutionName: string; account: string } =>
+      !!cuenta && typeof cuenta.institutionName === 'string' && !!cuenta.institutionName.trim()
+      && typeof cuenta.account === 'string' && /^\*+\d{4}$/.test(cuenta.account));
+  }
+
   get esEdicionPendiente(): boolean {
     return this.pendienteRevisionEdicion && !!this.nodeIDEdicion;
   }
