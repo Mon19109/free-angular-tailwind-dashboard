@@ -2047,16 +2047,38 @@ text-overflow: clip;
   font-variant-numeric: tabular-nums;
 }
 
-/* MODO CLARO */
 
 :host-context(html:not(.dark)) .context-strip.commerce-context-card {
   background: #ffffff;
-  border: 1px solid #dbe4f0;
-  color: #172033;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+:host-context(html:not(.dark)) .commerce-context-heading {
+  color: #475569;
+  opacity: 1;
 }
 
 :host-context(html:not(.dark)) .commerce-context-heading i {
   color: #2563eb;
+}
+
+:host-context(html:not(.dark)) .commerce-context-name {
+  color: #0f172a;
+}
+
+:host-context(html:not(.dark)) .commerce-context-details {
+  border-top-color: #e2e8f0;
+}
+
+:host-context(html:not(.dark)) .commerce-context-label {
+  color: #475569;
+  opacity: 1;
+}
+
+:host-context(html:not(.dark)) .commerce-context-value {
+  color: #1e293b;
 }
 
 :host-context(html:not(.dark)) .commerce-context-sirio {
