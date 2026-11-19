@@ -421,12 +421,13 @@ enviarCredenciales(): void {
   };
 
   contextoSeleccionado = {
-    email: '',
-    idComercio: '',
-    nivel: '',
-    nombreComercial: '',
-    rfc: ''
-  };
+  email: '',
+  idComercio: '',
+  idSirio: '',
+  nivel: '',
+  nombreComercial: '',
+  rfc: ''
+};
 
   readonly pasos = [
     { numero: 1, titulo: 'Descripción del Comercio' },
@@ -682,7 +683,14 @@ enviarCredenciales(): void {
       form.disable({ emitEvent: false });
     }
     this.liquidacionForm.controls.cuentaFueraRed.setValue('', { emitEvent: false });
-    this.contextoSeleccionado = { idComercio: '', email: '', nivel: '', nombreComercial: '', rfc: '' };
+    this.contextoSeleccionado = {
+  idComercio: '',
+  idSirio: '',
+  email: '',
+  nivel: '',
+  nombreComercial: '',
+  rfc: ''
+};
   }
 
   private consultarCuentaNodoBff(cambiosEsperados?: Record<string, unknown>): void {
@@ -692,6 +700,7 @@ enviarCredenciales(): void {
     if (cambiosEsperados) this.cambiosNoConfirmados = structuredClone(cambiosEsperados);
     this.consultaCuentaBff?.unsubscribe();
     this.editandoDatosNodo = false;
+    this.contextoSeleccionado.idSirio = '';
     this.datosForm.disable({ emitEvent: false });
     const consulta = ++this.consultaCuentaActual;
     this.cargandoCuentaComercio = true;
@@ -962,7 +971,12 @@ enviarCredenciales(): void {
       if (!value) return;
       this.contextoBff = value;
       const c = value.commerce;
-      this.contextoSeleccionado = { idComercio: c.ref, email: c.email || '', nivel: c.nivel,
+      
+      this.contextoSeleccionado = {
+  idComercio: c.ref,
+  idSirio: '',
+  email: c.email || '',
+  nivel: c.nivel,
         nombreComercial: c.nameCommerce || '', rfc: c.rfc || '' };
       this.comercioForm.patchValue({ nivel: c.nivel }, { emitEvent: false });
       this.datosForm.patchValue({ nombreComercial: c.nameCommerce || '', razonSocial: c.businessName || '',
@@ -1716,12 +1730,15 @@ if (this.modoContextoBff) {
       this.consultarLocalidadRepresentante(direccionRepresentante);
     }
 
-    this.contextoSeleccionado = {
-      ...this.contextoSeleccionado,
-      nombreComercial: nombreComercial || razonSocial || this.contextoSeleccionado.nombreComercial,
-      email,
-      rfc: rfc || this.contextoSeleccionado.rfc
-    };
+   this.contextoSeleccionado = {
+  ...this.contextoSeleccionado,
+  nombreComercial: nombreComercial || razonSocial || this.contextoSeleccionado.nombreComercial,
+  email,
+  idSirio: this.modoContextoBff
+    ? this.valorCuenta(cuenta, ['idSirio'])
+    : this.contextoSeleccionado.idSirio,
+  rfc: rfc || this.contextoSeleccionado.rfc
+};
     this.actualizarValidadoresDatos();
   }
 
@@ -2197,7 +2214,11 @@ if (this.modoContextoBff) {
   : seleccionado.nivel === 'sucursal' ? 'Sucursal'
   : 'Caja';
 
-      this.contextoSeleccionado = { idComercio: seleccionado.id, email: '', nivel,
+     this.contextoSeleccionado = {
+  idComercio: seleccionado.id,
+  idSirio: '',
+  email: '',
+  nivel,
         nombreComercial: seleccionado.nombre, rfc: '' };
       this.comercioForm.patchValue({ nivel }, { emitEvent: false });
       this.abrirRutaNodo(this.arbolServicio, seleccionado.id);
@@ -2247,12 +2268,13 @@ if (this.modoContextoBff) {
       this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
     }
     this.contextoSeleccionado = {
-      idComercio,
-      email: '',
-      nivel,
-      nombreComercial,
-      rfc: esNodoEditado ? this.comercioSeleccionado.rfc : registro.rfc || ''
-    };
+  idComercio,
+  idSirio: '',
+  email: '',
+  nivel,
+  nombreComercial,
+  rfc: esNodoEditado ? this.comercioSeleccionado.rfc : registro.rfc || ''
+};
     this.cargarCapturaNodo(nodo.id);
     if (this.nodeIDEdicion) {
       this.consultarResultadoSiprelad();

@@ -1979,3 +1979,119 @@ text-overflow: clip;
     grid-template-columns: 1fr;
   }
 }
+/* ENCABEZADO DEL COMERCIO SELECCIONADO */
+
+.context-strip.commerce-context-card {
+  display: block;
+  width: 100%;
+  padding: 22px 26px;
+  border-radius: 18px;
+}
+
+.commerce-context-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.commerce-context-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.commerce-context-name {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.commerce-context-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.commerce-context-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.commerce-context-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+}
+
+.commerce-context-value {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.commerce-context-sirio {
+  font-variant-numeric: tabular-nums;
+}
+
+/* MODO CLARO */
+
+:host-context(html:not(.dark)) .context-strip.commerce-context-card {
+  background: #ffffff;
+  border: 1px solid #dbe4f0;
+  color: #172033;
+}
+
+:host-context(html:not(.dark)) .commerce-context-heading i {
+  color: #2563eb;
+}
+
+:host-context(html:not(.dark)) .commerce-context-sirio {
+  color: #1d4ed8;
+}
+
+/* MODO OSCURO */
+
+:host-context(html.dark) .context-strip.commerce-context-card {
+  background: #0b1018;
+  border: 1px solid #293241;
+  color: #f8fafc;
+}
+
+:host-context(html.dark) .commerce-context-heading i {
+  color: #60a5fa;
+}
+
+:host-context(html.dark) .commerce-context-sirio {
+  color: #93c5fd;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 640px) {
+  .context-strip.commerce-context-card {
+    padding: 18px;
+  }
+
+  .commerce-context-name {
+    font-size: 19px;
+  }
+
+  .commerce-context-details {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
