@@ -45,22 +45,15 @@ describe('Seguimiento público: transporte y límites de autorización', () => {
     expect(r.request.method).toBe('GET');
     expect(r.request.params.keys()).toEqual([]);
     expect(r.request.withCredentials).toBeTrue();
-    r.flush({success:true, accountResponse:{}, smsValidated:true});
-  });
-  it('SMS sólo envía el código con cookie y protección CSRF', () => {
-    TestBed.inject(ProspectoClienteService).validarTokenSms({tokenSms: '123456'}).subscribe();
-    const r = http.expectOne('/api/seguimiento-prospecto/validar-sms');
-    expect(r.request.body).toEqual({tokenSms: '123456'});expect(r.request.withCredentials).toBeTrue();
-    expect(r.request.headers.get('X-Seguimiento-Context')).toBe('00000000-0000-4000-8000-000000000001');
-    expect(r.request.headers.has('Authorization')).toBeFalse();expect(r.request.headers.get('X-Portal-Request')).toBe('1');r.flush({success:true});
+    r.flush({success:true, accountResponse:{}, linkAuthorized:true});
   });
   it('cuenta pública no recupera identidad por endpoints legacy al recibir 503', () => {
     const c = TestBed.runInInjectionContext(() => new RegistroProspectoClienteComponent());
-    c.prospectId = 'no-usar';(c as any).tokenSmsValidado = true;c.consultarCuentaComercio();
+    c.prospectId = 'no-usar';(c as any).enlaceAutorizado = true;c.consultarCuentaComercio();
     const r=http.expectOne('/api/seguimiento-prospecto/cuenta');expect(r.request.params.keys()).toEqual([]);
     expect(r.request.headers.has('Authorization')).toBeFalse();r.flush({success:false},{status:503,statusText:'Unavailable'});
     expect(c.errorLiquidacion).toContain('No fue posible consultar');
-    expect(c.errorProspecto).toBe('');expect((c as any).tokenSmsValidado).toBeTrue();http.expectNone(req=>req.url.includes('account/get'));
+    expect(c.errorProspecto).toBe('');expect((c as any).enlaceAutorizado).toBeTrue();http.expectNone(req=>req.url.includes('account/get'));
   });
   it('acciones públicas pendientes no usan GUID ni bearer mediante rutas antiguas', () => {
     const c=TestBed.runInInjectionContext(()=>new RegistroProspectoClienteComponent());
@@ -69,6 +62,6 @@ describe('Seguimiento público: transporte y límites de autorización', () => {
     (c as any).consultarDocumentos('untrusted');(c as any).consultarLiquidacionNodo();(c as any).consultarArbolReal('untrusted');
     c.verDocumentoProspecto({s3Key:'private-key'} as any);
     expect(c.prospectoBearerToken).toBe('');expect(c.error).toBe('');
-    expect(c.errorDocumentos).toContain('aún no están disponibles');http.expectNone(()=>true);
+    expect(c.errorDocumentos).toContain('No hay una sesión de seguimiento válida');http.expectNone(()=>true);
   });
 });

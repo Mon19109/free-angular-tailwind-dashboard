@@ -215,6 +215,31 @@
                 <p *ngIf="liquidacionDesconocida">No se encontró información.</p>
                 <p *ngIf="!opcionLiquidacionConsulta && !liquidacionDesconocida">No se encontraron datos de la cuenta de liquidación.</p>
                 <p *ngIf="opcionLiquidacionConsulta">Destino de las liquidaciones: <strong>{{ opcionLiquidacionConsulta }}</strong></p>
+                <div *ngIf="cuentasLiquidacionConsulta.length" class="settlement-accounts">
+                  <h4 class="settlement-accounts-title">
+                    <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+                    Cuentas de liquidación
+                  </h4>
+                  <table class="settlement-accounts-table" aria-label="Cuentas de liquidación">
+                    <thead>
+                      <tr>
+                        <th scope="col">Institución bancaria</th>
+                        <th scope="col">Cuenta CLABE</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let cuenta of cuentasLiquidacionConsulta">
+                        <td>
+                          <span class="settlement-institution">
+                            <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+                            <span>{{ cuenta.institutionName }}</span>
+                          </span>
+                        </td>
+                        <td><span class="settlement-account-number">{{ cuenta.account }}</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </ng-container>
             </div>
 

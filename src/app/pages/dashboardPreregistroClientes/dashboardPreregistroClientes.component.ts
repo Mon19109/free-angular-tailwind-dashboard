@@ -729,9 +729,24 @@ if (paso !== null) {
     ].filter(Boolean).join('|');
   }
 
-  ejecutarAccion(accion: 'editarInformacion' | 'inactivar' | 'baja' | 'password', comercio: Comercio): void {
+  ejecutarAccion(
+  accion: 'editarInformacion' | 'inactivar' | 'baja' | 'password' | 'registroAfiliacion',
+  comercio: Comercio
+): void {
+    
     if (!this.accionesInternasHabilitadas && accion === 'password') return;
     this.accionesAbiertas = null;
+
+    if (accion === 'registroAfiliacion') {
+  if (!comercio.ref) return;
+
+  this.router.navigate(['/registro_afiliacion'], {
+    queryParams: { ref: comercio.ref },
+    state: { nombreComercio: comercio.nombreComercial }
+  });
+
+  return;
+}
 
     if (accion === 'editarInformacion') {
       if (!this.puedeEditarInformacion || !comercio.ref) return;
@@ -895,7 +910,9 @@ if (paso !== null) {
   }
 
   tieneAccionesDisponibles(comercio: Comercio): boolean {
-    return (this.puedeEditarInformacion && !!comercio.ref)
+   // return (this.puedeEditarInformacion && !!comercio.ref)
+   return !!comercio.ref
+  || (this.puedeEditarInformacion && !!comercio.ref)
       || this.puedeInactivar(comercio)
       || this.puedeDarBaja()
       || this.puedeConsultarPassword(comercio);

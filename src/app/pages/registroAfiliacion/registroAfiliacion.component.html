@@ -1,0 +1,63 @@
+
+<div class="afiliacion-shell">
+  <article class="afiliacion-card">
+
+    <header class="afiliacion-card-header">
+      <div>
+        <span class="eyebrow">REGISTRO</span>
+        <h2>Registro de afiliación</h2>
+      </div>
+    </header>
+
+    <div class="afiliacion-card-body">
+      <section class="afiliacion-section">
+
+        <div class="section-heading">
+          <h3>Datos de afiliación</h3>
+          <p *ngIf="nombreComercio">
+            {{ nombreComercio }}
+          </p>
+        </div>
+
+        <div class="afiliacion-grid">
+          <div class="campo">
+            <label for="afiliacionProsa">Afiliación PROSA</label>
+            <input id="afiliacionProsa" type="text"
+              name="afiliacionProsa"
+              [(ngModel)]="afiliacionProsa" />
+          </div>
+
+          <div class="campo">
+            <label for="giroProsa">GIRO PROSA</label>
+            <input id="giroProsa" type="text"
+              name="giroProsa"
+              [(ngModel)]="giroProsa" />
+          </div>
+
+          <div class="campo">
+            <label for="afiliacionAmex">Afiliación AMEX</label>
+            <input id="afiliacionAmex" type="text"
+              name="afiliacionAmex"
+              [(ngModel)]="afiliacionAmex" />
+          </div>
+
+          <div class="campo">
+            <label for="giroAmex">GIRO AMEX</label>
+            <input id="giroAmex" type="text"
+              name="giroAmex"
+              [(ngModel)]="giroAmex" />
+          </div>
+        </div>
+
+        <div class="afiliacion-actions">
+          <button type="button" class="btn-actualizar" disabled
+            title="Pendiente de integración con el servicio">
+            Actualizar datos
+          </button>
+        </div>
+
+      </section>
+    </div>
+
+  </article>
+</div>

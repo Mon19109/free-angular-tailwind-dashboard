@@ -1475,4 +1475,46 @@ describe('Registro Cliente con contexto BFF', () => {
     });
   });
 
+  describe('Cuenta de liquidación: tabla de cuentas enmascaradas', () => {
+    const cuentas = [
+      { institutionName: 'Institución A', account: '**************8016' },
+      { institutionName: 'Institución B', account: '**************3179' },
+      { institutionName: 'Institución C', account: '**************9999' }
+    ];
+    function mostrar(settlementAccounts: unknown) {
+      http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+      const fixture = TestBed.createComponent(RegistroClienteComponent);
+      http.expectOne(`/api/comercios/${ref}/contexto`).flush(response());
+      const view = fixture.componentInstance;
+      view.seccionAbierta = 'liquidacion'; view.nodoSeleccionado = ref;
+      (view as any).cuentaNodoActual = { dispersionAccount: 'OTHER_BANK_AND_NETWORK', settlementAccounts };
+      view.liquidacionForm.controls.cuentaFueraRed.setValue('otros-bancos-en-red');
+      fixture.detectChanges();
+      return { fixture, view, table: fixture.nativeElement.querySelector('table[aria-label="Cuentas de liquidación"]') as HTMLTableElement | null };
+    }
+    for (const count of [0, 1, 2, 3]) it(`muestra ${count} filas sin modificar el destino`, () => {
+      const { fixture, table } = mostrar(cuentas.slice(0, count));
+      expect(fixture.nativeElement.textContent).toContain('Destino de las liquidaciones: Otros Bancos y En Red');
+      if (!count) { expect(table).toBeNull(); return; }
+      expect(table!.querySelectorAll('tbody tr').length).toBe(count);
+      expect(table!.querySelectorAll('th')[0].textContent).toBe('Institución bancaria');
+      expect(table!.querySelectorAll('th')[1].textContent).toBe('Cuenta CLABE');
+      cuentas.slice(0, count).forEach((cuenta, index) => {
+        const row = table!.querySelectorAll('tbody tr')[index];
+        expect(row.textContent).toContain(cuenta.institutionName); expect(row.textContent).toContain(cuenta.account);
+      });
+      expect(table!.querySelector('input,button,select')).toBeNull();
+    });
+    it('no muestra filas si no se reciben cuentas', () => { expect(mostrar(undefined).table).toBeNull(); });
+    it('no renderiza cuentas completas ni datos malformados', () => {
+      const { fixture, table } = mostrar([{ institutionName: 'Banco', account: '000000000000008016' }, null]);
+      expect(table).toBeNull(); expect(fixture.nativeElement.textContent).not.toContain('000000000000008016');
+    });
+    it('al cambiar los datos del nodo no conserva cuentas anteriores', () => {
+      const { fixture, view } = mostrar(cuentas);
+      (view as any).cuentaNodoActual = { settlementAccounts: [] }; fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('table[aria-label="Cuentas de liquidación"]')).toBeNull();
+    });
+  });
+
 });

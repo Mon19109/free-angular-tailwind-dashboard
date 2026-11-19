@@ -38,6 +38,7 @@ import { RevisionMesaDigitalComponent } from './pages/revisionMesaDigital/revisi
 import { EnviarInvitacionComercioComponent } from './pages/enviarInvitacionComercio/enviarInvitacionComercio.component';
 import { ConsultaComerciosComponent } from './pages/consultaComercios/consultaComercios.component';
 import { DashboardPreregistroClientesComponent } from './pages/dashboardPreregistroClientes/dashboardPreregistroClientes.component';
+import { RegistroAfiliacionComponent } from './pages/registroAfiliacion/registroAfiliacion.component';
 import { AgregarNivelComercioComponent } from './pages/agregarNivelComercio/agregarNivelComercio.component';
 import { RegistroClienteComponent } from './pages/registroCliente/registroCliente.component';
 import { RegistroProspectoClienteComponent } from './pages/registroProspectoCliente/registroProspectoCliente.component';
@@ -105,12 +106,12 @@ export const routes: Routes = [
   },
   {
     path: 'seguimiento',
-    redirectTo: '',
+    component: RegistroProspectoClienteComponent,
     pathMatch: 'full'
   },
   {
-    path: 'seguimiento/:invalidLink',
-    redirectTo: '',
+    path: 'seguimiento/:link',
+    component: RegistroProspectoClienteComponent,
     pathMatch: 'full'
   },
   {
@@ -295,6 +296,13 @@ export const routes: Routes = [
         data: { roles: [2] },
         title: 'Dashboard Preregistro Clientes | KASHPAY'
       },
+      {
+       path: 'registro_afiliacion',
+       component: RegistroAfiliacionComponent,
+       canActivate: [dashboardPreregistroClientesGuard],
+       data: { roles: [2] },
+       title: 'Registro Afiliación | KASHPAY'
+       },
       {
         path: 'agregar_nivel_comercio',
         component: AgregarNivelComercioComponent,

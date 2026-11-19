@@ -1,3 +1,5 @@
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { StepAccesosComponent } from '../preRegistro/components/accesos/step-accesos.component';
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
@@ -18,10 +20,10 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
 
   beforeEach(() => {
     api = jasmine.createSpyObj('seguimiento', ['consultarCuenta', 'consultarArbol', 'consultarLiquidacionNodo', 'consultarDocumentos', 'guardarDispersionEnRed', 'guardarLiquidacion', 'guardarAccesos', 'completar', 'renovarAcceso', 'subirDocumentoNodo']);
-    prospecto = jasmine.createSpyObj('prospecto', ['obtenerProspecto', 'validarTokenSms']);
+    prospecto = jasmine.createSpyObj('prospecto', ['obtenerProspecto']);
     navigation = jasmine.createSpyObj('navigation', ['restartForNavigation']);
     navigation.restartForNavigation.and.returnValue(of(undefined));
-    prospecto.obtenerProspecto.and.returnValue(of({ success: true, accountResponse: {}, smsValidated: false }));
+    prospecto.obtenerProspecto.and.returnValue(of({ success: true, accountResponse: {}, linkAuthorized: true }));
     api.consultarCuenta.and.returnValue(of({ success: true, entityInfo: {} }));
     api.consultarArbol.and.returnValue(of({ success: true, nodes: [
       { ref: root, name: 'Entidad', levelType: 4, depth: 0 },
@@ -36,8 +38,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     c = TestBed.runInInjectionContext(() => new RegistroProspectoClienteComponent());
     c.link = 'fixture-link';
     c.cargando = false;
-    c.showTokenModal = false;
-    (c as any).tokenSmsValidado = true;
+    (c as any).enlaceAutorizado = true;
     spyOn(window, 'scrollTo');
   });
 
@@ -55,12 +56,12 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     } finally { window.history.replaceState(originalState, '', original); }
   });
 
-  it('no envía archivos si falta SMS o el nodo seleccionado es Caja', () => {
+  it('no envía archivos si el enlace no está autorizado o el nodo seleccionado es Caja', () => {
     load();
     const event = () => ({archivo: new File(['fixture'], 'file.pdf', {type: 'application/pdf'}), documento: {numero: 1, nombre: 'Documento', obligatorio: false}});
-    (c as any).tokenSmsValidado = false;
+    (c as any).enlaceAutorizado = false;
     c.subirDocumentoPublico(event());
-    (c as any).tokenSmsValidado = true;
+    (c as any).enlaceAutorizado = true;
     (c as any).arbol = [{id: 'caja', levelType: 6, nivel: 'caja', hijos: []}];
     c.nodoSeleccionado = 'caja';
     c.subirDocumentoPublico(event());
@@ -93,7 +94,6 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(c.errorDocumentos).toContain('No fue posible consultar');
     expect(c.error).toBe('');
     expect(c.errorProspecto).toBe('');
-    expect(c.showTokenModal).toBeFalse();
     c.continuarLiquidacion();
     expect(c.pasoActivo).toBe('accesos');
   });
@@ -170,7 +170,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     c.verDocumentoProspecto({ numero: 1, nombre: 'Archivo', obligatorio: true, archivoUrl: 'https://private.invalid/file', s3Key: 'private/file' });
     expect(open).not.toHaveBeenCalled();
     expect(c.error).toBe('');
-    expect(c.errorDocumentos).toContain('aún no están disponibles');
+    expect(c.errorDocumentos).toContain('No hay una sesión de seguimiento válida');
   });
 
   it('cambiar de sección con liquidación pendiente nunca registra ni abre accesos', () => {
@@ -211,7 +211,6 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     saved.next({ success: true }); saved.complete();
     expect(c.liquidacionCompleta).toBeTrue();
     expect(c.pasoActivo).toBe('accesos');
-    expect(prospecto.validarTokenSms).not.toHaveBeenCalled();
     expect(api.renovarAcceso).not.toHaveBeenCalled();
   });
 
@@ -220,7 +219,6 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     c.liquidacionForm.controls.cuentaFueraRed.setValue('en-red'); c.modalLiquidacion = 'en-red'; c.aceptarModalLiquidacion();
     expect(c.liquidacionCompleta).toBeFalse();
     expect(c.pasoActivo).toBe('liquidacion');
-    expect(c.showTokenModal).toBeFalse();
   });
 
   it('no deja que la liquidación tardía de la raíz cambie el estado de otra selección', () => {
@@ -271,7 +269,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
 
   it('no guarda ni consulta sin validación SMS y rechaza selecciones fuera del árbol', () => {
     load(); c.seleccionarNodo('otro-comercio'); expect(c.nodoSeleccionado).toBe(root);
-    (c as any).tokenSmsValidado = false;
+    (c as any).enlaceAutorizado = false;
     api.consultarCuenta.calls.reset(); api.consultarLiquidacionNodo.calls.reset();
     c.consultarCuentaComercio(); c.continuarLiquidacion(); c.aceptarModalLiquidacion(); c.finalizar();
     expect(api.consultarCuenta).not.toHaveBeenCalled(); expect(api.consultarLiquidacionNodo).not.toHaveBeenCalled();
@@ -282,18 +280,18 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     api.consultarLiquidacionNodo.and.returnValue(throwError(() => ({ status: 403, error: { code: 'SEGUIMIENTO_SCOPE_INVALID' } })));
     load();
     expect(c.errorProspecto).toContain('ya no está vigente');
-    expect((c as any).tokenSmsValidado).toBeFalse();
+    expect((c as any).enlaceAutorizado).toBeFalse();
     expect(prospecto.obtenerProspecto).not.toHaveBeenCalled();
     expect(api.renovarAcceso).not.toHaveBeenCalled();
   });
 
-  it('volver desde bfcache inicia otra verificación y descarta datos y respuestas anteriores', () => {
+  it('volver desde bfcache vuelve a resolver el enlace y descarta datos y respuestas anteriores', () => {
     const oldDocuments = new Subject<any>(); api.consultarDocumentos.and.returnValue(oldDocuments);
     load();
+    api.consultarDocumentos.and.returnValue(of({ success: true, documents: [] }));
     c.restaurarNavegacionPublica({ persisted: true } as PageTransitionEvent);
     expect(navigation.restartForNavigation).toHaveBeenCalledTimes(1);
-    expect(c.showTokenModal).toBeTrue();
-    expect((c as any).tokenSmsValidado).toBeFalse();
+    expect((c as any).enlaceAutorizado).toBeTrue();
     oldDocuments.next({ success: true, documents: [document] }); oldDocuments.complete();
     expect(c.documentosProspecto).toEqual([]);
     expect(c.liquidacionCompleta).toBeFalse();
@@ -342,7 +340,7 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     spyOn(RegistroProspectoClienteComponent.prototype,'ngOnInit').and.stub();
     const fixture=TestBed.createComponent(RegistroProspectoClienteComponent);
     c=fixture.componentInstance;
-    c.link='fixture-link';c.cargando=false;c.showTokenModal=false;(c as any).tokenSmsValidado=true;
+    c.link='fixture-link';c.cargando=false;(c as any).enlaceAutorizado=true;
     for(const status of [25,26]) {
       api.consultarLiquidacionNodo.and.returnValue(of({success:true,status,dispersionAccount:null,
         permissions:{editLiquidation:false,editAccess:false}}));
@@ -374,4 +372,60 @@ describe('Seguimiento público: documentos y registro por nodo', () => {
     expect(api.guardarDispersionEnRed).not.toHaveBeenCalled();expect(api.guardarLiquidacion).not.toHaveBeenCalled();
   });
 
+});
+
+// Pruebas específicas del bloqueo por disponibilidad del correo público.
+describe('Accesos públicos: disponibilidad del correo y bloqueo de cuenta', () => {
+  function crear() {
+    TestBed.configureTestingModule({ imports: [StepAccesosComponent] });
+    const fixture = TestBed.createComponent(StepAccesosComponent);
+    const c = fixture.componentInstance;
+    c.usuarios = ['fac', 'tkt'].map(prefijo => ({ prefijo, titulo: prefijo, descripcion: '' }));
+    c.usuarioActivo = 'fac'; c.mostrarResumenUsuarios = true;
+    c.validarCorreosDisponibilidad = true;
+    c.form = new FormGroup(Object.fromEntries(c.usuarios.flatMap(usuario =>
+      ['Nombre', 'Paterno', 'Materno', 'Correo', 'ConfirmarCorreo', 'Telefono'].map(campo =>
+        [usuario.prefijo + campo, new FormControl(campo.includes('Correo') ? 'persona@example.com' : 'Capturado',
+          campo === 'Correo' ? [Validators.required, Validators.email] : [Validators.required])]))));
+    c.estadosCorreos = { fac: 'disponible', tkt: 'disponible' };
+    fixture.detectChanges();
+    return { fixture, c, input: (campo: string) => fixture.nativeElement.querySelector('#fac' + campo) as HTMLInputElement };
+  }
+  for (const estado of ['pendiente', 'verificando', 'registrado', 'error'] as const) {
+    it(`${estado}: bloquea campos posteriores y todas las rutas de cambio de cuenta`, () => {
+      const { fixture, c, input } = crear(); c.estadosCorreos['fac'] = estado; fixture.detectChanges();
+      const cambiar = spyOn(c.usuarioActivoChange, 'emit'); const enviar = spyOn(c.continuar, 'emit');
+      expect(input('ConfirmarCorreo').readOnly).toBeTrue(); expect(input('Telefono').readOnly).toBeTrue();
+      expect(input('Correo').readOnly).toBeFalse(); expect(input('Nombre').readOnly).toBeFalse();
+      const siguientes = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+      expect(siguientes.filter(button => button.textContent?.includes('tkt')).every(button => button.disabled)).toBeTrue();
+      c.irUsuarioSiguiente(); c.seleccionarUsuario('tkt'); c.submit();
+      expect(cambiar).not.toHaveBeenCalled(); expect(enviar).not.toHaveBeenCalled();
+      expect(c.form.valid).toBeTrue(); // No se alteran los validadores ni los valores capturados.
+    });
+  }
+  it('disponible: no muestra el mensaje de éxito y permite editar y avanzar', () => {
+    const { fixture, c, input } = crear(); const cambiar = spyOn(c.usuarioActivoChange, 'emit');
+    expect(fixture.nativeElement.textContent).not.toContain('Correo electrónico disponible.');
+    expect(input('ConfirmarCorreo').readOnly).toBeFalse(); expect(input('Telefono').readOnly).toBeFalse();
+    c.irUsuarioSiguiente(); expect(cambiar).toHaveBeenCalledWith('tkt');
+  });
+  it('correo inválido no desbloquea aunque conserve estado disponible', () => {
+    const { fixture, c, input } = crear(); c.form.get('facCorreo')!.setValue('invalido'); fixture.detectChanges();
+    expect(input('ConfirmarCorreo').readOnly).toBeTrue(); expect(input('Telefono').readOnly).toBeTrue();
+    expect(c.correoBloqueado('fac')).toBeTrue();
+  });
+  it('cambiar el correo y pasar a pendiente vuelve a bloquear hasta la nueva confirmación', () => {
+    const { fixture, c, input } = crear();
+    c.form.get('facCorreo')!.setValue('nuevo@example.com'); c.estadosCorreos['fac'] = 'pendiente'; fixture.detectChanges();
+    expect(input('Telefono').readOnly).toBeTrue();
+    c.estadosCorreos['fac'] = 'disponible'; fixture.detectChanges(); expect(input('Telefono').readOnly).toBeFalse();
+  });
+  it('sin validación pública conserva campos y navegación existentes', () => {
+    const { fixture, c, input } = crear(); c.validarCorreosDisponibilidad = false;
+    c.estadosCorreos['fac'] = 'registrado'; fixture.detectChanges();
+    const cambiar = spyOn(c.usuarioActivoChange, 'emit');
+    expect(input('ConfirmarCorreo').readOnly).toBeFalse(); expect(input('Telefono').readOnly).toBeFalse();
+    c.irUsuarioSiguiente(); expect(cambiar).toHaveBeenCalledWith('tkt');
+  });
 });

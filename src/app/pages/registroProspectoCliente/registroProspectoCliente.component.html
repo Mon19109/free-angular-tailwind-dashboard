@@ -58,56 +58,6 @@
   </div>
   }
 
-  @if (showTokenModal && !errorProspecto) {
-  <div class="token-modal-backdrop">
-    <div class="token-modal" role="dialog" aria-modal="true" aria-labelledby="prospect-token-title">
-      <button
-        type="button"
-        class="token-modal-close"
-        aria-label="Cerrar"
-        [disabled]="validandoToken || cargando"
-        (click)="closeTokenModal()">
-        &times;
-      </button>
-
-      <form (ngSubmit)="validarTokenSms()">
-        <div class="token-modal-body">
-          <label id="prospect-token-title" for="prospect-token">
-            Ingresa el token enviado por SMS para consultar tu registro.
-          </label>
-          <textarea
-            id="prospect-token"
-            name="prospect-token"
-            [(ngModel)]="tokenValue"
-            [ngModelOptions]="{ standalone: true }"
-            [class.is-invalid]="tokenErrorMessage"
-            autocomplete="one-time-code"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            rows="1"
-            [disabled]="validandoToken || cargando"
-            (ngModelChange)="clearTokenError()"
-            (keydown.enter)="$event.preventDefault(); validarTokenSms()"
-            autofocus></textarea>
-          @if (tokenErrorMessage) {
-          <div class="token-error">{{ tokenErrorMessage }}</div>
-          }
-        </div>
-
-        <div class="token-modal-actions">
-          <button type="submit" class="token-btn token-btn-primary" [disabled]="validandoToken || cargando">
-            {{ validandoToken ? 'VALIDANDO...' : 'VALIDAR' }}
-          </button>
-          <button type="button" class="token-btn token-btn-secondary" [disabled]="validandoToken || cargando" (click)="closeTokenModal()">
-            CANCELAR
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
-
   @if (guardando || guardandoLiquidacion) {
   <app-processing-overlay
     texto="Enviando información..."
@@ -163,11 +113,6 @@
     <section class="state-panel">
       <i class="fa-solid fa-spinner fa-spin"></i>
       <strong>Validando link...</strong>
-    </section>
-    } @else if (showTokenModal && !prospecto) {
-    <section class="state-panel">
-      <i class="fa-solid fa-mobile-screen-button"></i>
-      <strong>Valida el token enviado por SMS para continuar.</strong>
     </section>
     } @else if (error && !prospecto) {
     <section class="state-panel error">
@@ -259,7 +204,7 @@
           }
         </article>
         }
-        @if ((!modoInterno && tokenSmsValidado) || (modoInterno && !mostrarSoloPasosFinales)) {
+        @if ((!modoInterno && enlaceAutorizado) || (modoInterno && !mostrarSoloPasosFinales)) {
         <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'documentos'" [class.done]="false">
           <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('documentos')">
             <span class="section-icon"><i class="fa-solid fa-file-lines"></i></span>
@@ -494,15 +439,17 @@
           }
           @if (seccionFinalAbierta === 'accesos' && liquidacionConsultada && !accesosCompletos && liquidacionCompleta && !accesosPublicosBloqueados) {
           <div class="section-body">
-            <app-step-accesos
-              [form]="accesosForm"
-              [usuarios]="usuariosAcceso"
-              [mostrarResumenUsuarios]="true"
-              [usuarioActivo]="usuarioActivo"
-              (usuarioActivoChange)="usuarioActivo = $event"
-              textoContinuar="Enviar información"
-              (volver)="volverLiquidacion()"
-              (continuar)="finalizar()" />
+           <app-step-accesos
+  [form]="accesosForm"
+  [usuarios]="usuariosAcceso"
+  [mostrarResumenUsuarios]="true"
+  [usuarioActivo]="usuarioActivo"
+  (usuarioActivoChange)="usuarioActivo = $event"
+  textoContinuar="Enviar información"
+  [validarCorreosDisponibilidad]="!modoInterno"
+  [estadosCorreos]="estadosCorreos"
+  (volver)="volverLiquidacion()"
+  (continuar)="finalizar()" />
           </div>
           }
         </article>

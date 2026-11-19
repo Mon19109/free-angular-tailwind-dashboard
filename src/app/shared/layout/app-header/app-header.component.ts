@@ -55,6 +55,7 @@ private readonly titulosPaginas: Record<string, string> = {
   estado_cuenta: 'Estado de Cuenta',
   consulta_comercios: 'Consulta de Comercios',
   dashboard_preregistro_clientes: 'Dashboard Preregistro Clientes',
+  registro_afiliacion: 'Registro Afiliación',
   agregar_nivel_comercio: 'Agregar Nivel a Comercio Existente',
   registro_cliente: 'Registro de Cliente / Comercio',
   // futuros módulos

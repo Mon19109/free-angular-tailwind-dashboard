@@ -4,7 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { SeguimientoNavigationService } from './seguimiento-navigation.service';
 export interface ProspectoClienteResponse {
   success?: boolean;
-  smsValidated?: boolean;
+  linkAuthorized?: boolean;
   registration?: { status: 'PENDING' | 'PARTIAL' | 'COMPLETED' | 'UNVERIFIED'; liquidationComplete: boolean | null; platformComplete: boolean | null };
   message?: string;
   error?: { name?: string; message?: string; code?: string };
@@ -36,7 +36,6 @@ export interface ProspectoClienteCapturaPayload {
   accesos: Record<string, unknown>;
 }
 
-export interface ValidarTokenSmsPayload { tokenSms: string; }
 
 @Injectable({ providedIn: 'root' })
 export class ProspectoClienteService {
@@ -56,12 +55,6 @@ export class ProspectoClienteService {
   guardarCapturaCliente(payload: ProspectoClienteCapturaPayload): Observable<unknown> {
     // No hay un contrato público autorizado para esta escritura; nunca usar un Bearer fijo como permiso.
     return throwError(() => new Error('La captura pública requiere una operación autorizada del BFF.'));
-  }
-
-  validarTokenSms(payload: ValidarTokenSmsPayload): Observable<unknown> {
-    return this.navigation.request(options => this.http.post('/api/seguimiento-prospecto/validar-sms',
-      { tokenSms: payload.tokenSms },
-      options));
   }
 
 }

@@ -20,7 +20,7 @@ describe('Seguimiento: consultas independientes por nodo', () => {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), { provide: ActivatedRoute, useValue: {} },
       { provide: SeguimientoProspectoService, useValue: service }] });
     c = TestBed.runInInjectionContext(() => new RegistroProspectoClienteComponent());
-    c.tokenSmsValidado = true; c.nodoSeleccionado = '';
+    c.enlaceAutorizado = true; c.nodoSeleccionado = '';
     c.arbol = [{ id: 'entidad', nombre: 'Entidad', nivel: 'entidad', levelType: 4, hijos: [
       { id: 'sucursal', nombre: 'Sucursal', nivel: 'sucursal', levelType: 5 },
       { id: 'caja', nombre: 'Caja', nivel: 'caja', levelType: 6 }
@@ -96,7 +96,7 @@ describe('Seguimiento: consultas independientes por nodo', () => {
   });
   it('no consulta nodos ajenos ni continúa con autorización vencida', () => {
     c.seleccionarNodo('ajeno'); expect(service.consultarDocumentos).not.toHaveBeenCalled();
-    c.tokenSmsValidado = false; c.seleccionarNodo('entidad'); c.reintentarLiquidacion();
+    c.enlaceAutorizado = false; c.seleccionarNodo('entidad'); c.reintentarLiquidacion();
     expect(service.consultarLiquidacionNodo).not.toHaveBeenCalled();
   });
 });

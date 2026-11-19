@@ -16,6 +16,7 @@
         class="access-progress-dot"
         [class.active]="usuario.prefijo === usuarioActivo"
         [class.complete]="usuarioEstaCompleto(usuario.prefijo)"
+        [disabled]="usuario.prefijo !== usuarioActual?.prefijo && correoBloqueado(usuarioActual?.prefijo ?? '')"
         (click)="seleccionarUsuario(usuario.prefijo)">
         <span>{{ index + 1 }}</span>
         <strong>{{ usuario.titulo.replace('Usuario Administrador ', '') }}</strong>
@@ -63,16 +64,55 @@
           </div>
 
           <div class="field">
-            <label [for]="campo(usuario.prefijo, 'Correo')">Correo electrónico <b>*</b></label>
-            <input maxlength="100" [id]="campo(usuario.prefijo, 'Correo')" type="email" [formControlName]="campo(usuario.prefijo, 'Correo')" placeholder="ejemplo@correo.com"
-              [class.invalid]="esInvalido(campo(usuario.prefijo, 'Correo'))" />
-            @if (esInvalido(campo(usuario.prefijo, 'Correo'))) { <small>Debes llenar este campo.</small> }
-          </div>
+  <label [for]="campo(usuario.prefijo, 'Correo')">
+    Correo electrónico <b>*</b>
+  </label>
+
+  <input
+    maxlength="100"
+    type="email"
+    [id]="campo(usuario.prefijo, 'Correo')"
+    [formControlName]="campo(usuario.prefijo, 'Correo')"
+    placeholder="ejemplo@correo.com"
+    [class.invalid]="
+      esInvalido(campo(usuario.prefijo, 'Correo')) ||
+      (validarCorreosDisponibilidad &&
+        estadoCorreo(usuario.prefijo) === 'registrado')
+    "
+  />
+
+  @if (esInvalido(campo(usuario.prefijo, 'Correo'))) {
+    <small>Ingresa un correo electrónico válido.</small>
+  }
+
+  @if (validarCorreosDisponibilidad &&
+     form.get(campo(usuario.prefijo, 'Correo'))?.valid) {
+
+    @switch (estadoCorreo(usuario.prefijo)) {
+      @case ('verificando') {
+        <small>Verificando correo electrónico...</small>
+      }
+
+      @case ('registrado') {
+        <small>
+          Este correo electrónico ya está registrado.
+        </small>
+      }
+
+      @case ('error') {
+        <small>
+          No fue posible verificar el correo electrónico.
+        </small>
+      }
+    }
+  }
+</div>
 
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'ConfirmarCorreo')">Confirmar correo electrónico <b>*</b></label>
             <input maxlength="100" [id]="campo(usuario.prefijo, 'ConfirmarCorreo')" type="email" [formControlName]="campo(usuario.prefijo, 'ConfirmarCorreo')"
               placeholder="Confirma tu correo"
+              [readOnly]="correoBloqueado(usuario.prefijo)"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo')) || correosDistintos(usuario.prefijo)" />
             @if (esInvalido(campo(usuario.prefijo, 'ConfirmarCorreo'))) {
             <small>Debes llenar este campo.</small>
@@ -84,6 +124,7 @@
           <div class="field">
             <label [for]="campo(usuario.prefijo, 'Telefono')">Teléfono <b>*</b></label>
             <input [id]="campo(usuario.prefijo, 'Telefono')" maxlength="10" inputmode="numeric" [formControlName]="campo(usuario.prefijo, 'Telefono')"
+              [readOnly]="correoBloqueado(usuario.prefijo)"
               [class.invalid]="esInvalido(campo(usuario.prefijo, 'Telefono'))" />
             @if (esInvalido(campo(usuario.prefijo, 'Telefono'))) { <small>Debes llenar este campo.</small> }
           </div>
@@ -101,6 +142,7 @@
         class="access-registro-user"
         [class.active]="usuario.prefijo === usuarioActivo"
         [class.complete]="usuarioEstaCompleto(usuario.prefijo)"
+        [disabled]="usuario.prefijo !== usuarioActual?.prefijo && correoBloqueado(usuarioActual?.prefijo ?? '')"
         (click)="seleccionarUsuario(usuario.prefijo)">
         <span aria-hidden="true">
           <ng-container *ngTemplateOutlet="iconoUsuario; context: { $implicit: usuario }"></ng-container>
@@ -117,12 +159,12 @@
 
   @if (mostrarNavegacionUsuarios) {
   <div class="access-account-actions">
-    <button type="button" class="button ghost" [disabled]="!puedeIrUsuarioAnterior" (click)="irUsuarioAnterior()">
+    <button type="button" class="button ghost" [disabled]="!puedeIrUsuarioAnterior || correoBloqueado(usuarioActual?.prefijo ?? '')" (click)="irUsuarioAnterior()">
       <i class="fa-solid fa-arrow-left"></i>
       Cuenta anterior
     </button>
     @if (puedeIrUsuarioSiguiente) {
-    <button type="button" class="button primary" (click)="irUsuarioSiguiente()">
+    <button type="button" class="button primary" [disabled]="correoBloqueado(usuarioActual?.prefijo ?? '')" (click)="irUsuarioSiguiente()">
       {{ textoUsuarioSiguiente }}
       <i class="fa-solid fa-arrow-right"></i>
     </button>
