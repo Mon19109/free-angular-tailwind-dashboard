@@ -51,6 +51,17 @@
     linear-gradient(180deg, var(--dashboard-bg) 0%, var(--dashboard-bg-alt) 52%, var(--dashboard-bg) 100%);
 }
 
+.dashboard-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-logo img {
+  width: min(100%, 480px);
+  height: auto;
+}
+
 .dashboard-modal-ok {
   border: 0;
   border-radius: 10px;

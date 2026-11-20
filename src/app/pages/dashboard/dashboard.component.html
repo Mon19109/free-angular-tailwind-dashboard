@@ -1,3 +1,8 @@
+@if (mostrarSoloLogo) {
+  <div class="dashboard-shell dashboard-logo">
+    <img src="/kashpay_dorado.png" alt="KashPay" />
+  </div>
+} @else {
 <div class="dashboard-shell">
   <p *ngIf="accountState() === 'error'" role="alert">No fue posible consultar la cuenta. Intenta nuevamente más tarde.</p>
   <div class="grid grid-cols-12 gap-4 md:gap-6">
@@ -137,3 +142,4 @@
     </div>
   </div>
 </div>
+}

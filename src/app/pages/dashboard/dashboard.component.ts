@@ -41,6 +41,9 @@ export class DashboardComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   get userName(): string { return this.auth.getUserData().userName || '-'; }
+  get mostrarSoloLogo(): boolean {
+    return [8, 9, 11].includes(Number(this.auth.getUserData().idPerfil));
+  }
   cerrarModalImagen(): void { this.mostrarModalImagen = false; }
   ngOnInit(): void { this.cargarDatosIniciales(); }
 
@@ -98,6 +101,8 @@ export class DashboardComponent {
     this.reportes.set([]);
     this.virtualAccount.set(null);
     this.adquirencia.set({ balance: null, customerNetworkBalance: null });
+    if (this.mostrarSoloLogo) return;
+
     this.requests.add(this.dashService.getCapabilities().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: capabilities => {
         this.capabilities.set(capabilities);
