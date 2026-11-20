@@ -1657,7 +1657,9 @@ export class PreRegistroComponent {
       else this.pasosCompletados.delete(paso);
     }
 
-    this.actualizarNodoCompletado(nodo.id, this.nodoActualTieneDatosCompletos());
+   if (!this.obtenerNodosCompletados().includes(nodo.id)) {
+  this.actualizarNodoCompletado(nodo.id, this.nodoActualTieneDatosCompletos());
+}
     if (this.nodoActualTieneDatosCompletos()) {
       this.irAlPaso(this.ultimoPasoVisible());
       return;
@@ -2116,14 +2118,41 @@ export class PreRegistroComponent {
     });
   }
 
-  private confirmarAvance(titulo: string, nombre: string): void {
+  /*private confirmarAvance(titulo: string, nombre: string): void {
     this.resultadoPreRegistroExitoso = true;
     this.errorEnvioPreRegistro = '';
     this.tituloResultadoPreRegistro = titulo;
     this.mensajeResultadoPreRegistro = nombre;
     this.mostrarModalResultadoPreRegistro = true;
     this.guardarBorradorSilencioso();
+  }*/
+
+
+  private confirmarAvance(titulo: string, nombre: string): void {
+  this.resultadoPreRegistroExitoso = true;
+  this.errorEnvioPreRegistro = '';
+
+  // La confirmación del servicio permite marcar el nodo actual.
+  if (
+    titulo === 'Se registró correctamente' ||
+    titulo === 'Se actualizó correctamente' ||
+    titulo === 'Documentos guardados correctamente'
+  ) {
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value;
+if (
+  nodoId &&
+  this.guidsRegistrados[nodoId] &&
+  this.nodoActualTieneDatosCompletos()
+) {
+  this.actualizarNodoCompletado(nodoId, true);
+}
   }
+
+  this.tituloResultadoPreRegistro = titulo;
+  this.mensajeResultadoPreRegistro = nombre;
+  this.mostrarModalResultadoPreRegistro = true;
+  this.guardarBorradorSilencioso();
+}
 
   private avanzarDespuesDeDatos(): void {
     this.marcarPasoCompletado(2);
@@ -2331,15 +2360,50 @@ export class PreRegistroComponent {
     for (const doc of this.documentosVisibles) {
       if (doc.archivo) documents.push({ nodoId, numeroDocumento: String(doc.numero), file: doc.archivo });
     }
-    const continuar = () => {
-      if (this.nodoActualTieneDatosCompletos()) this.marcarNodoActualCompletado();
-      if (!this.avanzarASiguienteSucursal() && this.puedeFinalizarPreregistro()) {
-        this.finalizacionPendiente = true;
-        if (!this.mostrarModalResultadoPreRegistro) this.cerrarModalResultadoPreRegistro();
-      }
-      this.guardarBorradorSilencioso();
-    };
-    if (!documents.length) { continuar(); return; }
+   const continuar = () => {
+  const nodoConfirmado = this.obtenerNodosCompletados().includes(nodoId);
+
+  if (this.nodoActualTieneDatosCompletos()) {
+    this.marcarNodoActualCompletado();
+  }
+
+  if (!this.avanzarASiguienteSucursal()) {
+    if (nodoConfirmado || this.nodoActualTieneDatosCompletos()) {
+     if (this.puedeFinalizarPreregistro()) {
+  this.finalizacionPendiente = true;
+}
+    }
+  }
+
+  this.guardarBorradorSilencioso();
+};
+
+   // if (!documents.length) { continuar(); return; }
+   if (!documents.length) {
+  const nodoCompleto =
+    this.obtenerNodosCompletados().includes(nodoId) ||
+    this.nodoActualTieneDatosCompletos();
+
+  if (!nodoCompleto) {
+    this.mostrarErrorPreRegistro(
+      'Completa la información obligatoria del nodo antes de continuar.'
+    );
+    return;
+  }
+
+  const esUltimoNodo =
+    !this.hayNodoSiguienteArbol();
+
+  if (esUltimoNodo) {
+    this.confirmarAvance(
+      'Se registró correctamente',
+      this.buscarNodoArbol(nodoId)?.nombre || ''
+    );
+  }
+
+  continuar();
+  return;
+}
     this.enviandoPreRegistro = true;
     this.avanceService.subirDocumentos(this.comprobanteAvance, documents).subscribe({
       next: response => {
@@ -3421,11 +3485,18 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
   }
 
   nodoArbolCompletado(id: string): boolean {
-    if (id === this.arbolNegocioForm.controls.nodoSeleccionado.value) {
-      return this.nodoActualTieneDatosCompletos();
-    }
-    return this.obtenerNodosCompletados().includes(id);
+  // Respetar los nodos que ya fueron marcados como completados.
+  if (this.obtenerNodosCompletados().includes(id)) {
+    return true;
   }
+
+  // Para el nodo seleccionado, mostrar su validez actual.
+  if (id === this.arbolNegocioForm.controls.nodoSeleccionado.value) {
+    return this.nodoActualTieneDatosCompletos();
+  }
+
+  return false;
+}
 
   private calcularProgresoPreregistro(): number {
     const unidadesIniciales = 2; // afiliación + selección/configuración del paquete
@@ -3606,7 +3677,10 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
     if (this.pasoActual === 3) this.guardarAccesosNodoActual();
     if (this.pasoActual === 5) this.guardarDocumentosNodoActual();
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value;
-    if (nodoId) this.actualizarNodoCompletado(nodoId, this.nodoActualTieneDatosCompletos());
+   // if (nodoId) this.actualizarNodoCompletado(nodoId, this.nodoActualTieneDatosCompletos());
+  if (nodoId && !this.obtenerNodosCompletados().includes(nodoId)) {
+  this.actualizarNodoCompletado(nodoId, this.nodoActualTieneDatosCompletos());
+}
   }
 
   private cargarCapturaNodo(nodoId: string): void {
