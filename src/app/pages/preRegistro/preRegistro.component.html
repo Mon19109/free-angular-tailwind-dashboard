@@ -414,7 +414,9 @@
     aria-describedby="preregistro-result-message"
     (click)="$event.stopPropagation()">
     <div class="result-modal-body">
-      <i class="far fa-times-circle result-modal-icon error" aria-hidden="true"></i>
+      <i class="far result-modal-icon" [class.fa-check-circle]="resultadoPreRegistroExitoso"
+        [class.success]="resultadoPreRegistroExitoso" [class.fa-times-circle]="!resultadoPreRegistroExitoso"
+        [class.error]="!resultadoPreRegistroExitoso" aria-hidden="true"></i>
       <h2 id="preregistro-result-title">{{ tituloResultadoPreRegistro }}</h2>
       <p id="preregistro-result-message">{{ mensajeResultadoPreRegistro }}</p>
     </div>

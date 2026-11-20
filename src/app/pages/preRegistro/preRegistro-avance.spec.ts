@@ -1,3 +1,4 @@
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
@@ -15,6 +16,8 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
   let component: PreRegistroComponent;
   let c: any;
   let api: jasmine.SpyObj<PreregistroAvanceService>;
+  const route = { snapshot: { queryParamMap: convertToParamMap({}) } };
+  const router = { navigate: jasmine.createSpy('navigate').and.resolveTo(true) };
   const catalogos = {
     'Sub Afiliado': [{ id: 31, nombre: 'Empresa Holding' }],
     Entidad: [{ id: 41, nombre: 'Empresa Grupo' }, { id: 42, nombre: 'Persona Física' }, { id: 43, nombre: 'Entidad Agrupadora con auditor' }],
@@ -33,10 +36,13 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
   };
   const raizPayload = (payload: any, id: string) => id === 'empresa-holding' ? payload : id === 'comercio-unico' ? payload.entitys[0].branchOficces[0] : payload.entitys[0];
   beforeEach(() => {
+    route.snapshot.queryParamMap = convertToParamMap({});
+    router.navigate.calls.reset();
     sessionStorage.removeItem('kashpay.preregistro.avance.v1');
     api = jasmine.createSpyObj('avance', ['crear', 'consultar', 'actualizar', 'subirDocumentos']);
     api.actualizar.and.returnValue(of({ success: true }));
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(),
+      { provide: ActivatedRoute, useValue: route }, { provide: Router, useValue: router },
       { provide: ChangeDetectorRef, useValue: { detectChanges() {} } },
       { provide: RegimenFiscalService, useValue: { getAllOptions: () => of([]) } },
       { provide: PreRegistroService, useValue: { getTiposComercio: () => of([]) } },
@@ -198,6 +204,59 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
     expect(branchPayload.email).toBe(''); expect(branchPayload.phoneNumber).toBe('');
     expect(branchPayload.poss[0].rfc).toBeUndefined();
     expect(entity.referrerNodeId).toBeUndefined();
+  });
+  it('el enlace nuevo descarta solo almacenamiento de Preregistro y no consulta el comprobante anterior', () => {
+    route.snapshot.queryParamMap = convertToParamMap({ nuevo: '1' });
+    sessionStorage.setItem('kashpay.preregistro.avance.v1', 'a'.repeat(64));
+    localStorage.setItem('kashpay.preregistro.draft.v1', '{}');
+    localStorage.setItem('kashpay.preregistro.payload.v1', '{}');
+    sessionStorage.setItem('otra-funcionalidad-test', 'conservar');
+    component.ngOnInit();
+    expect(api.consultar).not.toHaveBeenCalled(); expect(api.crear).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('kashpay.preregistro.avance.v1')).toBeNull();
+    expect(localStorage.getItem('kashpay.preregistro.draft.v1')).toBeNull();
+    expect(localStorage.getItem('kashpay.preregistro.payload.v1')).toBeNull();
+    expect(sessionStorage.getItem('otra-funcionalidad-test')).toBe('conservar');
+    sessionStorage.removeItem('otra-funcionalidad-test');
+    expect(router.navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { nuevo: null }, replaceUrl: true }));
+    component.continuarAfiliacion();
+    const req = TestBed.inject(HttpTestingController).expectOne(environment.preregistroBff.validarAfiliacionUrl);
+    req.flush({ success: true, comprobante: 'b'.repeat(64) });
+    expect(c.comprobanteAfiliacion).toBe('b'.repeat(64));
+    expect(c.altaIntentada).toBeFalse();
+  });
+  it('recupera normalmente el avance del comprobante actual', () => {
+    sessionStorage.setItem('kashpay.preregistro.avance.v1', 'a'.repeat(64));
+    spyOn(c, 'cargarBorrador');
+    const arbol = component.arbolNegocioWizard;
+    api.consultar.and.returnValue(of({ success: true, comercioCreado: true, estado: 'creado', tipoNegocio: 'individual', arbol, guidsPorNodo: { [arbol[0].id]: 'guid-confirmado' } }));
+    component.ngOnInit();
+    expect(api.consultar).toHaveBeenCalledWith('a'.repeat(64));
+    expect(component.prospectoCreado).toBeTrue(); expect(c.guidsRegistrados[arbol[0].id]).toBe('guid-confirmado');
+    expect(api.crear).not.toHaveBeenCalled();
+  });
+  for (const code of ['PREREGISTRO_RESULTADO_PENDIENTE', 'PREREGISTRO_AVANCE_NO_DISPONIBLE', undefined]) {
+    it(`un 410 ${code} no permite reenviar el mismo comprobante`, () => {
+      sessionStorage.setItem('kashpay.preregistro.avance.v1', 'a'.repeat(64));
+      spyOn(c, 'cargarBorrador');
+      api.consultar.and.returnValue(throwError(() => new HttpErrorResponse({ status: 410, error: { code } })));
+      component.ngOnInit(); component.continuarDatos();
+      expect(c.altaIntentada).toBeTrue(); expect(api.crear).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem('kashpay.preregistro.avance.v1')).toBe('a'.repeat(64));
+    });
+  }
+  it('un comprobante sin alta confirmado por el BFF vuelve a validación real de afiliación', () => {
+    sessionStorage.setItem('kashpay.preregistro.avance.v1', 'a'.repeat(64));
+    spyOn(c, 'cargarBorrador');
+    api.consultar.and.returnValue(throwError(() => new HttpErrorResponse({ status: 410, error: { code: 'PREREGISTRO_SIN_ALTA' } })));
+    component.ngOnInit();
+    expect(c.altaIntentada).toBeFalse(); expect(component.pasoActual).toBe(0);
+    expect(component.mostrarModalResultadoPreRegistro).toBeFalse();
+    expect(c.comprobanteAfiliacion).toBe(''); expect(api.crear).not.toHaveBeenCalled();
+    component.continuarAfiliacion();
+    TestBed.inject(HttpTestingController).expectOne(environment.preregistroBff.validarAfiliacionUrl).flush({ success: false, message: 'Afiliación rechazada por el proveedor' });
+    expect(component.errorAfiliacion).toContain('Afiliación rechazada');
+    expect(c.comprobanteAfiliacion).toBe('');
   });
   it('permite corregir una validación previa del BFF cuando confirma que no se envió el alta', () => {
     api.crear.and.returnValue(throwError(() => new HttpErrorResponse({ status: 422, error: { altaEnviada: false, message: 'Catálogo vencido' } })));

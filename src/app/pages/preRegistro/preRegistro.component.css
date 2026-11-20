@@ -2282,6 +2282,10 @@ small {
   font-size: 58px;
 }
 
+.result-modal-icon.success {
+  color: #22c55e;
+}
+
 .result-modal-icon.error {
   color: #ef4444;
 }

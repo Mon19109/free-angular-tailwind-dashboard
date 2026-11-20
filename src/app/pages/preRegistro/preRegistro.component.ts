@@ -9,7 +9,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { ThemeToggleButtonComponent } from '../../shared/components/common/theme-toggle/theme-toggle-button.component';
@@ -105,6 +105,8 @@ export class PreRegistroComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly regimenFiscalService = inject(RegimenFiscalService);
   private readonly localidadesService = inject(LocalidadesService);
+  private readonly rutaPreregistro = inject(ActivatedRoute, { optional: true });
+  private readonly routerPreregistro = inject(Router, { optional: true });
   private readonly avanceService = inject(PreregistroAvanceService);
   private readonly avanceKey = 'kashpay.preregistro.avance.v1';
   private arbolRegistrado: NodoArbolNegocio[] | null = null;
@@ -139,6 +141,8 @@ export class PreRegistroComponent {
   errorCatalogos = '';
   errorEnvioPreRegistro = '';
   mostrarModalResultadoPreRegistro = false;
+  resultadoPreRegistroExitoso = false;
+  private finalizacionPendiente = false;
   tituloResultadoPreRegistro = '';
   mensajeResultadoPreRegistro = '';
   validandoAfiliacion = false;
@@ -1937,6 +1941,18 @@ export class PreRegistroComponent {
   }
 
   ngOnInit(): void {
+    if (this.rutaPreregistro?.snapshot.queryParamMap.get('nuevo') === '1') {
+      // Explicit new flow: discard only this browser's previous Preregistro state.
+      try {
+        sessionStorage.removeItem(this.avanceKey);
+        localStorage.removeItem(this.draftKey);
+        localStorage.removeItem(this.payloadKey);
+      } catch { /* optional browser storage */ }
+      this.invalidarComprobanteAfiliacion();
+      void this.routerPreregistro?.navigate([], { relativeTo: this.rutaPreregistro,
+        queryParams: { nuevo: null }, queryParamsHandling: 'merge', replaceUrl: true });
+      return;
+    }
     try { this.comprobanteAvance = sessionStorage.getItem(this.avanceKey) || ''; } catch { /* optional browser storage */ }
     if (!this.comprobanteAvance) return;
     this.altaIntentada = true;
@@ -1954,6 +1970,15 @@ export class PreRegistroComponent {
       },
       error: error => {
         this.enviandoPreRegistro = false;
+        if (error instanceof HttpErrorResponse && error.status === 410 && error.error?.code === 'PREREGISTRO_SIN_ALTA') {
+          // Only the BFF can confirm that this receipt has no reservation or prior creation.
+          this.altaIntentada = false;
+          this.comprobanteAvance = '';
+          this.invalidarComprobanteAfiliacion();
+          try { sessionStorage.removeItem(this.avanceKey); } catch { /* optional storage */ }
+          this.irAlPaso(0); // Obtain a new receipt through the real affiliation validation.
+          return;
+        }
         this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error));
       },
     });
@@ -2085,6 +2110,7 @@ export class PreRegistroComponent {
   }
 
   private confirmarAvance(titulo: string, nombre: string): void {
+    this.resultadoPreRegistroExitoso = true;
     this.errorEnvioPreRegistro = '';
     this.tituloResultadoPreRegistro = titulo;
     this.mensajeResultadoPreRegistro = nombre;
@@ -2300,7 +2326,10 @@ export class PreRegistroComponent {
     }
     const continuar = () => {
       if (this.nodoActualTieneDatosCompletos()) this.marcarNodoActualCompletado();
-      this.avanzarASiguienteSucursal();
+      if (!this.avanzarASiguienteSucursal() && this.puedeFinalizarPreregistro()) {
+        this.finalizacionPendiente = true;
+        if (!this.mostrarModalResultadoPreRegistro) this.cerrarModalResultadoPreRegistro();
+      }
       this.guardarBorradorSilencioso();
     };
     if (!documents.length) { continuar(); return; }
@@ -2417,6 +2446,12 @@ this.guardarBorradorSilencioso();
     return documentos;
   }
 
+  private puedeFinalizarPreregistro(): boolean {
+    return this.prospectoCreado && !this.enviandoPreRegistro && this.resultadoPreRegistroExitoso
+      && this.nodosCapturablesParaFlujo().length > 0
+      && !this.primerNodoPendienteArbol();
+  }
+
   private completarRegistroExitoso(): void {
     this.enviandoPreRegistro = false;
     this.marcarPasoCompletado(5);
@@ -2449,9 +2484,16 @@ this.guardarBorradorSilencioso();
     this.mostrarModalResultadoPreRegistro = false;
     this.tituloResultadoPreRegistro = '';
     this.mensajeResultadoPreRegistro = '';
+    if (this.finalizacionPendiente && this.puedeFinalizarPreregistro()) {
+      this.nombreComercioRegistrado = this.arbolNegocioWizard[0]?.nombre || '';
+      this.completarRegistroExitoso();
+    }
+    this.finalizacionPendiente = false;
   }
 
   private mostrarErrorPreRegistro(mensaje: string): void {
+    this.resultadoPreRegistroExitoso = false;
+    this.finalizacionPendiente = false;
     this.errorEnvioPreRegistro = mensaje;
     this.tituloResultadoPreRegistro = 'No se pudo completar el registro';
     this.mensajeResultadoPreRegistro = mensaje;
