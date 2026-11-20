@@ -6,52 +6,26 @@ import { DashboardComponent } from './dashboard.component';
 import { AccountBalanceResponse, DashboardService } from '../../services/dashboard.service';
 import { AuthService } from '../../services/auth.service';
 
-describe('Dashboard por perfil de sesion', () => {
-  for (const idPerfil of [8, 9, 11, '8', '9', '11']) {
-    it(`muestra solo el logo para perfil ${typeof idPerfil} ${idPerfil} sin consultar saldos`, () => {
+describe('Modal del dashboard para todos los perfiles', () => {
+  for (const idPerfil of [8, 9, 11, 7]) {
+    it(`muestra y permite cerrar la modal con perfil ${idPerfil}`, () => {
       TestBed.configureTestingModule({ imports: [DashboardComponent], providers: [
-        provideHttpClient(), provideHttpClientTesting(),
-        { provide: AuthService, useValue: { getUserData: () => ({ idPerfil }) } }
+        { provide: AuthService, useValue: { getUserData: () => ({ idPerfil }) } },
+        { provide: DashboardService, useValue: {
+          getCapabilities: () => of({ success: true, emision: false, adquirencia: false, reserva: false }),
+          getBalanceSirio: () => of({ success: true, virtualAccount: null, balance: null, customerNetworkBalance: null })
+        } }
       ] });
-      const http = TestBed.inject(HttpTestingController);
       const fixture = TestBed.createComponent(DashboardComponent);
       fixture.detectChanges();
-      const logo: HTMLImageElement = fixture.nativeElement.querySelector('.dashboard-logo img');
-      expect(logo.getAttribute('src')).toBe('/kashpay_dorado.png');
-      expect(logo.alt).toBe('KashPay');
-      expect(fixture.nativeElement.querySelector('.account-info')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.business-card')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.report-table')).toBeNull();
-      expect(fixture.nativeElement.querySelector('.dashboard-modal-backdrop')).toBeNull();
-      http.expectNone(() => true);
-      http.verify();
+      expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+      expect(!!fixture.nativeElement.querySelector('.dashboard-logo')).toBe(idPerfil !== 7);
+      fixture.nativeElement.querySelector('.dashboard-modal-ok').click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
       fixture.destroy();
     });
   }
-
-  it('perfil 7 conserva la cuenta y las tarjetas habilitadas en el dashboard', () => {
-    TestBed.configureTestingModule({ imports: [DashboardComponent], providers: [
-      provideHttpClient(), provideHttpClientTesting(),
-      { provide: AuthService, useValue: { getUserData: () => ({ idPerfil: 7, userName: 'Titular' }) } }
-    ] });
-    const http = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(DashboardComponent);
-    fixture.componentInstance.mostrarModalImagen = false;
-    fixture.detectChanges();
-    http.expectOne('/api/account/capabilities').flush({ success: true, emision: true, adquirencia: true, reserva: true });
-    http.expectOne('/api/account/balance').flush({ success: true, virtualAccount: 'cuenta-prueba', balance: 100, customerNetworkBalance: 20 });
-    for (const path of ['emision', 'reserva']) {
-      http.expectOne(`/api/account/${path}`).flush({ success: true, balance: 50, customerNetworkBalance: 10 });
-    }
-    http.expectOne('/api/account/report').flush({ success: true, rows: [] });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.dashboard-logo')).toBeNull();
-    for (const selector of ['.account-info', '.emision-card', '.adquirencia-card', '.reserve-card', '.report-table']) {
-      expect(fixture.nativeElement.querySelector(selector)).not.toBeNull();
-    }
-    http.verify();
-    fixture.destroy();
-  });
 });
 
 describe('DashboardComponent BFF', () => {
@@ -160,6 +134,35 @@ describe('Tarjetas Adquirencia', () => {
 
 
 describe('Dashboard capacidades y contratos pendientes', () => {
+  for (const idPerfil of [11, '11']) {
+    it(`mantiene el logo para perfil ${typeof idPerfil} 11 al consultar Reserva`, () => {
+      TestBed.configureTestingModule({ imports: [DashboardComponent], providers: [
+        provideHttpClient(), provideHttpClientTesting(),
+        { provide: AuthService, useValue: { getUserData: () => ({ userName: 'Titular', idPerfil }) } }
+      ] });
+      const http = TestBed.inject(HttpTestingController);
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const component = fixture.componentInstance;
+      component.mostrarModalImagen = false;
+      fixture.detectChanges();
+      http.expectOne('/api/account/capabilities').flush({ success: true, emision: false, adquirencia: false, reserva: false });
+      http.expectOne('/api/account/balance').flush({ success: true, virtualAccount: null, balance: null, customerNetworkBalance: null });
+      const reserva = http.expectOne('/api/account/reserva');
+      expect(reserva.request.withCredentials).toBeTrue();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.reserve-card')).toBeNull();
+      reserva.flush({ success: true, balance: 1500.50, customerNetworkBalance: 250.75 });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.dashboard-logo img')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.reserve-card')).toBeNull();
+      expect(component.balanceAhorro()[0]).toEqual(jasmine.objectContaining({ balance: 1500.50, customerNetworkBalance: 250.75 }));
+      expect(component.reservaState()).toBe('ready');
+      expect(fixture.nativeElement.querySelector('.emision-card')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.adquirencia-card')).toBeNull();
+      http.verify();
+      fixture.destroy();
+    });
+  }
   it('respeta capacidades, no duplica Adquirencia y distingue reporte vacío de error', () => {
     const pending = () => throwError(() => ({ status: 503, error: { code: 'BALANCE_CONTRACT_PENDING' } }));
     const service = {

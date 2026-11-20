@@ -127,6 +127,8 @@
   </div>
 </div>
 
+}
+
 <div *ngIf="mostrarModalImagen" class="dashboard-modal-backdrop" (click)="cerrarModalImagen()">
   <div class="dashboard-image-modal" role="dialog" aria-modal="true" aria-labelledby="dashboardModalTitulo"
     cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown.escape)="cerrarModalImagen()">
@@ -142,4 +144,3 @@
     </div>
   </div>
 </div>
-}

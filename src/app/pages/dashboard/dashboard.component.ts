@@ -101,13 +101,15 @@ export class DashboardComponent {
     this.reportes.set([]);
     this.virtualAccount.set(null);
     this.adquirencia.set({ balance: null, customerNetworkBalance: null });
-    if (this.mostrarSoloLogo) return;
-
     this.requests.add(this.dashService.getCapabilities().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: capabilities => {
-        this.capabilities.set(capabilities);
+        const dashboardCapabilities: DashboardCapabilities = {
+          ...capabilities,
+          reserva: capabilities.reserva || Number(this.auth.getUserData().idPerfil) === 11
+        };
+        this.capabilities.set(dashboardCapabilities);
         this.capabilitiesState.set('ready');
-        this.loadAccounts(capabilities);
+        this.loadAccounts(dashboardCapabilities);
       },
       error: () => { this.capabilitiesState.set('error'); this.accountState.set('error'); }
     }));
