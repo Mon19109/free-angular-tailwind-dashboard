@@ -335,7 +335,7 @@
               (continuar)="continuarComercio()" (volver)="volverDesdeComercio()" (abrirComisionista)="mostrarComisionista = true" />
             }
             @case (2) {
-            <app-step-datos textoContinuar="SIGUIENTE" [preregistroPublico]="true" [form]="datosForm" [campos]="camposDatosGenerales" [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' ||
+            <app-step-datos textoContinuar="GUARDAR Y CONTINUAR" [preregistroPublico]="true" [form]="datosForm" [campos]="camposDatosGenerales" [tipoComercio]="comercioForm.getRawValue().nivel === 'Referenciador' ||
                 comercioForm.getRawValue().nivel === 'Comisionista' 
                 ? comercioForm.getRawValue().nivel 
                 : comercioForm.getRawValue().tipoComercio" [regimenesFiscales]="datos.regimenesFiscales ?? []"

@@ -18,6 +18,7 @@ import { CodigoPostalLocalizacion, LocalidadesService } from '../../services/loc
 import { DocumentoRegistroCompleto, SolicitudRegistroCompleto, TipoNegocioBff, PreregistroCompletoService } from '../../services/preregistro-completo.service';
 import { PreRegistroService, TipoComercioCatalogo } from '../../services/preregistro.service';
 import { ValidarAfiliacionService } from '../../services/validar-afiliacion.service';
+import { AvancePreregistro, PreregistroAvanceService } from '../../services/preregistro-avance.service';
 import { DocumentoRequerido } from './models/preregistro.models';
 
 
@@ -104,6 +105,13 @@ export class PreRegistroComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly regimenFiscalService = inject(RegimenFiscalService);
   private readonly localidadesService = inject(LocalidadesService);
+  private readonly avanceService = inject(PreregistroAvanceService);
+  private readonly avanceKey = 'kashpay.preregistro.avance.v1';
+  private arbolRegistrado: NodoArbolNegocio[] | null = null;
+  private guidsRegistrados: Record<string, string> = {};
+  private comprobanteAvance = '';
+  private altaIntentada = false;
+  prospectoCreado = false;
   private readonly preregistroCompletoService = inject(PreregistroCompletoService);
   private readonly preRegistroService = inject(PreRegistroService);
   private readonly validarAfiliacionService = inject(ValidarAfiliacionService);
@@ -1437,7 +1445,7 @@ export class PreRegistroComponent {
   get documentosPendientes(): number { return this.documentosVisibles.filter(d => d.obligatorio && !d.archivo && !d.archivoNombre).length; }
   get mostrarArbolWizard(): boolean { return this.requiereArbolNegocio(); }
   get textoBotonDocumentos(): string {
-    return this.mostrarArbolWizard && this.hayNodoSiguienteArbol() ? 'Siguiente' : 'Enviar preregistro';
+    return this.prospectoCreado ? 'Guardar y continuar' : 'Continuar';
   }
   get ubicacionArbolSeleccionada(): string {
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
@@ -1484,6 +1492,13 @@ export class PreRegistroComponent {
   }
 
   get arbolNegocioWizard(): NodoArbolNegocio[] {
+    if (this.arbolRegistrado) {
+      const nombres = this.obtenerNombresArbol();
+      const actualizar = (nodes: NodoArbolNegocio[]): NodoArbolNegocio[] => nodes.map(node => ({
+        ...node, nombre: nombres[node.id] || node.nombre, hijos: actualizar(node.hijos || []),
+      }));
+      return actualizar(this.arbolRegistrado);
+    }
     const config = this.configuracionArbol;
     if (config.nivelPadre === 'Sub Afiliado') {
       const entidades = this.numeroEntero(this.arbolNegocioForm.controls.numeroEntidades.value, 1);
@@ -1511,6 +1526,7 @@ export class PreRegistroComponent {
 
   // ── Navegación ───────────────────────────────────────────────────────────────
   irAlPaso(paso: number): void {
+    if (this.enviandoPreRegistro || (this.altaIntentada && [0, 6, 7].includes(paso))) return;
     this.guardarCapturaNodoActual();
     if (paso === 3 && !this.mostrarPasoAccesos) {
       paso = this.mostrarCuentaLiquidacion ? 4 : this.mostrarPasoDocumentos ? 5 : 2;
@@ -1563,6 +1579,8 @@ export class PreRegistroComponent {
     return this.pasosVisibles.every(paso => this.pasoTieneDatosValidos(paso.numero));
   }
   puedeAbrirPaso(paso: number): boolean {
+    if (this.enviandoPreRegistro) return false;
+    if (this.prospectoCreado && paso >= 1 && paso <= 5) return true;
     if (paso === this.pasoActual || this.esPasoCompletado(paso)) return true;
     const actual = this.pasosVisibles.findIndex(p => p.numero === this.pasoActual);
     const destino = this.pasosVisibles.findIndex(p => p.numero === paso);
@@ -1571,6 +1589,7 @@ export class PreRegistroComponent {
   private marcarPasoCompletado(paso: number): void { this.pasosCompletados.add(paso); }
 
   seleccionarNodoArbol(nodo: NodoArbolNegocio): void {
+    if (this.enviandoPreRegistro) return;
     this.guardarCapturaNodoActual();
     this.guardarComercioNodoActual();
 
@@ -1783,6 +1802,7 @@ export class PreRegistroComponent {
   }
 
   seleccionarTipoNegocio(tipo: TipoNegocio): void {
+    if (this.altaIntentada || this.enviandoPreRegistro) return;
     this.tipoNegocioSeleccionado = tipo;
     this.contextoComercio = 'paquete';
     this.comercioForm.patchValue({
@@ -1855,6 +1875,7 @@ export class PreRegistroComponent {
    }*/
 
   continuarComercio(): void {
+    if (this.enviandoPreRegistro) return;
     if (this.comercioForm.invalid) { this.comercioForm.markAllAsTouched(); return; }
     const comercioActual = this.comercioForm.getRawValue();
     const typeOfBusiness = this.typeOfBusinessPayload('', comercioActual.tipoComercio, comercioActual.tipoComercioId);
@@ -1867,6 +1888,10 @@ export class PreRegistroComponent {
     }
     this.marcarPasoCompletado(1);
     this.guardarBorradorSilencioso();
+    if (this.prospectoCreado && this.pasoGeneralesDebeSaltarse) {
+      this.guardarCajaRegistrada();
+      return;
+    }
     if (this.pasoGeneralesDebeSaltarse) {
       this.marcarPasoCompletado(2); // paso 2 se auto-completa
       this.continuarDesdePasoSinAccesos();
@@ -1877,23 +1902,142 @@ export class PreRegistroComponent {
     }
   }
 
+  private guardarCajaRegistrada(): void {
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value;
+    const nodo = this.buscarNodoArbol(nodoId);
+    if (!nodo || !this.guidsRegistrados[nodoId]) { this.mostrarErrorPreRegistro('Falta la identidad confirmada de la caja.'); return; }
+    const datos: Record<string, unknown> = { nameCommerce: nodo.nombre };
+    // Only fields actually captured for the box; do not copy fiscal data from its parent.
+    for (const [field, key] of [['correo', 'email'], ['telefono', 'phoneNumber'], ['nombre', 'name'],
+      ['apellidoPaterno', 'paternalSurname'], ['apellidoMaterno', 'maternalSurname']]) {
+      const control = this.datosForm.get(field);
+      if (control?.enabled && control.value) {
+        if (!control.valid) { control.markAsTouched(); return; }
+        datos[key] = control.value;
+      }
+    }
+    this.enviandoPreRegistro = true;
+    this.avanceService.actualizar(this.comprobanteAvance, nodoId, datos).subscribe({
+      next: response => {
+        this.enviandoPreRegistro = false;
+        if (response.success !== true) { this.mostrarErrorPreRegistro('El proveedor no confirmó la actualización de la caja.'); return; }
+        this.confirmarAvance('Se actualizó correctamente', nodo.nombre);
+        this.marcarPasoCompletado(2);
+        this.continuarDesdePasoSinAccesos();
+      },
+      error: error => { this.enviandoPreRegistro = false; this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error)); },
+    });
+  }
+
+  ngOnInit(): void {
+    try { this.comprobanteAvance = sessionStorage.getItem(this.avanceKey) || ''; } catch { /* optional browser storage */ }
+    if (!this.comprobanteAvance) return;
+    this.altaIntentada = true;
+    this.cargarBorrador();
+    this.recuperarAvance();
+  }
+
+  private recuperarAvance(): void {
+    this.enviandoPreRegistro = true;
+    this.avanceService.consultar(this.comprobanteAvance).subscribe({
+      next: response => {
+        this.enviandoPreRegistro = false;
+        this.aplicarAvance(response);
+        if (!response.success) this.mostrarErrorPreRegistro('El alta ya fue enviada, pero faltan identidades confirmadas. No se volverá a crear el prospecto.');
+      },
+      error: error => {
+        this.enviandoPreRegistro = false;
+        this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error));
+      },
+    });
+  }
+
+  private aplicarAvance(response: AvancePreregistro): void {
+    if (!response.arbol?.length) throw new Error('El BFF no devolvió el árbol registrado.');
+    this.arbolRegistrado = response.arbol;
+    this.guidsRegistrados = response.guidsPorNodo || {};
+    this.prospectoCreado = response.comercioCreado === true;
+    this.registroTerminado = false;
+    const tipoId = response.tipoNegocio === 'individual' ? 'comercio-unico' : response.tipoNegocio;
+    this.tipoNegocioSeleccionado = new TiposNegocioComponent().tiposNegocio.find(tipo => tipo.id === tipoId);
+    const current = this.arbolNegocioForm.controls.nodoSeleccionado.value;
+    const node = this.buscarNodoArbol(current) || response.arbol[0];
+    this.seleccionarNodoArbol(node);
+    this.irAlPaso(2);
+  }
+
+  private datosActualizacion(nodoId: string): Record<string, unknown> {
+    const payload = this.construirComercioPayload(nodoId, { usarFormularioActual: false });
+    delete payload.poss;
+    delete payload.password;
+    return payload;
+  }
+
   continuarDatos(): void {
-     if (this.datosForm.invalid) {
-       this.datosForm.markAllAsTouched();
-       return;
-     }
-     this.guardarDatosSucursalActual();
-     this.marcarPasoCompletado(2);
-     this.guardarBorradorSilencioso();
-     if (this.mostrarPasoAccesos) {
-       this.irAlPaso(3);
-     } else if (this.hayDocumentosParaNodoActual()) {
-       this.marcarPasoCompletado(4);
-       this.irAlPaso(5);
-     } else {
-       this.continuarDesdePasoSinAccesos();
-     }
-   }
+    if (this.enviandoPreRegistro) return;
+    const raiz = this.arbolNegocioWizard[0];
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || raiz?.id;
+    if (!this.prospectoCreado && this.altaIntentada) { this.recuperarAvance(); return; }
+    if (!this.prospectoCreado && nodoId !== raiz?.id) {
+      this.seleccionarNodoArbol(raiz);
+      this.irAlPaso(2);
+      this.mostrarErrorPreRegistro('Completa los datos obligatorios del primer nodo para guardar el árbol completo.');
+      return;
+    }
+    if (!this.formularioCompleto(this.datosForm)) { this.datosForm.markAllAsTouched(); return; }
+    this.guardarDatosSucursalActual();
+    this.guardarComercioNodoActual();
+    this.guardarBorradorSilencioso();
+    let datos: Record<string, unknown>;
+    try { datos = this.datosActualizacion(nodoId); }
+    catch { this.mostrarErrorPreRegistro('Espera a que se carguen los catálogos del nodo antes de guardar.'); return; }
+    if (this.prospectoCreado) {
+      if (!this.guidsRegistrados[nodoId]) { this.mostrarErrorPreRegistro('Falta el GUID confirmado de este nodo. No se enviará otra alta.'); return; }
+      this.enviandoPreRegistro = true;
+      this.avanceService.actualizar(this.comprobanteAvance, nodoId, datos).subscribe({
+        next: response => {
+          this.enviandoPreRegistro = false;
+          if (response.success !== true) { this.mostrarErrorPreRegistro('El proveedor no confirmó la actualización. Tu captura se conserva.'); return; }
+          this.confirmarAvance('Se actualizó correctamente', String(datos['nameCommerce'] || ''));
+          this.avanzarDespuesDeDatos();
+        },
+        error: error => { this.enviandoPreRegistro = false; this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error)); },
+      });
+      return;
+    }
+    if (!this.comprobanteAfiliacionVigente()) { this.solicitarNuevaValidacionAfiliacion(); return; }
+    this.comprobanteAvance = this.comprobanteAfiliacion;
+    try { sessionStorage.setItem(this.avanceKey, this.comprobanteAvance); }
+    catch { this.mostrarErrorPreRegistro('Habilita el almacenamiento de esta pestaña para conservar el estado del alta.'); return; }
+    this.altaIntentada = true;
+    this.enviandoPreRegistro = true;
+    this.avanceService.crear(this.comprobanteAvance, this.tipoNegocioBff(), this.arbolNegocioWizard, datos).subscribe({
+      next: response => {
+        this.enviandoPreRegistro = false;
+        this.aplicarAvance(response);
+        if (response.success !== true) { this.mostrarErrorPreRegistro('El registro fue enviado, pero sus identidades aún no están confirmadas.'); return; }
+        this.confirmarAvance('Se registró correctamente', String(datos['nameCommerce'] || ''));
+        this.avanzarDespuesDeDatos();
+      },
+      error: error => { this.enviandoPreRegistro = false; this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error)); },
+    });
+  }
+
+  private confirmarAvance(titulo: string, nombre: string): void {
+    this.errorEnvioPreRegistro = '';
+    this.tituloResultadoPreRegistro = titulo;
+    this.mensajeResultadoPreRegistro = nombre;
+    this.mostrarModalResultadoPreRegistro = true;
+    this.guardarBorradorSilencioso();
+  }
+
+  private avanzarDespuesDeDatos(): void {
+    this.marcarPasoCompletado(2);
+    this.guardarBorradorSilencioso();
+    if (this.mostrarPasoAccesos) this.irAlPaso(3);
+    else if (this.hayDocumentosParaNodoActual()) { this.marcarPasoCompletado(4); this.irAlPaso(5); }
+    else this.continuarDesdePasoSinAccesos();
+  }
 
   private hayDocumentosParaNodoActual(): boolean {
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
@@ -2082,53 +2226,33 @@ export class PreRegistroComponent {
   }
 
   finalizarRegistro(): void {
-  if (this.enviandoPreRegistro || this.registroTerminado) return;
-
-  this.errorEnvioPreRegistro = '';
-    this.enviandoPreRegistro = true;
-    const pasoInvalido = this.primerPasoInvalido();
-    if (pasoInvalido !== null) {
-      this.enviandoPreRegistro = false;
-      this.pasoActual = pasoInvalido;
-      this.registroTerminado = false;
-      return;
-    }
-    this.cargarDocumentosNodo(this.nodoDocumentosActualId());
-    const faltantes = this.documentosVisibles.filter(d => d.obligatorio && !d.archivo && !d.archivoNombre);
-    this.archivosInvalidos = faltantes.length > 0;
-    if (this.archivosInvalidos) {
-      this.enviandoPreRegistro = false;
-      this.pasoActual = 5;
-      return;
-    }
+    if (this.enviandoPreRegistro) return;
+    if (!this.prospectoCreado) { this.irAlPaso(2); return; }
+    this.guardarCapturaNodoActual();
     this.guardarDocumentosNodoActual();
-    this.marcarNodoActualCompletado();
-    if (this.mostrarArbolWizard && this.avanzarASiguienteSucursal()) {
-      this.enviandoPreRegistro = false;
-      this.guardarBorradorSilencioso();
-      return;
-    }
-    if (this.mostrarArbolWizard) {
-      const pendiente = this.primerNodoPendienteArbol();
-      if (pendiente) {
-        this.enviandoPreRegistro = false;
-        this.seleccionarNodoArbol(pendiente);
-        this.guardarBorradorSilencioso();
-        return;
-      }
-    }
-    if (!this.comprobanteAfiliacionVigente()) {
-      this.solicitarNuevaValidacionAfiliacion();
-      return;
-    }
-    try {
-      const payload = this.imprimirPayloadPreRegistro();
-      this.enviarPreRegistroCompleto(payload);
-    } catch {
-      this.enviandoPreRegistro = false;
-      this.mostrarErrorPreRegistro('Vuelve a cargar y seleccionar los catálogos del comercio antes de enviar. Tu captura se conserva.');
-    }
     this.guardarBorradorSilencioso();
+    const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.arbolNegocioWizard[0].id;
+    if (!this.guidsRegistrados[nodoId]) { this.mostrarErrorPreRegistro('Falta el GUID confirmado del nodo. No se enviará otra alta.'); return; }
+    const documents: DocumentoRegistroCompleto[] = [];
+    for (const doc of this.documentosVisibles) {
+      if (doc.archivo) documents.push({ nodoId, numeroDocumento: String(doc.numero), file: doc.archivo });
+    }
+    const continuar = () => {
+      if (this.nodoActualTieneDatosCompletos()) this.marcarNodoActualCompletado();
+      this.avanzarASiguienteSucursal();
+      this.guardarBorradorSilencioso();
+    };
+    if (!documents.length) { continuar(); return; }
+    this.enviandoPreRegistro = true;
+    this.avanceService.subirDocumentos(this.comprobanteAvance, documents).subscribe({
+      next: response => {
+        this.enviandoPreRegistro = false;
+        if (response.success !== true) { this.mostrarErrorPreRegistro('El proveedor no confirmó los documentos. Los archivos seleccionados se conservan.'); return; }
+        this.confirmarAvance('Documentos guardados correctamente', this.buscarNodoArbol(nodoId)?.nombre || '');
+        continuar();
+      },
+      error: error => { this.enviandoPreRegistro = false; this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error)); },
+    });
   }
 
   private imprimirPayloadPreRegistro(): PayloadPreRegistro {
@@ -2903,7 +3027,7 @@ maternalSurname: tipoPersona === 'PF'
   cerrarAyuda(): void { this.mostrarAyuda = false; }
 
   reiniciarFlujo(): void {
- if (this.enviandoPreRegistro) {
+ if (this.enviandoPreRegistro || this.altaIntentada) {
   return;
 }
     
@@ -3833,6 +3957,7 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
     const localidad = `${datosSucursal['localidadComercial'] || ''}`.trim();
     const colonia = `${datosSucursal['coloniaComercial'] || ''}`.trim();
     const nombreComercial = `${datosSucursal['nombreComercial'] || datosSucursal['razonSocial'] || ''}`.trim();
+    if (!nombreComercial) return; // Preserve the displayed/default name until a commercial name is captured.
     let nombre = '';
 
     if (nombreComercial) {
