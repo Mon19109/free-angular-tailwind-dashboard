@@ -1,6 +1,6 @@
 import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { PreRegistroComponent } from './preRegistro.component';
@@ -15,6 +15,23 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
   let component: PreRegistroComponent;
   let c: any;
   let api: jasmine.SpyObj<PreregistroAvanceService>;
+  const catalogos = {
+    'Sub Afiliado': [{ id: 31, nombre: 'Empresa Holding' }],
+    Entidad: [{ id: 41, nombre: 'Empresa Grupo' }, { id: 42, nombre: 'Persona Física' }, { id: 43, nombre: 'Entidad Agrupadora con auditor' }],
+    Sucursal: [{ id: 51, nombre: 'Sucursales Únicas' }, { id: 52, nombre: 'Sucursales de Grupo' }],
+    Caja: [{ id: 61, nombre: 'Cuenta Terminal Pin Rapido' }],
+  };
+  const configurar = (id: string) => {
+    component.tipoNegocioSeleccionado = new TiposNegocioComponent().tiposNegocio.find(tipo => tipo.id === id);
+    const root = component.arbolNegocioWizard[0];
+    const nivel = c.nivelClientePorNodo(root);
+    const tipoComercio = id === 'auditor-unico' ? 'Entidad Agrupadora con auditor' : (catalogos as any)[nivel][0].nombre;
+    component.arbolNegocioForm.controls.nodoSeleccionado.setValue(root.id, { emitEvent: false });
+    component.comercioForm.patchValue({ nivel, tipoComercio, tipoComercioId: c.typeOfBusinessPorTipoComercio[tipoComercio] }, { emitEvent: false });
+    component.datosForm.controls.nombreComercial.setValue('Raíz capturada', { emitEvent: false });
+    return root;
+  };
+  const raizPayload = (payload: any, id: string) => id === 'empresa-holding' ? payload : id === 'comercio-unico' ? payload.entitys[0].branchOficces[0] : payload.entitys[0];
   beforeEach(() => {
     sessionStorage.removeItem('kashpay.preregistro.avance.v1');
     api = jasmine.createSpyObj('avance', ['crear', 'consultar', 'actualizar', 'subirDocumentos']);
@@ -31,40 +48,39 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
     spyOn(c, 'avanzarDespuesDeDatos');
     c.comprobanteAfiliacion = 'a'.repeat(64);
     c.afiliacionValidada = component.afiliacionForm.controls.afiliacion.value;
-    component.tipoNegocioSeleccionado = new TiposNegocioComponent().tiposNegocio[0];
-    component.arbolNegocioForm.controls.nodoSeleccionado.setValue('sucursal-1');
+    c.tiposComercioCatalogoPorNivel = structuredClone(catalogos);
+    c.typeOfBusinessPorTipoComercio = Object.fromEntries(Object.values(catalogos).flat().map(tipo => [tipo.nombre, tipo.id]));
+    configurar('comercio-unico');
     Object.values(component.datosForm.controls).forEach(control => { control.clearValidators(); control.updateValueAndValidity({ emitEvent: false }); });
     component.datosForm.clearValidators(); component.datosForm.updateValueAndValidity({ emitEvent: false });
   });
   afterEach(() => { sessionStorage.removeItem('kashpay.preregistro.avance.v1'); TestBed.inject(HttpTestingController).verify(); });
   for (const id of ['comercio-unico', 'sucursales-multiples', 'auditor-unico', 'empresa-holding']) {
     it(`envía el árbol ${id} sin exigir capturas secundarias ni documentos`, () => {
-      component.tipoNegocioSeleccionado = new TiposNegocioComponent().tiposNegocio.find(tipo => tipo.id === id);
-      const root = component.arbolNegocioWizard[0];
-      component.arbolNegocioForm.controls.nodoSeleccionado.setValue(root.id);
+      const root = configurar(id);
       const pending = new Subject<any>(); api.crear.and.returnValue(pending);
       component.continuarDatos(); component.continuarDatos();
       expect(api.crear).toHaveBeenCalledTimes(1);
       const args = api.crear.calls.mostRecent().args;
       expect(args[2][0].id).toBe(root.id);
       expect(args[2][0].hijos!.length).toBeGreaterThan(0);
-      expect(args[3]).toEqual({ nameCommerce: 'Raíz capturada' });
+      expect(raizPayload(args[3], id).nameCommerce).toBe('Raíz capturada');
+      const recorrer = (value: any): void => {
+        for (const key of ['entitys', 'branchOficces', 'poss']) (value[key] || []).forEach((child: any) => {
+          expect(child.typeOfBusiness).toBeGreaterThan(0); recorrer(child);
+        });
+      };
+      recorrer(raizPayload(args[3], id));
       expect(component.enviandoPreRegistro).toBeTrue();
       expect(component.mostrarModalResultadoPreRegistro).toBeFalse();
     });
   }
-  it('construye datos reales de raíz aunque las cajas no tengan catálogo ni datos', () => {
-    c.datosActualizacion.and.callThrough();
-    component.comercioForm.patchValue({ tipoComercio: 'Sucursales Únicas', tipoComercioId: 99 });
-    component.datosForm.controls.nombreComercial.setValue('Raíz real capturada');
-    api.crear.and.returnValue(new Subject<any>());
+  it('impide enviar si falta el catálogo de cajas, antes de marcar el intento', () => {
+    delete c.tiposComercioCatalogoPorNivel.Caja;
     component.continuarDatos();
-    const args = api.crear.calls.mostRecent().args;
-    expect(args[3]['nameCommerce']).toBe('Raíz real capturada');
-    expect(args[3]['typeOfBusiness']).toBe(99);
-    expect(args[3]['password']).toBeUndefined();
-    expect(args[3]['poss']).toBeUndefined();
-    expect(args[2][0].hijos![0].nombre).toBeTruthy();
+    expect(api.crear).not.toHaveBeenCalled();
+    expect(c.altaIntentada).toBeFalse();
+    expect(component.mensajeResultadoPreRegistro).toContain('tipo de comercio');
   });
   it('tras alta incierta consulta el estado y no repite creación', () => {
     api.crear.and.returnValue(throwError(() => new Error('timeout')));
@@ -125,6 +141,68 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
     component.seleccionarNodoArbol(box);
     component.seleccionarNodoArbol(root);
     expect(component.datosForm.controls.nombreComercial.value).toBe('Raíz conservada');
+  });
+  for (const paquete of ['sucursales-multiples', 'auditor-unico', 'empresa-holding']) {
+    it(`calcula Únicas/Grupo por entidad y recalcula al cambiar cantidades: ${paquete}`, () => {
+      configurar(paquete); c.guardarDatosSucursalActual(); c.guardarComercioNodoActual();
+      const alta1 = c.construirRegistroInicial();
+      const entidad1 = paquete === 'empresa-holding' ? alta1.payloadCompleto.entitys[0] : alta1.payloadCompleto.entitys[0];
+      expect(entidad1.branchOficces[0].typeOfBusiness).toBe(51);
+      component.arbolNegocioForm.controls.sucursalesPorEntidad.setValue('[2]');
+      const alta2 = c.construirRegistroInicial();
+      expect(alta2.payloadCompleto.entitys[0].branchOficces.length).toBe(2);
+      expect(alta2.payloadCompleto.entitys[0].branchOficces.every((branch: any) => branch.typeOfBusiness === 52)).toBeTrue();
+      component.arbolNegocioForm.controls.sucursalesPorEntidad.setValue('[1]');
+      expect(c.construirRegistroInicial().payloadCompleto.entitys[0].branchOficces[0].typeOfBusiness).toBe(51);
+    });
+  }
+  it('respeta un tipo de sucursal seleccionado explícitamente que pertenece al catálogo', () => {
+    const root = configurar('sucursales-multiples');
+    c.guardarDatosSucursalActual(); c.guardarComercioNodoActual();
+    const branch = root.hijos![0];
+    const saved = c.obtenerComercioPorNodo();
+    saved[branch.id] = { nivel: 'Sucursal', tipoComercio: 'Sucursales de Grupo', tipoComercioId: 52, afiliacionComisionista: '' };
+    component.arbolNegocioForm.controls.comercioPorNodo.setValue(JSON.stringify(saved));
+    c.tiposElegidosPorNodo.add(branch.id);
+    expect(c.construirRegistroInicial().payloadCompleto.entitys[0].branchOficces[0].typeOfBusiness).toBe(52);
+  });
+  for (const paquete of ['comercio-unico', 'sucursales-multiples', 'auditor-unico', 'empresa-holding']) {
+    it(`conserva todos los campos POS y nombres iniciales, sin modificar el nombre editable: ${paquete}`, () => {
+      configurar(paquete); c.guardarDatosSucursalActual(); c.guardarComercioNodoActual();
+      const branch = c.aplanarArbolNegocio(component.arbolNegocioWizard).find((node: any) => node.nivel === 'sucursal');
+      component.renombrarNodoArbol(branch.hijos[0].id, 'Nombre para edición posterior');
+      const alta = c.construirRegistroInicial();
+      const recorrer = (value: any): void => {
+        (value.poss || []).forEach((pos: any, index: number) => expect(pos).toEqual({
+          nameCommerce: `CAJA ${String(index + 1).padStart(2, '0')}`, name: `CAJA ${String(index + 1).padStart(2, '0')}`,
+          paternalSurname: 'ND', maternalSurname: 'ND', password: '', liquidationLevel: '0', dispersionAccount: 'CONC_ADQUI', isAliasUser: true, typeOfBusiness: 61,
+        }));
+        for (const key of ['entitys', 'branchOficces']) (value[key] || []).forEach(recorrer);
+      };
+      recorrer(alta.payloadCompleto);
+      expect(c.buscarNodoArbol(branch.hijos[0].id).nombre).toBe('Nombre para edición posterior');
+    });
+  }
+  it('conserva datos propios de cada nodo, no hereda RFC y omite contacto principal de sucursales', () => {
+    const root = configurar('sucursales-multiples');
+    const branch = root.hijos![0];
+    component.datosForm.patchValue({ rfc: 'RAIZ-FICTICIA', tipoPersona: 'PM' }, { emitEvent: false });
+    c.guardarDatosSucursalActual(); c.guardarComercioNodoActual();
+    const data = c.obtenerDatosPorSucursal();
+    data[branch.id] = { nombreComercial: 'Sucursal capturada', rfc: 'SUCURSAL-FICTICIA', tipoPersona: 'PF', correo: 'sucursal@example.invalid', telefono: '0000000000' };
+    component.arbolNegocioForm.controls.datosPorSucursal.setValue(JSON.stringify(data));
+    const alta = c.construirRegistroInicial(), entity = alta.payloadCompleto.entitys[0], branchPayload = entity.branchOficces[0];
+    expect(entity.rfc).toBe('RAIZ-FICTICIA'); expect(entity.typePerson).toBe('PM');
+    expect(branchPayload.rfc).toBe('SUCURSAL-FICTICIA'); expect(branchPayload.typePerson).toBe('PF');
+    expect(branchPayload.nameCommerce).toBe('Sucursal capturada');
+    expect(branchPayload.email).toBe(''); expect(branchPayload.phoneNumber).toBe('');
+    expect(branchPayload.poss[0].rfc).toBeUndefined();
+    expect(entity.referrerNodeId).toBeUndefined();
+  });
+  it('permite corregir una validación previa del BFF cuando confirma que no se envió el alta', () => {
+    api.crear.and.returnValue(throwError(() => new HttpErrorResponse({ status: 422, error: { altaEnviada: false, message: 'Catálogo vencido' } })));
+    component.continuarDatos();
+    expect(c.altaIntentada).toBeFalse(); expect(sessionStorage.getItem('kashpay.preregistro.avance.v1')).toBeNull();
   });
 });
 

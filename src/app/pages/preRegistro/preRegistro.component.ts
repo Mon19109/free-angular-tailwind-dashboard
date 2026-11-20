@@ -111,6 +111,8 @@ export class PreRegistroComponent {
   private guidsRegistrados: Record<string, string> = {};
   private comprobanteAvance = '';
   private altaIntentada = false;
+  private tiposElegidosPorNodo = new Set<string>();
+  private contextoAlta: { arbol: NodoArbolNegocio[]; comercios: Record<string, { nivel: string; tipoComercio: string; tipoComercioId?: number; afiliacionComisionista: string }> } | null = null;
   prospectoCreado = false;
   private readonly preregistroCompletoService = inject(PreregistroCompletoService);
   private readonly preRegistroService = inject(PreRegistroService);
@@ -935,12 +937,14 @@ export class PreRegistroComponent {
     this.comercioForm.controls.tipoComercio.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(tipoComercio => {
+        const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value;
+        if (nodoId && tipoComercio) this.tiposElegidosPorNodo.add(nodoId);
         this.comercioForm.controls.tipoComercioId.setValue(this.typeOfBusinessPorTipoComercio[tipoComercio] ?? 0, { emitEvent: false });
         this.aplicarTipoPersonaPorTipoComercio(tipoComercio);
         this.actualizarValidadoresDatos();
       }); // 👈 antes no hacía nada
 
-    try { localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
+    try { if (!sessionStorage.getItem(this.avanceKey)) localStorage.removeItem(this.draftKey); } catch { /* no-op */ }
     this.tiposComercio = this.filtrarTiposComercioPorPaquete(
       this.comercioForm.controls.nivel.value,
       this.tiposComercioPorNivel[this.comercioForm.controls.nivel.value] ?? []
@@ -1492,6 +1496,7 @@ export class PreRegistroComponent {
   }
 
   get arbolNegocioWizard(): NodoArbolNegocio[] {
+    if (this.contextoAlta) return this.contextoAlta.arbol;
     if (this.arbolRegistrado) {
       const nombres = this.obtenerNombresArbol();
       const actualizar = (nodes: NodoArbolNegocio[]): NodoArbolNegocio[] => nodes.map(node => ({
@@ -1608,7 +1613,9 @@ export class PreRegistroComponent {
 
   private aplicarComercioPorNodo(nodo: NodoArbolNegocio): void {
     const nivel = this.nivelClientePorNodo(nodo);
-    const comercioGuardado = this.obtenerComercioPorNodo()[nodo.id];
+    const guardado = this.obtenerComercioPorNodo()[nodo.id];
+    const comercioGuardado = !this.prospectoCreado && nodo.nivel === 'sucursal' && !this.tiposElegidosPorNodo.has(nodo.id)
+      ? undefined : guardado;
     this.contextoComercio = nodo.nivel === 'caja' ? 'caja' : 'paquete';
     const tipoForzado = this.tipoComercioForzadoPorEntidad(nodo);
     this.tiposComercio = tipoForzado
@@ -1966,6 +1973,50 @@ export class PreRegistroComponent {
     this.irAlPaso(2);
   }
 
+  private tipoSucursalInicial(nodo: NodoArbolNegocio, arbol = this.arbolNegocioWizard): string {
+    const paquete = this.tipoNegocioSeleccionado?.id;
+    if (paquete === 'comercio-unico' || paquete === 'individual') return 'Sucursales Únicas';
+    if (!['sucursales-multiples', 'auditor-unico', 'empresa-holding'].includes(paquete || '')) return '';
+    const entidad = this.aplanarArbolNegocio(arbol).find(parent => parent.nivel === 'entidad' && parent.hijos?.some(child => child.id === nodo.id));
+    if (!entidad) return '';
+    return entidad.hijos!.filter(child => child.nivel === 'sucursal').length === 1 ? 'Sucursales Únicas' : 'Sucursales de Grupo';
+  }
+
+  private construirRegistroInicial(): { arbol: NodoArbolNegocio[]; payloadCompleto: PayloadPreRegistro } {
+    const arbol = structuredClone(this.arbolNegocioWizard);
+    const guardados = this.obtenerComercioPorNodo();
+    const capturas = this.obtenerDatosPorSucursal();
+    const comercios: NonNullable<PreRegistroComponent['contextoAlta']>['comercios'] = {};
+    const recorrer = (nodes: NodoArbolNegocio[]) => nodes.forEach((node, index) => {
+      // Use the original POS constructor's default format for the initial creation only.
+      if (node.nivel === 'caja') node.nombre = `CAJA ${this.formatearNumero(index + 1)}`;
+      else node.nombre = this.valorTexto(capturas[node.id]?.['nombreComercial']) || this.valorTexto(capturas[node.id]?.['razonSocial']) || node.nombre;
+      const nivel = this.nivelClientePorNodo(node);
+      const catalogo = this.tiposComercioCatalogoPorNivel[nivel] || [];
+      const guardado = guardados[node.id];
+      const esRaiz = node.id === arbol[0].id;
+      let nombre = esRaiz ? guardado?.tipoComercio || this.comercioForm.controls.tipoComercio.value
+        : this.tiposElegidosPorNodo.has(node.id) ? guardado?.tipoComercio || '' : '';
+      if (node.nivel === 'caja') nombre = 'Cuenta Terminal Pin Rapido';
+      else if (!nombre && node.nivel === 'sucursal') nombre = this.tipoSucursalInicial(node, arbol);
+      else if (!nombre && node.nivel === 'entidad') nombre = 'Empresa Grupo';
+      else if (!nombre && node.nivel === 'sub-afiliado') nombre = 'Empresa Holding';
+      const permitido = this.filtrarTiposComercioPorPaquete(nivel, catalogo.map(item => item.nombre)).includes(nombre);
+      const tipo = catalogo.find(item => item.nombre === nombre);
+      if (!permitido || !tipo || !Number.isSafeInteger(tipo.id) || tipo.id <= 0) {
+        throw new Error(`No se pudo resolver el tipo de comercio de ${node.nombre}. Carga el catálogo y selecciona un tipo válido antes de registrar.`);
+      }
+      comercios[node.id] = { nivel, tipoComercio: nombre, tipoComercioId: tipo.id, afiliacionComisionista: '' };
+      recorrer(node.hijos || []);
+    });
+    recorrer(arbol);
+    this.contextoAlta = { arbol, comercios };
+    try {
+      const payloadCompleto = this.construirPayloadPreRegistro();
+      return { arbol, payloadCompleto };
+    } finally { this.contextoAlta = null; }
+  }
+
   private datosActualizacion(nodoId: string): Record<string, unknown> {
     const payload = this.construirComercioPayload(nodoId, { usarFormularioActual: false });
     delete payload.poss;
@@ -2005,13 +2056,16 @@ export class PreRegistroComponent {
       });
       return;
     }
+    let alta: ReturnType<PreRegistroComponent['construirRegistroInicial']>;
+    try { alta = this.construirRegistroInicial(); }
+    catch (error) { this.mostrarErrorPreRegistro(error instanceof Error ? error.message : 'Revisa el árbol antes de registrar.'); return; }
     if (!this.comprobanteAfiliacionVigente()) { this.solicitarNuevaValidacionAfiliacion(); return; }
     this.comprobanteAvance = this.comprobanteAfiliacion;
     try { sessionStorage.setItem(this.avanceKey, this.comprobanteAvance); }
     catch { this.mostrarErrorPreRegistro('Habilita el almacenamiento de esta pestaña para conservar el estado del alta.'); return; }
     this.altaIntentada = true;
     this.enviandoPreRegistro = true;
-    this.avanceService.crear(this.comprobanteAvance, this.tipoNegocioBff(), this.arbolNegocioWizard, datos).subscribe({
+    this.avanceService.crear(this.comprobanteAvance, this.tipoNegocioBff(), alta.arbol, alta.payloadCompleto).subscribe({
       next: response => {
         this.enviandoPreRegistro = false;
         this.aplicarAvance(response);
@@ -2019,7 +2073,14 @@ export class PreRegistroComponent {
         this.confirmarAvance('Se registró correctamente', String(datos['nameCommerce'] || ''));
         this.avanzarDespuesDeDatos();
       },
-      error: error => { this.enviandoPreRegistro = false; this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error)); },
+      error: error => {
+        this.enviandoPreRegistro = false;
+        if (error instanceof HttpErrorResponse && error.error?.altaEnviada === false) {
+          this.altaIntentada = false;
+          try { sessionStorage.removeItem(this.avanceKey); } catch { /* optional storage */ }
+        }
+        this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error));
+      },
     });
   }
 
@@ -2552,7 +2613,7 @@ this.guardarBorradorSilencioso();
   }
 
   private referenciaAfiliacionPayload(): { referrerNodeId?: number } {
-    return this.referrerNodeId !== null ? { referrerNodeId: this.referrerNodeId } : {};
+    return !this.contextoAlta && this.referrerNodeId !== null ? { referrerNodeId: this.referrerNodeId } : {};
   }
 
   private construirEntidadConSucursalesPayload(entidad: NodoArbolNegocio): any {
@@ -2607,7 +2668,8 @@ this.guardarBorradorSilencioso();
     const incluirContactoPrincipal = !opciones.omitirDatosContactoPrincipal;
 
     return {
-      nameCommerce: this.valorTexto(datos['nombreComercial']) || this.valorTexto(datos['razonSocial']),
+      nameCommerce: this.valorTexto(datos['nombreComercial']) || this.valorTexto(datos['razonSocial'])
+        || (this.contextoAlta ? this.buscarNodoArbol(nodoId)?.nombre || '' : ''),
       businessName: this.valorTexto(datos['razonSocial']) || this.valorTexto(datos['nombreComercial']),
       idBussinesLine: this.valorNumero(datos['mcc']),
       idActivity: this.valorNumero(datos['actividadId']),
@@ -2775,6 +2837,7 @@ maternalSurname: tipoPersona === 'PF'
 
   private typeOfBusinessPayload(nodoId: string, tipoComercio: string, tipoComercioId?: number): number {
     // Solo valores recibidos del catálogo: referencias opacas con el BFF nuevo.
+    if (this.contextoAlta && nodoId) return this.contextoAlta.comercios[nodoId]?.tipoComercioId || 0;
     return this.typeOfBusinessPorTipoComercio[tipoComercio] || tipoComercioId || 0;
   }
 
@@ -3577,6 +3640,7 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
   }
 
   private obtenerComercioPorNodo(): Record<string, { nivel: string; tipoComercio: string; tipoComercioId?: number; afiliacionComisionista: string }> {
+    if (this.contextoAlta) return this.contextoAlta.comercios;
     try {
       const parsed = JSON.parse(this.arbolNegocioForm.controls.comercioPorNodo.value || '{}');
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
@@ -3603,6 +3667,7 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
     const tipoForzado = this.tipoComercioForzadoPorEntidad(nodo);
     if (tipoForzado) return tipoForzado;
     if (nodo.nivel === 'sub-afiliado') return 'Empresa Holding';
+    if (nodo.nivel === 'sucursal') return this.tipoSucursalInicial(nodo);
     if (!this.esComercioUnico) return '';
     return this.tipoNegocioSeleccionado?.tipoComercio || 'Sucursales Únicas';
   }

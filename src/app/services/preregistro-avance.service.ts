@@ -27,8 +27,8 @@ export class PreregistroAvanceService {
     return { context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
       headers: new HttpHeaders({ 'X-Preregistro-Comprobante': comprobante }) };
   }
-  crear(comprobante: string, tipoNegocio: TipoNegocioBff, arbol: NodoAvancePreregistro[], datosRaiz: Record<string, unknown>) {
-    return this.http.post<AvancePreregistro>(this.url, { comprobante, tipoNegocio, arbol, datosRaiz }, this.options(comprobante));
+  crear(comprobante: string, tipoNegocio: TipoNegocioBff, arbol: NodoAvancePreregistro[], payloadCompleto: Record<string, unknown>) {
+    return this.http.post<AvancePreregistro>(this.url, { comprobante, tipoNegocio, arbol, payloadCompleto }, this.options(comprobante));
   }
   consultar(comprobante: string) {
     return this.http.get<AvancePreregistro>(this.url, this.options(comprobante));
