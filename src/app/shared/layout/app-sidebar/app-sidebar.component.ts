@@ -54,13 +54,17 @@ export class AppSidebarComponent {
   private get idPerfil() { return this.getSessionNumber('idPerfil'); }
   private get idRol() { return getSessionRole(this.auth); }
 
- panelPrincipalItems: NavItem[] = [
+  private readonly allPanelPrincipalItems: NavItem[] = [
     {
       name: 'PANEL PRINCIPAL',
       icon: '<i class="fas fa-home fa-lg"></i>',
       path: '/dashboard'
     }
   ];
+
+  get panelPrincipalItems(): NavItem[] {
+    return this.idPerfil === 11 ? [] : this.allPanelPrincipalItems;
+  }
 
   private readonly allMenuSections: MenuSection[] = [
     {
@@ -351,6 +355,17 @@ export class AppSidebarComponent {
   }  
 
   private actualizarMenu(): void {
+    if (this.idPerfil === 11) {
+      this.menuSections = this.allMenuSections.map(section => ({
+        ...section,
+        items: section.items.filter(item => this.auth.hasValidSession() && (
+          item.access === 'enviarInvitacionComercio'
+          || item.access === 'dashboardPreregistroClientes'
+        ))
+      })).filter(section => section.items.length > 0);
+      return;
+    }
+
     this.menuSections = this.allMenuSections.map(section => ({
       ...section,
       items: section.items.filter(item => {

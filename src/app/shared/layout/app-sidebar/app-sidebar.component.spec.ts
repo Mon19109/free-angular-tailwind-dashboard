@@ -9,7 +9,7 @@ import { AppSidebarComponent } from './app-sidebar.component';
 describe('Visibilidad de Consulta de Comercios', () => {
   let role: number | string;
   let valid: boolean;
-  let perfil: number;
+  let perfil: number | string;
   let modelo: number | string | undefined | null;
   let status: BehaviorSubject<boolean>;
   let component: AppSidebarComponent;
@@ -31,6 +31,34 @@ describe('Visibilidad de Consulta de Comercios', () => {
     component.ngOnInit();
   });
   afterEach(() => component.ngOnDestroy());
+  it('perfil 11 solo ve invitacion y dashboard de preregistro, sin Panel principal', () => {
+    for (const profile of [11, '11']) {
+      perfil = profile;
+      for (const model of [0, 1, 2, 3]) {
+        modelo = model;
+        for (const sessionRole of [2, 3, 4, 5, 6]) {
+          role = sessionRole;
+          status.next(true);
+          expect(paths(component)).toEqual([
+            '/dashboard_preregistro_clientes',
+            '/enviar_invitacion_comercio'
+          ]);
+          expect(component.panelPrincipalItems).toEqual([]);
+          expect(component.menuSections.length).toBe(2);
+        }
+      }
+    }
+  });
+  it('recalcula las opciones al cambiar de perfil o cerrar sesion', () => {
+    perfil = 11; status.next(true);
+    expect(component.panelPrincipalItems).toEqual([]);
+    valid = false; status.next(false);
+    expect(paths(component)).toEqual([]);
+    valid = true; perfil = 9; status.next(true);
+    expect(component.panelPrincipalItems.map(item => item.path)).toEqual(['/dashboard']);
+    expect(paths(component)).toContain('/consulta_comercios');
+    expect(paths(component)).toContain('/beneficiarios');
+  });
   it('modelo 0 y perfil autenticado 9 ven el módulo y su sección', () => {
     expect(paths(component)).toContain('/consulta_comercios');
     const section = component.menuSections.find(item => item.title === 'GESTIÓN DE NEGOCIO');
