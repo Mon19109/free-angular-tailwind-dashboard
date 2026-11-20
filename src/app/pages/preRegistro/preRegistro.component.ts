@@ -518,7 +518,7 @@ export class PreRegistroComponent {
 
   readonly datosForm = this.fb.nonNullable.group({
     razonSocial: [''], nombreComercial: [''], rfc: [''],
-    regimenFiscal: [''], giroComercial: [''], descripcionGiro: [''], mcc: [''],
+    regimenFiscal: [''], giroComercial: [''], giroId: [''], descripcionGiro: [''], mcc: [''],
     mismaInfoFiscalEntidad: [false],
     mismaInfoAcceso: [false],
     mismaInfoAccesoRepresentante: [false],
@@ -575,7 +575,7 @@ export class PreRegistroComponent {
     'correoComercial', 'telefonoComercial', 'telefonoAdicionalComercial'
   ];
   private readonly camposInfoFiscalEntidad = [
-    'razonSocial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
+    'razonSocial', 'rfc', 'regimenFiscal', 'giroComercial', 'giroId', 'descripcionGiro', 'mcc',
     'nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad', 'actividadId', 'nombreComercial',
     'tipoPersona',
     'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior',
@@ -747,7 +747,7 @@ export class PreRegistroComponent {
     const esPersonaFisica = tipoPersona === 'PF';
     const esPersonaMoral = tipoPersona === 'PM';
 
-    ['giroComercial', 'descripcionGiro', 'mcc'].forEach(nombre => {
+    ['giroComercial', 'giroId', 'descripcionGiro', 'mcc'].forEach(nombre => {
       const control = this.datosForm.get(nombre);
       if (!control) return;
       const obligatorio = esPersonaMoral && this.camposDatosGenerales.includes(nombre);
@@ -910,8 +910,6 @@ export class PreRegistroComponent {
 
         if (valor) {
           this.copiarDomicilioFiscal();
-        } else {
-          this.limpiarDomicilioComercial();
         }
         this.actualizarValidadoresDatos();
 
@@ -2046,6 +2044,15 @@ export class PreRegistroComponent {
     const payload = this.construirComercioPayload(nodoId, { usarFormularioActual: false });
     delete payload.poss;
     delete payload.password;
+    if (this.prospectoCreado) {
+      const datos = this.obtenerDatosPorSucursal()[nodoId] ?? {};
+      const idGiro = Number(datos['giroId']);
+      if ((datos['descripcionGiro'] || datos['mcc']) && (!Number.isSafeInteger(idGiro) || idGiro <= 0)) {
+        throw new Error('Giro pendiente de selección en catálogo');
+      }
+      payload.idBussinesLine = idGiro || 0;
+      payload.activityDescription = this.valorTexto(datos['actividad']);
+    }
     return payload;
   }
 
@@ -3583,6 +3590,7 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
     if (!this.mostrarArbolWizard) return;
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
     this.aplicarTipoPersonaForzadaPorComercio(nodoId);
+    if (this.prospectoCreado && this.datosForm.controls.mismoDomicilio.value) this.copiarDomicilioFiscal();
     const datos = this.obtenerDatosPorSucursal();
     const datosNodo = this.sincronizarRepresentanteDesdePersonaFisica(this.datosForm.getRawValue());
     datos[nodoId] = datosNodo;
@@ -3617,9 +3625,6 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
     const datos = this.obtenerDatosPorSucursal()[sucursalId];
     this.datosForm.reset({ ...this.crearDatosGeneralesVacios(), ...(datos ?? {}) } as any, { emitEvent: false });
     this.aplicarTipoPersonaForzadaPorComercio(sucursalId);
-    if (this.mostrarInfoFiscalEntidadSucursal && !this.datosForm.controls.mismaInfoFiscalEntidad.value) {
-      this.limpiarInfoFiscalEntidad();
-    }
     this.actualizarValidadoresDatos();
     this.actualizarEstadoInfoFiscalEntidad();
   }
@@ -4186,8 +4191,8 @@ this.arbolNegocioForm.controls.nombresArbol.setValue(
       municipioComercial: datos.municipio,
       entidadFederativaComercial: datos.entidadFederativa,
       locationIDComercial: datos.locationID,
-      entreCalleComercial: this.valorTexto(datos.entreCalle) || datos.entreCalleComercial,
-      yCalleComercial: this.valorTexto(datos.yCalle) || datos.yCalleComercial
+      entreCalleComercial: datos.entreCalle,
+      yCalleComercial: datos.yCalle
 
     }, { emitEvent: false });
 
