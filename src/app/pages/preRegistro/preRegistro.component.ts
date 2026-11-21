@@ -2370,19 +2370,17 @@ export class PreRegistroComponent {
     for (const doc of this.documentosVisibles) {
       if (doc.archivo) documents.push({ nodoId, numeroDocumento: String(doc.numero), file: doc.archivo });
     }
-    const continuar = () => {
-      this.marcarNodoActualCompletado();
-      if (!this.nodoArbolCompletado(nodoId)) {
-        this.informarPendienteNodo(this.buscarNodoArbol(nodoId)!);
-        return;
-      }
-      if (!this.avanzarASiguienteSucursal()) {
-        const pendiente = this.primerNodoPendienteArbol();
-        if (pendiente) { this.seleccionarNodoArbol(pendiente); this.informarPendienteNodo(pendiente); return; }
-        this.finalizacionPendiente = this.puedeFinalizarPreregistro();
-      }
-      this.guardarBorradorSilencioso();
-    };
+   const continuar = () => {
+  this.marcarNodoActualCompletado();
+
+  if (this.avanzarASiguienteSucursal()) {
+    this.guardarBorradorSilencioso();
+    return;
+  }
+
+  this.finalizacionPendiente = this.puedeFinalizarPreregistro();
+  this.guardarBorradorSilencioso();
+};
     if (!this.guardadoNodoConfirmado(nodoId)) {
       this.informarPendienteNodo(this.buscarNodoArbol(nodoId)!);
       return;
@@ -2394,15 +2392,15 @@ export class PreRegistroComponent {
       continuar();
       return;
     }
-    this.invalidarGuardadoNodo(nodoId, true);
+   
     this.enviandoPreRegistro = true;
     this.avanceService.subirDocumentos(this.comprobanteAvance, documents).subscribe({
       next: response => {
         this.enviandoPreRegistro = false;
         if (response.success !== true) { this.mostrarErrorPreRegistro('El proveedor no confirmó los documentos. Los archivos seleccionados se conservan.'); return; }
         this.confirmarGuardadoNodo(nodoId, true);
-        this.confirmarAvance('Documentos guardados correctamente', this.buscarNodoArbol(nodoId)?.nombre || '');
-        continuar();
+      this.confirmarAvance('Se subió la documentación correctamente', this.buscarNodoArbol(nodoId)?.nombre || '');
+       continuar();
       },
       error: error => { this.enviandoPreRegistro = false; this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error)); },
     });
@@ -3650,12 +3648,13 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
     this.marcarNodoCompletado(nodoId);
   }
 
-  private marcarNodoCompletado(nodoId: string): void {
-    const documentosPendientes = this.documentosVisibles.some(doc => doc.obligatorio || doc.archivo || doc.archivoNombre)
-      && !this.guardadoNodoConfirmado(nodoId, true);
-    this.actualizarNodoCompletado(nodoId, !!this.guidsRegistrados[nodoId] && this.guardadoNodoConfirmado(nodoId)
-      && !documentosPendientes && this.nodoActualTieneDatosCompletos());
-  }
+private marcarNodoCompletado(nodoId: string): void {
+  const registroConfirmado =
+    !!this.guidsRegistrados[nodoId] &&
+    this.guardadoNodoConfirmado(nodoId);
+
+  this.actualizarNodoCompletado(nodoId, registroConfirmado);
+}
 
   private actualizarNodoCompletado(nodoId: string, completo: boolean): void {
     const completados = new Set(this.obtenerNodosCompletados());

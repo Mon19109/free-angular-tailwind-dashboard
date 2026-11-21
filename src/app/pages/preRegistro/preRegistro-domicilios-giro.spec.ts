@@ -124,4 +124,21 @@ describe('Preregistro: domicilios y selección de giro en actualizaciones', () =
     expect((data as any).commerceAddress[0].roadName).toBe('Fiscal1nombreVialidad');
     expect((data as any).idBussinesLine).toBe(541);
   });
+  it('prepara el primer registro sin exigir GUID previo', () => {
+    c.prospectoCreado = false; c.guidsRegistrados = {};
+    const data = c.datosActualizacion(nodes[0].id);
+    expect(data.commerceGuid).toBeUndefined();
+    expect(data.commerceAddress.every((a: any) => a.commerceID === null && a.commerceAddressID === null)).toBeTrue();
+  });
+  it('update manda captura DF/DC y locationID sin imponer identidades del navegador', () => {
+    select(nodes[1]); c.datosForm.controls.mismoDomicilio.setValue(true); c.guardarDatosSucursalActual();
+    const data = c.datosActualizacion(nodes[1].id);
+    expect(data.commerceGuid).toBeUndefined();
+    for (const a of data.commerceAddress) {
+      expect(a.commerceID).toBeUndefined(); expect(a.commerceAddressID).toBeUndefined();
+      expect(a.locationID).toBe('Fiscal1locationID');
+    }
+    expect(data.commerceAddress[0].roadName).toBe(data.commerceAddress[1].roadName);
+  });
+
 });
