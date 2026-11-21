@@ -72,6 +72,11 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
       expect(args[2][0].hijos!.length).toBeGreaterThan(0);
       expect(raizPayload(args[3], id).nameCommerce).toBe('Raíz capturada');
       const recorrer = (value: any): void => {
+        if (value.nameCommerce) expect(value.commerceAddress.map((a: any) => a.addressType)).toEqual(['DF', 'DC']);
+        for (const address of value.commerceAddress || []) {
+          expect(address.commerceAddressID).toBeNull();
+          expect(address.commerceID).toBeNull();
+        }
         for (const key of ['entitys', 'branchOficces', 'poss']) (value[key] || []).forEach((child: any) => {
           expect(child.typeOfBusiness).toBeGreaterThan(0); recorrer(child);
         });
@@ -131,6 +136,7 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
   });
   it('finalizar nunca crea de nuevo y permite subir documentos después', () => {
     component.prospectoCreado = true; c.comprobanteAvance = 'a'.repeat(64); c.guidsRegistrados = { 'sucursal-1': 'real-guid' };
+    c.confirmarGuardadoNodo('sucursal-1');
     const file = new File(['%PDF-1.7'], 'doc.pdf', { type: 'application/pdf' });
     spyOnProperty(component, 'documentosVisibles').and.returnValue([{ numero: 1, archivo: file }] as any);
     spyOn(c, 'guardarCapturaNodoActual'); spyOn(c, 'guardarDocumentosNodoActual');
@@ -180,6 +186,7 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
       const alta = c.construirRegistroInicial();
       const recorrer = (value: any): void => {
         (value.poss || []).forEach((pos: any, index: number) => expect(pos).toEqual({
+          commerceAddress: ['DF', 'DC'].map(addressType => ({ ...c.construirDireccionPayload(addressType, {}, addressType === 'DF' ? '' : 'Comercial'), commerceAddressID: null, commerceID: null })),
           nameCommerce: `CAJA ${String(index + 1).padStart(2, '0')}`, name: `CAJA ${String(index + 1).padStart(2, '0')}`,
           paternalSurname: 'ND', maternalSurname: 'ND', password: '', liquidationLevel: '0', dispersionAccount: 'CONC_ADQUI', isAliasUser: true, typeOfBusiness: 61,
         }));
@@ -204,6 +211,37 @@ describe('Preregistro: alta inicial y continuación aislada', () => {
     expect(branchPayload.email).toBe(''); expect(branchPayload.phoneNumber).toBe('');
     expect(branchPayload.poss[0].rfc).toBeUndefined();
     expect(entity.referrerNodeId).toBeUndefined();
+  });
+  it('alta: conserva direcciones capturadas de la caja sin copiar las de su sucursal', () => {
+    const root = configurar('comercio-unico');
+    c.guardarDatosSucursalActual(); c.guardarComercioNodoActual();
+    const data = c.obtenerDatosPorSucursal();
+    data[root.id].nombreVialidad = 'Calle de sucursal';
+    data[root.hijos![0].id] = { nombreVialidad: 'Fiscal de caja', nombreVialidadComercial: 'Comercial de caja' };
+    component.arbolNegocioForm.controls.datosPorSucursal.setValue(JSON.stringify(data));
+    const branch = c.construirRegistroInicial().payloadCompleto.entitys[0].branchOficces[0];
+    expect(branch.commerceAddress[0].roadName).toBe('Calle de sucursal');
+    expect(branch.poss[0].commerceAddress.map((a: any) => a.roadName)).toEqual(['Fiscal de caja', 'Comercial de caja']);
+    expect(branch.poss[0].commerceAddress.every((a: any) => a.commerceID === null && a.commerceAddressID === null)).toBeTrue();
+  });
+  it('alta: padre capturado, hijo vacío e hijo capturado conservan domicilios independientes', () => {
+    const root = configurar('sucursales-multiples');
+    component.arbolNegocioForm.controls.sucursalesPorEntidad.setValue('[2]', { emitEvent: false });
+    c.guardarDatosSucursalActual(); c.guardarComercioNodoActual();
+    const branches = component.arbolNegocioWizard[0].hijos!;
+    const campos = ['codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia', 'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle', 'locationID'];
+    const datos = c.obtenerDatosPorSucursal();
+    const captura = (nombre: string) => Object.fromEntries(campos.flatMap(campo => [[campo, nombre + '-DF-' + campo], [campo + 'Comercial', nombre + '-DC-' + campo]]));
+    datos[root.id] = { ...datos[root.id], ...captura('padre') };
+    datos[branches[0].id] = {};
+    datos[branches[1].id] = captura('hijo');
+    component.arbolNegocioForm.controls.datosPorSucursal.setValue(JSON.stringify(datos));
+    const entity = c.construirRegistroInicial().payloadCompleto.entitys[0];
+    const esperado = (data: any) => ['DF', 'DC'].map(tipo => ({ ...c.construirDireccionPayload(tipo, data, tipo === 'DF' ? '' : 'Comercial'), commerceAddressID: null, commerceID: null }));
+    expect(entity.commerceAddress).toEqual(esperado(datos[root.id]));
+    expect(entity.branchOficces[0].commerceAddress).toEqual(esperado({}));
+    expect(entity.branchOficces[1].commerceAddress).toEqual(esperado(datos[branches[1].id]));
+    for (const branch of entity.branchOficces) expect(branch.poss[0].commerceAddress).toEqual(esperado({}));
   });
   it('el enlace nuevo descarta solo almacenamiento de Preregistro y no consulta el comprobante anterior', () => {
     route.snapshot.queryParamMap = convertToParamMap({ nuevo: '1' });
