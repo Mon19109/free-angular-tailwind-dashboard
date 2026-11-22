@@ -1,3 +1,4 @@
+import { StepDatosComponent } from '../../../preRegistro/components/datos-generales/step-datos.component';
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup } from '@angular/forms';
@@ -13,13 +14,15 @@ interface ColoniaActual {
 @Component({
   selector: 'app-datos-generales-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SelectComponent],
+  imports: [CommonModule, ReactiveFormsModule, SelectComponent, StepDatosComponent],
   templateUrl: './datos-generales-admin.component.html',
   styleUrls: ['../../../preRegistro/preRegistro.component.css']
 })
 export class DatosGeneralesAdminComponent {
   private readonly catalogosLectura = inject(ConsultaCatalogosLecturaService);
   @Input() descripcionRegimenFiscal = '';
+  @Input() permitirActividad = false;
+  @Input() permitirGiro = false;
 
   @Input() incluirRepresentantePersonaMoral = false;
   @Input() form!: FormGroup;

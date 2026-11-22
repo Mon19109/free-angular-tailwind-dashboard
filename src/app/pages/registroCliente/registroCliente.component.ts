@@ -731,7 +731,7 @@ enviarCredenciales(): void {
         this.codigoEdicionBff = this.codigoBffSeguro(respuesta.permissions?.editUnavailableCode);
         const privados = /(?:id$|^id|guid|sirio|token|password)/i;
         this.camposEdicionBff = (Array.isArray(respuesta.permissions?.editFields) ? respuesta.permissions.editFields : []).filter(campo =>
-          typeof campo === 'string' && Object.hasOwn(this.datosForm.controls, campo) && !privados.test(campo));
+          typeof campo === 'string' && Object.hasOwn(this.datosForm.controls, campo) && (!privados.test(campo) || ['actividadId', 'giroId'].includes(campo)));
         // El BFF resuelve el catálogo; Angular sólo recibe la descripción.
         const tipoComercio = typeof cuenta['tipoComercio'] === 'string' && cuenta['tipoComercio'].trim()
           ? cuenta['tipoComercio'] : 'No disponible';

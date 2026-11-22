@@ -101,6 +101,9 @@
       <div class="field">
         <label for="actividad">Actividad <b>*</b></label>
         <input id="actividad" class="activity-input readonly-locked" formControlName="actividad" readonly [class.invalid]="esInvalido('actividad')" />
+        @if (permitirActividad) {
+        <button type="button" class="button secondary" (click)="buscadores.abrirModalActividad()">Buscar Actividad Económica</button>
+        }
         @if (esInvalido('actividad')) { <small>{{ mensajeCampo('actividad') }}</small> }
       </div>
       }
@@ -113,6 +116,9 @@
       </div>
       }
 
+      @if (esPersonaMoral && permitirGiro) {
+      <div class="field"><button type="button" class="button secondary" (click)="buscadores.abrirModalGiro()">SELECCIONA AQUÍ GIRO COMERCIAL</button></div>
+      }
       @if (tiene('giroComercial') && esPersonaMoral) {
       <div class="field">
         <label for="giroComercial">Familia del giro <b>*</b></label>
@@ -508,3 +514,5 @@
   </div>
 
 </form>
+
+<app-step-datos #buscadores [form]="form" [soloBuscadores]="true" [bloquearActividad]="!permitirActividad" />

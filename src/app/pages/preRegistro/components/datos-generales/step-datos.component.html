@@ -1,5 +1,6 @@
 <form class="step-form" [formGroup]="form" (ngSubmit)="submit()">
 
+  @if (!soloBuscadores) {
   <!-- Datos generales -->
   @if (seccionesVisibles.datosGenerales) {
   <section class="step-section">
@@ -522,6 +523,8 @@
     </button>
     }
   </div>
+
+  }
 
   @if (mostrarModalGiro) {
   <div class="modal-backdrop giro-backdrop" (click)="cerrarModalGiro()">

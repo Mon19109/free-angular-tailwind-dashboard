@@ -183,6 +183,8 @@
               [tipoComercio]="comercioForm.getRawValue().tipoComercio"
               [regimenesFiscales]="regimenesFiscales"
               [descripcionRegimenFiscal]="descripcionRegimenFiscal"
+              [permitirActividad]="editandoDatosNodo && puedeEditarDatosNodo && camposEdicionBff.includes('actividadId')"
+              [permitirGiro]="editandoDatosNodo && puedeEditarDatosNodo && camposEdicionBff.includes('giroId')"
               [localidadesFiscal]="localidadesFiscal"
               [localidadesComercial]="localidadesComercial"
               [localidadesRepresentante]="localidadesRepresentante"
