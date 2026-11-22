@@ -234,6 +234,33 @@
           [class.invalid]="esInvalido('emailBanco')" />
         @if (esInvalido('emailBanco')) { <small>{{ mensajeCampo('emailBanco') }}</small> }
       </div>
+      @if (mostrarDatosScotiabank) {
+      <div class="field">
+        <label for="institutionReference">Referencia de institución <b>*</b></label>
+        <input id="institutionReference" formControlName="institutionReference" required [class.invalid]="esInvalido('institutionReference')" />
+        @if (esInvalido('institutionReference')) { <small>{{ mensajeCampo('institutionReference') }}</small> }
+      </div>
+      <div class="field">
+        <label for="aditionalPhone">Teléfono adicional</label>
+        <input id="aditionalPhone" formControlName="aditionalPhone" [class.invalid]="esInvalido('aditionalPhone')" />
+        @if (esInvalido('aditionalPhone')) { <small>{{ mensajeCampo('aditionalPhone') }}</small> }
+      </div>
+      <div class="field">
+        <label for="aditionalEmail">Correo adicional 1</label>
+        <input id="aditionalEmail" formControlName="aditionalEmail" type="email" email [class.invalid]="esInvalido('aditionalEmail')" />
+        @if (esInvalido('aditionalEmail')) { <small>{{ mensajeCampo('aditionalEmail') }}</small> }
+      </div>
+      <div class="field">
+        <label for="aditionalEmail2">Correo adicional 2</label>
+        <input id="aditionalEmail2" formControlName="aditionalEmail2" type="email" email [class.invalid]="esInvalido('aditionalEmail2')" />
+        @if (esInvalido('aditionalEmail2')) { <small>{{ mensajeCampo('aditionalEmail2') }}</small> }
+      </div>
+      <div class="field">
+        <label for="aditionalEmail3">Correo adicional 3</label>
+        <input id="aditionalEmail3" formControlName="aditionalEmail3" type="email" email [class.invalid]="esInvalido('aditionalEmail3')" />
+        @if (esInvalido('aditionalEmail3')) { <small>{{ mensajeCampo('aditionalEmail3') }}</small> }
+      </div>
+      }
     </div>
   </section>
   }

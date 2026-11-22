@@ -45,6 +45,7 @@ export class StepLiquidacionComponent implements OnInit {
   @Input() varianteRegistro = false;
   @Input() bearerToken = '';
   @Input() asignacionEnRed = false;
+  @Input() mostrarDatosScotiabank = false;
   @Output() continuar = new EventEmitter<void>();
   @Output() volver = new EventEmitter<void>();
 

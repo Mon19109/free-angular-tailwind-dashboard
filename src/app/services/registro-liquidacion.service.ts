@@ -31,6 +31,11 @@ export interface RegistroLiquidacionPayload {
     businessLine?: string;
     businessActivity?: string;
     typeAccount: 'PF' | 'PM';
+    institutionReference?: string;
+    aditionalPhone?: string;
+    aditionalEmail?: string;
+    aditionalEmail2?: string;
+    aditionalEmail3?: string;
   };
 }
 

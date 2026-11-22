@@ -333,6 +333,11 @@ private readonly correosVerificados: Record<string, {
     nombreBanco: ['', Validators.required],
     direccionBanco: ['', Validators.required],
     telefonoBanco: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    institutionReference: [''],
+    aditionalPhone: [''],
+    aditionalEmail: [''],
+    aditionalEmail2: [''],
+    aditionalEmail3: [''],
     emailBanco: ['', [Validators.required, Validators.email]]
   });
 
@@ -528,6 +533,14 @@ this.link = params.get('link') || pathLink;
     this.seccionInformativaAbierta = this.seccionInformativaAbierta === seccion ? null : seccion;
   }
 
+  get cuentaScotiabank(): boolean {
+    const datos = this.liquidacionForm.getRawValue();
+    // idInstitution es una referencia opaca del catálogo público; el nombre viene de la misma búsqueda.
+    return !this.modoInterno && ['otros-bancos', 'otros-bancos-en-red'].includes(datos.cuentaFueraRed)
+      && datos.tipoCuenta === 'CLABE' && datos.idInstitution !== null
+      && /^SCOTIABANK(?:\s|$)/i.test(datos.nombreBanco.trim());
+  }
+
   continuarLiquidacion(): void {
     if (!this.modoInterno && (!this.enlaceAutorizado || this.registroFinalizado)) return;
   if (!this.nodoRequiereAccesos || this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
@@ -541,6 +554,14 @@ this.link = params.get('link') || pathLink;
       return;
     }
     this.intentoGuardarLiquidacion = true;
+    if (!this.modoInterno) {
+      for (const campo of ['institutionReference', 'aditionalEmail', 'aditionalEmail2', 'aditionalEmail3'] as const) {
+        const control = this.liquidacionForm.controls[campo];
+        control.setValidators(this.cuentaScotiabank
+          ? [campo === 'institutionReference' ? Validators.required : Validators.email] : []);
+        control.updateValueAndValidity({ emitEvent: false });
+      }
+    }
     this.liquidacionForm.markAllAsTouched();
     if (this.liquidacionForm.invalid) {
       this.error = 'Completa los campos obligatorios (*) de liquidación y corrige los datos inválidos antes de continuar.';
@@ -600,7 +621,14 @@ this.link = params.get('link') || pathLink;
         ...(tipo === 'PM'
           ? { businessLine: `${datos.giro}|${datos.giroBeneficiario}` }
           : { businessActivity: `${datos.idActivity}|${datos.actividadBeneficiario}` }),
-        typeAccount: tipo
+        typeAccount: tipo,
+        ...(this.cuentaScotiabank ? {
+          institutionReference: datos.institutionReference,
+          aditionalPhone: datos.aditionalPhone,
+          aditionalEmail: datos.aditionalEmail,
+          aditionalEmail2: datos.aditionalEmail2,
+          aditionalEmail3: datos.aditionalEmail3
+        } : {})
       }
     };
 
