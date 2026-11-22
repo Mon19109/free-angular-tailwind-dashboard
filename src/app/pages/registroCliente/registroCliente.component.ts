@@ -778,14 +778,18 @@ enviarCredenciales(): void {
     const consulta = this.consultaCuentaActual;
     const vigente = () => consulta === this.consultaCuentaActual && this.nodoSeleccionado === nodeRef
       && this.contextoBff?.commerce.ref === ref;
-    const fallo = (error?: { status?: number; error?: { code?: string } }) => {
+    const fallo = (error?: { status?: number; error?: { code?: string; message?: unknown } }) => {
       if (!vigente()) return;
       const texto = error?.status === 503
         ? `Consulta ${tipo} bloqueada por el BFF (503).`
         : `No fue posible consultar ${tipo} de este nodo${error?.status ? ` (${error.status})` : ''}.`;
       const code = error?.error?.code;
       const detalle = typeof code === 'string' && /^COMERCIOS_[A-Z_]{1,80}$/.test(code) ? `${texto} Código: ${code}.` : texto;
-      if (tipo === 'pld') { this.cargandoSiprelad = false; this.resultadosSiprelad = []; this.resultadoSiprelad = detalle; }
+      if (tipo === 'pld') {
+        this.cargandoSiprelad = false; this.resultadosSiprelad = [];
+        const mensaje = error?.error?.message;
+        this.resultadoSiprelad = typeof mensaje === 'string' && mensaje.trim() ? mensaje : detalle;
+      }
       else {
         this.cargandoDocumentosProspecto = false;
         this.documentosProspecto = [];

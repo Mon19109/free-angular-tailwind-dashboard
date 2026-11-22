@@ -4285,8 +4285,8 @@ this.arbolNegocioForm.controls.nombresArbol.setValue(
       municipioComercial: datos.municipio,
       entidadFederativaComercial: datos.entidadFederativa,
       locationIDComercial: datos.locationID,
-      entreCalleComercial: datos.entreCalle,
-      yCalleComercial: datos.yCalle
+      entreCalleComercial: this.valorTexto(datos.entreCalle) ? datos.entreCalle : datos.entreCalleComercial,
+      yCalleComercial: this.valorTexto(datos.yCalle) ? datos.yCalle : datos.yCalleComercial
 
     }, { emitEvent: false });
 

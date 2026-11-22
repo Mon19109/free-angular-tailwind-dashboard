@@ -73,15 +73,16 @@ describe('Preregistro: domicilios y selección de giro en actualizaciones', () =
       expect(data.commerceAddress.map((a: any) => a.addressType)).toEqual(['DF', 'DC']);
     }
   });
-  it('copia los valores actuales del fiscal, incluidos opcionales vacíos y campos deshabilitados', () => {
+  it('copia el fiscal sin borrar entrecalles comerciales capturadas cuando las fiscales están vacías', () => {
     select(nodes[1]);
     c.datosForm.controls.mismoDomicilio.setValue(true);
     c.datosForm.patchValue({ nombreVialidad: 'Calle editada', entreCalle: '', yCalle: '' }, { emitEvent: false });
     c.datosForm.controls.nombreVialidad.disable({ emitEvent: false });
     c.guardarDatosSucursalActual();
     const [df, dc] = c.datosActualizacion(nodes[1].id).commerceAddress;
-    expect(dc).toEqual({ ...df, addressType: 'DC' });
-    expect(dc.roadName).toBe('Calle editada'); expect(dc.betweenStreet).toBe(''); expect(dc.andStreet).toBe('');
+    expect(dc).toEqual({ ...df, addressType: 'DC', betweenStreet: 'Fiscal1entreCalle', andStreet: 'Fiscal1yCalle' });
+    expect(dc.roadName).toBe('Calle editada');
+    expect(df.betweenStreet).toBe(''); expect(df.andStreet).toBe('');
   });
   it('al desmarcar la copia conserva el comercial y permite editar ambos independientemente', () => {
     select(nodes[1]); c.datosForm.controls.mismoDomicilio.setValue(true);
@@ -140,5 +141,58 @@ describe('Preregistro: domicilios y selección de giro en actualizaciones', () =
     }
     expect(data.commerceAddress[0].roadName).toBe(data.commerceAddress[1].roadName);
   });
+
+  for (const caso of ['independientes', 'mismo domicilio', 'fiscal vacío']) {
+    it(`inputs visibles → cambio de nodo → PUT conserva exactamente Entre calle / Y calle: ${caso}`, () => {
+      select(nodes[1]);
+      const fixture = TestBed.createComponent(StepDatosComponent);
+      fixture.componentInstance.form = c.datosForm;
+      fixture.componentInstance.campos = c.camposDatosGenerales;
+      fixture.componentInstance.preregistroPublico = true;
+      fixture.detectChanges();
+      const escribir = (campo: string, valor: string) => {
+        const input = fixture.nativeElement.querySelector(`[formControlName="${campo}"]`) as HTMLInputElement;
+        expect(input).withContext(campo).not.toBeNull();
+        input.value = valor; input.dispatchEvent(new Event('input')); fixture.detectChanges();
+      };
+      escribir('entreCalle', caso === 'fiscal vacío' ? '' : 'Avenida Juárez');
+      escribir('yCalle', caso === 'fiscal vacío' ? '' : 'Calle 5 de Mayo');
+      if (caso !== 'independientes') {
+        const checkbox = fixture.nativeElement.querySelector('[formControlName="mismoDomicilio"]') as HTMLInputElement;
+        checkbox.click(); fixture.detectChanges();
+      }
+      if (caso !== 'mismo domicilio') {
+        escribir('entreCalleComercial', 'Paseo de la Reforma');
+        escribir('yCalleComercial', 'Calle Río Lerma');
+      }
+      const antes = c.datosForm.getRawValue();
+      spyOn(c, 'cargarTiposComercioCatalogo');
+      c.seleccionarNodoArbol(nodes[2]); c.seleccionarNodoArbol(nodes[1]);
+      fixture.detectChanges();
+      for (const campo of ['entreCalle', 'yCalle', 'entreCalleComercial', 'yCalleComercial']) {
+        expect(c.datosForm.get(campo).value).withContext(campo).toBe(antes[campo]);
+        expect((fixture.nativeElement.querySelector(`[formControlName="${campo}"]`) as HTMLInputElement).value).toBe(antes[campo]);
+      }
+      spyOn(c, 'formularioCompleto').and.returnValue(true); spyOn(c, 'avanzarDespuesDeDatos');
+      const realApi = TestBed.runInInjectionContext(() => new PreregistroAvanceService());
+      api.actualizar.and.callFake((receipt, node, data) => realApi.actualizar(receipt, node, data));
+      c.continuarDatos();
+      const request = TestBed.inject(HttpTestingController).expectOne(req => req.method === 'PUT' && req.url.endsWith('/nodos/' + nodes[1].id));
+      const payload = request.request.body.datos;
+      expect(payload.commerceGuid).toBeUndefined();
+      expect(payload.commerceAddress.map((a: any) => ({ addressType: a.addressType, betweenStreet: a.betweenStreet, andStreet: a.andStreet }))).toEqual([
+        { addressType: 'DF', betweenStreet: antes.entreCalle, andStreet: antes.yCalle },
+        { addressType: 'DC', betweenStreet: antes.entreCalleComercial, andStreet: antes.yCalleComercial },
+      ]);
+      expect(payload.commerceAddress[0].locationID).toBe(antes.locationID);
+      expect(payload.commerceAddress[1].locationID).toBe(antes.locationIDComercial);
+      for (const a of payload.commerceAddress) {
+        expect(a.commerceID).toBeUndefined(); expect(a.commerceAddressID).toBeUndefined();
+      }
+      request.flush({ success: true });
+      expect(api.crear).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
 
 });
