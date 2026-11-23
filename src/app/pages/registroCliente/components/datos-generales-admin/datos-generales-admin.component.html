@@ -116,9 +116,6 @@
       </div>
       }
 
-      @if (esPersonaMoral && permitirGiro) {
-      <div class="field"><button type="button" class="button secondary" (click)="buscadores.abrirModalGiro()">SELECCIONA AQUÍ GIRO COMERCIAL</button></div>
-      }
       @if (tiene('giroComercial') && esPersonaMoral) {
       <div class="field">
         <label for="giroComercial">Familia del giro <b>*</b></label>
@@ -142,6 +139,10 @@
         <input id="mcc" formControlName="mcc" readonly [class.invalid]="esInvalido('mcc')" />
         @if (esInvalido('mcc')) { <small>{{ mensajeCampo('mcc') }}</small> }
       </div>
+      }
+
+      @if (esPersonaMoral && permitirGiro) {
+      <div class="field"><button type="button" class="button secondary" (click)="buscadores.abrirModalGiro()">SELECCIONA AQUÍ GIRO COMERCIAL</button></div>
       }
 
       @if (tiene('correo')) {

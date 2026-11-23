@@ -3442,3 +3442,15 @@ small {
 .preregistro-siguiente .continuar-medida {
   visibility: hidden;
 }
+
+/* Botón de giro comercial en edición de comercios */
+app-datos-generales-admin .boton-giro-dorado.button.secondary {
+  background-color: #f5c451 !important;
+  color: #17120a !important;
+  border-color: #f8d46b !important;
+}
+
+app-datos-generales-admin .boton-giro-dorado.button.secondary:hover {
+  background-color: #ffd76b !important;
+  color: #17120a !important;
+}
