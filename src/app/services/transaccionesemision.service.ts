@@ -44,7 +44,15 @@ export class TransaccionesEmisionService {
  obtenerCuentas():Observable<Cuenta[]>{return this.http.get<Cuenta[]>(`${this.base}/cuentas`);}
  obtenerTiposOperacion():Observable<TipoOperacion[]>{return this.http.get<TipoOperacion[]>(`${this.base}/tipos-operacion`);}
  obtenerStatus():Observable<Status[]>{return this.http.get<Status[]>(`${this.base}/status`);}
- enviarFormulario(formData:FormularioData):Observable<any>{return this.http.post(`${this.base}/buscar`,formData);}
- enviarFormularioComoParams(formData:FormularioData):Observable<any>{return this.http.post(`${this.base}/consultas`,formData);}
+ enviarFormulario(formData:FormularioData):Observable<any>{
+   return this.http.post(`${this.base}/buscar`,formData,{
+     headers: { 'X-Portal-Request': '1' }
+   });
+ }
+ enviarFormularioComoParams(formData:FormularioData):Observable<any>{
+   return this.http.post(`${this.base}/consultas`,formData,{
+     headers: { 'X-Portal-Request': '1' }
+   });
+ }
  
 }
