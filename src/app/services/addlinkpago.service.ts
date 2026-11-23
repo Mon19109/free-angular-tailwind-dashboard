@@ -84,11 +84,21 @@ export class AddLinkPagoService {
   //user: UserSessionData | null = null;
 
   obtenerTipoNoti(): Observable<any> {
-    return this.http.get(`${this.baseUrl}notificationTypes`);
+    return this.http.get(`${this.baseUrl}notificationTypes`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json; charset=utf-8'
+      }
+    });
   }
 
   obtenerTipoPago(): Observable<any> {
-    return this.http.get(`${this.baseUrl}paymentMethods`);
+    return this.http.get(`${this.baseUrl}paymentMethods`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json; charset=utf-8'
+      }
+    });
   }
 
   enviarSMS(datos: NotificacionPagoData): Observable<any> {
