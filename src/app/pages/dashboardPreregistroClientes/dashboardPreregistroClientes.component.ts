@@ -149,11 +149,11 @@ totalesPorPaso: Record<number, number | null> = {};
 
   const equivalencias: Record<string, number> = {
     '25': 1,
-    'PROSPECTO_CLIENTE': 1,
-    'PROSPECTO_A_CLIENTE': 1,
+'PROSPECTO_CLIENTE': 1,
+'PROSPECTO_A_CLIENTE': 1,
 
-    '26': 2,
-    'PROSPECTO_ADMIN': 2,
+'26': 1,
+'PROSPECTO_ADMIN': 1,
 
     '30': 3,
     'EN_REVISION_DOCUMENTACION': 3,
@@ -379,12 +379,11 @@ private aplicarFiltroNivel(): void {
       }
 
       if (
-        this.filtros.nivel === 'prospectos' &&
-        pasoComercio !== 1 &&
-        pasoComercio !== 2
-      ) {
-        return false;
-      }
+  this.filtros.nivel === 'prospectos' &&
+  pasoComercio !== 1
+) {
+  return false;
+}
 
       if (
         this.filtros.nivel === 'pendientes' &&
@@ -572,9 +571,7 @@ if (paso !== null) {
     comercio['Status'] ??
     comercio['STATUS'];
 
-  return [1, 2].includes(
-    this.obtenerPasoPorEstatus(status) ?? 0
-  );
+  return this.obtenerPasoPorEstatus(status) === 1;
 }
 
   private esProspectoAdmin(comercio: Comercio): boolean {
