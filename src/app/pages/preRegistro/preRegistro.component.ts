@@ -3605,8 +3605,8 @@ const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);
   private documentosNodoCompletos(id: string, tipoComercio: string): boolean {
     const datosNodo = this.obtenerDatosPorSucursal()[id] ?? this.datosForm.getRawValue();
     const reglas = this.obtenerReglasDocumentos(tipoComercio, datosNodo['tipoPersona']);
-    const obligatorios = reglas.filter(regla => regla.obligatorio);
-    if (!obligatorios.length) return true;
+    if (!reglas.length) return this.buscarNodoArbol(id)?.nivel === 'caja';
+    const obligatorios = reglas.filter(regla => this.documentoDesdeRegla(regla, tipoComercio, datosNodo['tipoPersona'])?.obligatorio);
 
     const documentos = this.documentosPorNodo[this.nodoFuenteDocumentosId(id)] ?? {};
     return obligatorios.every(regla => !!documentos[regla.numero]?.archivoNombre || !!documentos[regla.numero]?.archivo);

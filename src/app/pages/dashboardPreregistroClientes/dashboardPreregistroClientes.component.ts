@@ -50,9 +50,11 @@ styleUrls: ['./dashboardPreregistroClientes.component.css']
 export class DashboardPreregistroClientesComponent {
 
   readonly pasosPreregistro = [
+ 
+  
   { paso: 1, nombre: 'PROSPECTO', status: '25', color: '#3b82f6' },
-  { paso: 2, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN', status: '26', color: '#6366f1' },
-  { paso: 3, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN MD', status: '30', color: '#a855f7' },
+  { paso: 2, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN', status: '30', color: '#6366f1' },
+  { paso: 3, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN MD', status: '35', color: '#a855f7' },  
   { paso: 4, nombre: 'PENDIENTE CUENTAS LIQUIDACIÓN', status: '31', color: '#ec4899' },
   { paso: 5, nombre: 'EN VALIDACIÓN CARTA Y CARÁTULA EDC', status: '33', color: '#f43f5e' },
   { paso: 6, nombre: 'PENDIENTE DE AFILIACIÓN', status: '34', color: '#f97316' },
@@ -155,8 +157,17 @@ totalesPorPaso: Record<number, number | null> = {};
 '26': 1,
 'PROSPECTO_ADMIN': 1,
 
-    '30': 3,
+    /*'30': 3,
     'EN_REVISION_DOCUMENTACION': 3,
+*/
+
+'30': 2,
+'EN_VALIDACION_DOCUMENTACION': 2,
+'EN_REVISION_DOCUMENTACION': 2,
+
+'35': 3,
+'EN_VALIDACION_DOCUMENTACION_MD': 3,
+
 
     '31': 4,
     'PENDIENTE_CUENTAS_LIQUIDACION': 4,

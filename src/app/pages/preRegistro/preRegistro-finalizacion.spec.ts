@@ -28,6 +28,18 @@ describe('Preregistro: iconos y pantalla final existente', () => {
     spyOn(c, 'guardarBorradorSilencioso');
     fixture.detectChanges();
   });
+  it('completitud documental aplica documento 10 PM, excluye opcionales y no completa tipos desconocidos', () => {
+    spyOn(c, 'obtenerDatosPorSucursal').and.returnValue({raiz:{tipoPersona:'PM'}});
+    spyOn(c, 'buscarNodoArbol').and.returnValue({id:'raiz',nivel:'entidad'});
+    spyOn(c, 'nodoFuenteDocumentosId').and.returnValue('raiz');
+    c.documentosPorNodo={raiz:{1:{archivoNombre:'1.pdf'},2:{archivoNombre:'2.pdf'},3:{archivoNombre:'3.pdf'}}};
+    expect(c.documentosNodoCompletos('raiz','Empresa Grupo')).toBeFalse();
+    c.documentosPorNodo.raiz[10]={archivoNombre:'10.pdf'};
+    expect(c.documentosNodoCompletos('raiz','Empresa Grupo')).toBeTrue();
+    expect(c.documentosNodoCompletos('raiz','Tipo desconocido')).toBeFalse();
+    c.buscarNodoArbol.and.returnValue({id:'caja',nivel:'caja'});
+    expect(c.documentosNodoCompletos('caja','Cuenta Terminal')).toBeTrue();
+  });
   for (const title of ['Se registró correctamente', 'Documentos guardados correctamente', 'Se actualizó correctamente']) {
     it(`muestra palomita verde para ${title}`, () => {
       c.confirmarAvance(title, 'Comercio de prueba');
