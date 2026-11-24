@@ -19,6 +19,10 @@ export interface AvancePreregistro {
   arbol: NodoAvancePreregistro[];
   guidsPorNodo: Record<string, string>;
 }
+export interface ResultadoCargaPreregistro {
+  success: boolean;
+  documentacion?: { estado: string; idStatus?: number; motivo?: string };
+}
 @Injectable({ providedIn: 'root' })
 export class PreregistroAvanceService {
   private readonly http = inject(HttpClient);
@@ -40,6 +44,6 @@ export class PreregistroAvanceService {
     const body = new FormData();
     body.append('documentos', JSON.stringify(documentos.map(doc => ({ nodoId: doc.nodoId, numeroDocumento: Number(doc.numeroDocumento) }))));
     documentos.forEach(doc => body.append('files', doc.file, doc.file.name));
-    return this.http.post<{ success: boolean }>(`${this.url}/documentos`, body, this.options(comprobante));
+    return this.http.post<ResultadoCargaPreregistro>(`${this.url}/documentos`, body, this.options(comprobante));
   }
 }

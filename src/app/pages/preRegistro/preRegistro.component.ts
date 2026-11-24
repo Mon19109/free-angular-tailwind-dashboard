@@ -2370,17 +2370,17 @@ export class PreRegistroComponent {
     for (const doc of this.documentosVisibles) {
       if (doc.archivo) documents.push({ nodoId, numeroDocumento: String(doc.numero), file: doc.archivo });
     }
-   const continuar = () => {
-  this.marcarNodoActualCompletado();
-
-  if (this.avanzarASiguienteSucursal()) {
-    this.guardarBorradorSilencioso();
-    return;
-  }
-
-  this.finalizacionPendiente = this.puedeFinalizarPreregistro();
-  this.guardarBorradorSilencioso();
-};
+    const nodosCapturables = this.nodosCapturablesParaFlujo();
+    const esUltimoNodo = nodosCapturables[nodosCapturables.length - 1]?.id === nodoId;
+    const continuar = () => {
+      this.marcarNodoActualCompletado();
+      if (this.avanzarASiguienteSucursal()) {
+        this.guardarBorradorSilencioso();
+        return;
+      }
+      this.finalizacionPendiente = this.puedeFinalizarPreregistro();
+      this.guardarBorradorSilencioso();
+    };
     if (!this.guardadoNodoConfirmado(nodoId)) {
       this.informarPendienteNodo(this.buscarNodoArbol(nodoId)!);
       return;
@@ -2398,9 +2398,17 @@ export class PreRegistroComponent {
       next: response => {
         this.enviandoPreRegistro = false;
         if (response.success !== true) { this.mostrarErrorPreRegistro('El proveedor no confirmó los documentos. Los archivos seleccionados se conservan.'); return; }
+        const transicion = response.documentacion;
+        const estatusConfirmado = (transicion?.estado === 'actualizado' && transicion.idStatus === 30)
+          || transicion?.estado === 'ya-en-30';
+        if (esUltimoNodo && !estatusConfirmado) {
+          this.finalizacionPendiente = false;
+          this.mostrarErrorPreRegistro('Los documentos se subieron, pero el BFF no confirmó el estatus 30. El registro sigue pendiente; consulta su estado con soporte antes de finalizar.');
+          return;
+        }
         this.confirmarGuardadoNodo(nodoId, true);
-      this.confirmarAvance('Se subió la documentación correctamente', this.buscarNodoArbol(nodoId)?.nombre || '');
-       continuar();
+        this.confirmarAvance('Se subió la documentación correctamente', this.buscarNodoArbol(nodoId)?.nombre || '');
+        continuar();
       },
       error: error => { this.enviandoPreRegistro = false; this.mostrarErrorPreRegistro(this.obtenerMensajeErrorPreRegistro(error)); },
     });

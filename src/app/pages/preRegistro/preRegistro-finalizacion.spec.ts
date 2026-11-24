@@ -62,7 +62,7 @@ describe('Preregistro: iconos y pantalla final existente', () => {
     expect(getComputedStyle(icon).color).toBe('rgb(239, 68, 68)');
     expect(icon.classList.contains('success')).toBeFalse();
   });
-  function prepararUltimaCaja(paquete: string) {
+  function prepararUltimaCaja(paquete: string, documentosPendientes = false) {
     const node = (id: string, nivel: string, hijos: any[] = []) => ({ id, nivel, nombre: id, ruta: id, hijos });
     const box = node('caja-final', 'caja');
     const branch = node('sucursal-1', 'sucursal', [box]);
@@ -81,7 +81,7 @@ describe('Preregistro: iconos y pantalla final existente', () => {
     const nodes = c.nodosCapturablesParaFlujo();
     c.guidsRegistrados = Object.fromEntries(nodes.map((n: any) => [n.id, 'guid-confirmado-' + n.id]));
     component.arbolNegocioForm.controls.nodosGuardados.setValue(JSON.stringify(nodes.map((n: any) => n.id)));
-    component.arbolNegocioForm.controls.nodosCompletados.setValue(JSON.stringify(nodes.map((n: any) => n.id)));
+    component.arbolNegocioForm.controls.nodosCompletados.setValue(JSON.stringify(nodes.filter((n: any) => !documentosPendientes || n.id !== box.id).map((n: any) => n.id)));
     return nodes;
   }
   for (const paquete of ['individual', 'sucursales-multiples', 'auditor-unico', 'empresa-holding']) {
@@ -212,7 +212,7 @@ describe('Preregistro: iconos y pantalla final existente', () => {
     control.enable(); expect(c.formularioCompleto(component.datosForm)).toBeFalse();
   });
   it('no completa con documentos seleccionados hasta que la carga sea confirmada', () => {
-    prepararUltimaCaja('individual');
+    prepararUltimaCaja('individual', true);
     const file = new File(['%PDF-1.7'], 'documento.pdf', { type: 'application/pdf' });
     (Object.getOwnPropertyDescriptor(component, 'documentosVisibles')!.get as jasmine.Spy).and.returnValue([
       { numero: 1, nombre: 'Documento obligatorio', obligatorio: true, archivo: file, archivoNombre: file.name },
@@ -223,10 +223,38 @@ describe('Preregistro: iconos y pantalla final existente', () => {
     response.next({ success: false });
     expect(component.nodoArbolCompletado('caja-final')).toBeFalse();
     component.cerrarModalResultadoPreRegistro(); expect(component.registroTerminado).toBeFalse();
-    api.subirDocumentos.and.returnValue(of({ success: true })); component.finalizarRegistro();
+    api.subirDocumentos.and.returnValue(of({ success: true, documentacion: { estado: 'actualizado', idStatus: 30 } })); component.finalizarRegistro();
     expect(component.nodoArbolCompletado('caja-final')).toBeTrue();
     component.cerrarModalResultadoPreRegistro(); expect(component.registroTerminado).toBeTrue();
     expect(api.crear).not.toHaveBeenCalled();
+  });
+  for (const documentacion of [undefined, { estado: 'pendiente' }, { estado: 'actualizado', idStatus: 26 }, { estado: 'sin-transicion' }]) {
+    it(`no finaliza sin transición confirmada: ${JSON.stringify(documentacion)}`, () => {
+      prepararUltimaCaja('individual', true);
+      const file = new File(['%PDF-1.7'], 'documento.pdf', { type: 'application/pdf' });
+      (Object.getOwnPropertyDescriptor(component, 'documentosVisibles')!.get as jasmine.Spy).and.returnValue([
+        { numero: 1, nombre: 'Documento', obligatorio: false, archivo: file, archivoNombre: file.name },
+      ]);
+      api.subirDocumentos.and.returnValue(of({ success: true, documentacion }));
+      component.finalizarRegistro();
+      expect(component.nodoArbolCompletado('caja-final')).toBeFalse();
+      expect(component.mensajeResultadoPreRegistro).toContain('no confirmó el estatus 30');
+      component.cerrarModalResultadoPreRegistro();
+      expect(component.registroTerminado).toBeFalse();
+      expect(api.actualizar).not.toHaveBeenCalled();
+    });
+  }
+  it('acepta la conciliación ya-en-30 sin una actualización independiente de Angular', () => {
+    prepararUltimaCaja('individual', true);
+    const file = new File(['%PDF-1.7'], 'documento.pdf', { type: 'application/pdf' });
+    (Object.getOwnPropertyDescriptor(component, 'documentosVisibles')!.get as jasmine.Spy).and.returnValue([
+      { numero: 1, nombre: 'Documento', obligatorio: false, archivo: file, archivoNombre: file.name },
+    ]);
+    api.subirDocumentos.and.returnValue(of({ success: true, documentacion: { estado: 'ya-en-30', idStatus: 30 } }));
+    component.finalizarRegistro();
+    component.cerrarModalResultadoPreRegistro();
+    expect(component.registroTerminado).toBeTrue();
+    expect(api.actualizar).not.toHaveBeenCalled();
   });
   it('recorrer y volver a entidad y sucursal conserva sus palomitas confirmadas', () => {
     const nodes = prepararUltimaCaja('sucursales-multiples');
