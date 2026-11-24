@@ -6,6 +6,7 @@ import { environment } from '../environments/environments';
 
 export interface RegimenFiscal {
   referencia?: number;
+  codigo?: string;
   id?: number | string;
   code?: string;
   key?: string;
@@ -60,6 +61,13 @@ export class RegimenFiscalService {
         return label;
       }).filter(Boolean))
     );
+  }
+
+  getOpcionesConCodigo(): Observable<Array<{codigo:string; descripcion:string}>> {
+    return this.getAll(true).pipe(map(rows => rows.flatMap(row => {
+      if (typeof row !== 'object' || !/^\d{3}$/.test(row.codigo ?? '') || typeof row.descripcion !== 'string' || !row.descripcion.trim()) return [];
+      return [{codigo:row.codigo!, descripcion:row.descripcion}];
+    })));
   }
 
   codigoParaPreregistro(label: string): string {

@@ -39,6 +39,7 @@ export class StepDatosComponent implements OnInit {
   @Input() form!: FormGroup;
   @Input() campos: string[] = [];
   @Input() regimenesFiscales: string[] = [];
+  @Input() opcionesRegimenFiscal: Option[] | null = null;
   @Input() girosComerciales: string[] = [];
   @Input() tiposPersona: string[] = [];
   @Input() departamentos: string[] = [];
@@ -289,6 +290,7 @@ export class StepDatosComponent implements OnInit {
   tiene(campo: string): boolean { return this.campos.includes(campo); }
 
   get regimenFiscalOptions(): Option[] {
+    if (this.opcionesRegimenFiscal !== null) return this.opcionesRegimenFiscal;
     return this.regimenesFiscales.map(regimen => ({
       label: regimen,
       value: regimen

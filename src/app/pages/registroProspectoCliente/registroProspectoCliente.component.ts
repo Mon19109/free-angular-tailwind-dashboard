@@ -436,6 +436,14 @@ private readonly correosVerificados: Record<string, {
   private readonly regimenDatosService = inject(RegimenFiscalService);
   guardandoDatosGenerales = false;
   mensajeDatosGenerales = '';
+  modalDatosGenerales = false;
+  private catalogoRegimenDatos: Array<{codigo:string; descripcion:string}> = [];
+  get opcionesRegimenDatos(): Array<{value:string;label:string}> {
+    const options = this.catalogoRegimenDatos.map(row=>({value:row.codigo,label:row.descripcion}));
+    const actual = this.datosForm.controls.regimenFiscal.value;
+    return actual && !options.some(row=>row.value===actual) ? [{value:actual,label:actual},...options] : options;
+  }
+  cerrarModalDatosGenerales(): void { this.modalDatosGenerales = false; }
   private datosGeneralesOriginales: Record<string, unknown> = {};
   private regimenesDatosCargados = false;
   get camposEditablesDatos(): string[] {
@@ -445,24 +453,48 @@ private readonly correosVerificados: Record<string, {
   }
   get puedeActualizarDatosGenerales(): boolean { return !!this.nodoSeleccionado && this.camposEditablesDatos.length > 0 && !this.errorProspecto; }
 
+  private configurarValidadoresDatosGenerales(): void {
+    if (!this.puedeActualizarDatosGenerales) return;
+      const opcionales = ['numeroInterior','entreCalle','yCalle','numeroInteriorComercial','entreCalleComercial','yCalleComercial',
+        'correoComercial','telefonoComercial','telefonoAdicionalComercial','telefonoAdicionalRepresentante',
+        'correoRepresentante','telefonoRepresentante','numeroInteriorRepresentante'];
+      for (const key of this.camposEditablesDatos) {
+        const control = this.datosForm.get(key)!;
+        const validators: ValidatorFn[] = !this.campoDatoActivo(key) || opcionales.includes(key) || key.endsWith('Id') || key.startsWith('locationID') ? [] : [Validators.required];
+        if (key.startsWith('correo')) validators.push(Validators.email,Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));
+        if (key.startsWith('telefono')) validators.push(Validators.pattern(/^\d{10}$/));
+        if (key === 'rfc') validators.push(this.rfcValidator(),Validators.maxLength(13));
+        if (key === 'curp') validators.push(Validators.minLength(18),Validators.maxLength(18), Validators.pattern(/^[A-Z][AEIOUX][A-Z]{2}\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[HM](AS|BC|BS|CC|CL|CM|CS|CH|DF|DG|GT|GR|HG|JC|MC|MN|MS|NT|NL|OC|PL|QT|QR|SP|SL|SR|TC|TS|TL|VZ|YN|ZS|NE)[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\d$/i));
+        control.setValidators(validators); control.enable({emitEvent:false}); control.updateValueAndValidity({emitEvent:false});
+      }
+  }
+
+  private campoDatoActivo(campo: string): boolean {
+    const pf = this.datosForm.controls.tipoPersona.value === 'PF';
+    if (['nombre','apellidoPaterno','apellidoMaterno','curp','actividad','actividadId'].includes(campo)) return pf;
+    if (['razonSocial','giroComercial','giroId','descripcionGiro','mcc'].includes(campo) || campo.endsWith('Representante')) return !pf;
+    return true;
+  }
+
   actualizarDatosGenerales(): void {
     if (!this.puedeActualizarDatosGenerales || this.guardandoDatosGenerales) return;
     const node = this.nodoSeleccionado;
     const baseline = {...this.datosGeneralesOriginales};
     const values = this.datosForm.getRawValue() as Record<string,unknown>;
-    const cambios = Object.fromEntries(this.camposEditablesDatos.filter(key => values[key] !== this.datosGeneralesOriginales[key]).map(key => [key,values[key]]));
+    const cambios = Object.fromEntries(this.camposEditablesDatos.filter(key => this.campoDatoActivo(key) && values[key] !== this.datosGeneralesOriginales[key]).map(key => [key,values[key]]));
     if (!Object.keys(cambios).length) { this.mensajeDatosGenerales = 'No hay cambios para actualizar.'; return; }
-    const invalidos = Object.keys(cambios).filter(key => this.datosForm.get(key)?.invalid);
+    this.configurarValidadoresDatosGenerales();
+    const revisar = Object.hasOwn(cambios,'tipoPersona') ? this.camposEditablesDatos.filter(key=>this.campoDatoActivo(key)) : Object.keys(cambios);
+    const invalidos = revisar.filter(key => this.datosForm.get(key)?.invalid);
     if (invalidos.length) {
       invalidos.forEach(key => this.datosForm.get(key)?.markAsTouched());
       this.mensajeDatosGenerales = 'Revisa los campos modificados antes de actualizar.'; return;
     }
-    if (Object.hasOwn(cambios,'regimenFiscal')) {
-      try { cambios['regimenFiscal'] = this.regimenDatosService.codigoParaPreregistro(String(cambios['regimenFiscal'])); }
-      catch { this.mensajeDatosGenerales = 'Selecciona el régimen fiscal desde el catálogo.'; return; }
+    if (Object.hasOwn(cambios,'regimenFiscal') && !this.catalogoRegimenDatos.some(row=>row.codigo===cambios['regimenFiscal'])) {
+      this.mensajeDatosGenerales = 'Selecciona el régimen fiscal desde el catálogo.'; return;
     }
     const esperado = {...cambios};
-    this.guardandoDatosGenerales = true; this.mensajeDatosGenerales = 'Actualizando…';
+    this.guardandoDatosGenerales = true; this.modalDatosGenerales = false; this.mensajeDatosGenerales = '';
     this.seguimientoProspectoService.actualizarDatosGenerales(node,cambios).pipe(
       switchMap(result => {
         if (result.success !== true) return throwError(() => new Error('No confirmado'));
@@ -484,7 +516,7 @@ private readonly correosVerificados: Record<string, {
         if (!confirmado) {
           this.cuentaComercio = original; this.datosGeneralesOriginales = baseline; this.datosForm.patchValue(values, {emitEvent:false});
           this.mensajeDatosGenerales = 'No fue posible confirmar todos los cambios. Se conserva tu captura para revisión.';
-        } else this.mensajeDatosGenerales = 'Se actualizó correctamente.';
+        } else { this.mensajeDatosGenerales = ''; this.modalDatosGenerales = true; }
       },
       error: error => {
         if (this.nodoSeleccionado !== node) return;
@@ -534,6 +566,9 @@ private readonly correosVerificados: Record<string, {
 
 this.link = params.get('link') || pathLink;
     }
+
+    this.datosForm.controls.tipoPersona.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.configurarValidadoresDatosGenerales());
 
     this.liquidacionForm.controls.cuentaFueraRed.valueChanges
       .subscribe(valor => this.cambiarOpcionLiquidacion(valor));
@@ -595,6 +630,7 @@ this.link = params.get('link') || pathLink;
     this.liquidacionRegistrada = false;
     this.modalLiquidacion = null;
     this.modalAccesos = null;
+    this.modalDatosGenerales = false;
     this.cartaLiquidacionArchivo = null;
     this.caratulaEdcArchivo = null;
     this.cartaLiquidacionArchivoNombre = '';
@@ -624,8 +660,8 @@ this.link = params.get('link') || pathLink;
     }
     if (seccion === 'datos' && this.puedeActualizarDatosGenerales && !this.regimenesDatosCargados) {
       this.regimenesDatosCargados = true;
-      this.regimenDatosService.getAllOptions(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: items => { this.regimenesFiscales = [...new Set([this.datosForm.controls.regimenFiscal.value,...items].filter(Boolean))]; },
+      this.regimenDatosService.getOpcionesConCodigo().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: items => { this.catalogoRegimenDatos = items; },
         error: () => { this.regimenesDatosCargados = false; this.mensajeDatosGenerales = 'No fue posible cargar el catálogo de régimen fiscal.'; }
       });
     }
@@ -1344,7 +1380,8 @@ const formData = new FormData();
     const fiscal = direcciones.find(direccion => this.texto(direccion['addressType']).toUpperCase() === 'DF') || direcciones[0] || {};
     const comercial = direcciones.find(direccion => this.texto(direccion['addressType']).toUpperCase() === 'DC') || fiscal;
     const contactos = this.listaObjetos(datos['contacts']);
-    const representante = contactos.find(contacto => Number(contacto['type']) === 1) || contactos[0] || {};
+    const representantes = contactos.filter(contacto => Number(contacto['type']) === 1);
+    const representante = this.modoInterno ? (representantes[0] || contactos[0] || {}) : (representantes.length === 1 ? representantes[0] : {});
     const contactoComercial = contactos.find(contacto => Number(contacto['type']) === 2) || contactos[1] || {};
 
     this.comercioForm.patchValue({
@@ -1410,18 +1447,7 @@ const formData = new FormData();
     this.comercioForm.disable({ emitEvent: false });
     this.datosForm.disable({ emitEvent: false });
     if (this.puedeActualizarDatosGenerales) {
-      const opcionales = ['numeroInterior','entreCalle','yCalle','numeroInteriorComercial','entreCalleComercial','yCalleComercial',
-        'correoComercial','telefonoComercial','telefonoAdicionalComercial','telefonoAdicionalRepresentante',
-        'correoRepresentante','telefonoRepresentante','numeroInteriorRepresentante'];
-      for (const key of this.camposEditablesDatos) {
-        const control = this.datosForm.get(key)!;
-        const validators: ValidatorFn[] = opcionales.includes(key) || key.endsWith('Id') ? [] : [Validators.required];
-        if (key.startsWith('correo')) validators.push(Validators.email,Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));
-        if (key.startsWith('telefono')) validators.push(Validators.pattern(/^\d{10}$/));
-        if (key === 'rfc') validators.push(this.rfcValidator(),Validators.maxLength(13));
-        if (key === 'curp') validators.push(Validators.minLength(18),Validators.maxLength(18), Validators.pattern(/^[A-Z][AEIOUX][A-Z]{2}\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[HM](AS|BC|BS|CC|CL|CM|CS|CH|DF|DG|GT|GR|HG|JC|MC|MN|MS|NT|NL|OC|PL|QT|QR|SP|SL|SR|TC|TS|TL|VZ|YN|ZS|NE)[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\d$/i));
-        control.setValidators(validators); control.enable({emitEvent:false}); control.updateValueAndValidity({emitEvent:false});
-      }
+      this.configurarValidadoresDatosGenerales();
       this.regimenesFiscales = [...new Set([this.datosForm.controls.regimenFiscal.value,...this.regimenesFiscales].filter(Boolean))];
       for (const tipo of ['DF','DC','REP']) {
         const suffix = tipo === 'DF' ? '' : tipo === 'DC' ? 'Comercial' : 'Representante';

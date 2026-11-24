@@ -58,6 +58,25 @@
   </div>
   }
 
+  @if (modalDatosGenerales) {
+  <div class="result-modal-backdrop">
+    <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="datos-modal-title" aria-describedby="datos-modal-description">
+      <div class="result-modal-body">
+        <i class="fa-regular fa-circle-check result-modal-icon success" aria-hidden="true"></i>
+        <h2 id="datos-modal-title">Actualización exitosa</h2>
+        <p id="datos-modal-description">Los datos generales del comercio se actualizaron correctamente.</p>
+      </div>
+      <div class="result-modal-footer">
+        <button type="button" class="button primary result-modal-ok" (click)="cerrarModalDatosGenerales()" autofocus>Aceptar</button>
+      </div>
+    </div>
+  </div>
+  }
+  @if (guardandoDatosGenerales) {
+  <app-processing-overlay texto="Actualizando información..."
+    descripcion="Estamos guardando los datos generales del comercio. Espera un momento." />
+  }
+
   @if (guardando || guardandoLiquidacion) {
   <app-processing-overlay
     texto="Enviando información..."
@@ -68,7 +87,7 @@
   @if (modoInterno) {
     <ng-container *ngTemplateOutlet="seccionesFinales" />
   } @else {
-  <article class="registro-card" [attr.inert]="guardando || guardandoLiquidacion || errorProspecto || modalAccesos !== null ? '' : null">
+  <article class="registro-card" [attr.inert]="guardando || guardandoLiquidacion || guardandoDatosGenerales || modalDatosGenerales || errorProspecto || modalAccesos !== null ? '' : null">
     <header class="registro-card-header">
       <div class="prospect-header-toolbar">
         <img class="prospect-header-logo" src="/kashpay_dorado.png" alt="Kashpay" />
@@ -195,6 +214,7 @@
               [campos]="camposDatosGenerales"
               [tipoComercio]="comercioForm.controls.tipoComercio.value"
               [regimenesFiscales]="regimenesFiscales"
+              [opcionesRegimenFiscal]="modoInterno ? null : opcionesRegimenDatos"
               [girosComerciales]="girosComerciales"
               [tiposPersona]="tiposPersona"
               [departamentos]="departamentos"
@@ -208,7 +228,8 @@
               (seleccionarLocalidadRepresentante)="seleccionarLocalidadDatos($event,'REP')"
               [preregistroPublico]="!modoInterno"
               [mostrarCodigosGiro]="!modoInterno"
-              [bloquearTipoPersona]="true"
+              [bloquearTipoPersona]="!puedeActualizarDatosGenerales || !camposEditablesDatos.includes('tipoPersona')"
+              [incluirRepresentantePersonaMoral]="!modoInterno"
               [bloquearActividad]="!puedeActualizarDatosGenerales"
               [mostrarBusquedaAvanzadaGiro]="puedeActualizarDatosGenerales"
               [validarSoloCambios]="!modoInterno"

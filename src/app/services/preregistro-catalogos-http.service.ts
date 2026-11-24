@@ -43,7 +43,7 @@ export class PreregistroCatalogosHttpService {
     }
     if (url === urls.actividadesUrl) return { catActividadResponse: items.map((item, i) => ({ actividad: item.actividad, idcat_actividades: referencias[i] })) };
     if (url === urls.tiposComercioUrl) return { data: items.map((item, i) => ({ name: item.name, id: referencias[i] })) };
-    if (url === urls.regimenesFiscalesUrl) return { data: items.map((item, i) => ({ descripcion: item.descripcion, referencia: referencias[i] })) };
+    if (url === urls.regimenesFiscalesUrl) return { data: items.map((item, i) => ({ descripcion: item.descripcion, referencia: referencias[i], ...(typeof item.codigo === 'string' ? {codigo:item.codigo} : {}) })) };
     if (url.startsWith(urls.localidadesUrl + '/')) return { data: items.map((item, i) => ({
       colonia: item.colonia, municipio: item.municipio, estado: item.estado, idLocalidad: String(referencias[i]),
     })) };

@@ -78,4 +78,13 @@ describe('Catálogos públicos del prerregistro', () => {
     TestBed.inject(ActividadesService).getActividades().subscribe();
     http.expectOne('/api/v3/antares.kwt-v2.2.10/api/v1/getActividades').flush([]);
   });
+  it('Seguimiento relaciona clave fiscal y descripción sin perder la referencia de Preregistro',()=>{
+    let options: Array<{codigo:string;descripcion:string}> = [];
+    TestBed.inject(RegimenFiscalService).getOpcionesConCodigo().subscribe(data=>options=data);
+    const req=http.expectOne(environment.preregistroBff.regimenesFiscalesUrl);
+    expect(req.request.headers.has('Authorization')).toBeFalse();
+    req.flush({data:[{codigo:'601',descripcion:'Descripción del catálogo'}],referencias:[2**48+1]});
+    expect(options).toEqual([{codigo:'601',descripcion:'Descripción del catálogo'}]);
+  });
+
 });
