@@ -1,3 +1,5 @@
+import { LocalidadesService } from '../../services/localidades.service';
+import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { StepAccesosComponent } from '../preRegistro/components/accesos/step-accesos.component';
@@ -43,9 +45,9 @@ describe('Seguimiento: edición pública Datos Generales', () => {
     spyOn(window, 'scrollTo');
   });
 
-  const fields=['nombreComercial','razonSocial','rfc','nombre','actividad','giroComercial','descripcionGiro','mcc','nombreVialidad'];
+  const fields=['tipoPersona','regimenFiscal','nombreComercial','razonSocial','rfc','nombre','actividad','giroComercial','descripcionGiro','mcc','nombreVialidad'];
   function cuenta(tipo='PF', nombre='Comercio original') {
-    return {success:true,entityInfo:{typePerson:tipo,nameCommerce:nombre,businessName:'Razón real',rfc:'AAAA010101AAA',
+    return {success:true,entityInfo:{typePerson:tipo,name:'Ana',fiscalRegime:'601',nameCommerce:nombre,businessName:'Razón real',rfc:'AAAA010101AAA',
       activityDescription:'Actividad real',businessLine:'Familia real',bussinesLineDescription:'Giro real',businessActivityCode:'5411',
       generalInformationEditFields:fields,commerceAddress:[{addressType:'DF',roadName:'Calle real'}]}};
   }
@@ -71,7 +73,7 @@ describe('Seguimiento: edición pública Datos Generales', () => {
     api.consultarCuenta.and.returnValue(of(cuenta(tipo,'Comercio editado')));
     pending.next({success:true});pending.complete();
     expect(api.consultarCuenta.calls.mostRecent().args).toEqual([root]);
-    expect(c.mensajeDatosGenerales).toBe('Se actualizó correctamente.');
+    expect(c.modalDatosGenerales).toBeTrue();expect(c.mensajeDatosGenerales).toBe('');
     expect(c.guardandoDatosGenerales).toBeFalse();
     expect(c.datosForm.controls.nombreVialidad.value).toBe('Calle real');
     expect(c.datosForm.controls.rfc.value).toBe('AAAA010101AAA');
@@ -82,14 +84,14 @@ describe('Seguimiento: edición pública Datos Generales', () => {
     api.actualizarDatosGenerales.and.returnValue(throwError(()=>({status:502,error:{message:'private-token'}})));
     c.datosForm.controls.nombreComercial.setValue('Pendiente');c.actualizarDatosGenerales();
     expect(c.datosForm.controls.nombreComercial.value).toBe('Pendiente');expect(c.guardandoDatosGenerales).toBeFalse();
-    expect(c.mensajeDatosGenerales).not.toContain('private-token');expect(c.mensajeDatosGenerales).not.toContain('correctamente');
+    expect(c.modalDatosGenerales).toBeFalse();expect(c.mensajeDatosGenerales).not.toContain('private-token');expect(c.mensajeDatosGenerales).not.toContain('correctamente');
     c.actualizarDatosGenerales();expect(api.actualizarDatosGenerales).toHaveBeenCalledTimes(2);
   });
   it('GET sin persistencia no confirma éxito ni borra la captura',()=>{
     api.consultarCuenta.and.returnValue(of(cuenta()));c.consultarCuentaComercio();
     api.actualizarDatosGenerales.and.returnValue(of({success:true}));
     c.datosForm.controls.nombreComercial.setValue('Pendiente');c.actualizarDatosGenerales();
-    expect(c.datosForm.controls.nombreComercial.value).toBe('Pendiente');expect(c.mensajeDatosGenerales).toContain('No fue posible confirmar');
+    expect(c.datosForm.controls.nombreComercial.value).toBe('Pendiente');expect(c.mensajeDatosGenerales).toContain('No fue posible confirmar');expect(c.modalDatosGenerales).toBeFalse();
     c.actualizarDatosGenerales();expect(api.actualizarDatosGenerales).toHaveBeenCalledTimes(2);
   });
   it('campos obligatorios modificados vacíos y enlaces no autorizados no escriben',()=>{
@@ -107,6 +109,94 @@ describe('Seguimiento: edición pública Datos Generales', () => {
     expect(c.datosForm.controls.localidad.value).toBe('Colonia real');
     expect(c.datosForm.controls.locationID.value).toBe('42');
     expect(c.datosForm.controls.rfc.value).toBe('AAAA010101AAA');
+  });
+
+  it('radios PF/PM conservan captura, aplican validaciones y persisten el tipo confirmado',()=>{
+    api.consultarCuenta.and.returnValue(of(cuenta('PF')));c.consultarCuentaComercio();
+    const fixture=TestBed.createComponent(StepDatosComponent);
+    fixture.componentInstance.form=c.datosForm;fixture.componentInstance.campos=c.camposDatosGenerales;
+    fixture.componentInstance.incluirRepresentantePersonaMoral=true;fixture.detectChanges();
+    (fixture.nativeElement.querySelector('input[value="PM"]') as HTMLInputElement).click();fixture.detectChanges();
+    expect(c.datosForm.controls.tipoPersona.value).toBe('PM');
+    expect(fixture.nativeElement.querySelector('#calleRepresentante')).not.toBeNull();
+    expect(c.datosForm.controls.nombre.value).toBe('Ana');
+    expect(c.datosForm.controls.nombreVialidad.value).toBe('Calle real');
+    c.datosForm.controls.razonSocial.setValue('');c.actualizarDatosGenerales();
+    expect(api.actualizarDatosGenerales).not.toHaveBeenCalled();
+    c.datosForm.controls.razonSocial.setValue('Razón real');
+    api.actualizarDatosGenerales.and.returnValue(of({success:true}));
+    api.consultarCuenta.and.returnValue(of(cuenta('PM')));c.actualizarDatosGenerales();
+    expect(api.actualizarDatosGenerales).toHaveBeenCalledOnceWith(root,{tipoPersona:'PM'});
+    expect(c.modalDatosGenerales).toBeTrue();
+    (fixture.nativeElement.querySelector('input[value="PF"]') as HTMLInputElement).click();fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#actividad')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#calleRepresentante')).toBeNull();
+    expect(c.datosForm.controls.razonSocial.value).toBe('Razón real');fixture.destroy();
+  });
+  it('carga domicilio del representante solo del contacto tipo 1 del nodo',()=>{
+    const data:any=cuenta('PM');data.entityInfo.contacts=[{type:2,address:{street:'Comercial ajeno al representante'}},
+      {type:1,address:{street:'Calle representante',exteriorNumber:'21',interiorNumber:'4',postalCode:'01234',district:'Colonia real',municipality:'Municipio',state:'Estado'}}];
+    api.consultarCuenta.and.returnValue(of(data));c.consultarCuentaComercio();
+    expect(c.datosForm.controls.calleRepresentante.value).toBe('Calle representante');
+    expect(c.datosForm.controls.coloniaRepresentante.value).toBe('Colonia real');
+    data.entityInfo.contacts.splice(1,1);(c as any).cargarFormulariosDesdeGet();
+    expect(c.datosForm.controls.calleRepresentante.value).toBe('');
+  });
+  it('catálogo fiscal muestra descripción, conserva código y se consulta una sola vez',()=>{
+    const catalog=spyOn(TestBed.inject(RegimenFiscalService),'getOpcionesConCodigo').and.returnValue(of([
+      {codigo:'601',descripcion:'Descripción real'}, {codigo:'612',descripcion:'Otro régimen real'}]));
+    api.consultarCuenta.and.returnValue(of(cuenta()));c.consultarCuentaComercio();
+    c.alternarSeccionInformativa('datos');c.alternarSeccionInformativa('datos');c.alternarSeccionInformativa('datos');
+    expect(catalog).toHaveBeenCalledTimes(1);
+    expect(c.opcionesRegimenDatos).toContain({value:'601',label:'Descripción real'});
+    expect(c.datosForm.controls.regimenFiscal.value).toBe('601');
+    c.datosForm.controls.regimenFiscal.setValue('612');
+    const after=cuenta();after.entityInfo.fiscalRegime='612';
+    api.actualizarDatosGenerales.and.returnValue(of({success:true,catalogValues:{regimenFiscal:'612'}}));
+    api.consultarCuenta.and.returnValue(of(after));c.actualizarDatosGenerales();
+    expect(api.actualizarDatosGenerales).toHaveBeenCalledOnceWith(root,{regimenFiscal:'612'});
+    expect(c.modalDatosGenerales).toBeTrue();
+  });
+  it('conserva domicilio enriquecido, régimen y familia después de cargar catálogos',()=>{
+    const data:any=cuenta('PM');
+    data.entityInfo.fiscalRegimeDescription='Descripción fiscal del proveedor';
+    data.entityInfo.businessLine='Familia del catálogo';
+    data.entityInfo.contacts=[{type:1,address:{street:'Calle real',exteriorNumber:'12',interiorNumber:'B',postalCode:'56617',district:'Colonia real',municipality:'Municipio real',state:'Estado real'}}];
+    spyOn(TestBed.inject(LocalidadesService),'obtenerPorCodigoPostal').and.returnValue(of([]));
+    spyOn(TestBed.inject(RegimenFiscalService),'getOpcionesConCodigo').and.returnValue(of([]));
+    api.consultarCuenta.and.returnValue(of(data));c.consultarCuentaComercio();
+    c.alternarSeccionInformativa('datos');
+    const values=c.datosForm.getRawValue();
+    expect(values.calleRepresentante).toBe('Calle real');expect(values.numeroExteriorRepresentante).toBe('12');
+    expect(values.numeroInteriorRepresentante).toBe('B');expect(values.codigoPostalRepresentante).toBe('56617');
+    expect(values.coloniaRepresentante).toBe('Colonia real');expect(values.municipioRepresentante).toBe('Municipio real');
+    expect(values.estadoRepresentante).toBe('Estado real');expect(values.giroComercial).toBe('Familia del catálogo');
+    expect(c.opcionesRegimenDatos).toContain({value:'601',label:'Descripción fiscal del proveedor'});
+    const fixture=TestBed.createComponent(StepDatosComponent);fixture.componentInstance.form=c.datosForm;
+    fixture.componentInstance.conservarColoniaRepresentante=true;fixture.componentInstance.localidadesRepresentante=[];
+    expect(fixture.componentInstance.usarSelectorColoniaRepresentante).toBeFalse();fixture.destroy();
+  });
+  it('overlay permanece hasta el GET; modal verde y Aceptar conservan el nodo sin recargar',()=>{
+    spyOn(RegistroProspectoClienteComponent.prototype,'ngOnInit').and.stub();
+    const fixture=TestBed.createComponent(RegistroProspectoClienteComponent);
+    c=fixture.componentInstance;
+    c.cargando=false;c.link='fixture-link';(c as any).enlaceAutorizado=true;
+    api.consultarCuenta.and.returnValue(of(cuenta()));c.consultarCuentaComercio();
+    const put=new Subject<any>(),get=new Subject<any>();api.actualizarDatosGenerales.and.returnValue(put);
+    c.datosForm.controls.nombreComercial.setValue('Nuevo');c.actualizarDatosGenerales();fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-processing-overlay')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Actualizando información...');
+    api.consultarCuenta.and.returnValue(get);put.next({success:true});put.complete();fixture.detectChanges();
+    expect(c.guardandoDatosGenerales).toBeTrue();expect(c.modalDatosGenerales).toBeFalse();
+    get.next(cuenta('PF','Nuevo'));get.complete();fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-processing-overlay')).toBeNull();
+    const modal=fixture.nativeElement.querySelector('[aria-labelledby="datos-modal-title"]');
+    expect(modal.querySelector('.fa-circle-check.success')).not.toBeNull();
+    expect(modal.textContent).toContain('Actualización exitosa');
+    const reads=api.consultarCuenta.calls.count(),node=c.nodoSeleccionado;
+    modal.querySelector('button').click();fixture.detectChanges();
+    expect(c.modalDatosGenerales).toBeFalse();expect(c.nodoSeleccionado).toBe(node);
+    expect(api.consultarCuenta.calls.count()).toBe(reads);fixture.destroy();
   });
 
 });
