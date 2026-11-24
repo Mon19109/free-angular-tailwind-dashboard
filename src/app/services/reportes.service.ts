@@ -33,10 +33,13 @@ export class ReportesService {
     return this.http.get<{cuentas:CuentaReporte[]}>(`${this.base}/cuentas`,{withCredentials:true});
   }
   buscar(filtro:FiltroReporte):Observable<{rows:unknown}>{
-    return this.http.post<{rows:unknown}>(`${this.base}/buscar`,filtro,{withCredentials:true});
+    return this.http.post<{rows:unknown}>(`${this.base}/buscar`,filtro,{withCredentials:true,headers: {
+        'X-Portal-Request': '1'}});
   }
   buscarReporte(filtro:FiltroReporte,reporte:string):Observable<{rows:unknown}>{
-    return this.http.post<{rows:unknown}>(`${this.base}/buscar-reporte`,{...filtro,reporte},{withCredentials:true});
+    return this.http.post<{rows:unknown}>(`${this.base}/buscar-reporte`,{...filtro,reporte},{withCredentials:true, headers: {
+        'X-Portal-Request': '1'
+      }});
   }
   descargar(tipo:TipoDescarga,filtro:Partial<FiltroReporte>&{fecha?:string;clabe?:string}):Observable<Blob>{
     return this.http.post(`${this.base}/descargar`,{tipo,...filtro},{withCredentials:true,responseType:'blob'});
