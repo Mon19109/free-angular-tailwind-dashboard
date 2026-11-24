@@ -140,13 +140,27 @@ export class RegistroClienteComponent {
     if (!this.cuentaNodoActual) return 'No hay información disponible del nodo para editar.';
     return this.codigoEdicionBff || 'El BFF no ha autorizado el guardado de este nodo.';
   }
-
+get esPerfilConsulta11(): boolean {
+  return this.sesionPortal.hasValidSession()
+    && Number(this.sesionPortal.getSessionValue('idPerfil')) === 11;
+}
   get puedeEditarDatosNodo(): boolean {
-    if (this.modoContextoBff) return this.puedeVerRevisionDocumental && this.edicionAutorizadaBff
-      && !!this.cuentaNodoActual && !this.cargandoCuentaComercio && !this.errorCuentaComercio;
-    return this.esMesaDigitalSesion && !!this.nodeIDEdicion && !!this.cuentaNodoActual && !this.cargandoCuentaComercio
-      && !this.errorCuentaComercio && !!this.valorCuenta(this.cuentaNodoActual, ['commerceGuid', 'guid', 'commerceID']);
+  if (this.esPerfilConsulta11) return false;
+
+  if (this.modoContextoBff) {
+    return this.puedeVerRevisionDocumental && this.edicionAutorizadaBff
+      && !!this.cuentaNodoActual
+      && !this.cargandoCuentaComercio
+      && !this.errorCuentaComercio;
   }
+
+  return this.esMesaDigitalSesion
+    && !!this.nodeIDEdicion
+    && !!this.cuentaNodoActual
+    && !this.cargandoCuentaComercio
+    && !this.errorCuentaComercio
+    && !!this.valorCuenta(this.cuentaNodoActual, ['commerceGuid', 'guid', 'commerceID']);
+}
 
   editarDatosNodo(): void {
     if (!this.puedeEditarDatosNodo || this.guardandoDatosNodo) return;
@@ -297,9 +311,11 @@ export class RegistroClienteComponent {
     return this.modoContextoBff ? !this.renovandoContextoBff && !this.contextoIrrecuperable && this.sesionPortal.hasValidSession()
       && (role === 2 || role === '2') : this.esMesaDigitalSesion;
   }
+  
   get puedeEnviarCredenciales(): boolean {
-    if (!this.modoContextoBff || !this.puedeVerRevisionDocumental || this.enviandoCredenciales || this.credencialesEnviadas) return false;
-    const raiz = this.arbolServicio[0];
+  if (this.esPerfilConsulta11) return false;
+  if (!this.modoContextoBff || !this.puedeVerRevisionDocumental || this.enviandoCredenciales || this.credencialesEnviadas) return false;
+   const raiz = this.arbolServicio[0];
     if (!raiz || raiz.id !== this.nodoSeleccionado || this.cargandoCuentaComercio || this.cargandoDocumentosProspecto
       || this.cargandoArbol || this.errorCuentaComercio || this.errorDocumentosProspecto) return false;
     return (['comercio', 'datos', 'documentos', 'liquidacion', 'accesos'] as const).every(id => this.pasoTerminado(id));
@@ -1102,32 +1118,51 @@ enviarCredenciales(): void {
   codigoEdicionBff = '';
   codigoRevisionBff = '';
   codigoNotificacionBff = '';
+  
   get puedeRevisarDocumentosBff(): boolean {
-    return this.modoContextoBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
-      && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto
-      && !this.guardandoRevisionDocumentos && !this.registrandoCliente && !this.errorDocumentosProspecto && this.documentosProspecto.length > 0;
-  }
+  if (this.esPerfilConsulta11) return false;
+
+  return this.modoContextoBff && this.puedeVerRevisionDocumental && this.revisionPermitidaBff
+    && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto
+    && !this.guardandoRevisionDocumentos && !this.registrandoCliente
+    && !this.errorDocumentosProspecto && this.documentosProspecto.length > 0;
+}
+
   get puedeNotificarBff(): boolean {
-    return this.modoContextoBff && this.nivelSeleccionado !== 'caja' && this.puedeVerRevisionDocumental && this.notificacionPermitidaBff
-      && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto && !this.enviandoNotificacionMesaDigital;
-  }
+  if (this.esPerfilConsulta11) return false;
+
+  return this.modoContextoBff && this.nivelSeleccionado !== 'caja'
+    && this.puedeVerRevisionDocumental && this.notificacionPermitidaBff
+    && !!this.nodoSeleccionado && !this.cargandoDocumentosProspecto
+    && !this.enviandoNotificacionMesaDigital;
+}
 
   get mostrarObservacionesConsultaBff(): boolean {
     return this.modoContextoBff && this.observacionesInternasCargadasBff
       && !this.cargandoDocumentosProspecto && !this.errorDocumentosProspecto;
   }
+get puedeFinalizarDocumentosBff(): boolean {
+  if (this.esPerfilConsulta11) return false;
 
-  get puedeFinalizarDocumentosBff(): boolean {
-    if (!this.modoContextoBff || this.renovandoContextoBff || this.contextoIrrecuperable || this.registrandoCliente || this.guardandoRevisionDocumentos
-      || this.cargandoDocumentosProspecto || this.errorDocumentosProspecto) return false;
-    if (this.mostrarRegistrarClienteDocumentos) return this.documentosValidadosParaRegistro(this.documentosProspecto);
-    return this.puedeRevisarDocumentosBff;
+  if (!this.modoContextoBff || this.renovandoContextoBff || this.contextoIrrecuperable
+    || this.registrandoCliente || this.guardandoRevisionDocumentos
+    || this.cargandoDocumentosProspecto || this.errorDocumentosProspecto) return false;
+
+  if (this.mostrarRegistrarClienteDocumentos) {
+    return this.documentosValidadosParaRegistro(this.documentosProspecto);
   }
+
+  return this.puedeRevisarDocumentosBff;
+}
 
   get documentacionSoloConsulta(): boolean {
-    return this.modoContextoBff ? !(this.puedeVerRevisionDocumental && (this.revisionPermitidaBff || this.notificacionPermitidaBff || this.mostrarRegistrarClienteDocumentos)) : !this.esMesaDigitalSesion;
-  }
+  if (this.esPerfilConsulta11) return true;
 
+  return this.modoContextoBff
+    ? !(this.puedeVerRevisionDocumental &&
+      (this.revisionPermitidaBff || this.notificacionPermitidaBff || this.mostrarRegistrarClienteDocumentos))
+    : !this.esMesaDigitalSesion;
+}
   get pasosVisiblesRegistro() {
     return this.seccionesOrdenadas.map((seccion, index) => ({
       id: seccion.id, numero: index + 1, titulo: seccion.titulo

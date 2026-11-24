@@ -741,8 +741,8 @@ if (paso !== null) {
     if (!this.accionesInternasHabilitadas && accion === 'password') return;
     this.accionesAbiertas = null;
 
-    if (accion === 'registroAfiliacion') {
-  if (!comercio.ref) return;
+   if (accion === 'registroAfiliacion') {
+  if (this.esPerfilConsulta11 || !comercio.ref) return;
 
   this.router.navigate(['/registro_afiliacion'], {
     queryParams: { ref: comercio.ref },
@@ -752,11 +752,18 @@ if (paso !== null) {
   return;
 }
 
-    if (accion === 'editarInformacion') {
-      if (!this.puedeEditarInformacion || !comercio.ref) return;
-      this.router.navigate(['/registro_cliente'], { queryParams: { ref: comercio.ref } });
-      return;
-    }
+   if (accion === 'editarInformacion') {
+  if (
+    !(this.puedeEditarInformacion || this.esPerfilConsulta11) ||
+    !comercio.ref
+  ) return;
+
+  this.router.navigate(['/registro_cliente'], {
+    queryParams: { ref: comercio.ref }
+  });
+
+  return;
+}
 
     if (accion === 'password') {
       if (!this.puedeConsultarPassword(comercio)) return;
@@ -937,13 +944,22 @@ if (paso !== null) {
     return this.accionesInternasHabilitadas && [2, 3, 4, 5].includes(this.obtenerIdRolSesion()) && comercio.nivel === 'Caja';
   }
 
-  etiquetaInformacion(comercio: Comercio): string {
-    return this.esAdministradorSesion() ? 'Editar Comercio' : 'Consultar Comercio';
-  }
+ etiquetaInformacion(comercio: Comercio): string {
+  return Number(this.auth.getSessionValue('idPerfil')) === 11
+    ? 'Consultar Comercio'
+    : this.esAdministradorSesion()
+      ? 'Editar Comercio'
+      : 'Consultar Comercio';
+}
 
  get puedeEditarInformacion(): boolean {
   return this.obtenerIdRolSesion() === 2;
 }
+get esPerfilConsulta11(): boolean {
+  return this.auth.hasValidSession()
+    && Number(this.auth.getSessionValue('idPerfil')) === 11;
+}
+
   private esAdministradorSesion(): boolean {
     return this.obtenerIdRolSesion() === 2;
   }

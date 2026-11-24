@@ -15,9 +15,24 @@ export class AuthGuard implements CanActivate, CanActivateChild {
       if (!session.authenticated || !this.auth.hasValidSession()) {
         return this.timeout.mostrarModal() ? false : this.router.createUrlTree(['/']);
       }
-      const roles = route.data['roles'] as number[] | undefined;
-      if (roles?.length && !roles.includes(Number(session.usuario?.idRol))) return this.router.createUrlTree(['/']);
-      return true;
+   const roles = route.data['roles'] as number[] | undefined;
+
+const esPerfil11 =
+  Number(session.usuario?.['idPerfil']) === 11;
+
+const consultaPermitidaPerfil11 = esPerfil11 && (
+  route.routeConfig?.path === 'consulta_comercios' ||
+  route.routeConfig?.path === 'dashboard_preregistro_clientes'
+);
+
+if (
+  roles?.length &&
+  !roles.includes(Number(session.usuario?.idRol)) &&
+  !consultaPermitidaPerfil11
+) {
+  return this.router.createUrlTree(['/']);
+}
+     return true;
     }));
   }
 }

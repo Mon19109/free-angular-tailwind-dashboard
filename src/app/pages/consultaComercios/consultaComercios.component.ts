@@ -743,13 +743,19 @@ if (normalizado === 'PROSPECTO' || normalizado === 'PROSPECTOS') return 'Prospec
   }
 
   etiquetaInformacion(comercio: Comercio): string {
-    return this.esAdministradorSesion() ? 'Editar Comercio' : 'Consultar Comercio';
-  }
+  return Number(this.auth.getSessionValue('idPerfil')) === 11
+    ? 'Consultar Comercio'
+    : this.esAdministradorSesion()
+      ? 'Editar Comercio'
+      : 'Consultar Comercio';
+}
 
-  get puedeEditarInformacion(): boolean {
-    // Solo navegación al contexto; no habilita edición ni escrituras.
-    return [2, 3, 4, 5].includes(this.obtenerIdRolSesion());
-  }
+ get puedeEditarInformacion(): boolean {
+  return this.auth.hasValidSession() && (
+    Number(this.auth.getSessionValue('idPerfil')) === 11 ||
+    [2, 3, 4, 5].includes(this.obtenerIdRolSesion())
+  );
+}
 
   private esAdministradorSesion(): boolean {
     return this.obtenerIdRolSesion() === 2;

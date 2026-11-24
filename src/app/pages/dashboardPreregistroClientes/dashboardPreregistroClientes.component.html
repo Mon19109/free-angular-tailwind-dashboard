@@ -176,10 +176,16 @@
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
               <div class="actions-menu" *ngIf="accionesAbiertas === idAcciones(comercio, indice)">
-                <button *ngIf="puedeEditarInformacion && comercio.ref" type="button" (click)="ejecutarAccion('editarInformacion', comercio)">{{ etiquetaInformacion(comercio) }}</button>
-                <button *ngIf="puedeInactivar(comercio)" type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
+                
                 <button
-  *ngIf="comercio.ref"
+  *ngIf="(puedeEditarInformacion || esPerfilConsulta11) && comercio.ref"
+  type="button"
+  (click)="ejecutarAccion('editarInformacion', comercio)">
+  {{ etiquetaInformacion(comercio) }}
+</button>
+                <button *ngIf="puedeInactivar(comercio)" type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
+               <button
+  *ngIf="!esPerfilConsulta11 && comercio.ref"
   type="button"
   (click)="ejecutarAccion('registroAfiliacion', comercio)">
   Registro Afiliación

@@ -52,6 +52,9 @@ export class AppSidebarComponent {
 
   private get idBusinessModel() { return this.getSessionNumber('idBusinessModel'); }
   private get idPerfil() { return this.getSessionNumber('idPerfil'); }
+  private get idProfile(): number {
+  return Number(this.auth.getSessionValue('idProfile')) || 0;
+}
   private get idRol() { return getSessionRole(this.auth); }
 
   private readonly allPanelPrincipalItems: NavItem[] = [
@@ -412,7 +415,10 @@ if (access === 'dashboardPreregistroClientes') {
     }
     if (!this.auth.hasValidSession()) return false;
     if (!access) return true;
-    if (access === 'enviarInvitacionComercio') return canSendCommerceInvitation(this.idRol);
+    //if (access === 'enviarInvitacionComercio') return canSendCommerceInvitation(this.idRol);
+    if (access === 'enviarInvitacionComercio') {
+  return this.idPerfil === 11 || canSendCommerceInvitation(this.idRol);
+}
     if (access === 'agregarNivelComercio') return canAddCommerceLevel(this.idRol);
 
     if (access === 'gestionPagos' && this.idRol === 6) {
