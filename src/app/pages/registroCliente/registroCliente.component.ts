@@ -1,3 +1,4 @@
+import { ProgresoRevisionMD } from '../../services/consulta-comercios.service';
 import { DOCUMENTOS_ADICIONALES, documentoAdicional, archivoAdicionalValido } from '../../shared/utils/documentos-adicionales';
 import { SessionRefreshService } from '../../services/session-refresh.service';
 import { AuthService } from '../../services/auth.service';
@@ -819,7 +820,7 @@ enviarCredenciales(): void {
       });
     } else {
       this.consultaDocumentosBff?.unsubscribe();
-      this.actaStatus = null; this.actaPermitida = false;
+      this.actaStatus = null; this.actaPermitida = false; this.progresoMD = null;
       this.documentosProspecto = [];
       this.documentosBffConsultados = false;
       delete this.documentosProspectoPorNodo[nodeRef];
@@ -849,6 +850,7 @@ enviarCredenciales(): void {
           this.observacionesInternasCargadasBff = Object.hasOwn(respuesta, 'internalObservations')
             && (respuesta.internalObservations === null || typeof respuesta.internalObservations === 'string');
           if (!conservarCaptura) this.observacionesInternasMesaDigital = typeof respuesta.internalObservations === 'string' ? respuesta.internalObservations : '';
+          this.progresoMD = respuesta.permissions?.reviewProgress ?? null;
           this.actaStatus = respuesta.permissions?.selectedCommerceStatus ?? null;
           this.actaPermitida = respuesta.permissions?.actaConstitutiva === true;
           this.actaNodo = this.claveActa;
@@ -2324,6 +2326,7 @@ if (this.modoContextoBff) {
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   continuarDesdeDocumentos(): void {
+    if(this.flujoRevisionMD) { this.continuarRevisionMD(); return; }
     if (this.modoContextoBff) {
       if (!this.puedeFinalizarDocumentosBff) return;
       if (this.mostrarRegistrarClienteDocumentos) this.registrarClienteProspecto();
@@ -2850,6 +2853,7 @@ if (this.modoContextoBff) {
       if (!this.puedeRevisarDocumentosBff) return;
       const row = this.documentosProspecto.find(item => item['ref'] === documento.archivoId);
       if (!row || !['APPROVED', 'REJECTED'].includes(estado)) return;
+      this.revisionesMDGuardadas.delete(this.claveActa);
       row.status = estado;
       documento.estatusRevision = estado;
       documento.estado = this.traducirEstatusDocumento(estado);
@@ -2912,6 +2916,42 @@ if (this.modoContextoBff) {
 
   private codigoBffSeguro(code: unknown): string {
     return typeof code === 'string' && /^COMERCIOS_[A-Z_]{1,80}$/.test(code) ? code : '';
+  }
+
+  progresoMD: ProgresoRevisionMD | null = null;
+  private revisionesMDGuardadas = new Set<string>();
+  get flujoRevisionMD(): boolean { return this.modoContextoBff && this.actaNodo===this.claveActa && this.actaStatus===35; }
+  get accionRevisionMD(): 'Continuar'|'Registrar'|null {
+    if(!this.flujoRevisionMD || !this.revisionesMDGuardadas.has(this.claveActa) || !this.progresoMD || this.cargandoDocumentosProspecto) return null;
+    return this.progresoMD.canRegister ? 'Registrar' : this.progresoMD.nextRef ? 'Continuar' : null;
+  }
+  get pendientesRevisionMD(): string {
+    if(!this.flujoRevisionMD) return '';
+    if(!this.progresoMD) return 'No fue posible verificar la documentación completa del árbol. Vuelve a consultar.';
+    return this.progresoMD.nodes.filter(n=>n.pending.length).map(n=>`${n.name || 'Nodo'}: documentos ${n.pending.join(', ')}`).join('; ');
+  }
+  continuarRevisionMD(): void {
+    if(!this.accionRevisionMD || this.guardandoRevisionDocumentos || this.registrandoCliente) return;
+    if(this.accionRevisionMD==='Continuar') {
+      const next=this.buscarNodo(this.arbolServicio,this.progresoMD!.nextRef!);
+      if(next && next.nivel!=='caja') this.seleccionarNodo(next);
+      return;
+    }
+    const ref=this.contextoBff!.commerce.ref,node=this.nodoSeleccionado,key=this.claveActa;
+    this.registrandoCliente=true;
+    this.contextoService.registrarRevisionMD(ref,node).pipe(takeUntilDestroyed(this.destroyRef),finalize(()=>this.registrandoCliente=false)).subscribe({
+      next: result=>{
+        if(this.claveActa!==key) return;
+        if(result.success!==true || result.idStatus!==31) { this.mostrarModalRegistro('error','Cambio no confirmado','No se pudo confirmar el estatus 31.');return; }
+        this.actaStatus=31;this.progresoMD=null;
+        this.mostrarModalRegistro('success','Estatus actualizado','El comercio pasó a PENDIENTE CUENTAS LIQUIDACIÓN.');
+        this.refrescarEstadoDocumentalBff();
+      }, error:()=>{
+        if(this.claveActa!==key) return;
+        this.mostrarModalRegistro('error','Cambio no confirmado','No se pudo completar el registro. Verifica la documentación y el estatus actual.');
+        this.refrescarEstadoDocumentalBff();
+      }
+    });
   }
 
   private actaStatus: number | null = null;
@@ -3001,6 +3041,13 @@ if (this.modoContextoBff) {
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
         if (response?.success !== true) { this.mensajeObservacionesCliente = 'El guardado no fue confirmado.'; return; }
+        if(this.flujoRevisionMD) {
+          if(!response.reviewProgress) { this.mensajeObservacionesCliente='La revisión no tiene una verificación documental completa.';return; }
+          this.progresoMD=response.reviewProgress;
+          this.revisionesMDGuardadas.add(this.claveActa);
+          this.mostrarModalRegistro('success','Revisión confirmada','La revisión documental fue confirmada por Payara.');
+          this.refrescarEstadoDocumentalBff(false);return;
+        }
         if (alGuardar) { alGuardar(); return; }
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
         this.refrescarEstadoDocumentalBff(avanzar);

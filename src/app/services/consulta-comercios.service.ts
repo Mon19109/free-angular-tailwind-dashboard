@@ -83,7 +83,12 @@ export interface ConsultaComerciosResponse {
 export interface ComercioInformacionResponse { success: boolean; information: Record<string, unknown>; permissions?: { editInformation: boolean; editFields: string[]; editUnavailableCode?: string }; }
 export interface ComercioPldResponse { success: boolean; pld: Array<{ rfc: string | null; nombre: string | null;
   fechaRegistro: string | null; coincidenciaListas: string | null; categoria: string | null; fuente: string | null }>; }
+export interface ProgresoRevisionMD {
+  rootStatus: number; selectedApproved: boolean; nextRef: string | null; canRegister: boolean;
+  nodes: Array<{ref:string;name:string|null;pending:number[]}>;
+}
 export interface ComercioRevisionPermisos {
+  reviewProgress?: ProgresoRevisionMD; reviewProgressUnavailableCode?: string;
   actaConstitutiva?: boolean; selectedCommerceStatus?: number | null;
   reviewDocuments: boolean; sendObservations: boolean; registerClient?: boolean; notificationEmail: string | null; reviewUnavailableCode?: string; notificationUnavailableCode?: string;
 }
@@ -197,14 +202,19 @@ export class ConsultaComerciosService {
       { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
-  guardarRevisionNodo(ref: string, nodeRef: string, documents: Array<{ ref: string; status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW' }>, internalObservations: string | null): Observable<{ success: boolean }> {
-    return this.http.put<{ success: boolean }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/revision`,
+  guardarRevisionNodo(ref: string, nodeRef: string, documents: Array<{ ref: string; status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW' }>, internalObservations: string | null): Observable<{ success: boolean; reviewProgress?: ProgresoRevisionMD }> {
+    return this.http.put<{ success: boolean; reviewProgress?: ProgresoRevisionMD }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/revision`,
       { documents, internalObservations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
   avanzarRevisionActa(ref: string, nodeRef: string): Observable<{success: boolean; idStatus: number}> {
     return this.http.put<{success: boolean; idStatus: number}>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/acta-constitutiva`,
       {}, {withCredentials:true, headers:new HttpHeaders({'X-Portal-Request':'1'})});
+  }
+
+  registrarRevisionMD(ref: string, nodeRef: string): Observable<{success:boolean;idStatus:number}> {
+    return this.http.post<{success:boolean;idStatus:number}>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/registrar`,
+      {},{withCredentials:true,headers:new HttpHeaders({'X-Portal-Request':'1'})});
   }
 
   registrarNodo(ref: string, nodeRef: string): Observable<{ success: boolean }> {

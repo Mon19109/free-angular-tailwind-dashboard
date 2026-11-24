@@ -31,6 +31,9 @@ export class StepDocumentosComponent implements OnChanges {
   @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
   @Input() resultadosSiprelad: SipreladResultado[] = [];
+  @Input() flujoRevisionMD = false;
+  @Input() accionRevisionMD: 'Continuar'|'Registrar'|null = null;
+  @Input() pendientesRevisionMD = '';
   @Input() mostrarActaConstitutiva = false;
   @Input() actaConstitutiva = '';
   @Input() guardandoActa = false;
