@@ -51,9 +51,12 @@ export class TransaccionesEmisionComponent implements OnInit {
   cargarDatosIniciales(): void {
     this.transEmiService.obtenerCuentas().subscribe({
       next: data => {
-        this.cuentas = this.extraerLista(data).filter(cuenta => cuenta?.type === 4 && cuenta?.active === true);
+        this.cuentas = this.extraerLista(data).filter(cuenta => Number(cuenta?.type) === 4 && cuenta?.active === true);
       },
-      error: error => console.error('Error al cargar cuentas:', error)
+      error: () => {
+        this.cuentas = [];
+        this.errorMessage = 'No se pudieron cargar las entidades. Intenta nuevamente.';
+      }
     });
 
     this.transEmiService.obtenerTiposOperacion().subscribe({
