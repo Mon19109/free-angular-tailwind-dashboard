@@ -1281,3 +1281,6 @@
 ::ng-deep app-step-accesos .access-admin-heading * {
   color: #182338 !important;
 }
+.datos-publicos-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+.datos-publicos-fieldset ::ng-deep .step-actions .button.ghost { display: none; }

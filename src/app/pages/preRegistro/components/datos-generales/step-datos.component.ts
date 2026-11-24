@@ -34,6 +34,7 @@ export class StepDatosComponent implements OnInit {
 
   @Input() incluirRepresentantePersonaMoral = false;
   @Input() preregistroPublico = false;
+  @Input() mostrarCodigosGiro = false;
   @Input() soloBuscadores = false;
   @Input() form!: FormGroup;
   @Input() campos: string[] = [];

@@ -117,7 +117,7 @@
       }
 
       @if (tiene('giroComercial') && esPersonaMoral) {
-      <div class="field" [style.display]="preregistroPublico ? 'none' : null">
+      <div class="field" [style.display]="preregistroPublico && !mostrarCodigosGiro ? 'none' : null">
         <label for="giroComercial">Familia del giro <b>*</b></label>
         <input id="giroComercial" formControlName="giroComercial" readonly placeholder="Selecciona desde Búsqueda Avanzada"
           [class.invalid]="esInvalido('giroComercial')" />
@@ -134,7 +134,7 @@
       }
 
       @if (tiene('mcc') && esPersonaMoral) {
-      <div class="field" [style.display]="preregistroPublico ? 'none' : null">
+      <div class="field" [style.display]="preregistroPublico && !mostrarCodigosGiro ? 'none' : null">
         <label for="mcc">MCC <b>*</b></label>
         <input id="mcc" formControlName="mcc" readonly placeholder="Selecciona desde Búsqueda Avanzada" [class.invalid]="esInvalido('mcc')" />
         @if (esInvalido('mcc')) { <small>{{ mensajeCampo('mcc') }}</small> }

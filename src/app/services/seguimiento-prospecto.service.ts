@@ -61,6 +61,11 @@ verificarCorreo(
     ));
   }
 
+  actualizarDatosGenerales(nodeRef: string, cambios: Record<string, unknown>): Observable<{success: boolean; catalogValues?: Record<string,string>}> {
+    return this.navigation.request(options => this.http.put<{success: boolean; catalogValues?: Record<string,string>}>(
+      `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/datos-generales`, { cambios }, options));
+  }
+
   consultarArbol(): Observable<unknown> {
     return this.navigation.request(options => this.http.get(
       '/api/seguimiento-prospecto/arbol',

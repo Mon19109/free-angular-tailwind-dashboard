@@ -187,7 +187,8 @@
             <i class="fa-solid" [ngClass]="seccionInformativaAbierta === 'datos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
           </button>
           @if (seccionInformativaAbierta === 'datos') {
-          <div class="section-body readonly-info-section">
+          <div class="section-body" [class.readonly-info-section]="!puedeActualizarDatosGenerales">
+            <fieldset class="datos-publicos-fieldset" [disabled]="guardandoDatosGenerales">
             <app-step-datos
               [form]="datosForm"
               [campos]="camposDatosGenerales"
@@ -198,8 +199,23 @@
               [departamentos]="departamentos"
               [ciudades]="ciudades"
               [mostrarMismoDomicilio]="false"
-              [bloquearActividad]="true"
-              [mostrarBusquedaAvanzadaGiro]="false" />
+              [localidadesFiscal]="localidadesDatos['DF']"
+              [localidadesComercial]="localidadesDatos['DC']"
+              [localidadesRepresentante]="localidadesDatos['REP']"
+              (seleccionarLocalidadFiscal)="seleccionarLocalidadDatos($event,'DF')"
+              (seleccionarLocalidadComercial)="seleccionarLocalidadDatos($event,'DC')"
+              (seleccionarLocalidadRepresentante)="seleccionarLocalidadDatos($event,'REP')"
+              [preregistroPublico]="!modoInterno"
+              [mostrarCodigosGiro]="!modoInterno"
+              [bloquearTipoPersona]="true"
+              [bloquearActividad]="!puedeActualizarDatosGenerales"
+              [mostrarBusquedaAvanzadaGiro]="puedeActualizarDatosGenerales"
+              [validarSoloCambios]="!modoInterno"
+              [mostrarContinuar]="puedeActualizarDatosGenerales"
+              textoContinuar="Actualizar"
+              (continuar)="actualizarDatosGenerales()" />
+            </fieldset>
+            @if (mensajeDatosGenerales) { <p class="registration-message" role="status">{{ mensajeDatosGenerales }}</p> }
           </div>
           }
         </article>

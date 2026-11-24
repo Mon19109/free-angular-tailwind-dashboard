@@ -86,6 +86,10 @@ describe('SeguimientoProspectoService (BFF)', () => {
       return request;
     };
 
+    seguimiento.actualizarDatosGenerales('node/ref', {nombreComercial:'Nuevo'}).subscribe();
+    const update = assertContext('/api/seguimiento-prospecto/nodos/node%2Fref/datos-generales', 'PUT');
+    expect(update.request.body).toEqual({cambios:{nombreComercial:'Nuevo'}});
+    update.flush({success:true});
     seguimiento.consultarDocumentos().subscribe();
     assertContext('/api/seguimiento-prospecto/documentos', 'GET')
       .flush({ success: true, documents: [] });

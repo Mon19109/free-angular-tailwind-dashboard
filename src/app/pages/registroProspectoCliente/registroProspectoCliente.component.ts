@@ -1,3 +1,5 @@
+import { LocalidadesService, CodigoPostalLocalizacion } from '../../services/localidades.service';
+import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
 import { DOCUMENTOS_ADICIONALES, documentoAdicional, archivoAdicionalValido } from '../../shared/utils/documentos-adicionales';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Meta } from '@angular/platform-browser';
@@ -410,9 +412,91 @@ private readonly correosVerificados: Record<string, {
     tipoComercio: ['', Validators.required],
     afiliacionComisionista: ['']
   });
+  private readonly localidadesDatosService = inject(LocalidadesService);
+  localidadesDatos: Record<string,CodigoPostalLocalizacion[]> = {DF:[],DC:[],REP:[]};
+  buscarLocalidadesDatos(tipo: 'DF'|'DC'|'REP'): void {
+    if (!this.puedeActualizarDatosGenerales) return;
+    const key = tipo === 'DF' ? 'codigoPostal' : tipo === 'DC' ? 'codigoPostalComercial' : 'codigoPostalRepresentante';
+    const codigo = this.datosForm.get(key)!.value;
+    const node = this.nodoSeleccionado;
+    if (!/^\d{5}$/.test(codigo)) return;
+    this.localidadesDatosService.obtenerPorCodigoPostal(codigo,true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: rows => { if (node === this.nodoSeleccionado && codigo === this.datosForm.get(key)!.value) this.localidadesDatos[tipo] = rows; },
+      error: () => { if (node === this.nodoSeleccionado) this.mensajeDatosGenerales = 'No fue posible consultar las colonias. Conserva tus datos y reintenta.'; }
+    });
+  }
+  seleccionarLocalidadDatos(id: string, tipo: 'DF'|'DC'|'REP'): void {
+    const row = id ? this.localidadesDatos[tipo].find(item => String(item.idLocalidad) === id) : undefined;
+    if (!row || !this.puedeActualizarDatosGenerales) return;
+    const sufijo = tipo === 'DF' ? '' : tipo === 'DC' ? 'Comercial' : 'Representante';
+    this.datosForm.patchValue({['colonia'+sufijo]:row.colonia ?? '', ['municipio'+sufijo]:row.municipio ?? '',
+      ...(tipo === 'REP' ? {} : {['localidad'+sufijo]:row.colonia ?? ''}),
+      [tipo === 'REP' ? 'estadoRepresentante' : 'entidadFederativa'+sufijo]:row.estado ?? row.federativeEntity ?? '', ['locationID'+sufijo]:id});
+  }
+  private readonly regimenDatosService = inject(RegimenFiscalService);
+  guardandoDatosGenerales = false;
+  mensajeDatosGenerales = '';
+  private datosGeneralesOriginales: Record<string, unknown> = {};
+  private regimenesDatosCargados = false;
+  get camposEditablesDatos(): string[] {
+    const fields = this.cuentaComercio?.['generalInformationEditFields'];
+    return !this.modoInterno && this.enlaceAutorizado && !this.registroFinalizado && Array.isArray(fields)
+      ? fields.filter((key): key is string => typeof key === 'string' && Object.hasOwn(this.datosForm.controls,key)) : [];
+  }
+  get puedeActualizarDatosGenerales(): boolean { return !!this.nodoSeleccionado && this.camposEditablesDatos.length > 0 && !this.errorProspecto; }
+
+  actualizarDatosGenerales(): void {
+    if (!this.puedeActualizarDatosGenerales || this.guardandoDatosGenerales) return;
+    const node = this.nodoSeleccionado;
+    const baseline = {...this.datosGeneralesOriginales};
+    const values = this.datosForm.getRawValue() as Record<string,unknown>;
+    const cambios = Object.fromEntries(this.camposEditablesDatos.filter(key => values[key] !== this.datosGeneralesOriginales[key]).map(key => [key,values[key]]));
+    if (!Object.keys(cambios).length) { this.mensajeDatosGenerales = 'No hay cambios para actualizar.'; return; }
+    const invalidos = Object.keys(cambios).filter(key => this.datosForm.get(key)?.invalid);
+    if (invalidos.length) {
+      invalidos.forEach(key => this.datosForm.get(key)?.markAsTouched());
+      this.mensajeDatosGenerales = 'Revisa los campos modificados antes de actualizar.'; return;
+    }
+    if (Object.hasOwn(cambios,'regimenFiscal')) {
+      try { cambios['regimenFiscal'] = this.regimenDatosService.codigoParaPreregistro(String(cambios['regimenFiscal'])); }
+      catch { this.mensajeDatosGenerales = 'Selecciona el régimen fiscal desde el catálogo.'; return; }
+    }
+    const esperado = {...cambios};
+    this.guardandoDatosGenerales = true; this.mensajeDatosGenerales = 'Actualizando…';
+    this.seguimientoProspectoService.actualizarDatosGenerales(node,cambios).pipe(
+      switchMap(result => {
+        if (result.success !== true) return throwError(() => new Error('No confirmado'));
+        for (const key of ['actividadId','giroId','regimenFiscal']) {
+          if (Object.hasOwn(esperado,key) && typeof result.catalogValues?.[key] === 'string') esperado[key] = result.catalogValues[key];
+        }
+        return this.seguimientoProspectoService.consultarCuenta(node);
+      }),
+      takeUntilDestroyed(this.destroyRef), finalize(() => { this.guardandoDatosGenerales = false; })
+    ).subscribe({
+      next: result => {
+        if (this.nodoSeleccionado !== node || !this.enlaceAutorizado) return;
+        if ((result as {success?: boolean})?.success !== true) { this.mensajeDatosGenerales = 'No fue posible confirmar los datos guardados. Se conserva tu captura.'; return; }
+        const original = this.cuentaComercio;
+        this.cuentaComercio = this.extraerCuenta(result);
+        this.cargarFormulariosDesdeGet();
+        const leidos = this.datosForm.getRawValue() as Record<string,unknown>;
+        const confirmado = Object.keys(esperado).filter(key => !key.startsWith('locationID')).every(key => String(leidos[key] ?? '') === String(esperado[key] ?? ''));
+        if (!confirmado) {
+          this.cuentaComercio = original; this.datosGeneralesOriginales = baseline; this.datosForm.patchValue(values, {emitEvent:false});
+          this.mensajeDatosGenerales = 'No fue posible confirmar todos los cambios. Se conserva tu captura para revisión.';
+        } else this.mensajeDatosGenerales = 'Se actualizó correctamente.';
+      },
+      error: error => {
+        if (this.nodoSeleccionado !== node) return;
+        this.manejarErrorAutorizacionPublica(error);
+        this.mensajeDatosGenerales = 'No fue posible actualizar o confirmar los datos. Se conserva tu captura; puedes reintentar.';
+      }
+    });
+  }
+
   readonly datosForm = this.fb.nonNullable.group({
     razonSocial: [''], nombreComercial: [''], rfc: [''], regimenFiscal: [''], giroComercial: [''], descripcionGiro: [''], mcc: [''],
-    mismaInfoFiscalEntidad: [false], nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''], tipoPersona: [''],
+    mismaInfoFiscalEntidad: [false], nombre: [''], apellidoPaterno: [''], apellidoMaterno: [''], curp: [''], actividad: [''], actividadId: [''], giroId: [''], tipoPersona: [''],
     correo: ['', Validators.email], telefono: [''], departamento: [''], ciudad: [''], direccionComercial: [''], codigoPostal: [''], tipoVialidad: [''],
     nombreVialidad: [''], numeroExterior: [''], numeroInterior: [''], colonia: [''], localidad: [''], municipio: [''], entidadFederativa: [''],
     locationID: [''], entreCalle: [''], yCalle: [''], nombreRepresentante: [''], apellidoPaternoRepresentante: [''], apellidoMaternoRepresentante: [''],
@@ -426,7 +510,7 @@ private readonly correosVerificados: Record<string, {
   readonly niveles = ['Sub Afiliado', 'Entidad', 'Sucursal', 'Caja'];
   readonly tiposComercio = ['Empresa Grupo', 'Sucursales de Grupo', 'Persona Física'];
   readonly tiposPersona = ['Jurídica', 'Natural'];
-  readonly regimenesFiscales: string[] = [];
+  regimenesFiscales: string[] = [];
   readonly girosComerciales: string[] = [];
   readonly departamentos: string[] = [];
   readonly ciudades: string[] = [];
@@ -463,6 +547,10 @@ this.link = params.get('link') || pathLink;
     this.liquidacionForm.controls.tipoCuenta.valueChanges
       .subscribe(() => this.actualizarValidadorCuentaLiquidacion());
 
+    for (const [key,tipo] of [['codigoPostal','DF'],['codigoPostalComercial','DC'],['codigoPostalRepresentante','REP']] as const) {
+      this.datosForm.controls[key].valueChanges.pipe(debounceTime(350),distinctUntilChanged(),takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.buscarLocalidadesDatos(tipo));
+    }
     this.actualizarEstadoLiquidacion();
     this.actualizarValidadorCuentaLiquidacion();
     this.actualizarValidadoresAccesos();
@@ -531,6 +619,16 @@ this.link = params.get('link') || pathLink;
 
   alternarSeccionInformativa(seccion: 'comercio' | 'datos' | 'documentos'): void {
     this.seccionInformativaAbierta = this.seccionInformativaAbierta === seccion ? null : seccion;
+    if (seccion === 'datos' && this.puedeActualizarDatosGenerales) {
+      for (const tipo of ['DF','DC','REP'] as const) this.buscarLocalidadesDatos(tipo);
+    }
+    if (seccion === 'datos' && this.puedeActualizarDatosGenerales && !this.regimenesDatosCargados) {
+      this.regimenesDatosCargados = true;
+      this.regimenDatosService.getAllOptions(true).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: items => { this.regimenesFiscales = [...new Set([this.datosForm.controls.regimenFiscal.value,...items].filter(Boolean))]; },
+        error: () => { this.regimenesDatosCargados = false; this.mensajeDatosGenerales = 'No fue posible cargar el catálogo de régimen fiscal.'; }
+      });
+    }
   }
 
   get cuentaScotiabank(): boolean {
@@ -1205,6 +1303,7 @@ const formData = new FormData();
 
   get camposDatosGenerales(): string[] {
     return [
+      ...(!this.modoInterno ? ['nombre', 'apellidoPaterno', 'apellidoMaterno', 'curp', 'actividad'] : []),
       'tipoPersona', 'razonSocial', 'nombreComercial', 'rfc', 'regimenFiscal', 'giroComercial', 'descripcionGiro', 'mcc',
       'correo', 'telefono', 'codigoPostal', 'tipoVialidad', 'nombreVialidad', 'numeroExterior', 'numeroInterior', 'colonia',
       'localidad', 'municipio', 'entidadFederativa', 'entreCalle', 'yCalle', 'nombreRepresentante', 'apellidoPaternoRepresentante',
@@ -1253,20 +1352,24 @@ const formData = new FormData();
       tipoComercio: this.texto(datos['commerceType'] || datos['type']) || 'Sucursales de Grupo'
     }, { emitEvent: false });
     this.datosForm.patchValue({
-      tipoPersona: this.texto(datos['typePerson']) || (this.modoInterno ? 'PM' : ''),
+      tipoPersona: this.texto(datos['typePerson'] || (!this.modoInterno ? datos['personType'] : '')) || (this.modoInterno ? 'PM' : ''),
       razonSocial: this.texto(datos['businessName']),
       nombreComercial: this.texto(datos['nameCommerce'] || datos['name']),
       nombre: this.texto(datos['name']),
       apellidoPaterno: this.texto(datos['paternalSurname'] || datos['patSurname']),
       apellidoMaterno: this.texto(datos['maternalSurname'] || datos['matSurname']),
       actividad: this.texto(datos['activityDescription']),
+      actividadId: String(datos['idActivity'] ?? ''), giroId: String(datos['idBussinesLine'] ?? ''),
       rfc: this.texto(datos['rfc']),
-      regimenFiscal: this.texto(datos['fiscalRegime']),
-      giroComercial: this.texto(datos['bussinesLineDescription']),
-      descripcionGiro: this.texto(datos['activityDescription']),
+      ...(!this.modoInterno ? {curp:this.texto(datos['curp']),
+        telefonoAdicionalRepresentante:this.texto(representante['additionaPhoneNumber']),
+        telefonoAdicionalComercial:this.texto(contactoComercial['additionaPhoneNumber'])} : {}),
+      regimenFiscal: this.modoInterno ? this.texto(datos['fiscalRegime']) : String(datos['fiscalRegime'] ?? ''),
+      giroComercial: this.texto(datos[this.modoInterno ? 'bussinesLineDescription' : 'businessLine']),
+      descripcionGiro: this.texto(datos[this.modoInterno ? 'activityDescription' : 'bussinesLineDescription']),
       mcc: this.texto(datos['businessActivityCode']),
-      correo: this.texto(contactoComercial['email'] || datos['email']),
-      telefono: this.texto(contactoComercial['phoneNumber'] || datos['phoneNumber']),
+      correo: this.texto(this.modoInterno ? (contactoComercial['email'] || datos['email']) : datos['email']),
+      telefono: this.texto(this.modoInterno ? (contactoComercial['phoneNumber'] || datos['phoneNumber']) : datos['phoneNumber']),
       codigoPostal: this.texto(fiscal['postalCode']),
       tipoVialidad: this.texto(fiscal['roadType']),
       nombreVialidad: this.texto(fiscal['roadName']),
@@ -1287,7 +1390,7 @@ const formData = new FormData();
       numeroExteriorRepresentante: this.texto((representante['address'] as Record<string, unknown> | undefined)?.['exteriorNumber']),
       numeroInteriorRepresentante: this.texto((representante['address'] as Record<string, unknown> | undefined)?.['interiorNumber']),
       codigoPostalRepresentante: this.texto((representante['address'] as Record<string, unknown> | undefined)?.['postalCode']),
-      coloniaRepresentante: this.texto((representante['address'] as Record<string, unknown> | undefined)?.['suburb']),
+      coloniaRepresentante: this.texto((representante['address'] as Record<string, unknown> | undefined)?.[this.modoInterno ? 'suburb' : 'district']),
       municipioRepresentante: this.texto((representante['address'] as Record<string, unknown> | undefined)?.['municipality']),
       estadoRepresentante: this.texto((representante['address'] as Record<string, unknown> | undefined)?.['state']),
       codigoPostalComercial: this.texto(comercial['postalCode']),
@@ -1306,6 +1409,28 @@ const formData = new FormData();
     }, { emitEvent: false });
     this.comercioForm.disable({ emitEvent: false });
     this.datosForm.disable({ emitEvent: false });
+    if (this.puedeActualizarDatosGenerales) {
+      const opcionales = ['numeroInterior','entreCalle','yCalle','numeroInteriorComercial','entreCalleComercial','yCalleComercial',
+        'correoComercial','telefonoComercial','telefonoAdicionalComercial','telefonoAdicionalRepresentante',
+        'correoRepresentante','telefonoRepresentante','numeroInteriorRepresentante'];
+      for (const key of this.camposEditablesDatos) {
+        const control = this.datosForm.get(key)!;
+        const validators: ValidatorFn[] = opcionales.includes(key) || key.endsWith('Id') ? [] : [Validators.required];
+        if (key.startsWith('correo')) validators.push(Validators.email,Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));
+        if (key.startsWith('telefono')) validators.push(Validators.pattern(/^\d{10}$/));
+        if (key === 'rfc') validators.push(this.rfcValidator(),Validators.maxLength(13));
+        if (key === 'curp') validators.push(Validators.minLength(18),Validators.maxLength(18), Validators.pattern(/^[A-Z][AEIOUX][A-Z]{2}\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])[HM](AS|BC|BS|CC|CL|CM|CS|CH|DF|DG|GT|GR|HG|JC|MC|MN|MS|NT|NL|OC|PL|QT|QR|SP|SL|SR|TC|TS|TL|VZ|YN|ZS|NE)[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\d$/i));
+        control.setValidators(validators); control.enable({emitEvent:false}); control.updateValueAndValidity({emitEvent:false});
+      }
+      this.regimenesFiscales = [...new Set([this.datosForm.controls.regimenFiscal.value,...this.regimenesFiscales].filter(Boolean))];
+      for (const tipo of ['DF','DC','REP']) {
+        const suffix = tipo === 'DF' ? '' : tipo === 'DC' ? 'Comercial' : 'Representante';
+        const colonia = this.datosForm.get('colonia'+suffix)?.value;
+        this.localidadesDatos[tipo] = colonia ? [{colonia}] : [];
+      }
+      this.datosGeneralesOriginales = this.datosForm.getRawValue();
+      this.mensajeDatosGenerales = '';
+    }
     if (this.liquidacionForm.controls.beneficiarioIgualComercio.value) {
       this.sincronizarBeneficiarioDesdeComercio();
     } else {
@@ -1601,7 +1726,7 @@ const formData = new FormData();
   }
 
   seleccionarNodo(id: string): void {
-    if (this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico) return;
+    if (this.guardandoDatosGenerales || this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico) return;
     if (!this.modoInterno && (!this.enlaceAutorizado || this.errorProspecto || !this.buscarNodo(this.arbol, id))) return;
     this.error = '';
     if (id === this.nodoSeleccionado) return;
