@@ -88,6 +88,7 @@
         <span>✓</span>
         <strong>Datos del Comercio</strong>
       </div>
+      }
       <div class="flow-step done">
         <span>✓</span>
         <strong>Datos Generales</strong>
@@ -96,7 +97,7 @@
         <span>✓</span>
         <strong>Documentos</strong>
       </div>
-      }
+      
       @if (nodoRequiereAccesos) {
       <div class="flow-step" [class.active]="pasoActivo === 'liquidacion'" [class.done]="liquidacionCompleta">
         <span>{{ liquidacionCompleta ? '✓' : '4' }}</span>
@@ -175,7 +176,7 @@
           </div>
           }
         </article>
-
+}
         <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'datos'" [class.done]="!!prospecto">
           <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('datos')">
             <span class="section-icon"><i class="fa-solid fa-user"></i></span>
@@ -219,7 +220,7 @@
           </div>
           }
         </article>
-        }
+        
         @if ((!modoInterno && enlaceAutorizado) || (modoInterno && !mostrarSoloPasosFinales)) {
         <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'documentos'" [class.done]="false">
           <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('documentos')">
