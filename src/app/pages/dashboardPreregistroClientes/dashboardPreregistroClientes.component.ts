@@ -151,6 +151,7 @@ totalesPorPaso: Record<number, number | null> = {};
 
   const equivalencias: Record<string, number> = {
   '26': 1,
+  'PROSPECTO_ADMIN': 1,
 
     /*'30': 3,
     'EN_REVISION_DOCUMENTACION': 3,
