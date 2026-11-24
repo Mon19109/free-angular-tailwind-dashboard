@@ -4,6 +4,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { AccountBalanceResponse, DashboardService } from './dashboard.service';
 
 export interface CuentaReporte {
   idSirio: string;
@@ -22,7 +23,12 @@ export type TipoDescarga='estado-pdf'|'estado-excel'|'transacciones'|'diario'|'s
 @Injectable({providedIn:'root'})
 export class ReportesService {
   private readonly http=inject(HttpClient);
+  private readonly cuentasService=inject(DashboardService);
   private readonly base='/api/reportes';
+  obtenerSaldo():Observable<AccountBalanceResponse>{
+    // El token y la entidad se resuelven en el servidor, igual que en el servicio PHP.
+    return this.cuentasService.getBalanceSirio();
+  }
   obtenerCuentas():Observable<{cuentas:CuentaReporte[]}>{
     return this.http.get<{cuentas:CuentaReporte[]}>(`${this.base}/cuentas`,{withCredentials:true});
   }

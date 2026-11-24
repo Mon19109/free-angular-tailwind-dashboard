@@ -12,6 +12,19 @@ describe('ReportesService BFF', () => {
     service = TestBed.inject(ReportesService); http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
+  it('consulta el saldo de sesión sin enviar token ni entidad desde el navegador', () => {
+    service.obtenerSaldo().subscribe(value => {
+      expect(value.virtualAccount).toBe('clabe-prueba');
+      expect(value.balance).toBe(150);
+    });
+    const request = http.expectOne('/api/account/balance');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.withCredentials).toBeTrue();
+    expect(request.request.params.keys()).toEqual([]);
+    expect(request.request.headers.has('Authorization')).toBeFalse();
+    expect(request.request.headers.has('SonEntity-i')).toBeFalse();
+    request.flush({ success: true, virtualAccount: 'clabe-prueba', balance: 150, customerNetworkBalance: null });
+  });
   it('usa exclusivamente los contratos BFF con cookies, sin Bearer del navegador', () => {
     service.obtenerCuentas().subscribe();
     const cuentas = http.expectOne('/api/reportes/cuentas');

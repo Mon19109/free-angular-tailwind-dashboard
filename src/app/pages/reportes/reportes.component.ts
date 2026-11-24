@@ -41,6 +41,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   private reporteSubscription?: Subscription;
   private entidadesSubscription?: Subscription;
   private cuentasSubscription?: Subscription;
+  private saldoSubscription?: Subscription;
   private readonly assetBaseUrl = `${window.location.origin}/`;
   private readonly reporteTimeoutMs = 90000;
 
@@ -135,6 +136,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
   guidComerceSeleccionado = '';
   periodoSeleccionado = '';
   clabe = '';
+  saldo: number | null = null;
+  cargandoSaldo = false;
   mensaje = '';
   mostrarReportes = false;
   cargando = false;
@@ -164,6 +167,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.reporteSubscription?.unsubscribe();
     this.entidadesSubscription?.unsubscribe();
     this.cuentasSubscription?.unsubscribe();
+    this.saldoSubscription?.unsubscribe();
   }
 
   onPeriodoChange(): void {
@@ -192,6 +196,8 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   onEntidadChange(): void {
+    this.saldoSubscription?.unsubscribe();
+    this.saldo = null;
     this.cuentasSubscription?.unsubscribe();
     this.cuentaSeleccionada = '';
     this.guidComerceSeleccionado = '';
@@ -213,13 +219,27 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   onCuentaChange(): void {
+    this.saldoSubscription?.unsubscribe();
     this.limpiarResultados();
     this.clabe = '';
+    this.saldo = null;
     this.guidComerceSeleccionado = this.cuentas.find(cuenta => cuenta.id === this.cuentaSeleccionada)?.guidComerce || '';
 
-    if (this.cuentaSeleccionada) {
-      this.mensaje = 'La consulta de saldo y CLABE está pendiente de integración. Los estados de cuenta se solicitan sin CLABE.';
-    }
+    if (!this.cuentas.some(cuenta => cuenta.id === this.cuentaSeleccionada)) return;
+
+    this.cargandoSaldo = true;
+    // getBalance consulta la entidad de sesión; no recibe el idContext seleccionado.
+    this.saldoSubscription = this.reportesService.obtenerSaldo()
+      .pipe(timeout(15000), finalize(() => this.cargandoSaldo = false))
+      .subscribe({
+        next: respuesta => {
+          this.clabe = respuesta.virtualAccount || '';
+          this.saldo = respuesta.balance;
+        },
+        error: (error: unknown) => {
+          this.mensaje = this.errorConsulta(error, 'No fue posible consultar el saldo y la CLABE. Selecciona nuevamente la cuenta para reintentar.');
+        }
+      });
   }
 
   private filtroSeleccionado(): FiltroReporte | undefined {
@@ -245,6 +265,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   }
 
   consultar(): void {
+    if (this.cargandoSaldo) return;
     this.limpiarResultados();
 
     if (!this.cuentaSeleccionada || !this.periodoSeleccionado) {

@@ -34,7 +34,7 @@
     </label>
 
     <div class="reportes-actions">
-      <button type="submit" class="reportes-consultar" [disabled]="cargando">
+      <button type="submit" class="reportes-consultar" [disabled]="cargando || cargandoSaldo">
         <i class="fas fa-search"></i>
         CONSULTAR
       </button>

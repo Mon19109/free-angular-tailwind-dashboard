@@ -3,19 +3,21 @@ import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../../services/auth.service';
 import { ReportesComponent } from './reportes.component';
 import { ReportesService, TipoDescarga } from '../../services/reportes.service';
+import { AccountBalanceResponse } from '../../services/dashboard.service';
 
 describe('ReportesComponent BFF', () => {
   let component: ReportesComponent;
   let service: jasmine.SpyObj<ReportesService>;
   let perfil: string;
   beforeEach(() => {
-    service = jasmine.createSpyObj<ReportesService>('ReportesService', ['buscar', 'buscarReporte', 'obtenerCuentas', 'descargar', 'guardarArchivo']);
+    service = jasmine.createSpyObj<ReportesService>('ReportesService', ['buscar', 'buscarReporte', 'obtenerCuentas', 'obtenerSaldo', 'descargar', 'guardarArchivo']);
     perfil = '7';
     TestBed.configureTestingModule({ providers: [{ provide: AuthService, useValue: { getSessionValue: () => perfil } }] });
     component = TestBed.runInInjectionContext(() => new ReportesComponent(service));
     component.cuentas = [{ id: 'sirio', texto: 'Cuenta Adquirente', guidComerce: 'guid' }];
     component.cuentaSeleccionada = 'sirio'; component.periodoSeleccionado = '2026 Octubre';
     service.buscar.and.returnValue(of({ rows: [] }));
+    service.obtenerSaldo.and.returnValue(of({ success: true, virtualAccount: null, balance: null, customerNetworkBalance: null }));
   });
   afterEach(() => component.ngOnDestroy());
   it('requiere filtros y no inventa un tipo de cuenta', () => {
@@ -49,7 +51,35 @@ describe('ReportesComponent BFF', () => {
     service.obtenerCuentas.and.returnValue(of({ cuentas: [{ idSirio: 'cuenta', guidCommerce: 'guid-cuenta', name: 'Cuenta Emisión' }] }));
     component.cargarCuentas(); component.cuentaSeleccionada = 'cuenta'; component.onCuentaChange();
     expect(component.cuentas[0].id).toBe('cuenta'); expect(component.guidComerceSeleccionado).toBe('guid-cuenta');
-    expect(component.clabe).toBe(''); expect(component.mensaje).toContain('pendiente de integración');
+    expect(component.clabe).toBe(''); expect(component.saldo).toBeNull();
+    expect(service.obtenerSaldo).toHaveBeenCalledOnceWith();
+  });
+  it('envía la CLABE recibida al descargar el estado de cuenta', () => {
+    service.obtenerSaldo.and.returnValue(of({ success: true, virtualAccount: 'clabe-prueba', balance: 150, customerNetworkBalance: null }));
+    service.descargar.and.returnValue(of(new Blob(['pdf'])));
+    component.onCuentaChange(); component.consultar(); component.verReporte(component.reportes[0]);
+    expect(component.saldo).toBe(150);
+    expect(service.descargar).toHaveBeenCalledWith('estado-pdf', { periodo: '2026 Octubre', cuenta: 'sirio', clabe: 'clabe-prueba' });
+  });
+  it('espera el saldo y descarta respuestas de cuentas anteriores', () => {
+    const pending = new Subject<AccountBalanceResponse>();
+    service.obtenerSaldo.and.returnValue(pending);
+    component.onCuentaChange(); component.consultar();
+    expect(component.cargandoSaldo).toBeTrue();
+    expect(service.buscar).not.toHaveBeenCalled();
+    component.cuentaSeleccionada = ''; component.onCuentaChange();
+    pending.next({ success: true, virtualAccount: 'anterior', balance: 150, customerNetworkBalance: null });
+    expect(component.clabe).toBe(''); expect(component.saldo).toBeNull();
+    expect(component.cargandoSaldo).toBeFalse();
+  });
+  it('limpia el saldo anterior y permite reintentar después de un error', () => {
+    component.clabe = 'anterior'; component.saldo = 10;
+    service.obtenerSaldo.and.returnValue(throwError(() => ({ status: 500 })));
+    component.onCuentaChange();
+    expect(component.clabe).toBe(''); expect(component.saldo).toBeNull();
+    expect(component.cargandoSaldo).toBeFalse(); expect(component.mensaje).toContain('reintentar');
+    service.obtenerSaldo.and.returnValue(of({ success: true, virtualAccount: 'nueva', balance: 20, customerNetworkBalance: null }));
+    component.onCuentaChange(); expect(component.clabe).toBe('nueva'); expect(component.mensaje).toBe('');
   });
   it('muestra entidades del árbol, sin enviar entitySonID a un endpoint que no lo acepta', () => {
     perfil = '8';
