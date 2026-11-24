@@ -8,7 +8,7 @@ import { SipreladResultado } from '../../../../services/siprelad.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './step-documentos.component.html',
-    styleUrls: ['../../preRegistro.component.css']
+    styleUrls: ['../../preRegistro.component.css', './step-documentos.component.css']
 })
 export class StepDocumentosComponent implements OnChanges {
  @Input() estadoConsultaDocumentos: 'idle' | 'loading' | 'error' | 'empty' | 'ready' | null = null;
@@ -31,6 +31,11 @@ export class StepDocumentosComponent implements OnChanges {
   @Input() mismaDocumentacionEntidad = false;
   @Input() resultadoSiprelad = 'No se encontraron registros relacionados con PLD';
   @Input() resultadosSiprelad: SipreladResultado[] = [];
+  @Input() mostrarActaConstitutiva = false;
+  @Input() actaConstitutiva = '';
+  @Input() guardandoActa = false;
+  @Output() actaConstitutivaChange = new EventEmitter<string>();
+  @Output() guardarActa = new EventEmitter<void>();
   @Input() observacionesCliente = '';
   @Input() observacionesInternas = '';
   @Input() emailNotificacion = '';

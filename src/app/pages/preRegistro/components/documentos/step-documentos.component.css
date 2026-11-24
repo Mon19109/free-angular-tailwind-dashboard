@@ -1,0 +1,6 @@
+.mesa-acta { display: grid; gap: 12px; margin-top: 24px; }
+.mesa-acta label { color: var(--pre-text); font-size: 16px; font-weight: 700; }
+.mesa-acta textarea { width: 100%; min-height: 240px; resize: vertical; border: 1px solid rgba(241,178,61,.26); border-radius: 8px; padding: 14px; color: var(--pre-text); background: rgba(255,255,255,.04); font: inherit; line-height: 1.6; }
+.mesa-acta-actions { display: flex; justify-content: flex-end; }
+:host-context(html:not(.dark)) .mesa-acta label { color: #172033; }
+:host-context(html:not(.dark)) .mesa-acta textarea { color: #172033; border-color: #d1dbe9; background: #fff; }

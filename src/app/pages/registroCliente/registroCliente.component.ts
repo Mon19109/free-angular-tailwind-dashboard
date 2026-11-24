@@ -819,6 +819,7 @@ enviarCredenciales(): void {
       });
     } else {
       this.consultaDocumentosBff?.unsubscribe();
+      this.actaStatus = null; this.actaPermitida = false;
       this.documentosProspecto = [];
       this.documentosBffConsultados = false;
       delete this.documentosProspectoPorNodo[nodeRef];
@@ -848,6 +849,9 @@ enviarCredenciales(): void {
           this.observacionesInternasCargadasBff = Object.hasOwn(respuesta, 'internalObservations')
             && (respuesta.internalObservations === null || typeof respuesta.internalObservations === 'string');
           if (!conservarCaptura) this.observacionesInternasMesaDigital = typeof respuesta.internalObservations === 'string' ? respuesta.internalObservations : '';
+          this.actaStatus = respuesta.permissions?.selectedCommerceStatus ?? null;
+          this.actaPermitida = respuesta.permissions?.actaConstitutiva === true;
+          this.actaNodo = this.claveActa;
           this.revisionPermitidaBff = respuesta.permissions?.reviewDocuments === true;
           this.notificacionPermitidaBff = respuesta.permissions?.sendObservations === true;
           this.registroPermitidoBff = respuesta.permissions?.registerClient === true;
@@ -2908,6 +2912,39 @@ if (this.modoContextoBff) {
 
   private codigoBffSeguro(code: unknown): string {
     return typeof code === 'string' && /^COMERCIOS_[A-Z_]{1,80}$/.test(code) ? code : '';
+  }
+
+  private actaStatus: number | null = null;
+  private actaNodo = '';
+  private actaPermitida = false;
+  private textosActa: Record<string,string> = {};
+  guardandoActa = false;
+  private get claveActa(): string { return `${this.contextoBff?.commerce.ref ?? ''}:${this.nodoSeleccionado}`; }
+  get textoActa(): string { return this.textosActa[this.claveActa] ?? ''; }
+  set textoActa(value: string) { this.textosActa[this.claveActa] = value; }
+  get mostrarActaConstitutiva(): boolean {
+    return this.modoContextoBff && this.actaNodo === this.claveActa && this.actaStatus === 30 && this.actaPermitida;
+  }
+  guardarInformacionActa(): void {
+    if (!this.mostrarActaConstitutiva || this.guardandoActa) return;
+    const ref = this.contextoBff!.commerce.ref, node = this.nodoSeleccionado, key = this.claveActa;
+    this.guardandoActa = true;
+    this.contextoService.avanzarRevisionActa(ref,node).pipe(takeUntilDestroyed(this.destroyRef), finalize(()=>this.guardandoActa=false)).subscribe({
+      next: result => {
+        if (this.claveActa !== key) return;
+        if (result?.success !== true || result.idStatus !== 35) {
+          this.mostrarModalRegistro('error','Actualización no confirmada','No se pudo confirmar el cambio de estatus.'); return;
+        }
+        this.actaStatus = 35;
+        this.mostrarModalRegistro('success','Estatus actualizado','El comercio pasó al estatus 35 – EN VALIDACIÓN DOCUMENTACIÓN MD. El texto del acta no fue almacenado en Payara.');
+        this.refrescarEstadoDocumentalBff();
+      },
+      error: () => {
+        if (this.claveActa !== key) return;
+        this.mostrarModalRegistro('error','No fue posible actualizar el estatus','La transición no fue confirmada. Consulta el estado actual antes de volver a intentarlo.');
+        this.refrescarEstadoDocumentalBff();
+      }
+    });
   }
 
   get estatusDocumentalBff(): string {

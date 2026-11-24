@@ -159,6 +159,16 @@
       </label>
     </div>
     }
+    @if (mostrarActaConstitutiva && mostrarAccionesAdministrativas && !cargaPublica) {
+    <section class="mesa-acta">
+      <label for="informacion-acta">Información Acta Constitutiva:</label>
+      <textarea id="informacion-acta" rows="12" [value]="actaConstitutiva" [disabled]="guardandoActa"
+        (input)="actaConstitutivaChange.emit($any($event.target).value)"></textarea>
+      <div class="mesa-acta-actions">
+        <button type="button" class="button primary" [disabled]="guardandoActa" (click)="guardarActa.emit()">Guardar información</button>
+      </div>
+    </section>
+    }
     @if (!soloConsulta && mostrarAccionesAdministrativas) {
     <div class="mesa-register-action">
       @if (permitirAgregarDocumento) {
