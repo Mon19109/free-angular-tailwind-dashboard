@@ -52,7 +52,7 @@ export class DashboardPreregistroClientesComponent {
   readonly pasosPreregistro = [
  
   
-  { paso: 1, nombre: 'PROSPECTO', status: '25', color: '#3b82f6' },
+  { paso: 1, nombre: 'PROSPECTO', status: '26', color: '#3b82f6' },
   { paso: 2, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN', status: '30', color: '#6366f1' },
   { paso: 3, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN MD', status: '35', color: '#a855f7' },  
   { paso: 4, nombre: 'PENDIENTE CUENTAS LIQUIDACIÓN', status: '31', color: '#ec4899' },
@@ -150,12 +150,7 @@ totalesPorPaso: Record<number, number | null> = {};
     .replace(/[\s-]+/g, '_');
 
   const equivalencias: Record<string, number> = {
-    '25': 1,
-'PROSPECTO_CLIENTE': 1,
-'PROSPECTO_A_CLIENTE': 1,
-
-'26': 1,
-'PROSPECTO_ADMIN': 1,
+  '26': 1,
 
     /*'30': 3,
     'EN_REVISION_DOCUMENTACION': 3,

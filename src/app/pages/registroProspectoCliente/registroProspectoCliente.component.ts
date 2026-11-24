@@ -1666,8 +1666,9 @@ const formData = new FormData();
     this.seguimientoProspectoService.subirDocumentoNodo(node, this.numeroDocumentoPublico, file).pipe(
       finalize(() => { this.subiendoDocumentoPublico = false; }), takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: () => {
+      next: response => {
         if (this.nodoSeleccionado !== node || this.seguimientoVersion !== navigation) return;
+        if (response.documentacion?.estado === 'actualizado' && response.documentacion.idStatus === 30) this.consultarCuentaNodoPublico();
         this.mensajeDocumentoPublico = 'Documento cargado. Su revisión corresponde al portal administrativo.';
         this.consultarDocumentos();
       },

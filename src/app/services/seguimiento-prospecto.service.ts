@@ -114,11 +114,11 @@ guardarDispersionEnRed(nodeRef: string): Observable<unknown> {
     ));
   }
 
-  subirDocumentoNodo(nodeRef: string, numeroDocumento: number, file: File): Observable<{success: boolean}> {
+  subirDocumentoNodo(nodeRef: string, numeroDocumento: number, file: File): Observable<{success: boolean; documentacion?: {estado: string; idStatus?: number}}> {
     const body = new FormData();
     body.append('numeroDocumento', String(numeroDocumento));
     body.append('file', file);
-    return this.navigation.request(options => this.http.post<{success: boolean}>(
+    return this.navigation.request(options => this.http.post<{success: boolean; documentacion?: {estado: string; idStatus?: number}}>(
       `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/documentos`, body, options
     )).pipe(map(response => {
       if (response?.success !== true) throw new Error('No fue posible confirmar la carga.');
