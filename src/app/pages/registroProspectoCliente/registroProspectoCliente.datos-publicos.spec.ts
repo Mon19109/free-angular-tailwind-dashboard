@@ -1,3 +1,4 @@
+import { LocalidadesService } from '../../services/localidades.service';
 import { RegimenFiscalService } from '../../services/regimen-fiscal.service';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
@@ -155,6 +156,25 @@ describe('Seguimiento: edición pública Datos Generales', () => {
     api.consultarCuenta.and.returnValue(of(after));c.actualizarDatosGenerales();
     expect(api.actualizarDatosGenerales).toHaveBeenCalledOnceWith(root,{regimenFiscal:'612'});
     expect(c.modalDatosGenerales).toBeTrue();
+  });
+  it('conserva domicilio enriquecido, régimen y familia después de cargar catálogos',()=>{
+    const data:any=cuenta('PM');
+    data.entityInfo.fiscalRegimeDescription='Descripción fiscal del proveedor';
+    data.entityInfo.businessLine='Familia del catálogo';
+    data.entityInfo.contacts=[{type:1,address:{street:'Calle real',exteriorNumber:'12',interiorNumber:'B',postalCode:'56617',district:'Colonia real',municipality:'Municipio real',state:'Estado real'}}];
+    spyOn(TestBed.inject(LocalidadesService),'obtenerPorCodigoPostal').and.returnValue(of([]));
+    spyOn(TestBed.inject(RegimenFiscalService),'getOpcionesConCodigo').and.returnValue(of([]));
+    api.consultarCuenta.and.returnValue(of(data));c.consultarCuentaComercio();
+    c.alternarSeccionInformativa('datos');
+    const values=c.datosForm.getRawValue();
+    expect(values.calleRepresentante).toBe('Calle real');expect(values.numeroExteriorRepresentante).toBe('12');
+    expect(values.numeroInteriorRepresentante).toBe('B');expect(values.codigoPostalRepresentante).toBe('56617');
+    expect(values.coloniaRepresentante).toBe('Colonia real');expect(values.municipioRepresentante).toBe('Municipio real');
+    expect(values.estadoRepresentante).toBe('Estado real');expect(values.giroComercial).toBe('Familia del catálogo');
+    expect(c.opcionesRegimenDatos).toContain({value:'601',label:'Descripción fiscal del proveedor'});
+    const fixture=TestBed.createComponent(StepDatosComponent);fixture.componentInstance.form=c.datosForm;
+    fixture.componentInstance.conservarColoniaRepresentante=true;fixture.componentInstance.localidadesRepresentante=[];
+    expect(fixture.componentInstance.usarSelectorColoniaRepresentante).toBeFalse();fixture.destroy();
   });
   it('overlay permanece hasta el GET; modal verde y Aceptar conservan el nodo sin recargar',()=>{
     spyOn(RegistroProspectoClienteComponent.prototype,'ngOnInit').and.stub();

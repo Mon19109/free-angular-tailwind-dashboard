@@ -441,7 +441,9 @@ private readonly correosVerificados: Record<string, {
   get opcionesRegimenDatos(): Array<{value:string;label:string}> {
     const options = this.catalogoRegimenDatos.map(row=>({value:row.codigo,label:row.descripcion}));
     const actual = this.datosForm.controls.regimenFiscal.value;
-    return actual && !options.some(row=>row.value===actual) ? [{value:actual,label:actual},...options] : options;
+    const descripcion = String(this.cuentaComercio?.['fiscalRegime'] ?? '') === actual
+      ? this.texto(this.cuentaComercio?.['fiscalRegimeDescription']) : '';
+    return actual && !options.some(row=>row.value===actual) ? [{value:actual,label:descripcion || actual},...options] : options;
   }
   cerrarModalDatosGenerales(): void { this.modalDatosGenerales = false; }
   private datosGeneralesOriginales: Record<string, unknown> = {};
