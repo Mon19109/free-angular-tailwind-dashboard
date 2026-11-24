@@ -382,9 +382,15 @@ export class AppSidebarComponent {
   }
 
   private hasMenuAccess(access?: MenuAccess): boolean {
-    if (access === 'dashboardPreregistroClientes') {
+   /* if (access === 'dashboardPreregistroClientes') {
   return this.auth.hasValidSession() && this.idRol === 2;
+}*/
+
+if (access === 'dashboardPreregistroClientes') {
+  return this.auth.hasValidSession()
+    && (this.idRol === 2 || this.idPerfil === 11);
 }
+
     if (access === 'consultaComercios') {
       const user = this.auth.getUserData();
       // Evaluar la sesión actual en cada emisión; nunca usar el modelo legacy para Consulta.
@@ -393,8 +399,16 @@ export class AppSidebarComponent {
         && String(modelo).trim() !== '';
       const modeloPermitido = modeloValido && ([1, 2, 3].includes(Number(modelo))
         || (Number(modelo) === 0 && Number(user.idPerfil) === 9));
-      return this.auth.hasValidSession() && [2, 3, 4, 5, 6].includes(Number(user.idRol))
-        && modeloPermitido;
+      //return this.auth.hasValidSession() && [2, 3, 4, 5, 6].includes(Number(user.idRol))
+      //  && modeloPermitido;
+      return this.auth.hasValidSession()
+  && (
+    Number(user.idPerfil) === 11 ||
+    (
+      [2, 3, 4, 5, 6].includes(Number(user.idRol))
+      && modeloPermitido
+    )
+  );
     }
     if (!this.auth.hasValidSession()) return false;
     if (!access) return true;
