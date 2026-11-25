@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { finalize, Subscription } from 'rxjs';
@@ -18,6 +19,7 @@ type TipoResultadoEliminacion = 'exito' | 'error';
 })
 export class BeneficiariosComponent implements OnInit {
   private readonly sessionAuth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   private beneficiariosService = inject(BeneficiariosService);
 
   vista: VistaBeneficiarios = 'lista';
@@ -52,33 +54,29 @@ export class BeneficiariosComponent implements OnInit {
 
   cargarDatos(): void {
     this.cargarContactos();
-    this.beneficiariosService.obtenerGiros().subscribe({
+    this.beneficiariosService.obtenerGiros().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: resp => this.giros = this.normalizarLista(resp, ['rows', 'data', 'giros', 'catGiroResponse']),
       error: error => console.error('Error al cargar giros:', error)
     });
-    this.beneficiariosService.obtenerActividades().subscribe({
+    this.beneficiariosService.obtenerActividades().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: resp => this.actividades = this.normalizarLista(resp, ['catActividadResponse', 'rows', 'data', 'actividades']),
       error: error => console.error('Error al cargar actividades:', error)
     });
   }
 
   cargarContactos(): void {
-    const idUser = this.obtenerIdentificadorContactos();
-    if (!idUser) {
-      this.error = 'No se encontró el usuario de sesión.';
-      return;
-    }
-
+    this.error = '';
     this.cargando = true;
-    this.beneficiariosService.obtenerContactos(idUser).subscribe({
+    this.beneficiariosService.obtenerContactos().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.cargando = false)
+    ).subscribe({
       next: resp => {
         this.contactos = this.normalizarLista(resp, ['contactResponse', 'contacts', 'rows', 'data', 'beneficiarios']);
-        this.cargando = false;
       },
-      error: error => {
-        console.error('Error al cargar beneficiarios:', error);
+      error: () => {
+        this.contactos = [];
         this.error = 'No fue posible cargar los beneficiarios.';
-        this.cargando = false;
       }
     });
   }

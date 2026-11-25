@@ -29,7 +29,8 @@
         <h3>Beneficiarios ingresados con anterioridad</h3>
       </div>
 
-      <div class="empty" *ngIf="!cargando && !contactos.length">No hay beneficiarios disponibles.</div>
+      <div class="empty" *ngIf="cargando" role="status">Cargando beneficiarios...</div>
+      <div class="empty" *ngIf="!cargando && !error && !contactos.length">No hay beneficiarios disponibles.</div>
 
       <div class="table-wrap" *ngIf="contactos.length">
         <table>

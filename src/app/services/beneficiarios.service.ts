@@ -30,11 +30,11 @@ export class BeneficiariosService {
   private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
   private readonly base = '/api/beneficiarios';
 
-  obtenerContactos(idUser: string, type = 'TR'): Observable<any> {
-    return this.http.get(`${this.base}/contactos`, { params: new HttpParams().set('idUser', idUser).set('type', type) });
+  obtenerContactos(): Observable<any> {
+    return this.http.get(`${this.base}/contactos`, { withCredentials: true });
   }
-  obtenerGiros(): Observable<any> { return this.http.get(`${this.base}/giros`); }
-  obtenerActividades(): Observable<any> { return this.http.get(`${this.base}/actividades`); }
+  obtenerGiros(): Observable<any> { return this.http.get(`${this.base}/giros`, { withCredentials: true }); }
+  obtenerActividades(): Observable<any> { return this.http.get(`${this.base}/actividades`, { withCredentials: true }); }
   buscarInstitucion(cuenta: string, bearerToken?: string, preregistroPublico = false): Observable<any> {
     const params = new HttpParams().set('value', cuenta);
     // Mantiene la ruta de prerregistro publico ya existente; no envia bearerToken al navegador/BFF.

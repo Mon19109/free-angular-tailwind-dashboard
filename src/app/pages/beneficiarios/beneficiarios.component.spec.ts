@@ -3,6 +3,8 @@ import { AuthService } from '../../services/auth.service';
 import { of, Subject } from 'rxjs';
 import { BeneficiariosService } from '../../services/beneficiarios.service';
 import { BeneficiariosComponent } from './beneficiarios.component';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 describe('Confirmación de eliminación de beneficiarios', () => {
   let component: BeneficiariosComponent;
@@ -73,5 +75,71 @@ describe('Confirmación de eliminación de beneficiarios', () => {
     expect(component.cargando).toBeFalse();
     expect(component.tipoResultadoEliminacion).toBe('error');
     expect(component.mensajeResultadoEliminacion).toBe('Eliminación rechazada');
+  });
+});
+
+describe('Carga inicial de Beneficiarios', () => {
+  let http: HttpTestingController;
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [BeneficiariosComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
+    });
+    http = TestBed.inject(HttpTestingController);
+    TestBed.inject(AuthService).actualizarSesion({
+      success: true, authenticated: true, expiresAt: Date.now() + 60000,
+      usuario: { idRol: 2, userName: 'usuario' }
+    });
+  });
+  afterEach(() => http.verify());
+
+  it('consulta contactos, giros y actividades al abrir la página sin IDs privados', () => {
+    const fixture = TestBed.createComponent(BeneficiariosComponent);
+    fixture.detectChanges();
+    const contactos = http.expectOne('/api/beneficiarios/contactos');
+    const giros = http.expectOne('/api/beneficiarios/giros');
+    const actividades = http.expectOne('/api/beneficiarios/actividades');
+    for (const req of [contactos, giros, actividades]) {
+      expect(req.request.method).toBe('GET');
+      expect(req.request.withCredentials).toBeTrue();
+      expect(req.request.params.keys()).toEqual([]);
+      expect(req.request.headers.has('Authorization')).toBeFalse();
+    }
+    contactos.flush({ contactResponse: [{ fullName: 'Beneficiario ejemplo', nameAlias: 'Contacto ejemplo' }] });
+    giros.flush({ rows: [{ id: 1 }] });
+    actividades.flush({ catActividadResponse: [{ id: 2 }] });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.contactos.length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Beneficiario ejemplo');
+    expect(fixture.componentInstance.giros.length).toBe(1);
+    expect(fixture.componentInstance.actividades.length).toBe(1);
+    expect(fixture.componentInstance.cargando).toBeFalse();
+  });
+
+  it('conserva giros y actividades si falla contactos y permite reintentarlo', () => {
+    const fixture = TestBed.createComponent(BeneficiariosComponent);
+    fixture.detectChanges();
+    http.expectOne('/api/beneficiarios/contactos').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    http.expectOne('/api/beneficiarios/giros').flush([{ id: 1 }]);
+    http.expectOne('/api/beneficiarios/actividades').flush([{ id: 2 }]);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.giros.length).toBe(1);
+    expect(fixture.componentInstance.actividades.length).toBe(1);
+    expect(fixture.componentInstance.cargando).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('No fue posible cargar los beneficiarios.');
+    expect(fixture.nativeElement.textContent).not.toContain('No hay beneficiarios disponibles.');
+    fixture.componentInstance.cargarContactos();
+    http.expectOne('/api/beneficiarios/contactos').flush({ contacts: [] });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.error).toBe('');
+    expect(fixture.nativeElement.textContent).toContain('No hay beneficiarios disponibles.');
+  });
+
+  it('cancela las consultas de carga al salir de la página', () => {
+    const fixture = TestBed.createComponent(BeneficiariosComponent);
+    fixture.detectChanges();
+    const solicitudes = ['contactos', 'giros', 'actividades'].map(path => http.expectOne(`/api/beneficiarios/${path}`));
+    fixture.destroy();
+    solicitudes.forEach(req => expect(req.cancelled).toBeTrue());
   });
 });
