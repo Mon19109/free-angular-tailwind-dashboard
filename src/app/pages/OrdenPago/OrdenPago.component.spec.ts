@@ -23,6 +23,106 @@ describe('Orden de pago: carga con sesión pública', () => {
 
   afterEach(() => http.verify());
 
+  function prepararOrden() {
+    const fixture = TestBed.createComponent(OrdenPagoComponent);
+    fixture.detectChanges();
+    http.expectOne('/api/orden-pago/cuentas').flush({ accounts: [{ idSirio: 'ORIGEN-1', name: 'Cuenta emisión' }] });
+    http.expectOne('/api/orden-pago/contactos').flush({ contacts: [{
+      fullName: 'Beneficiario', accountNumber: '123456789012345678',
+      cardNumberMask: '****5678', idInstitution: '40903', nameInstitution: 'Banco'
+    }] });
+    const component = fixture.componentInstance;
+    component.formulario.patchValue({ cuentaOr: 'ORIGEN-1', cuentaD: component.obtenerValorBeneficiario(component.beneficiarios[0]), importe: '100.00' });
+    component.obtenerSaldo();
+    return component;
+  }
+
+  it('envía y reenvía el token usando el GUID de sesión del servidor', () => {
+    const component = prepararOrden();
+    http.expectOne('/api/orden-pago/saldo/ORIGEN-1').flush({ balance: '500.00' });
+    component.finalizar();
+    const envio = http.expectOne('/api/orden-pago/enviar-token');
+    expect(envio.request.body).toEqual({});
+    expect(envio.request.withCredentials).toBeTrue();
+    expect(envio.request.headers.get('X-Portal-Request')).toBe('1');
+    envio.flush({ success: true });
+    expect(component.mostrarModalToken).toBeTrue();
+    component.reenviarToken();
+    component.reenviarToken();
+    http.expectOne('/api/orden-pago/enviar-token').flush({ success: true });
+    expect(component.reenviandoToken).toBeFalse();
+  });
+
+  it('solo envía SPEI después de confirmar la validación del token', () => {
+    const component = prepararOrden();
+    http.expectOne('/api/orden-pago/saldo/ORIGEN-1').flush({ balance: 500 });
+    component.finalizar();
+    http.expectOne('/api/orden-pago/enviar-token').flush({ success: true });
+    component.token = '123456';
+    component.validarToken(); component.validarToken();
+    const validacion = http.expectOne('/api/orden-pago/validar-token');
+    expect(validacion.request.body).toEqual({ token: '123456' });
+    expect(validacion.request.headers.get('X-Portal-Request')).toBe('1');
+    http.expectNone('/api/orden-pago/spei');
+    validacion.flush({ success: true });
+    const pago = http.expectOne('/api/orden-pago/spei');
+    expect(pago.request.headers.get('X-Portal-Request')).toBe('1');
+    expect(pago.request.withCredentials).toBeTrue();
+    pago.flush({ code: '00' });
+    expect(component.comprobanteSpei).toBeTruthy();
+    expect(component.payloadPendiente).toBeNull();
+  });
+
+  it('rechaza códigos incompletos y no libera pagos con una validación fallida', () => {
+    const component = prepararOrden();
+    http.expectOne('/api/orden-pago/saldo/ORIGEN-1').flush({ balance: 500 });
+    component.finalizar();
+    http.expectOne('/api/orden-pago/enviar-token').flush({ success: true });
+    component.token = '123'; component.validarToken();
+    http.expectNone('/api/orden-pago/validar-token');
+    expect(component.tokenError).toContain('6 dígitos');
+    component.token = '123456'; component.validarToken();
+    http.expectOne('/api/orden-pago/validar-token').flush({ success: false });
+    http.expectNone('/api/orden-pago/spei');
+    expect(component.validandoToken).toBeFalse();
+    expect(component.mostrarModalToken).toBeTrue();
+  });
+
+  it('no confirma el envío del token con una respuesta ambigua', () => {
+    const component = prepararOrden();
+    http.expectOne('/api/orden-pago/saldo/ORIGEN-1').flush({ balance: 500 });
+    component.finalizar();
+    http.expectOne('/api/orden-pago/enviar-token').flush({ code: '00' });
+    expect(component.mostrarModalToken).toBeFalse();
+    expect(component.mensajeEnvio).toContain('No fue posible enviar');
+    expect(component.finalizandoEnvio).toBeFalse();
+  });
+
+  it('bloquea la confirmación mientras carga el saldo o si la consulta falla', () => {
+    const component = prepararOrden();
+    component.finalizar();
+    http.expectNone('/api/orden-pago/enviar-token');
+    expect(component.mensajeValidacionOrden).toContain('Espera');
+    http.expectOne('/api/orden-pago/saldo/ORIGEN-1').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    component.finalizar();
+    http.expectNone('/api/orden-pago/enviar-token');
+    expect(component.errorSaldo).toContain('No fue posible consultar');
+    expect(component.saldoConsultado).toBeFalse();
+    expect(component.cargandoSaldo).toBeFalse();
+  });
+
+  it('cancela el saldo anterior al cambiar de cuenta', () => {
+    const component = prepararOrden();
+    const anterior = http.expectOne('/api/orden-pago/saldo/ORIGEN-1');
+    component.formulario.patchValue({ cuentaOr: 'ORIGEN-2' });
+    component.obtenerSaldo();
+    expect(anterior.cancelled).toBeTrue();
+    http.expectOne('/api/orden-pago/saldo/ORIGEN-2').flush({ balance: 250 });
+    expect(component.saldo).toBe(250);
+    expect(component.saldoConsultado).toBeTrue();
+    expect(component.cargandoSaldo).toBeFalse();
+  });
+
   it('consulta ambos catálogos sin IDs privados y muestra las opciones recibidas', () => {
     const fixture = TestBed.createComponent(OrdenPagoComponent);
     fixture.detectChanges();

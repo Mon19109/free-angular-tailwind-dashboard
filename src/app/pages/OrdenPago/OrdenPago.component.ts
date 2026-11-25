@@ -7,7 +7,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { OrdenPagoService } from '../../services/OrdenPago.service';
 import { RadioComponent } from '../../shared/components/form/input/radio.component';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 
 @Component({
 selector: 'app-orden-pago',
@@ -28,6 +28,10 @@ formulario!: FormGroup;
 
 pasoActual = 1;
 saldo = 0;
+cargandoSaldo = false;
+saldoConsultado = false;
+errorSaldo = '';
+private solicitudSaldo?: Subscription;
 readonly importeMaximo = 1_000_000;
 get comisionEnvio(): number {
 return String(this.formulario?.get('idInstitution')?.value ?? '').trim() === '40903' ? 0 : 5;
@@ -266,11 +270,14 @@ return `${alias}${terminacion} ${banco}`.trim();
 }
 
 obtenerSaldo(): void {
+this.solicitudSaldo?.unsubscribe();
 
 const cuentaSeleccionada =
 this.formulario.get('cuentaOr')?.value;
 
 this.saldo = 0;
+this.saldoConsultado = false;
+this.errorSaldo = '';
 
 if (!cuentaSeleccionada) {
 return;
@@ -281,25 +288,22 @@ return;
            cuentaSeleccionada
        );*/
 
-this.ordenPagoService
+this.cargandoSaldo = true;
+this.solicitudSaldo = this.ordenPagoService
 .obtenerSaldo(cuentaSeleccionada)
+.pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.cargandoSaldo = false))
 .subscribe({
 next: (resp) => {
 
 // console.log('SALDO RESP', resp);
 
 if (this.formulario.get('cuentaOr')?.value !== cuentaSeleccionada) return;
-const saldo = Number(resp?.balance ?? 0);
-this.saldo = Number.isFinite(saldo) ? saldo : 0;
+this.saldo = resp.balance;
+this.saldoConsultado = true;
 
 },
-error: (err) => {
-
-console.error(
-'ERROR SALDO',
-err
-);
-
+error: () => {
+this.errorSaldo = 'No fue posible consultar el saldo. Selecciona nuevamente la cuenta para reintentar.';
 }
 });
 
@@ -342,6 +346,10 @@ return true;
 }
 
 private validarSaldoDisponible(): boolean {
+if (!this.saldoConsultado || this.cargandoSaldo) {
+this.abrirModalValidacionOrden(this.cargandoSaldo ? 'Espera a que termine la consulta de saldo.' : 'Consulta el saldo de la cuenta ordenante antes de continuar.');
+return false;
+}
 if (this.saldoRestante < 0) {
 this.abrirModalValidacionOrden('El importe más la comisión no puede superar el saldo de la cuenta ordenante.');
 return false;
@@ -371,7 +379,7 @@ this.pasoActual--;
 }
 
 finalizar(): void {
-if (this.finalizandoEnvio) {
+if (this.finalizandoEnvio || this.validandoToken || this.reenviandoToken) {
 return;
 }
 
@@ -448,17 +456,19 @@ this.solicitarToken(false);
 validarToken(): void {
 
 const codigo = this.token.trim();
-const guid = this.obtenerGuid();
 
 if (!codigo) {
 this.tokenError = 'Captura el token recibido por SMS.';
 return;
 }
 
-if (!guid || !this.payloadPendiente || this.validandoToken) {
-this.tokenError = !guid
-? 'No se encontró el identificador de la sesión.'
-: 'No hay una orden pendiente por validar.';
+if (!/^\d{6}$/.test(codigo)) {
+this.tokenError = 'Captura un token de 6 dígitos.';
+return;
+}
+if (this.validandoToken || this.reenviandoToken || this.finalizandoEnvio) return;
+if (!this.payloadPendiente) {
+this.tokenError = 'No hay una orden pendiente por validar.';
 return;
 }
 
@@ -466,11 +476,12 @@ this.validandoToken = true;
 this.tokenError = '';
 this.tokenMensaje = '';
 
-this.ordenPagoService.validarToken(codigo, guid).pipe(
+this.ordenPagoService.validarToken(codigo).pipe(
+takeUntilDestroyed(this.destroyRef),
 finalize(() => this.validandoToken = false)
 ).subscribe({
 next: resp => {
-if (!this.esRespuestaExitosa(resp)) {
+if (resp?.success !== true) {
 this.tokenError = this.obtenerMensajeRespuesta(resp, 'El token capturado no es válido.');
 return;
 }
@@ -598,16 +609,7 @@ return telefono ? `terminación ${telefono.slice(-4)}` : 'registrado';
 }
 
 private solicitarToken(esReenvio: boolean): void {
-const guid = this.obtenerGuid();
-
-if (!guid) {
-this.tipoMensajeEnvio = 'error';
-this.mensajeEnvio = 'No se encontró el identificador de la sesión para enviar el token.';
-return;
-}
-
-if (esReenvio && this.reenviandoToken) return;
-if (!esReenvio && this.finalizandoEnvio) return;
+if (!this.payloadPendiente || this.reenviandoToken || this.finalizandoEnvio || this.validandoToken) return;
 
 if (esReenvio) {
 this.reenviandoToken = true;
@@ -618,14 +620,15 @@ this.finalizandoEnvio = true;
 this.tokenError = '';
 this.tokenMensaje = '';
 
-this.ordenPagoService.enviarToken(guid).pipe(
+this.ordenPagoService.enviarToken().pipe(
+takeUntilDestroyed(this.destroyRef),
 finalize(() => {
 this.finalizandoEnvio = false;
 this.reenviandoToken = false;
 })
 ).subscribe({
 next: resp => {
-if (this.respuestaEsFallo(resp)) {
+if (resp?.success !== true) {
 const mensaje = this.obtenerMensajeRespuesta(resp, 'No fue posible enviar el token por SMS.');
 if (esReenvio) this.tokenError = mensaje;
 else {
@@ -725,10 +728,6 @@ concepto: datos?.description || payload.concepto || 'NA'
 };
 }
 
-private obtenerGuid(): string {
-    return this.sessionAuth.getSessionValue('validate') || '';
-}
-
 private obtenerBeneficiarioSeleccionado(): any {
 return this.beneficiarios.find(
 beneficiario => String(this.obtenerValorBeneficiario(beneficiario)) === String(this.formulario.value.cuentaD || '')
@@ -738,17 +737,6 @@ beneficiario => String(this.obtenerValorBeneficiario(beneficiario)) === String(t
 private abrirModalValidacionOrden(mensaje: string): void {
 this.mensajeValidacionOrden = mensaje;
 this.mostrarModalValidacionOrden = true;
-}
-
-private esRespuestaExitosa(resp: any): boolean {
-const success = resp?.success ?? resp?.data?.success ?? resp?.response?.success ?? resp?.rows?.success;
-if (success !== undefined && success !== null) {
-return success === true || success === 1 || String(success).toLowerCase() === 'true';
-}
-
-const codigo = resp?.code ?? resp?.error?.code ?? resp?.data?.code ?? resp?.data?.error?.code ??
-resp?.responseCode ?? resp?.rows?.code ?? resp?.rows?.error?.code;
-return codigo !== undefined && String(codigo).padStart(2, '0') === '00';
 }
 
 private respuestaEsFallo(resp: any): boolean {
@@ -787,6 +775,9 @@ return `**** **** ${valor.slice(-4)}`;
 private reiniciarFlujo(): void {
 this.pasoActual = 1;
 this.saldo = 0;
+this.solicitudSaldo?.unsubscribe();
+this.saldoConsultado = false;
+this.errorSaldo = '';
 this.mostrarErrorImporte = false;
 this.payloadPendiente = null;
 this.token = '';

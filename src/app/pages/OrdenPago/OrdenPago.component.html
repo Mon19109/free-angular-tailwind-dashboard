@@ -107,9 +107,11 @@
             </div>
           </div>
 
-          <p class="saldo">
+          <p *ngIf="!cargandoSaldo && !errorSaldo" class="saldo">
             Saldo de la cuenta ordenante: ${{ saldo | number:'1.2-2' }}
           </p>
+          <p *ngIf="cargandoSaldo" role="status">Consultando saldo...</p>
+          <p *ngIf="errorSaldo" class="campo-requerido" role="alert">{{ errorSaldo }}</p>
 
           <div class="buttons">
             <button type="button" class="button primary" (click)="siguiente()">
