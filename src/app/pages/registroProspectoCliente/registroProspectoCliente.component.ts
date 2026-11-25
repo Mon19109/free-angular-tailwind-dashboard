@@ -454,8 +454,10 @@ private readonly correosVerificados: Record<string, {
       ? fields.filter((key): key is string => typeof key === 'string' && Object.hasOwn(this.datosForm.controls,key)) : [];
   }
  get datosGeneralesBloqueadosPorEstatus(): boolean {
+  const status = this.buscarNodo(this.arbol, this.nodoSeleccionado)?.status;
+
   return !this.modoInterno &&
-    this.buscarNodo(this.arbol, this.nodoSeleccionado)?.status === 31;
+    (status === 31 || status === 19);
 }
 
 get puedeActualizarDatosGenerales(): boolean {
