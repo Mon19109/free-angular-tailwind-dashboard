@@ -2117,3 +2117,11 @@ text-overflow: clip;
     gap: 16px;
   }
 }
+:host-context(html:not(.dark)) .registro-modal {
+  color: var(--app-text);
+  background: var(--app-surface, #fff);
+}
+
+:host-context(html:not(.dark)) .registro-modal-body p {
+  color: var(--app-text-muted);
+}

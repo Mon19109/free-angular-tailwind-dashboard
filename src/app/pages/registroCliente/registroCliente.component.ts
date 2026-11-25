@@ -21,7 +21,7 @@ import {
   Validators
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subscription, Observable, EMPTY, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
+import { Subscription, Observable, defer, EMPTY, catchError, finalize, forkJoin, map, of, switchMap } from 'rxjs';
 import { UsuarioAccesoConfig } from '../preRegistro/components/accesos/step-accesos.component';
 import { StepComercioComponent } from '../preRegistro/components/comercio/step-comercio.component';
 import { StepDatosComponent } from '../preRegistro/components/datos-generales/step-datos.component';
@@ -725,7 +725,7 @@ enviarCredenciales(): void {
     if (cambiosEsperados) this.mensajeActualizacionDatos = 'Verificando los datos guardados…';
     const vigente = () => consulta === this.consultaCuentaActual
       && this.nodoSeleccionado === nodeRef && this.contextoBff?.commerce.ref === ref;
-    this.consultaCuentaBff = this.contextoService.consultarInformacionNodo(ref, nodeRef).pipe(
+    this.consultaCuentaBff = this.consultaDuranteOperacion(() => this.contextoService.consultarInformacionNodo(ref, nodeRef)).pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: respuesta => {
@@ -816,13 +816,16 @@ enviarCredenciales(): void {
         this.errorDocumentosProspecto = error?.status === 403
           ? 'No tienes autorización para consultar los documentos'
           : 'No fue posible consultar los documentos';
+        if (this.procesandoRevisionDocumental && this.modalRegistro.tipo !== 'error') {
+          this.mostrarModalRegistro('error', 'Verificación pendiente', 'La operación respondió, pero no se pudo actualizar la revisión documental. Vuelve a consultar el comercio antes de repetirla.');
+        }
       }
     };
     if (tipo === 'pld') {
       this.consultaPldBff?.unsubscribe();
       this.cargandoSiprelad = true;
       this.resultadoSiprelad = 'Consultando resultado en listas SIPRELAD...';
-      this.consultaPldBff = this.contextoService.consultarPldNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      this.consultaPldBff = this.consultaDuranteOperacion(() => this.contextoService.consultarPldNodo(ref, nodeRef)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: respuesta => {
           if (!vigente()) return;
           if (respuesta?.success !== true || !Array.isArray(respuesta.pld)
@@ -853,7 +856,7 @@ this.actaConsultada = '';
       this.codigoRevisionBff = '';
       this.codigoNotificacionBff = '';
       this.cargandoDocumentosProspecto = true;
-      this.consultaDocumentosBff = this.contextoService.consultarDocumentosNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      this.consultaDocumentosBff = this.consultaDuranteOperacion(() => this.contextoService.consultarDocumentosNodo(ref, nodeRef)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: respuesta => {
           if (!vigente()) return;
           if (respuesta?.success !== true || !Array.isArray(respuesta.documents)
@@ -2372,6 +2375,7 @@ if (this.modoContextoBff) {
   }
   volver(): void { this.router.navigate(['/consulta_comercios']); }
   continuarDesdeDocumentos(): void {
+    if (this.procesandoRevisionDocumental) return;
     if(this.flujoRevisionMD) { this.continuarRevisionMD(); return; }
     if (this.modoContextoBff) {
       if (!this.puedeFinalizarDocumentosBff) return;
@@ -2593,11 +2597,11 @@ if (this.modoContextoBff) {
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
     this.registrandoCliente = true;
     this.mensajeObservacionesCliente = '';
-    this.contextoService.registrarNodo(ref, nodeRef).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.operacionDocumental(() => this.contextoService.registrarNodo(ref, nodeRef), () => this.registrandoCliente = false).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         if (!vigente()) return;
         this.registrandoCliente = false;
-        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El registro no fue confirmado.'; return; }
+        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El registro no fue confirmado.'; this.mostrarModalRegistro('error', 'Registro no confirmado', this.mensajeObservacionesCliente); return; }
         this.registrosConfirmadosBff.add(ref);
         this.registroPermitidoBff = false;
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Cliente registrado correctamente.');
@@ -2609,6 +2613,7 @@ if (this.modoContextoBff) {
         if (error.error?.code === 'COMERCIOS_REGISTER_PARTIALLY_COMPLETED') {
           this.registrosConfirmadosBff.add(ref);
           this.mensajeObservacionesCliente = 'La activación se confirmó, pero no se pudo completar la verificación final de sesión y referencias. No repitas el registro; vuelve a consultar el comercio.';
+          this.mostrarModalRegistro('error', 'Operación parcialmente completada', this.mensajeObservacionesCliente);
           this.refrescarEstadoDocumentalBff();
           return;
         }
@@ -2625,11 +2630,13 @@ if (this.modoContextoBff) {
   return;
 }
         this.mensajeObservacionesCliente = this.mensajeErrorRegistroBff(error);
+        this.mostrarModalRegistro('error', 'No fue posible registrar', this.mensajeObservacionesCliente);
       }
     });
   }
 
   registrarClienteProspecto(): void {
+    if (this.procesandoRevisionDocumental) return;
     if (this.modoContextoBff) { this.registrarClienteBff(); return; }
     if (!this.esMesaDigitalSesion) return;
     this.mensajeRegistroCliente = '';
@@ -2650,7 +2657,7 @@ if (this.modoContextoBff) {
 
     this.registrandoCliente = true;
     this.mensajeObservacionesCliente = '';
-    this.validarDocumentosRutaRegistro().subscribe({
+    this.operacionDocumental(() => this.validarDocumentosRutaRegistro()).subscribe({
       next: nivelPendiente => {
         if (nivelPendiente) {
           this.registrandoCliente = false;
@@ -2658,8 +2665,12 @@ if (this.modoContextoBff) {
           return;
         }
 
-        this.activarProspectoService.activarProspecto(commerceGuid).subscribe({
-          next: () => {
+        this.operacionDocumental(() => this.activarProspectoService.activarProspecto(commerceGuid), () => this.registrandoCliente = false).subscribe({
+          next: respuesta => {
+            if ((respuesta as { success?: boolean } | null)?.success === false) {
+              this.mostrarModalRegistro('error', 'Operación no confirmada', 'El servicio no confirmó la operación.');
+              return;
+            }
             this.registrandoCliente = false;
             this.mostrarModalRegistro('success', 'Operación exitosa', 'Cliente registrado correctamente.');
             this.seleccionarSiguienteNodoArbol();
@@ -2675,6 +2686,26 @@ if (this.modoContextoBff) {
         this.mostrarModalRegistro('error', 'No fue posible registrar', 'No fue posible validar los documentos antes del registro.');
       }
     });
+  }
+
+  private operacionesDocumentales = 0;
+  get procesandoRevisionDocumental(): boolean { return this.operacionesDocumentales > 0; }
+
+  // Count nested requests so the same overlay covers writes and their final refresh.
+  // defer also turns synchronous service exceptions into the normal error path.
+  private operacionDocumental<T>(solicitud: () => Observable<T>, liberar = () => {}): Observable<T> {
+    return defer(() => {
+      if (!this.procesandoRevisionDocumental) this.modalRegistro.visible = false;
+      this.operacionesDocumentales++;
+      return defer(solicitud).pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => { liberar(); this.operacionesDocumentales--; })
+      );
+    });
+  }
+
+  private consultaDuranteOperacion<T>(solicitud: () => Observable<T>): Observable<T> {
+    return this.procesandoRevisionDocumental ? this.operacionDocumental(solicitud) : defer(solicitud);
   }
 
   cerrarModalRegistro(): void {
@@ -2977,6 +3008,7 @@ if (this.modoContextoBff) {
     return this.progresoMD.nodes.filter(n=>n.pending.length).map(n=>`${n.name || 'Nodo'}: documentos ${n.pending.join(', ')}`).join('; ');
   }
   continuarRevisionMD(): void {
+    if (this.procesandoRevisionDocumental) return;
     if(!this.accionRevisionMD || this.guardandoRevisionDocumentos || this.registrandoCliente) return;
     if(this.accionRevisionMD==='Continuar') {
       const next=this.buscarNodo(this.arbolServicio,this.progresoMD!.nextRef!);
@@ -2985,7 +3017,7 @@ if (this.modoContextoBff) {
     }
     const ref=this.contextoBff!.commerce.ref,node=this.nodoSeleccionado,key=this.claveActa;
     this.registrandoCliente=true;
-    this.contextoService.registrarRevisionMD(ref,node).pipe(takeUntilDestroyed(this.destroyRef),finalize(()=>this.registrandoCliente=false)).subscribe({
+    this.operacionDocumental(() => this.contextoService.registrarRevisionMD(ref,node), () => this.registrandoCliente = false).pipe(takeUntilDestroyed(this.destroyRef),finalize(()=>this.registrandoCliente=false)).subscribe({
       next: result=>{
         if(this.claveActa!==key) return;
         if(result.success!==true || result.idStatus!==31) { this.mostrarModalRegistro('error','Cambio no confirmado','No se pudo confirmar el estatus 31.');return; }
@@ -3025,6 +3057,7 @@ private solicitudActa = 0;
   
 
 guardarInformacionActa(): void {
+  if (this.procesandoRevisionDocumental) return;
   if (
     !this.mostrarActaConstitutiva ||
     this.guardandoActa ||
@@ -3048,7 +3081,7 @@ guardarInformacionActa(): void {
 
   this.guardandoActa = true;
 
-  this.contextoService.avanzarRevisionActa(ref, node, texto)
+  this.operacionDocumental(() => this.contextoService.avanzarRevisionActa(ref, node, texto), () => this.guardandoActa = false)
     .pipe(
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.guardandoActa = false)
@@ -3126,7 +3159,7 @@ private consultarInformacionActa(): void {
   this.cargandoActa = true;
   this.actaConsultada = '';
 
-  this.contextoService.consultarInformacionActa(ref, node)
+  this.consultaDuranteOperacion(() => this.contextoService.consultarInformacionActa(ref, node))
     .pipe(
       takeUntilDestroyed(this.destroyRef),
       finalize(() => {
@@ -3146,6 +3179,7 @@ private consultarInformacionActa(): void {
           respuesta?.success !== true ||
           typeof respuesta.articlesOfIncorporation !== 'string'
         ) {
+          if (this.procesandoRevisionDocumental && this.modalRegistro.visible && this.modalRegistro.tipo === 'error') return;
           this.mostrarModalRegistro(
             'error',
             'Información no disponible',
@@ -3163,6 +3197,7 @@ private consultarInformacionActa(): void {
           this.solicitudActa !== solicitud
         ) return;
 
+        if (this.procesandoRevisionDocumental && this.modalRegistro.visible && this.modalRegistro.tipo === 'error') return;
         this.mostrarModalRegistro(
           'error',
           'Información no disponible',
@@ -3193,11 +3228,12 @@ private consultarInformacionActa(): void {
     this.revisionPermitidaBff = false;
     this.registroPermitidoBff = false;
     this.documentosConfirmadosBffPorNodo = {};
-    this.contextoService.consultarContexto(ref).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.consultaDuranteOperacion(() => this.contextoService.consultarContexto(ref)).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: value => {
         if (!vigente()) return;
         if (!value.success || value.commerce?.ref !== ref) {
           this.mensajeObservacionesCliente = 'No se pudo verificar el contexto actualizado. Vuelve a consultar el comercio.';
+          if (this.procesandoRevisionDocumental && this.modalRegistro.tipo !== 'error') this.mostrarModalRegistro('error', 'Verificación pendiente', 'La operación respondió, pero no se pudo verificar el contexto actualizado. Vuelve a consultar el comercio antes de repetirla.');
           return;
         }
         this.contextoBff = value;
@@ -3205,7 +3241,9 @@ private consultarInformacionActa(): void {
         else this.consultarDocumentosProspecto();
       },
       error: () => {
-        if (vigente()) this.mensajeObservacionesCliente = 'No se pudo verificar el contexto actualizado. Vuelve a consultar el comercio.';
+        if (!vigente()) return;
+        this.mensajeObservacionesCliente = 'No se pudo verificar el contexto actualizado. Vuelve a consultar el comercio.';
+          if (this.procesandoRevisionDocumental && this.modalRegistro.tipo !== 'error') this.mostrarModalRegistro('error', 'Verificación pendiente', 'La operación respondió, pero no se pudo verificar el contexto actualizado. Vuelve a consultar el comercio antes de repetirla.');
       }
     });
   }
@@ -3222,13 +3260,13 @@ private consultarInformacionActa(): void {
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
     this.guardandoRevisionDocumentos = true;
     this.mensajeObservacionesCliente = '';
-    this.contextoService.guardarRevisionNodo(ref, nodeRef, documents, notes || null).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.operacionDocumental(() => this.contextoService.guardarRevisionNodo(ref, nodeRef, documents, notes || null), () => this.guardandoRevisionDocumentos = false).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
-        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El guardado no fue confirmado.'; return; }
+        if (response?.success !== true) { this.mensajeObservacionesCliente = 'El guardado no fue confirmado.'; this.mostrarModalRegistro('error', 'Guardado no confirmado', this.mensajeObservacionesCliente); return; }
         if(this.flujoRevisionMD) {
-          if(!response.reviewProgress) { this.mensajeObservacionesCliente='La revisión no tiene una verificación documental completa.';return; }
+          if(!response.reviewProgress) { this.mensajeObservacionesCliente='La revisión no tiene una verificación documental completa.';this.mostrarModalRegistro('error','Verificación pendiente',this.mensajeObservacionesCliente);return; }
           this.progresoMD=response.reviewProgress;
           this.revisionesMDGuardadas.add(this.claveActa);
           this.mostrarModalRegistro('success','Revisión confirmada','La revisión documental fue confirmada por Payara.');
@@ -3243,12 +3281,14 @@ private consultarInformacionActa(): void {
         this.guardandoRevisionDocumentos = false;
         if (error.error?.code === 'COMERCIOS_REVIEW_PARTIALLY_COMPLETED') {
           this.mensajeObservacionesCliente = 'La revisión se guardó, pero no se pudo completar la verificación final de sesión y referencias. Vuelve a consultar el comercio antes de continuar.';
+          this.mostrarModalRegistro('error', 'Operación parcialmente completada', this.mensajeObservacionesCliente);
           this.refrescarEstadoDocumentalBff();
           return;
         }
         if ([401, 403, 409, 422].includes(error.status)) this.revisionPermitidaBff = false;
         this.codigoRevisionBff = this.codigoBffSeguro(error.error?.code);
         this.mensajeObservacionesCliente = `No fue posible guardar la revisión. ${this.codigoRevisionBff}`.trim();
+        this.mostrarModalRegistro('error', 'No fue posible guardar', this.mensajeObservacionesCliente);
       }
     });
   }
@@ -3281,7 +3321,7 @@ private consultarInformacionActa(): void {
     };
     this.enviandoNotificacionMesaDigital = true;
     this.mensajeObservacionesCliente = '';
-    this.contextoService.enviarObservacionesNodo(ref, nodeRef, observations, email).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.operacionDocumental(() => this.contextoService.enviarObservacionesNodo(ref, nodeRef, observations, email), () => this.enviandoNotificacionMesaDigital = false).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         if (!vigente()) return;
         this.enviandoNotificacionMesaDigital = false;
@@ -3304,6 +3344,7 @@ private consultarInformacionActa(): void {
   }
 
   enviarNotificacionMesaDigital(): void {
+    if (this.procesandoRevisionDocumental) return;
     if (this.modoContextoBff) { this.enviarObservacionesBff(); return; }
     if (!this.esMesaDigitalSesion) return;
     const email = this.emailNotificacionMesaDigital.trim();
@@ -3327,8 +3368,12 @@ private consultarInformacionActa(): void {
     }
 
     this.enviandoNotificacionMesaDigital = true;
-    this.documentosProspectoService.enviarObservaciones({ email, observations }).subscribe({
-      next: () => {
+    this.operacionDocumental(() => this.documentosProspectoService.enviarObservaciones({ email, observations }), () => this.enviandoNotificacionMesaDigital = false).subscribe({
+      next: respuesta => {
+        if ((respuesta as { success?: boolean } | null)?.success === false) {
+          this.mostrarModalRegistro('error', 'Operación no confirmada', 'El servicio no confirmó la operación.');
+          return;
+        }
         this.enviandoNotificacionMesaDigital = false;
         this.observacionesClienteMesaDigital = '';
         this.emailNotificacionMesaDigital = '';
@@ -3342,6 +3387,7 @@ private consultarInformacionActa(): void {
   }
 
   guardarRevisionDocumentos(finalizarDespues = false, alGuardar?: () => void): void {
+    if (this.procesandoRevisionDocumental) return;
     if (this.modoContextoBff) { this.guardarRevisionBff(finalizarDespues); return; }
     if (!this.esMesaDigitalSesion || !this.habilitarMesaDigitalEdicion) return;
     const legalDocuments = this.documentosProspecto
@@ -3355,14 +3401,18 @@ private consultarInformacionActa(): void {
 
     this.guardandoRevisionDocumentos = true;
     this.errorDocumentosProspecto = '';
-    this.documentosProspectoService.actualizarRevision({
+    this.operacionDocumental(() => this.documentosProspectoService.actualizarRevision({
       commerceId: this.commerceID,
       generalStatus: this.estatusGeneralParaEnvio(legalDocuments.map(documento => documento.status)),
       internalObservations: this.observacionesInternasMesaDigital.trim() || null,
       reviewedBy: this.usuarioRevision(),
       legalDocuments,
-    }).subscribe({
-      next: () => {
+    }), () => this.guardandoRevisionDocumentos = false).subscribe({
+      next: respuesta => {
+        if ((respuesta as { success?: boolean } | null)?.success === false) {
+          this.mostrarModalRegistro('error', 'Operación no confirmada', 'El servicio no confirmó la operación.');
+          return;
+        }
         this.guardandoRevisionDocumentos = false;
         if (alGuardar) {
           alGuardar();
@@ -3373,6 +3423,7 @@ private consultarInformacionActa(): void {
           return;
         }
 
+        this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
         this.guardarCapturaNodoActual();
         const nodoGuardado = this.nodoSeleccionado;
         this.guardarLiquidacionActual();

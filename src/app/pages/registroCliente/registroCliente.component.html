@@ -1,5 +1,7 @@
-<div class="registro-shell">
-  <app-processing-overlay *ngIf="registrandoCliente" />
+<app-processing-overlay *ngIf="procesandoRevisionDocumental"
+  texto="Procesando información, por favor espera…" descripcion="" />
+<div class="registro-shell" [attr.inert]="procesandoRevisionDocumental ? '' : null">
+  <app-processing-overlay *ngIf="registrandoCliente && !procesandoRevisionDocumental" />
   <app-processing-overlay
   *ngIf="enviandoCredenciales"
   texto="Enviando credenciales..."
@@ -460,7 +462,7 @@
   </article>
 </div>
 
-<div class="registro-modal-backdrop" *ngIf="modalRegistro.visible">
+<div class="registro-modal-backdrop" *ngIf="modalRegistro.visible && !procesandoRevisionDocumental">
   <section class="registro-modal" role="dialog" aria-modal="true">
     <div class="registro-modal-body">
       <i class="far registro-modal-icon" [ngClass]="modalRegistro.tipo === 'error' ? 'fa-times-circle error' : 'fa-check-circle'" aria-hidden="true"></i>

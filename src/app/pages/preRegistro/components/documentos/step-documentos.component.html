@@ -203,7 +203,6 @@
         <button type="button" class="button primary" [disabled]="deshabilitarFinalizar" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
       }
     </div>
-    @if (flujoRevisionMD && pendientesRevisionMD) { <p role="status">{{ pendientesRevisionMD }}</p> }
     <ng-container *ngTemplateOutlet="cargaDocumento" />
     @if (mensajeNotificacion) {
       <p class="mesa-notification-message">{{ mensajeNotificacion }}</p>
