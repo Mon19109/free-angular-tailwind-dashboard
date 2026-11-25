@@ -65,13 +65,14 @@
 
            <option
   *ngFor="let entidad of entidades"
-  [value]="entidad.account || entidad.bundle">
+  [value]="entidad.account || entidad.bundle || entidad.sirioId || entidad.sirioID || entidad.idSirio">
 
   {{ entidad.name || entidad.bussinesName || entidad.businessName }}
 
 </option>
 
             </select>
+            <p *ngIf="errorEntidades" role="alert">{{ errorEntidades }}</p>
 
           </div>
         </div>

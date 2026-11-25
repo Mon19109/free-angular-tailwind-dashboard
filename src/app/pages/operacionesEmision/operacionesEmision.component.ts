@@ -38,6 +38,7 @@ export class OperacionesEmisionComponent implements OnInit {
   fechaErrorMensaje = '';
   //cuentas: any[] = [];
   entidades: any[] = [];
+  errorEntidades = '';
   tiposOperacion: any[] = [];
   operaciones: any[] = [];
 
@@ -144,9 +145,14 @@ onFechaFinChange(event: any) {
 
   cargarDatosIniciales(): void {
     // Cargar cuentas
-   this.operaEmiService.obtenerCuentas().subscribe({
+   this.errorEntidades = '';
+   this.operaEmiService.obtenerCuentas().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
   next: (data) => {
-    this.entidades = data.filter((entidad: any) => entidad.active === true && Number(entidad.type) === 4);
+    this.entidades = data;
+  },
+  error: () => {
+    this.entidades = [];
+    this.errorEntidades = 'No se pudieron cargar las entidades. Intenta nuevamente.';
   }
 });
 

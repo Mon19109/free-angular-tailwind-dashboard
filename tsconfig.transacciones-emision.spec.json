@@ -2,6 +2,8 @@
   "extends": "./tsconfig.spec.json",
   "include": [
     "src/**/*.d.ts",
-    "src/app/pages/transaccionesEmision/transaccionesEmision.component.spec.ts"
+    "src/app/pages/transaccionesEmision/transaccionesEmision.component.spec.ts",
+    "src/app/pages/operacionesEmision/operacionesEmision.component.spec.ts",
+    "src/app/services/entidades-emision.service.spec.ts"
   ]
 }

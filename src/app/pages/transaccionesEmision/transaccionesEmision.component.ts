@@ -51,7 +51,7 @@ export class TransaccionesEmisionComponent implements OnInit {
   cargarDatosIniciales(): void {
     this.transEmiService.obtenerCuentas().subscribe({
       next: data => {
-        this.cuentas = this.extraerLista(data).filter(cuenta => Number(cuenta?.type) === 4 && cuenta?.active === true);
+        this.cuentas = data;
       },
       error: () => {
         this.cuentas = [];
@@ -424,6 +424,7 @@ export class TransaccionesEmisionComponent implements OnInit {
     return String(
       cuenta?.sirioId ??
       cuenta?.sirioID ??
+      cuenta?.idSirio ??
       cuenta?.bundle ??
       cuenta?.issueId ??
       cuenta?.entitySonID ??

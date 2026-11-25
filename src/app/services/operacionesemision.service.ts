@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { environment } from '../environments/environments';
+import { EntidadEmision, EntidadesEmisionService } from './entidades-emision.service';
 //import { AuthService, UserSessionData } from '../services/auth.service';
 
 export interface FiltrosDetalleLiquidacion {
@@ -38,6 +39,7 @@ export interface FormularioData {
   providedIn: 'root'
 })
 export class OperacionesEmisionService {
+  private readonly entidadesService = inject(EntidadesEmisionService);
   private apiUrl = environment.api.kashpay; // Reemplazar con tu URL base
   private apiV1Url = `${this.apiUrl}api/v1/`;
   private apiUrlCuentas = environment.api.aldebaran;
@@ -74,19 +76,15 @@ export class OperacionesEmisionService {
    * Obtiene la lista de cuentas del API
    */
 
-  obtenerCuentas(): Observable<Cuenta[]> {
-    return this.http.get<any>(`/api/operaciones-emision/cuentas?fatherId=${encodeURIComponent(localStorage.getItem('issueId') || '')}`);
-     //return this.http.get<any>(`${this.apiUrlCuentas}getEntityLevels?fatherId=${localStorage.getItem('entitySonID')}&level=`);
-    
-
-    //return this.http.get<Cuenta[]>(`/api/operaciones-emision/cuentas?fatherId=${encodeURIComponent(localStorage.getItem('issueId') || '')}`);
+  obtenerCuentas(): Observable<EntidadEmision[]> {
+    return this.entidadesService.obtenerEntidades();
   }
 
 
 obtenerConcentratorAccounts(): Observable<any> {
   return this.http.get<any>(
-    `/api/operaciones-emision/cuentas-concentradoras?sirioId=${encodeURIComponent(localStorage.getItem('entitySonID') || '')}`,
-    { headers: this.getBearerHeaders() }
+    '/api/operaciones-emision/cuentas-concentradoras',
+    { withCredentials: true }
   );
 }
 
