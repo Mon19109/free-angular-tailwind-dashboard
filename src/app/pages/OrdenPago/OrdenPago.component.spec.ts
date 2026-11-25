@@ -57,4 +57,25 @@ describe('Orden de pago: carga con sesión pública', () => {
     expect(fixture.componentInstance.formulario.value.accountNumber).toBe('123456789012345678');
     expect(fixture.componentInstance.formulario.value.idInstitution).toBe('40903');
   });
+
+  it('carga los contactos aunque falle la consulta de cuentas', () => {
+    const fixture = TestBed.createComponent(OrdenPagoComponent);
+    fixture.detectChanges();
+    http.expectOne('/api/orden-pago/cuentas').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    http.expectOne('/api/orden-pago/contactos').flush({ contacts: [{ fullName: 'Beneficiario', accountNumber: '123456789012345678' }] });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.beneficiarios.length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('No fue posible cargar las cuentas ordenantes.');
+  });
+
+  it('carga cuentas aunque fallen los contactos y distingue el error de una lista vacía', () => {
+    const fixture = TestBed.createComponent(OrdenPagoComponent);
+    fixture.detectChanges();
+    http.expectOne('/api/orden-pago/cuentas').flush({ accounts: [{ idSirio: 'ORIGEN-1', name: 'Cuenta emisión' }] });
+    http.expectOne('/api/orden-pago/contactos').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.cuentas.length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('No fue posible cargar los contactos beneficiarios.');
+    expect(fixture.nativeElement.textContent).not.toContain('Sin beneficiarios disponibles');
+  });
 });

@@ -78,6 +78,7 @@
                   {{ obtenerTextoCuenta(cuenta) }}
                 </option>
               </select>
+              <p *ngIf="errorCuentas" class="campo-requerido" role="alert">{{ errorCuentas }}</p>
               <div *ngIf="formulario.get('cuentaOr')?.touched && formulario.get('cuentaOr')?.hasError('required')" class="campo-requerido" role="alert">
                 Selecciona una cuenta ordenante.
               </div>
@@ -95,6 +96,7 @@
                 </option>
               </select>
               <input type="hidden" formControlName="fullName" name="fullName">
+              <p *ngIf="errorContactos" class="campo-requerido" role="alert">{{ errorContactos }}</p>
               <input type="hidden" formControlName="accountNumber" name="accountNumber">
               <input type="hidden" formControlName="cardNumberMask" name="cardNumberMask">
               <input type="hidden" formControlName="idInstitution" name="idInstitution">

@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -21,6 +22,7 @@ styleUrls: ['./OrdenPago.component.css']
 })
 export class OrdenPagoComponent implements OnInit {
     private readonly sessionAuth = inject(AuthService);
+    private readonly destroyRef = inject(DestroyRef);
 
 formulario!: FormGroup;
 
@@ -59,6 +61,8 @@ tipoMensajeEnvio: 'success' | 'error' = 'success';
 cuentas: any[] = [];
 beneficiarios: any[] = [];
 beneficiariosCargados = false;
+errorCuentas = '';
+errorContactos = '';
 
 //sesion: UserSessionData | null = null;
 private sesion: any = null;
@@ -139,15 +143,11 @@ this.limpiarMensajeEnvio();
 }
 
 cargarCuentas(): void {
-const entitySonID = this.sesion?.entitySonID || this.sessionAuth.getSessionValue('entitySonID');
-
-if (!entitySonID) {
-console.warn('No hay entitySonID para cargar cuentas ordenantes');
-return;
-}
+this.errorCuentas = '';
 
 this.ordenPagoService
-.obtenerCuentas(entitySonID)
+.obtenerCuentas()
+.pipe(takeUntilDestroyed(this.destroyRef))
 .subscribe({
 next: (resp) => {
 
@@ -164,29 +164,20 @@ String(cuenta?.name ?? cuenta?.bussinesName ?? cuenta?.businessName ?? cuenta?.a
 );
 
 },
-error: (err) => {
-console.error('Error al cargar cuentas ordenantes', err);
+error: () => {
+this.cuentas = [];
+this.errorCuentas = 'No fue posible cargar las cuentas ordenantes. Intenta nuevamente.';
 }
 });
 }
 
 cargarBeneficiarios(): void {
-
-const idUser =
-this.sesion?.validate ||
-            this.sessionAuth.getSessionValue('validate') ||
-this.sesion?.idUser ||
-            this.sessionAuth.getSessionValue('idUser');
-
-if (!idUser) {
-console.warn('No hay idUser para cargar beneficiarios');
-return;
-}
-
-/* console.log('Cargando beneficiarios con idUser:', idUser); */
+this.errorContactos = '';
+this.beneficiariosCargados = false;
 
 this.ordenPagoService
-.obtenerContactos(String(idUser))
+.obtenerContactos()
+.pipe(takeUntilDestroyed(this.destroyRef))
 .subscribe({
 next: (resp) => {
 
@@ -203,9 +194,9 @@ this.beneficiarios = this.normalizarLista(resp, [
 ]);
 
 },
-error: (err) => {
-this.beneficiariosCargados = true;
-console.error('Error al cargar beneficiarios', err);
+error: () => {
+this.beneficiarios = [];
+this.errorContactos = 'No fue posible cargar los contactos beneficiarios. Intenta nuevamente.';
 }
 });
 
