@@ -194,14 +194,35 @@
         <i class="fa-regular" [ngClass]="guardandoBorrador ? 'fa-hourglass-half' : 'fa-folder'"></i>
         {{ guardandoBorrador ? 'Guardando...' : 'Guardar Borrador' }}
       </button>
-      @if (flujoRevisionMD) {
-        <button type="button" class="button primary" [disabled]="guardandoBorrador || !permitirRevision" (click)="guardarBorrador.emit()">Guardar revisión</button>
-        @if (accionRevisionMD) {
-          <button type="button" class="button primary" [disabled]="deshabilitarFinalizar" (click)="finalizar.emit()">{{ accionRevisionMD }}</button>
-        }
-      } @else {
-        <button type="button" class="button primary" [disabled]="deshabilitarFinalizar" (click)="finalizar.emit()">{{ textoFinalizar }}</button>
-      }
+    
+    @if (flujoRevisionMD) {
+  @if (accionRevisionMD) {
+    <button
+      type="button"
+      class="button primary"
+      [disabled]="deshabilitarFinalizar"
+      (click)="finalizar.emit()">
+      {{ accionRevisionMD }}
+    </button>
+  } @else {
+    <button
+      type="button"
+      class="button primary"
+      [disabled]="guardandoBorrador || !permitirRevision"
+      (click)="guardarBorrador.emit()">
+      Guardar revisión
+    </button>
+  }
+} @else {
+  <button
+    type="button"
+    class="button primary"
+    [disabled]="deshabilitarFinalizar"
+    (click)="finalizar.emit()">
+    {{ textoFinalizar }}
+  </button>
+}
+
     </div>
     <ng-container *ngTemplateOutlet="cargaDocumento" />
     @if (mensajeNotificacion) {

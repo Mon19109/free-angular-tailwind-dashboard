@@ -2998,10 +2998,30 @@ if (this.modoContextoBff) {
   progresoMD: ProgresoRevisionMD | null = null;
   private revisionesMDGuardadas = new Set<string>();
   get flujoRevisionMD(): boolean { return this.modoContextoBff && this.actaNodo===this.claveActa && this.actaStatus===35; }
-  get accionRevisionMD(): 'Continuar'|'Registrar'|null {
-    if(!this.flujoRevisionMD || !this.revisionesMDGuardadas.has(this.claveActa) || !this.progresoMD || this.cargandoDocumentosProspecto) return null;
-    return this.progresoMD.canRegister ? 'Registrar' : this.progresoMD.nextRef ? 'Continuar' : null;
+  
+ get accionRevisionMD(): 'Continuar' | 'Registrar' | null {
+  if (
+    !this.flujoRevisionMD ||
+    !this.progresoMD ||
+    this.cargandoDocumentosProspecto ||
+    this.errorDocumentosProspecto ||
+    this.esPerfilConsulta11 ||
+    !this.puedeVerRevisionDocumental ||
+    !this.revisionPermitidaBff
+  ) return null;
+
+  if (!this.documentosNodoValidados(this.nodoSeleccionado)) {
+    return null;
   }
+
+  if (this.progresoMD.canRegister) {
+    return 'Registrar';
+  }
+
+  return this.progresoMD.nextRef ? 'Continuar' : null;
+}
+
+
   get pendientesRevisionMD(): string {
     if(!this.flujoRevisionMD) return '';
     if(!this.progresoMD) return 'No fue posible verificar la documentación completa del árbol. Vuelve a consultar.';
@@ -3269,7 +3289,7 @@ private consultarInformacionActa(): void {
           if(!response.reviewProgress) { this.mensajeObservacionesCliente='La revisión no tiene una verificación documental completa.';this.mostrarModalRegistro('error','Verificación pendiente',this.mensajeObservacionesCliente);return; }
           this.progresoMD=response.reviewProgress;
           this.revisionesMDGuardadas.add(this.claveActa);
-          this.mostrarModalRegistro('success','Revisión confirmada','La revisión documental fue confirmada por Payara.');
+          this.mostrarModalRegistro('success','Revisión confirmada','La revisión documental fue confirmada correctamente.');
           // This response already verifies persisted documents and the whole tree.
           // A second read can discard that confirmed progress before Registrar is shown.
           this.documentosConfirmadosBffPorNodo[nodeRef] = Object.fromEntries(documents.map(doc => [doc.ref, doc.status]));
