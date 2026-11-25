@@ -837,6 +837,9 @@ enviarCredenciales(): void {
     } else {
       this.consultaDocumentosBff?.unsubscribe();
       this.actaStatus = null; this.actaPermitida = false; this.progresoMD = null;
+      ++this.solicitudActa;
+this.cargandoActa = false;
+this.actaConsultada = '';
       this.documentosProspecto = [];
       this.documentosBffConsultados = false;
       delete this.documentosProspectoPorNodo[nodeRef];
@@ -870,6 +873,14 @@ enviarCredenciales(): void {
           this.actaStatus = respuesta.permissions?.selectedCommerceStatus ?? null;
           this.actaPermitida = respuesta.permissions?.actaConstitutiva === true;
           this.actaNodo = this.claveActa;
+          if (
+  this.actaPermitida &&
+  (!conservarCaptura || !Object.hasOwn(this.textosActa, this.claveActa))
+) {
+  this.consultarInformacionActa();
+} else if (this.actaPermitida) {
+  this.actaConsultada = this.claveActa;
+}
           this.revisionPermitidaBff = respuesta.permissions?.reviewDocuments === true;
           this.notificacionPermitidaBff = respuesta.permissions?.sendObservations === true;
           this.registroPermitidoBff = respuesta.permissions?.registerClient === true;
@@ -2993,34 +3004,174 @@ if (this.modoContextoBff) {
   private actaNodo = '';
   private actaPermitida = false;
   private textosActa: Record<string,string> = {};
+  cargandoActa = false;
+private actaConsultada = '';
+private solicitudActa = 0;
   guardandoActa = false;
+  get actaBloqueada(): boolean {
+  return this.guardandoActa ||
+    this.cargandoActa ||
+    this.actaConsultada !== this.claveActa;
+}
   private get claveActa(): string { return `${this.contextoBff?.commerce.ref ?? ''}:${this.nodoSeleccionado}`; }
   get textoActa(): string { return this.textosActa[this.claveActa] ?? ''; }
   set textoActa(value: string) { this.textosActa[this.claveActa] = value; }
   get mostrarActaConstitutiva(): boolean {
-    return this.modoContextoBff && this.actaNodo === this.claveActa && this.actaStatus === 30 && this.actaPermitida;
+   return this.modoContextoBff &&
+  this.actaNodo === this.claveActa &&
+  this.actaPermitida;
   }
-  guardarInformacionActa(): void {
-    if (!this.mostrarActaConstitutiva || this.guardandoActa) return;
-    const ref = this.contextoBff!.commerce.ref, node = this.nodoSeleccionado, key = this.claveActa;
-    this.guardandoActa = true;
-    this.contextoService.avanzarRevisionActa(ref,node).pipe(takeUntilDestroyed(this.destroyRef), finalize(()=>this.guardandoActa=false)).subscribe({
+  
+  
+
+guardarInformacionActa(): void {
+  if (
+    !this.mostrarActaConstitutiva ||
+    this.guardandoActa ||
+    this.cargandoActa ||
+    this.actaConsultada !== this.claveActa
+  ) return;
+
+  const ref = this.contextoBff!.commerce.ref;
+  const node = this.nodoSeleccionado;
+  const key = this.claveActa;
+  const texto = this.textoActa.trim();
+
+  if (!texto || texto.length > 4096) {
+    this.mostrarModalRegistro(
+      'error',
+      'Información requerida',
+      'Captura la información del acta constitutiva. Máximo 4096 caracteres.'
+    );
+    return;
+  }
+
+  this.guardandoActa = true;
+
+  this.contextoService.avanzarRevisionActa(ref, node, texto)
+    .pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.guardandoActa = false)
+    )
+    .subscribe({
       next: result => {
         if (this.claveActa !== key) return;
-        if (result?.success !== true || result.idStatus !== 35) {
-          this.mostrarModalRegistro('error','Actualización no confirmada','No se pudo confirmar el cambio de estatus.'); return;
+
+        if (
+          result?.success !== true ||
+          result.informationSaved !== true
+        ) {
+          this.mostrarModalRegistro(
+            'error',
+            'Información no confirmada',
+            'No se pudo confirmar el almacenamiento de la información.'
+          );
+          return;
         }
-        this.actaStatus = 35;
-        this.mostrarModalRegistro('success','Estatus actualizado','El comercio pasó al estatus 35 – EN VALIDACIÓN DOCUMENTACIÓN MD. El texto del acta no fue almacenado en Payara.');
-        this.refrescarEstadoDocumentalBff();
+
+        this.textosActa[key] = texto;
+
+        if (result.statusChanged === true && result.idStatus === 35) {
+          this.actaStatus = 35;
+
+          this.mostrarModalRegistro(
+            'success',
+            'Información guardada',
+            'La información se guardó correctamente. El comercio pasó al estatus 35 – EN VALIDACIÓN DOCUMENTACIÓN MD.'
+          );
+
+          this.refrescarEstadoDocumentalBff();
+        } else {
+          this.mostrarModalRegistro(
+            'success',
+            'Información guardada',
+            'La información del acta constitutiva se guardó correctamente.'
+          );
+        }
       },
-      error: () => {
+      error: error => {
         if (this.claveActa !== key) return;
-        this.mostrarModalRegistro('error','No fue posible actualizar el estatus','La transición no fue confirmada. Consulta el estado actual antes de volver a intentarlo.');
-        this.refrescarEstadoDocumentalBff();
+
+        if (error?.error?.code === 'COMERCIOS_ACTA_PARTIALLY_COMPLETED') {
+          this.mostrarModalRegistro(
+            'error',
+            'Información guardada',
+            'El texto fue almacenado, pero no se pudo confirmar el estado final del comercio.'
+          );
+
+          this.refrescarEstadoDocumentalBff();
+          return;
+        }
+
+        this.mostrarModalRegistro(
+          'error',
+          'No fue posible confirmar el guardado',
+          'Consulta la información almacenada antes de volver a intentarlo.'
+        );
+
+        this.actaConsultada = '';
+        this.consultarInformacionActa();
       }
     });
-  }
+}
+
+private consultarInformacionActa(): void {
+  if (!this.mostrarActaConstitutiva) return;
+
+  const ref = this.contextoBff!.commerce.ref;
+  const node = this.nodoSeleccionado;
+  const key = this.claveActa;
+  const solicitud = ++this.solicitudActa;
+
+  this.cargandoActa = true;
+  this.actaConsultada = '';
+
+  this.contextoService.consultarInformacionActa(ref, node)
+    .pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        if (this.solicitudActa === solicitud) {
+          this.cargandoActa = false;
+        }
+      })
+    )
+    .subscribe({
+      next: respuesta => {
+        if (
+          this.claveActa !== key ||
+          this.solicitudActa !== solicitud
+        ) return;
+
+        if (
+          respuesta?.success !== true ||
+          typeof respuesta.articlesOfIncorporation !== 'string'
+        ) {
+          this.mostrarModalRegistro(
+            'error',
+            'Información no disponible',
+            'No fue posible consultar el acta constitutiva.'
+          );
+          return;
+        }
+
+        this.textosActa[key] = respuesta.articlesOfIncorporation;
+        this.actaConsultada = key;
+      },
+      error: () => {
+        if (
+          this.claveActa !== key ||
+          this.solicitudActa !== solicitud
+        ) return;
+
+        this.mostrarModalRegistro(
+          'error',
+          'Información no disponible',
+          'No fue posible consultar la información del acta constitutiva.'
+        );
+      }
+    });
+}
+
 
   get estatusDocumentalBff(): string {
     const status = this.contextoBff?.commerce.status?.trim() || '';

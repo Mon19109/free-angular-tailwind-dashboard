@@ -207,10 +207,48 @@ export class ConsultaComerciosService {
       { documents, internalObservations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
-  avanzarRevisionActa(ref: string, nodeRef: string): Observable<{success: boolean; idStatus: number}> {
-    return this.http.put<{success: boolean; idStatus: number}>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/acta-constitutiva`,
-      {}, {withCredentials:true, headers:new HttpHeaders({'X-Portal-Request':'1'})});
-  }
+ consultarInformacionActa(
+  ref: string,
+  nodeRef: string
+): Observable<{
+  success: boolean;
+  articlesOfIncorporation: string;
+}> {
+  return this.http.get<{
+    success: boolean;
+    articlesOfIncorporation: string;
+  }>(
+    `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/acta-constitutiva`,
+    { withCredentials: true }
+  );
+}
+
+avanzarRevisionActa(
+  ref: string,
+  nodeRef: string,
+  articlesOfIncorporation: string
+): Observable<{
+  success: boolean;
+  informationSaved: boolean;
+  statusChanged: boolean;
+  idStatus: number;
+}> {
+  return this.http.put<{
+    success: boolean;
+    informationSaved: boolean;
+    statusChanged: boolean;
+    idStatus: number;
+  }>(
+    `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/acta-constitutiva`,
+    { articlesOfIncorporation },
+    {
+      withCredentials: true,
+      headers: new HttpHeaders({
+        'X-Portal-Request': '1'
+      })
+    }
+  );
+}
 
   registrarRevisionMD(ref: string, nodeRef: string): Observable<{success:boolean;idStatus:number}> {
     return this.http.post<{success:boolean;idStatus:number}>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/registrar`,
