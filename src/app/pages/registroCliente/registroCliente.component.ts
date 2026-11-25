@@ -3270,7 +3270,10 @@ private consultarInformacionActa(): void {
           this.progresoMD=response.reviewProgress;
           this.revisionesMDGuardadas.add(this.claveActa);
           this.mostrarModalRegistro('success','Revisión confirmada','La revisión documental fue confirmada por Payara.');
-          this.refrescarEstadoDocumentalBff(false);return;
+          // This response already verifies persisted documents and the whole tree.
+          // A second read can discard that confirmed progress before Registrar is shown.
+          this.documentosConfirmadosBffPorNodo[nodeRef] = Object.fromEntries(documents.map(doc => [doc.ref, doc.status]));
+          return;
         }
         if (alGuardar) { alGuardar(); return; }
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
