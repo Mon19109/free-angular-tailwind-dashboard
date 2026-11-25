@@ -29,12 +29,13 @@ export class BeneficiariosService {
   private readonly http = inject(HttpClient);
   private readonly catalogosPublicos = inject(PreregistroCatalogosHttpService);
   private readonly base = '/api/beneficiarios';
+  private readonly headers = { 'X-Portal-Request': '1' };
 
   obtenerContactos(): Observable<any> {
-    return this.http.get(`${this.base}/contactos`, { withCredentials: true });
+    return this.http.get(`${this.base}/contactos`, { withCredentials: true, headers: this.headers });
   }
-  obtenerGiros(): Observable<any> { return this.http.get(`${this.base}/giros`, { withCredentials: true }); }
-  obtenerActividades(): Observable<any> { return this.http.get(`${this.base}/actividades`, { withCredentials: true }); }
+  obtenerGiros(): Observable<any> { return this.http.get(`${this.base}/giros`, { withCredentials: true, headers: this.headers }); }
+  obtenerActividades(): Observable<any> { return this.http.get(`${this.base}/actividades`, { withCredentials: true, headers: this.headers }); }
   buscarInstitucion(cuenta: string, bearerToken?: string, preregistroPublico = false): Observable<any> {
     const params = new HttpParams().set('value', cuenta);
     // Mantiene la ruta de prerregistro publico ya existente; no envia bearerToken al navegador/BFF.
@@ -42,12 +43,12 @@ export class BeneficiariosService {
     return this.http.get(`${this.base}/instituciones`, { params });
   }
   agregarContacto(idUser: number, form: BeneficiarioForm): Observable<any> {
-    return this.http.post(`${this.base}/contactos`, { idUser, form });
+    return this.http.post(`${this.base}/contactos`, { idUser, form }, { headers: this.headers });
   }
   eliminarContactos(ids: Array<string | number>): Observable<any> {
-    return this.http.delete(`${this.base}/contactos`, { params: new HttpParams().set('contactIds', ids.join(',')) });
+    return this.http.delete(`${this.base}/contactos`, { params: new HttpParams().set('contactIds', ids.join(',')), headers: this.headers });
   }
   consultarEstatus(fileKey: string): Observable<any> {
-    return this.http.get(`${this.base}/estatus`, { params: new HttpParams().set('fileKey', fileKey) });
+    return this.http.get(`${this.base}/estatus`, { params: new HttpParams().set('fileKey', fileKey), headers: this.headers });
   }
 }
