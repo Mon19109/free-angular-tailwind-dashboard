@@ -45,9 +45,9 @@ describe('AuthService con BFF', () => {
     const session = spyOn(sessionStorage, 'setItem');
     auth.validarSesion().subscribe();
     http.expectOne('/api/auth/me').flush({ ...active(), usuario: {
-      idBusinessModel: 3, idRol: 3, idPerfil: 1, nodeID: 'no-conservar', accessToken: 'no-conservar'
+      idUser: 7, idBusinessModel: 3, idRol: 3, idPerfil: 1, nodeID: 'no-conservar', accessToken: 'no-conservar'
     } });
-    expect(auth.getUserData()).toEqual({ idBusinessModel: 3, idRol: 3, idPerfil: 1 });
+    expect(auth.getUserData()).toEqual({ idUser: 7, idBusinessModel: 3, idRol: 3, idPerfil: 1 });
     expect(local).not.toHaveBeenCalled();
     expect(session).not.toHaveBeenCalled();
   });

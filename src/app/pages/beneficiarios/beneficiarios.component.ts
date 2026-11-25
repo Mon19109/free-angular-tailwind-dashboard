@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { finalize, Subscription } from 'rxjs';
 import { BeneficiarioForm, BeneficiariosService } from '../../services/beneficiarios.service';
@@ -18,7 +17,6 @@ type TipoResultadoEliminacion = 'exito' | 'error';
   styleUrls: ['./beneficiarios.component.css']
 })
 export class BeneficiariosComponent implements OnInit {
-  private readonly sessionAuth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private beneficiariosService = inject(BeneficiariosService);
 
@@ -186,6 +184,7 @@ export class BeneficiariosComponent implements OnInit {
   }
 
   agregar(): void {
+    if (this.cargando) return;
     this.mensaje = '';
     this.error = '';
 
@@ -194,16 +193,12 @@ export class BeneficiariosComponent implements OnInit {
       return;
     }
 
-    const idUser = this.obtenerIdUser();
-    if (!idUser) {
-      this.error = 'No se encontró el usuario de sesión.';
-      return;
-    }
-
     this.cargando = true;
-    this.beneficiariosService.agregarContacto(idUser, this.form).subscribe({
+    this.beneficiariosService.agregarContacto(this.form).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.cargando = false)
+    ).subscribe({
       next: response => {
-        this.cargando = false;
 
         if (response?.success !== true) {
           this.error = response?.message
@@ -216,9 +211,7 @@ export class BeneficiariosComponent implements OnInit {
         this.mostrarModalBeneficiarioAgregado = true;
       },
       error: error => {
-        console.error('Error al agregar beneficiario:', error);
-        this.error = 'No fue posible agregar el beneficiario.';
-        this.cargando = false;
+        this.error = error?.error?.message || (error?.name === 'Error' ? error.message : 'No fue posible agregar el beneficiario.');
       }
     });
   }
@@ -406,12 +399,6 @@ export class BeneficiariosComponent implements OnInit {
     return Boolean(this.form.actividad);
   }
 
-  private obtenerIdentificadorContactos(): string {
-    return this.sessionAuth.getSessionValue('validate')
-      || this.sessionAuth.getSessionValue('idUser')
-      || '';
-  }
-
   private abrirModalResultadoEliminacion(
     tipo: TipoResultadoEliminacion,
     mensaje: string
@@ -419,10 +406,6 @@ export class BeneficiariosComponent implements OnInit {
     this.tipoResultadoEliminacion = tipo;
     this.mensajeResultadoEliminacion = mensaje;
     this.mostrarModalResultadoEliminacion = true;
-  }
-
-  private obtenerIdUser(): number {
-    return Number(this.sessionAuth.getSessionValue('idUser') || 0);
   }
 
   private limpiarInstitucion(): void {
