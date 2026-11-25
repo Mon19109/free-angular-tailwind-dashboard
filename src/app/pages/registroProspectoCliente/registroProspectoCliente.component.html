@@ -196,17 +196,27 @@
           }
         </article>
 }
-        <article class="section-card info-section" [class.open]="seccionInformativaAbierta === 'datos'" [class.done]="!!prospecto">
-          <button type="button" class="section-trigger" (click)="alternarSeccionInformativa('datos')">
+        <article class="section-card info-section"
+  [class.open]="seccionInformativaAbierta === 'datos' && !datosGeneralesBloqueadosPorEstatus"
+  [class.done]="!!prospecto">
+
+  <button type="button"
+    class="section-trigger"
+    [disabled]="datosGeneralesBloqueadosPorEstatus"
+    (click)="alternarSeccionInformativa('datos')">
             <span class="section-icon"><i class="fa-solid fa-user"></i></span>
             <span class="section-copy">
               <strong>2. Datos Generales</strong>
               <small>Información del representante o contacto principal</small>
             </span>
             <span class="step-status">Completado</span>
-            <i class="fa-solid" [ngClass]="seccionInformativaAbierta === 'datos' ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-          </button>
-          @if (seccionInformativaAbierta === 'datos') {
+          @if (!datosGeneralesBloqueadosPorEstatus) {
+  <i class="fa-solid"
+    [ngClass]="seccionInformativaAbierta === 'datos' ? 'fa-chevron-up' : 'fa-chevron-down'">
+  </i>
+}
+ </button>
+          @if (seccionInformativaAbierta === 'datos' && !datosGeneralesBloqueadosPorEstatus) {
           <div class="section-body" [class.readonly-info-section]="!puedeActualizarDatosGenerales">
             <fieldset class="datos-publicos-fieldset" [disabled]="guardandoDatosGenerales">
             <app-step-datos

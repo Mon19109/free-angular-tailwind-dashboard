@@ -453,8 +453,17 @@ private readonly correosVerificados: Record<string, {
     return !this.modoInterno && this.enlaceAutorizado && !this.registroFinalizado && Array.isArray(fields)
       ? fields.filter((key): key is string => typeof key === 'string' && Object.hasOwn(this.datosForm.controls,key)) : [];
   }
-  get puedeActualizarDatosGenerales(): boolean { return !!this.nodoSeleccionado && this.camposEditablesDatos.length > 0 && !this.errorProspecto; }
+ get datosGeneralesBloqueadosPorEstatus(): boolean {
+  return !this.modoInterno &&
+    this.buscarNodo(this.arbol, this.nodoSeleccionado)?.status === 31;
+}
 
+get puedeActualizarDatosGenerales(): boolean {
+  return !!this.nodoSeleccionado &&
+    !this.datosGeneralesBloqueadosPorEstatus &&
+    this.camposEditablesDatos.length > 0 &&
+    !this.errorProspecto;
+}
   private configurarValidadoresDatosGenerales(): void {
     if (!this.puedeActualizarDatosGenerales) return;
       const opcionales = ['numeroInterior','entreCalle','yCalle','numeroInteriorComercial','entreCalleComercial','yCalleComercial',
@@ -655,8 +664,13 @@ this.link = params.get('link') || pathLink;
     });
   }
 
-  alternarSeccionInformativa(seccion: 'comercio' | 'datos' | 'documentos'): void {
-    this.seccionInformativaAbierta = this.seccionInformativaAbierta === seccion ? null : seccion;
+ alternarSeccionInformativa(seccion: 'comercio' | 'datos' | 'documentos'): void {
+  if (seccion === 'datos' && this.datosGeneralesBloqueadosPorEstatus) {
+    this.seccionInformativaAbierta = null;
+    return;
+  }
+
+  this.seccionInformativaAbierta = this.seccionInformativaAbierta === seccion ? null : seccion;
     if (seccion === 'datos' && this.puedeActualizarDatosGenerales) {
       for (const tipo of ['DF','DC','REP'] as const) this.buscarLocalidadesDatos(tipo);
     }
@@ -1764,9 +1778,13 @@ const formData = new FormData();
     if (this.nodoSeleccionado && this.nodoRequiereAccesos && this.liquidacionConsultada) {
       this.liquidacionPorNodo[this.nodoSeleccionado] = this.estadoLiquidacionActual();
     }
-    //this.nodoSeleccionado = id;
-   // this.mensajeDocumentoPublico = '';
    this.nodoSeleccionado = id;
+   if (
+  this.datosGeneralesBloqueadosPorEstatus &&
+  this.seccionInformativaAbierta === 'datos'
+) {
+  this.seccionInformativaAbierta = null;
+}
 
 if (!this.modoInterno) {
   for (const prefijo of ['admin', 'fac', 'tkt', 'controlador', 'supervisor']) {
