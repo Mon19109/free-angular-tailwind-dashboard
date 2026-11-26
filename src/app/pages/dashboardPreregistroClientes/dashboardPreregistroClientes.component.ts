@@ -742,7 +742,7 @@ if (paso !== null) {
     this.accionesAbiertas = null;
 
    if (accion === 'registroAfiliacion') {
-  if (this.esPerfilConsulta11 || !comercio.ref) return;
+  if (!this.puedeRegistrarAfiliacion(comercio)) return;
 
   this.router.navigate(['/registro_afiliacion'], {
     queryParams: { ref: comercio.ref },
@@ -928,6 +928,15 @@ if (paso !== null) {
       || this.puedeDarBaja()
       || this.puedeConsultarPassword(comercio);
   }
+
+  puedeRegistrarAfiliacion(comercio: Comercio): boolean {
+  const status = this.normalizarTexto(comercio.statusOriginal)
+    .replace(/[\s_-]+/g, '_');
+
+  return !this.esPerfilConsulta11 &&
+    !!comercio.ref &&
+    (status === '34' || status === 'PENDIENTE_DE_AFILIACION');
+}
 
   puedeInactivar(comercio: Comercio): boolean {
     const idRolSesion = this.obtenerIdRolSesion();

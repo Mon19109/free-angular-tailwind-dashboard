@@ -202,10 +202,35 @@ export class ConsultaComerciosService {
       { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
   }
 
-  guardarRevisionNodo(ref: string, nodeRef: string, documents: Array<{ ref: string; status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW' }>, internalObservations: string | null): Observable<{ success: boolean; reviewProgress?: ProgresoRevisionMD }> {
-    return this.http.put<{ success: boolean; reviewProgress?: ProgresoRevisionMD }>(`/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/revision`,
-      { documents, internalObservations }, { withCredentials: true, headers: new HttpHeaders({ 'X-Portal-Request': '1' }) });
-  }
+  guardarRevisionNodo(
+  ref: string,
+  nodeRef: string,
+  documents: Array<{
+    ref: string;
+    status: 'APPROVED' | 'REJECTED' | 'IN_REVIEW';
+  }>,
+  internalObservations: string | null,
+  finalizarRevision = false
+): Observable<{
+  success: boolean;
+  reviewProgress?: ProgresoRevisionMD;
+  statusChanged?: boolean;
+  idStatus?: number;
+}> {
+  return this.http.put<{
+    success: boolean;
+    reviewProgress?: ProgresoRevisionMD;
+    statusChanged?: boolean;
+    idStatus?: number;
+  }>(
+    `/api/comercios/${encodeURIComponent(ref)}/nodos/${encodeURIComponent(nodeRef)}/documentos/revision`,
+    { documents, internalObservations, finalizarRevision },
+    {
+      withCredentials: true,
+      headers: new HttpHeaders({ 'X-Portal-Request': '1' })
+    }
+  );
+}
 
  consultarInformacionActa(
   ref: string,

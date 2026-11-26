@@ -3280,7 +3280,7 @@ private consultarInformacionActa(): void {
     const vigente = () => this.contextoBff?.commerce.ref === ref && this.nodoSeleccionado === nodeRef && this.consultaCuentaActual === generation;
     this.guardandoRevisionDocumentos = true;
     this.mensajeObservacionesCliente = '';
-    this.operacionDocumental(() => this.contextoService.guardarRevisionNodo(ref, nodeRef, documents, notes || null), () => this.guardandoRevisionDocumentos = false).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.operacionDocumental(() => this.contextoService.guardarRevisionNodo(ref, nodeRef, documents, notes || null, avanzar), () => this.guardandoRevisionDocumentos = false).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: response => {
         if (!vigente()) return;
         this.guardandoRevisionDocumentos = false;
@@ -3295,6 +3295,18 @@ private consultarInformacionActa(): void {
           this.documentosConfirmadosBffPorNodo[nodeRef] = Object.fromEntries(documents.map(doc => [doc.ref, doc.status]));
           return;
         }
+        if (response.statusChanged === true && response.idStatus === 34) {
+  this.actaStatus = 34;
+
+  this.mostrarModalRegistro(
+    'success',
+    'Estatus actualizado',
+    'El comercio pasó a PENDIENTE DE AFILIACIÓN.'
+  );
+
+  this.refrescarEstadoDocumentalBff();
+  return;
+}
         if (alGuardar) { alGuardar(); return; }
         this.mostrarModalRegistro('success', 'Operación exitosa', 'Revisión guardada correctamente.');
         this.refrescarEstadoDocumentalBff(avanzar);

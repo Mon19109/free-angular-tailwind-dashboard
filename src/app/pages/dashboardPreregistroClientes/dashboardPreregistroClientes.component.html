@@ -184,8 +184,8 @@
   {{ etiquetaInformacion(comercio) }}
 </button>
                 <button *ngIf="puedeInactivar(comercio)" type="button" (click)="ejecutarAccion('inactivar', comercio)">Inactivar</button>
-               <button
-  *ngIf="!esPerfilConsulta11 && comercio.ref"
+              <button
+  *ngIf="puedeRegistrarAfiliacion(comercio)"
   type="button"
   (click)="ejecutarAccion('registroAfiliacion', comercio)">
   Registro Afiliación
