@@ -70,6 +70,7 @@ export class BeneficiariosComponent implements OnInit {
       finalize(() => this.cargando = false)
     ).subscribe({
       next: resp => {
+        console.log('[Beneficiarios] Respuesta del servicio de contactos:', resp);
         this.contactos = this.normalizarLista(resp, ['contactResponse', 'contacts', 'rows', 'data', 'beneficiarios']);
       },
       error: () => {
