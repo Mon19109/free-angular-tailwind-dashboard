@@ -209,3 +209,12 @@
     grid-template-columns: 1fr;
   }
 }
+
+.afiliacion-aviso { color: var(--af-muted); margin-top: 1rem; }
+.afiliacion-resultado { text-align: center; color: var(--af-text); }
+.afiliacion-resultado h3 { font-size: 1.25rem; font-weight: 600; margin: 1rem 0; }
+.afiliacion-resultado p { margin-bottom: 1.5rem; }
+.resultado-icono { width: 64px; height: 64px; margin: auto; }
+.resultado-icono.exito { color: #16a34a; }
+.resultado-icono.error { color: #dc2626; }
+.campo input:disabled { opacity: .65; }

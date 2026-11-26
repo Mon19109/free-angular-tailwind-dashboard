@@ -22,36 +22,38 @@
         <div class="afiliacion-grid">
           <div class="campo">
             <label for="afiliacionProsa">Afiliación PROSA</label>
-            <input id="afiliacionProsa" type="text"
+            <input id="afiliacionProsa" type="text" maxlength="128" [disabled]="procesando || !verificado || bloqueado"
               name="afiliacionProsa"
               [(ngModel)]="afiliacionProsa" />
           </div>
 
           <div class="campo">
             <label for="giroProsa">GIRO PROSA</label>
-            <input id="giroProsa" type="text"
+            <input id="giroProsa" type="text" maxlength="128" [disabled]="procesando || !verificado || bloqueado"
               name="giroProsa"
               [(ngModel)]="giroProsa" />
           </div>
 
           <div class="campo">
             <label for="afiliacionAmex">Afiliación AMEX</label>
-            <input id="afiliacionAmex" type="text"
+            <input id="afiliacionAmex" type="text" maxlength="128" [disabled]="procesando || !verificado || bloqueado"
               name="afiliacionAmex"
               [(ngModel)]="afiliacionAmex" />
           </div>
 
           <div class="campo">
             <label for="giroAmex">GIRO AMEX</label>
-            <input id="giroAmex" type="text"
+            <input id="giroAmex" type="text" maxlength="128" [disabled]="procesando || !verificado || bloqueado"
               name="giroAmex"
               [(ngModel)]="giroAmex" />
           </div>
         </div>
 
+        <p *ngIf="aviso" class="afiliacion-aviso" role="status">{{ aviso }}</p>
         <div class="afiliacion-actions">
-          <button type="button" class="btn-actualizar" disabled
-            title="Pendiente de integración con el servicio">
+          <button *ngIf="!verificado || bloqueado" type="button" class="btn-actualizar"
+            [disabled]="procesando || !!resultado" (click)="consultar()">Consultar nuevamente</button>
+          <button type="button" class="btn-actualizar" [disabled]="!puedeGuardar" (click)="guardar()">
             Actualizar datos
           </button>
         </div>
@@ -61,3 +63,18 @@
 
   </article>
 </div>
+
+<app-processing-overlay *ngIf="procesando" [texto]="textoCarga" descripcion="Por favor espera..." />
+<app-modal [isOpen]="!!resultado" (close)="resultado = null" className="max-w-md p-8" [showCloseButton]="false">
+  <div *ngIf="resultado" class="afiliacion-resultado" role="alertdialog" aria-modal="true" aria-labelledby="afiliacion-resultado-titulo">
+    <svg class="resultado-icono" [class.exito]="resultado.exito" [class.error]="!resultado.exito"
+      viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="3" />
+      <path *ngIf="resultado.exito" d="m13 24 8 8 15-17" stroke="currentColor" stroke-width="3" />
+      <path *ngIf="!resultado.exito" d="m16 16 16 16M32 16 16 32" stroke="currentColor" stroke-width="3" />
+    </svg>
+    <h3 id="afiliacion-resultado-titulo">{{ resultado.titulo }}</h3>
+    <p>{{ resultado.mensaje }}</p>
+    <button type="button" class="btn-actualizar" (click)="resultado = null">Aceptar</button>
+  </div>
+</app-modal>
