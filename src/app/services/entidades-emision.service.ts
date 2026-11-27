@@ -19,7 +19,7 @@ export interface EntidadEmision {
 export class EntidadesEmisionService {
   private readonly http = inject(HttpClient);
 
-  obtenerEntidades(): Observable<EntidadEmision[]> {
+  obtenerEntidades(niveles: readonly number[] = [4]): Observable<EntidadEmision[]> {
     // Esta ruta llama a getEntityLevels y obtiene fatherId de la sesión del BFF.
     return this.http.get<unknown>('/api/transacciones-emision/cuentas', {
       withCredentials: true
@@ -28,7 +28,7 @@ export class EntidadesEmisionService {
       const lista = Array.isArray(response) ? response : data?.rows ?? data?.content;
       if (!Array.isArray(lista)) throw new Error('Formato de entidades no válido');
       return lista.filter((item): item is EntidadEmision =>
-        !!item && Number(item.type) === 4 && item.active === true);
+        !!item && niveles.includes(Number(item.type)) && item.active === true);
     }));
   }
 }

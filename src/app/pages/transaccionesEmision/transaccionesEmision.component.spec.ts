@@ -30,15 +30,19 @@ describe('Selector de entidades de Transacciones Emisión', () => {
         { sirioId: 'E1', name: 'Entidad uno', type: 4, active: true },
         { sirioId: 'E2', name: 'Entidad dos', type: '4', active: true },
         { sirioId: 'INACTIVA', name: 'Inactiva', type: 4, active: false },
-        { sirioId: 'SUCURSAL', name: 'Sucursal', type: 5, active: true }
+        { bundle: 'SUCURSAL', bussinesName: 'Sucursal', type: 5, active: true },
+        { bundle: 'CAJA', bussinesName: 'Caja', type: 6, active: true },
+        { bundle: 'CAJA-INACTIVA', bussinesName: 'Caja inactiva', type: 6, active: false }
       ];
       http.expectOne('/api/transacciones-emision/cuentas')
         .flush(formato === 'lista' ? entidades : { [formato]: entidades });
       fixture.detectChanges();
 
       const select = fixture.nativeElement.querySelector('select[name="idEntidad"]') as HTMLSelectElement;
-      expect(Array.from(select.options).map(option => option.value)).toEqual(['', 'E1', 'E2']);
+      expect(Array.from(select.options).map(option => option.value)).toEqual(['', 'E1', 'E2', 'SUCURSAL', 'CAJA']);
       expect(select.options[2].textContent).toContain('Entidad dos');
+      expect(select.options[3].textContent).toContain('Sucursal');
+      expect(select.options[4].textContent).toContain('Caja');
       select.value = 'E2';
       select.dispatchEvent(new Event('change'));
       expect(fixture.componentInstance.filtros.idEntidad).toBe('E2');

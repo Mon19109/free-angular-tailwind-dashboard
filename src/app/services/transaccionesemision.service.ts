@@ -43,7 +43,7 @@ export class TransaccionesEmisionService {
  private readonly base='/api/transacciones-emision';
  private readonly entidadesService = inject(EntidadesEmisionService);
  constructor(private http:HttpClient){}
- obtenerCuentas():Observable<EntidadEmision[]>{return this.entidadesService.obtenerEntidades();}
+ obtenerCuentas():Observable<EntidadEmision[]>{return this.entidadesService.obtenerEntidades([4, 5, 6]);}
  obtenerTiposOperacion():Observable<TipoOperacion[]>{return this.http.get<TipoOperacion[]>(`${this.base}/tipos-operacion`);}
  obtenerStatus():Observable<Status[]>{return this.http.get<Status[]>(`${this.base}/status`);}
  enviarFormulario(formData:FormularioData):Observable<any>{
