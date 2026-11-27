@@ -367,7 +367,7 @@ private readonly correosVerificados: Record<string, {
   }
   get accesosPublicosBloqueados(): boolean {
     return !this.modoInterno && (!this.liquidacionConsultada || this.permisosPublicosNodo !== this.nodoSeleccionado
-      || !this.accesosPermitidosPublicos || this.pasosFinalesBloqueadosPorEstatus);
+      || this.estatusPublico !== 36 || !this.accesosPermitidosPublicos || this.pasosFinalesBloqueadosPorEstatus);
   }
   liquidacionConsultada = false;
   liquidacionExistente = false;
@@ -898,7 +898,7 @@ const formData = new FormData();
   }
 
   this.modalLiquidacion = null;
-  this.abrirAccesos();
+  this.consultarLiquidacionNodo();
   return;
 }
     if (!this.nodoRequiereAccesos || !this.modalLiquidacion || this.guardandoLiquidacion) return;
@@ -937,7 +937,8 @@ const formData = new FormData();
       this.liquidacionPermitidaPublica = false;
       this.liquidacionRegistrada = true;
       this.modalLiquidacion = null;
-      this.abrirAccesos();
+      this.guardandoLiquidacion = false;
+      this.consultarLiquidacionNodo();
     },
       error: error => {
         if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
@@ -1983,7 +1984,7 @@ this.mensajeDocumentoPublico = '';
         this.errorLiquidacion = '';
         this.actualizarEstadoLiquidacion();
         this.actualizarValidadoresAccesos();
-        this.pasoActivo = this.liquidacionCompleta ? 'accesos' : 'liquidacion';
+        this.pasoActivo = this.liquidacionCompleta && !this.accesosPublicosBloqueados ? 'accesos' : 'liquidacion';
       },
       error: error => {
         if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.enlaceAutorizado || this.errorProspecto) return;
@@ -2313,7 +2314,7 @@ this.mensajeDocumentoPublico = '';
     this.liquidacionForm.controls.cuentaFueraRed.setValue(opcion || 'otros-bancos', { emitEvent: false });
     this.actualizarEstadoLiquidacion();
     this.actualizarValidadoresAccesos();
-    this.pasoActivo = this.liquidacionExistente ? 'accesos' : 'liquidacion';
+    this.pasoActivo = this.liquidacionExistente && !this.accesosPublicosBloqueados ? 'accesos' : 'liquidacion';
     this.asegurarUsuarioActivo();
   }
 
