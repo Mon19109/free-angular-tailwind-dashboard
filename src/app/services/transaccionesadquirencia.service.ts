@@ -122,14 +122,15 @@ export class TransaccionesAdquirenciaService {
 
  private readonly http=inject(HttpClient);
  private readonly base='/api/transacciones-adquirencia';
- getOperaciones():Observable<any>{return this.http.get(`${this.base}/operaciones`);}
- getEstadosTransaccion():Observable<any>{return this.http.get(`${this.base}/estados`);}
- getSubafiliados():Observable<any>{return this.http.get(`${this.base}/subafiliados`);}
- getSubafiliadoById():Observable<any>{return this.http.get(`${this.base}/subafiliado-sesion`);}
- getEntidades(nodeID:string):Observable<any>{return this.http.get(`${this.base}/entidades/${encodeURIComponent(nodeID)}`);}
- getSucursales(nodeID:string):Observable<any>{return this.http.get(`${this.base}/sucursales/${encodeURIComponent(nodeID)}`);}
- getCajas(nodeID:string):Observable<any>{return this.http.get(`${this.base}/cajas/${encodeURIComponent(nodeID)}`);}
- buscarTransacciones(filtros:FiltrosTransaccion):Observable<any>{return this.http.post(`${this.base}/buscar`,filtros);}
- verTicket(data:TicketRequest):Observable<TicketResponse>{return this.http.post<TicketResponse>(`${this.base}/ticket`,data);}
+ private readonly requestOptions = { headers: { 'X-Portal-Request': '1' } };
+ getOperaciones():Observable<any>{return this.http.get(`${this.base}/operaciones`,this.requestOptions);}
+ getEstadosTransaccion():Observable<any>{return this.http.get(`${this.base}/estados`,this.requestOptions);}
+ getSubafiliados():Observable<any>{return this.http.get(`${this.base}/subafiliados`,this.requestOptions);}
+ getSubafiliadoById():Observable<any>{return this.http.get(`${this.base}/subafiliado-sesion`,this.requestOptions);}
+ getEntidades(nodeID:string):Observable<any>{return this.http.get(`${this.base}/entidades/${encodeURIComponent(nodeID)}`,this.requestOptions);}
+ getSucursales(nodeID:string):Observable<any>{return this.http.get(`${this.base}/sucursales/${encodeURIComponent(nodeID)}`,this.requestOptions);}
+ getCajas(nodeID:string):Observable<any>{return this.http.get(`${this.base}/cajas/${encodeURIComponent(nodeID)}`,this.requestOptions);}
+ buscarTransacciones(filtros:FiltrosTransaccion):Observable<any>{return this.http.post(`${this.base}/buscar`,filtros,this.requestOptions);}
+ verTicket(data:TicketRequest):Observable<TicketResponse>{return this.http.post<TicketResponse>(`${this.base}/ticket`,data,this.requestOptions);}
  
 }
