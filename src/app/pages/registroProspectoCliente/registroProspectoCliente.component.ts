@@ -697,8 +697,11 @@ this.link = params.get('link') || pathLink;
 
   continuarLiquidacion(): void {
     if (!this.modoInterno && (!this.enlaceAutorizado || this.registroFinalizado)) return;
-  if (!this.nodoRequiereAccesos || this.errorProspecto || this.guardando || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
+    const nodoLiquidacion = this.buscarNodo(this.arbol, this.nodoSeleccionado);
+    const aplicable = this.modoInterno ? this.nodoRequiereAccesos : !!nodoLiquidacion && this.nodoRequiereLiquidacion(nodoLiquidacion);
+    if (!aplicable || this.errorProspecto || this.guardando || this.buscandoLiquidacionPendiente || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
     if (this.liquidacionCompleta) {
+      if (!this.modoInterno) { void this.continuarSiguienteLiquidacion(); return; }
       this.abrirAccesos();
       return;
     }
@@ -900,13 +903,13 @@ const formData = new FormData();
   }
 
   this.modalLiquidacion = null;
-  this.abrirAccesos();
+  void this.continuarSiguienteLiquidacion();
   return;
 }
     if (!this.nodoRequiereAccesos || !this.modalLiquidacion || this.guardandoLiquidacion) return;
     if (!this.modoInterno && this.liquidacionCompleta) {
       this.modalLiquidacion = null;
-      this.abrirAccesos();
+      void this.continuarSiguienteLiquidacion();
       return;
     }
     if (this.modalLiquidacion === 'en-red') {
@@ -939,7 +942,8 @@ const formData = new FormData();
       this.liquidacionPermitidaPublica = false;
       this.liquidacionRegistrada = true;
       this.modalLiquidacion = null;
-      this.abrirAccesos();
+      this.guardandoLiquidacion = false;
+      void this.continuarSiguienteLiquidacion();
     },
       error: error => {
         if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
@@ -1260,6 +1264,66 @@ const formData = new FormData();
       this.cerrarPagina();
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  buscandoLiquidacionPendiente = false;
+
+  private nodoRequiereLiquidacion(nodo: NodoProspecto): boolean {
+    if (nodo.levelType != null) return [3, 4, 5].includes(Number(nodo.levelType));
+    const nivel = this.normalizar(nodo.nivel);
+    if (nivel.includes('CAJA') || nivel.includes('TERMINAL')) return false;
+    return ['SUB AFILIADO', 'ENTIDAD', 'SUCURSAL'].some(tipo => nivel.includes(tipo));
+  }
+
+  private async siguienteNodoLiquidacionPendiente(): Promise<NodoProspecto | undefined> {
+    const aplanar = (nodes: NodoProspecto[]): NodoProspecto[] => nodes.flatMap(node => [node, ...aplanar(node.hijos || [])]);
+    const nodos = aplanar(this.arbol).filter(node => this.nodoRequiereLiquidacion(node));
+    const indice = nodos.findIndex(node => node.id === this.nodoSeleccionado);
+    const siguientes = [...nodos.slice(indice + 1), ...nodos.slice(0, Math.max(indice, 0))];
+    for (const nodo of siguientes) {
+      const respuesta = await firstValueFrom<unknown>(this.seguimientoProspectoService.consultarLiquidacionNodo(nodo.id).pipe(
+        takeUntil(this.nodeReadsCancelled), takeUntilDestroyed(this.destroyRef)
+      )) as { success?: boolean; dispersionAccount?: string; cuentaCLConfirmada?: boolean };
+      if (respuesta.success !== true) throw new Error('Liquidación no confirmada');
+      const completa = respuesta.dispersionAccount === 'NETWORK' ||
+        ['OTHER_BANK', 'OTHER_BANK_AND_NETWORK'].includes(respuesta.dispersionAccount || '') && respuesta.cuentaCLConfirmada === true;
+      if (!completa) return nodo;
+    }
+    return undefined;
+  }
+
+  async continuarSiguienteLiquidacion(): Promise<void> {
+    if (this.modoInterno || !this.enlaceAutorizado || this.errorProspecto || !this.liquidacionCompleta ||
+        this.guardandoLiquidacion || this.guardando || this.cargandoCuenta || this.buscandoLiquidacionPendiente) return;
+    const node = this.nodoSeleccionado, version = this.seguimientoVersion;
+    this.buscandoLiquidacionPendiente = true;
+    this.error = '';
+    try {
+      const siguiente = await this.siguienteNodoLiquidacionPendiente();
+      if (node !== this.nodoSeleccionado || version !== this.seguimientoVersion || !this.enlaceAutorizado) return;
+      this.buscandoLiquidacionPendiente = false;
+      if (siguiente) {
+        this.seleccionarNodo(siguiente.id);
+        this.pasoActivo = 'liquidacion';
+      } else {
+        // Reanudación: la finalización del BFF solo verifica el árbol y cambia el estatus.
+        // No vuelve a registrar cuentas ni archivos. Tampoco depende de los accesos.
+        this.buscandoLiquidacionPendiente = true;
+        const actual = await firstValueFrom<unknown>(this.seguimientoProspectoService.consultarLiquidacionNodo(node).pipe(takeUntilDestroyed(this.destroyRef))) as { success?: boolean; status?: number };
+        if (version !== this.seguimientoVersion || node !== this.nodoSeleccionado) return;
+        if (actual.success !== true) throw new Error('Estado no confirmado');
+        if (actual.status === 31) {
+          const result = await firstValueFrom(this.seguimientoProspectoService.finalizarLiquidacion(node).pipe(takeUntilDestroyed(this.destroyRef)));
+          if (version !== this.seguimientoVersion || node !== this.nodoSeleccionado) return;
+          if (result.success !== true || !result.complete) throw new Error('Hay liquidaciones pendientes de confirmación');
+        }
+        this.consultarLiquidacionNodo();
+      }
+    } catch (error) {
+      if (node !== this.nodoSeleccionado || version !== this.seguimientoVersion) return;
+      this.manejarErrorAutorizacionPublica(error);
+      this.error = 'No fue posible consultar la siguiente liquidación pendiente. Reintenta sin volver a enviar la cuenta guardada.';
+    } finally { this.buscandoLiquidacionPendiente = false; }
   }
 
   private siguienteNodoPendiente(): NodoProspecto | undefined {
@@ -1814,7 +1878,7 @@ const formData = new FormData();
   }
 
   seleccionarNodo(id: string): void {
-    if (this.guardandoDatosGenerales || this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico || this.buscandoNodoDocumental) return;
+    if (this.buscandoLiquidacionPendiente || this.guardandoDatosGenerales || this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico || this.buscandoNodoDocumental) return;
     if (!this.modoInterno && (!this.enlaceAutorizado || this.errorProspecto || !this.buscarNodo(this.arbol, id))) return;
     this.error = '';
     if (id === this.nodoSeleccionado) return;
@@ -1953,7 +2017,7 @@ this.mensajeDocumentoPublico = '';
     this.permisosPublicosNodo = '';
     if (!this.modoInterno && (!this.enlaceAutorizado || this.errorProspecto)) return;
     const nodo = this.buscarNodo(this.arbol, this.nodoSeleccionado);
-    if (!nodo || !this.nodoRequiereAccesos) return;
+    if (!nodo || (this.modoInterno ? !this.nodoRequiereAccesos : !this.nodoRequiereLiquidacion(nodo))) return;
     this.liquidacionConsultada = false;
     this.liquidacionExistente = false;
     this.liquidacionRegistrada = false;

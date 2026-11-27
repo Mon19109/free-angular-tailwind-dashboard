@@ -124,7 +124,7 @@
     descripcion="Estamos guardando los datos generales del comercio. Espera un momento." />
   }
 
-  @if (guardando || guardandoLiquidacion) {
+  @if (guardando || guardandoLiquidacion || buscandoLiquidacionPendiente) {
   <app-processing-overlay
     texto="Enviando información..."
     descripcion="Estamos guardando la información capturada. Espera un momento."
@@ -134,7 +134,7 @@
   @if (modoInterno) {
     <ng-container *ngTemplateOutlet="seccionesFinales" />
   } @else {
-  <article class="registro-card" [attr.inert]="subiendoDocumentoPublico || buscandoNodoDocumental || modalDocumentoPublico || guardando || guardandoLiquidacion || guardandoDatosGenerales || modalDatosGenerales || errorProspecto || modalAccesos !== null ? '' : null">
+  <article class="registro-card" [attr.inert]="buscandoLiquidacionPendiente || subiendoDocumentoPublico || buscandoNodoDocumental || modalDocumentoPublico || guardando || guardandoLiquidacion || guardandoDatosGenerales || modalDatosGenerales || errorProspecto || modalAccesos !== null ? '' : null">
     <header class="registro-card-header">
       <div class="prospect-header-toolbar">
         <img class="prospect-header-logo" src="/kashpay_dorado.png" alt="Kashpay" />
@@ -382,6 +382,11 @@
 </ng-template>
 
 <ng-template #seccionesFinales>
+        @if (!modoInterno && liquidacionCompleta && estatusPublico === 31) {
+          <div class="prospect-step-actions">
+            <button type="button" class="button primary" (click)="continuarSiguienteLiquidacion()" [disabled]="buscandoLiquidacionPendiente || guardandoLiquidacion || guardando || cargandoCuenta">Continuar con la siguiente cuenta de liquidación</button>
+          </div>
+        }
         @if (!modoInterno && liquidacionConsultada && pasosFinalesBloqueadosPorEstatus) {
           <p class="registration-message" role="status">Cuenta de liquidación y Accesos a plataforma no están habilitados para el estatus actual del comercio.</p>
         } @else if (!modoInterno && liquidacionConsultada && liquidacionPublicaBloqueada && !liquidacionCompleta) {

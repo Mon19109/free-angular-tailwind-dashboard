@@ -80,6 +80,12 @@ verificarCorreo(
   ));
 }
 
+finalizarLiquidacion(nodeRef: string): Observable<{ success: boolean; complete: boolean; idStatus: number }> {
+  return this.navigation.request(options => this.http.post<{ success: boolean; complete: boolean; idStatus: number }>(
+    `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/liquidacion/finalizar`, {}, options
+  ));
+}
+
 guardarDispersionEnRed(nodeRef: string): Observable<unknown> {
   return this.navigation.request(options => this.http.put(
     `/api/seguimiento-prospecto/nodos/${encodeURIComponent(nodeRef)}/dispersion`,
