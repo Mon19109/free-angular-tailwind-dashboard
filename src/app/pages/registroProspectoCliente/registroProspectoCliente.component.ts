@@ -701,7 +701,7 @@ this.link = params.get('link') || pathLink;
     const aplicable = this.modoInterno ? this.nodoRequiereAccesos : !!nodoLiquidacion && this.nodoRequiereLiquidacion(nodoLiquidacion);
     if (!aplicable || this.errorProspecto || this.guardando || this.buscandoLiquidacionPendiente || !this.liquidacionConsultada || this.cargandoCuenta || this.guardandoLiquidacion) return;
     if (this.liquidacionCompleta) {
-      if (!this.modoInterno) { void this.continuarSiguienteLiquidacion(); return; }
+      if (!this.modoInterno) { this.consultarLiquidacionNodo(); return; }
       this.abrirAccesos();
       return;
     }
@@ -903,13 +903,13 @@ const formData = new FormData();
   }
 
   this.modalLiquidacion = null;
-  void this.continuarSiguienteLiquidacion();
+  this.consultarLiquidacionNodo();
   return;
 }
     if (!this.nodoRequiereAccesos || !this.modalLiquidacion || this.guardandoLiquidacion) return;
     if (!this.modoInterno && this.liquidacionCompleta) {
       this.modalLiquidacion = null;
-      void this.continuarSiguienteLiquidacion();
+      this.consultarLiquidacionNodo();
       return;
     }
     if (this.modalLiquidacion === 'en-red') {
@@ -943,7 +943,7 @@ const formData = new FormData();
       this.liquidacionRegistrada = true;
       this.modalLiquidacion = null;
       this.guardandoLiquidacion = false;
-      void this.continuarSiguienteLiquidacion();
+      this.consultarLiquidacionNodo();
     },
       error: error => {
         if (this.nodoSeleccionado !== nodeRef || this.consultaCuentaVersion !== version) return;
@@ -2090,7 +2090,7 @@ this.mensajeDocumentoPublico = '';
         this.errorLiquidacion = '';
         this.actualizarEstadoLiquidacion();
         this.actualizarValidadoresAccesos();
-        this.pasoActivo = this.liquidacionCompleta ? 'accesos' : 'liquidacion';
+        this.pasoActivo = this.liquidacionCompleta && !this.accesosPublicosBloqueados ? 'accesos' : 'liquidacion';
       },
       error: error => {
         if (this.consultaCuentaVersion !== version || this.nodoSeleccionado !== nodeRef || !this.enlaceAutorizado || this.errorProspecto) return;

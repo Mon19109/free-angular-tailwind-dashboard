@@ -8,7 +8,7 @@ import { RegistroProspectoClienteComponent } from './registroProspectoCliente.co
 describe('Liquidación pública por nodo, independiente de accesos',()=>{
  let c:any, api:any, confirmed:Record<string,string>;
  beforeEach(()=>{
-  api=jasmine.createSpyObj('Seguimiento',['consultarLiquidacionNodo','guardarLiquidacion','guardarDispersionEnRed','guardarAccesos','consultarDocumentos','finalizarLiquidacion']);
+  api=jasmine.createSpyObj('Seguimiento',['consultarLiquidacionNodo','guardarLiquidacion','guardarDispersionEnRed','guardarAccesos','consultarDocumentos','finalizarLiquidacion','completar']);
   TestBed.configureTestingModule({providers:[provideHttpClient(),{provide:ActivatedRoute,useValue:{}},{provide:SeguimientoProspectoService,useValue:api}]});
   c=TestBed.runInInjectionContext(()=>new RegistroProspectoClienteComponent());
   c.enlaceAutorizado=true;c.nodoSeleccionado='root';c.liquidacionConsultada=true;c.liquidacionRegistrada=true;
@@ -19,10 +19,10 @@ describe('Liquidación pública por nodo, independiente de accesos',()=>{
   api.consultarDocumentos.and.returnValue(of({success:true,documents:[]}));
   spyOn(c,'consultarCuentaNodoPublico').and.callFake(()=>c.consultarLiquidacionNodo());
  });
- it('Entidad + 3 sucursales: guardar padre pasa a hija sin accesos y conserva permisos reales',async()=>{
+ it('guardar padre permanece en el mismo nodo y respeta permiso de accesos denegado',async()=>{
   c.modalLiquidacion='guardada';c.aceptarModalLiquidacion();await Promise.resolve();await Promise.resolve();
-  expect(c.nodoSeleccionado).toBe('s1');expect(c.liquidacionPublicaBloqueada).toBeFalse();expect(c.pasoActivo).toBe('liquidacion');
-  expect(api.guardarAccesos).not.toHaveBeenCalled();expect(c.liquidacionPorNodo.root.registrada).toBeTrue();
+  expect(c.nodoSeleccionado).toBe('root');expect(c.liquidacionPublicaBloqueada).toBeFalse();expect(c.pasoActivo).toBe('liquidacion');
+  expect(api.guardarAccesos).not.toHaveBeenCalled();expect(api.consultarLiquidacionNodo).toHaveBeenCalledOnceWith('root');
  });
  it('Entidad + 1 sucursal + caja: omite cajas y permite guardar sucursal',async()=>{
   c.arbol[0].hijos=c.arbol[0].hijos.slice(0,1);
@@ -64,4 +64,53 @@ describe('Liquidación pública por nodo, independiente de accesos',()=>{
  it('modo interno no utiliza navegación pública',async()=>{
   c.modoInterno=true;await c.continuarSiguienteLiquidacion();expect(api.consultarLiquidacionNodo).not.toHaveBeenCalled();
  });
+ function permisos(status:number, id:string, access=true) {
+  return {success:true,status,dispersionAccount:confirmed[id]||null,cuentaCLConfirmada:!!confirmed[id],hasPlatformAccess:false,permissions:{editLiquidation:status===31,editAccess:access}};
+ }
+ it('Liquidación → Accesos del padre → siguiente hija tras guardar accesos',()=>{
+  api.consultarLiquidacionNodo.and.callFake((id:string)=>of(permisos(31,id)));
+  c.modalLiquidacion='guardada';c.aceptarModalLiquidacion();
+  expect(c.nodoSeleccionado).toBe('root');expect(c.pasoActivo).toBe('accesos');expect(c.accesosPublicosBloqueados).toBeFalse();
+  spyOn(c,'actualizarValidadoresAccesos');spyOn(c,'correosAccesosDisponibles').and.returnValue(true);
+  spyOnProperty(c.accesosForm,'invalid','get').and.returnValue(false);
+  api.guardarAccesos.and.returnValue(of({success:true,registration:{status:'PARTIAL'}}));
+  c.finalizar();expect(api.guardarAccesos).toHaveBeenCalled();expect(c.nodoSeleccionado).toBe('root');
+  expect(c.registroFinalizado).toBeFalse();expect(api.completar).not.toHaveBeenCalled();
+  c.aceptarModalAccesos();expect(c.nodoSeleccionado).toBe('s1');expect(c.pasoActivo).toBe('liquidacion');expect(c.liquidacionPublicaBloqueada).toBeFalse();
+ });
+ it('selección manual de hija permite su liquidación aunque el padre tenga accesos pendientes',()=>{
+  api.consultarLiquidacionNodo.and.callFake((id:string)=>of(permisos(31,id)));
+  c.consultarLiquidacionNodo();expect(c.accesosCompletos).toBeFalse();
+  c.seleccionarNodo('s2');expect(c.liquidacionPublicaBloqueada).toBeFalse();expect(c.pasoActivo).toBe('liquidacion');expect(api.guardarAccesos).not.toHaveBeenCalled();
+ });
+ for(const status of [33,34]) it(`individual: accesos siguen disponibles en ${status} después de última liquidación`,()=>{
+  confirmed['root']=status===34?'NETWORK':'OTHER_BANK';
+  c.arbol=[{id:'root',nombre:'Sucursal',nivel:'sucursal',levelType:5,hijos:[{id:'box',nivel:'caja',levelType:6}]}];
+  api.consultarLiquidacionNodo.and.returnValue(of(permisos(status,'root')));
+  c.modalLiquidacion='guardada';c.aceptarModalLiquidacion();
+  expect(c.nodoSeleccionado).toBe('root');expect(c.pasoActivo).toBe('accesos');expect(c.accesosPublicosBloqueados).toBeFalse();
+  expect(c.enlaceAutorizado).toBeTrue();expect(c.registroFinalizado).toBeFalse();expect(api.completar).not.toHaveBeenCalled();
+ });
+ it('guardar EN RED consulta permisos y muestra accesos del mismo nodo',()=>{
+  confirmed={};api.consultarLiquidacionNodo.and.callFake((id:string)=>of(permisos(31,id)));
+  c.consultarLiquidacionNodo();c.modalLiquidacion='en-red';
+  api.guardarDispersionEnRed.and.callFake(()=>{confirmed['root']='NETWORK';return of({success:true});});
+  c.aceptarModalLiquidacion();expect(c.nodoSeleccionado).toBe('root');expect(c.pasoActivo).toBe('accesos');expect(c.guardandoLiquidacion).toBeFalse();
+ });
+ it('fallo al refrescar permisos no navega ni concede accesos con permisos anteriores',()=>{
+  api.consultarLiquidacionNodo.and.returnValue(throwError(()=>({status:503})));
+  c.modalLiquidacion='guardada';c.aceptarModalLiquidacion();
+  expect(c.nodoSeleccionado).toBe('root');expect(c.accesosPublicosBloqueados).toBeTrue();expect(api.guardarAccesos).not.toHaveBeenCalled();
+ });
+
+ for(const status of [33,34]) it(`tras accesos de última sucursal en ${status} vuelve al padre con accesos pendientes`,()=>{
+  c.arbol[0].hijos=c.arbol[0].hijos.slice(0,1);confirmed={root:'NETWORK',s1:'NETWORK'};
+  api.consultarLiquidacionNodo.and.callFake((id:string)=>of(permisos(status,id)));
+  c.consultarLiquidacionNodo();c.seleccionarNodo('s1');
+  expect(c.pasoActivo).toBe('accesos');expect(c.accesosPublicosBloqueados).toBeFalse();
+  c.cuentaComercio={...c.cuentaComercio,hasPlatformAccess:true};c.modalAccesos='Sucursal 1';
+  c.aceptarModalAccesos();expect(c.nodoSeleccionado).toBe('root');expect(c.pasoActivo).toBe('accesos');
+  expect(c.enlaceAutorizado).toBeTrue();expect(c.registroFinalizado).toBeFalse();expect(api.completar).not.toHaveBeenCalled();
+ });
+
 });
