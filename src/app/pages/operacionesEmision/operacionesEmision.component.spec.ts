@@ -31,12 +31,16 @@ describe('Selector de entidades de Operaciones Emisión', () => {
       { bundle: 'CUENTA-2', businessName: 'Entidad dos', type: 4, active: true },
       { idSirio: 'SIRIO-3', name: 'Entidad tres', type: 4, active: true },
       { account: 'INACTIVA', type: 4, active: false },
-      { account: 'SUCURSAL', type: 5, active: true }
+      { bundle: 'SUCURSAL', bussinesName: 'Sucursal', type: 5, active: true },
+      { bundle: 'CAJA', bussinesName: 'Caja', type: 6, active: true },
+      { bundle: 'CAJA-INACTIVA', type: 6, active: false }
     ] });
     fixture.detectChanges();
     const select = fixture.nativeElement.querySelector('select[formControlName="cuenta"]') as HTMLSelectElement;
-    expect(Array.from(select.options).map(option => option.value)).toEqual(['', 'CUENTA-1', 'CUENTA-2', 'SIRIO-3']);
+    expect(Array.from(select.options).map(option => option.value)).toEqual(['', 'CUENTA-1', 'CUENTA-2', 'SIRIO-3', 'SUCURSAL', 'CAJA']);
     expect(select.options[2].textContent).toContain('Entidad dos');
+    expect(select.options[4].textContent).toContain('Sucursal');
+    expect(select.options[5].textContent).toContain('Caja');
     select.value = 'CUENTA-2';
     select.dispatchEvent(new Event('change'));
     expect(fixture.componentInstance.formulario.getRawValue().cuenta).toBe('CUENTA-2');

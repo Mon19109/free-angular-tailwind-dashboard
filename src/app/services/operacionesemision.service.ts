@@ -77,7 +77,7 @@ export class OperacionesEmisionService {
    */
 
   obtenerCuentas(): Observable<EntidadEmision[]> {
-    return this.entidadesService.obtenerEntidades();
+    return this.entidadesService.obtenerEntidades([4, 5, 6]);
   }
 
 
