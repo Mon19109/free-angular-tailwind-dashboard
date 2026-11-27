@@ -222,8 +222,6 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     const nodeIDSesion = obtenerNodoSesion(this.sessionAuth);
     this.cargarSubafiliados();
 
-    if (!nodeIDSesion) return;
-
     this.cargarEntidades(nodeIDSesion);
     this.cargarSucursales(nodeIDSesion);
     this.cargarCajas(nodeIDSesion);
@@ -268,7 +266,6 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     this.solicitudesNiveles[nivel]?.unsubscribe();
     const opciones = nivel === 4 ? this.entidades : nivel === 5 ? this.sucursales : this.cajas;
     opciones.set([]);
-    if (!nodeID) return;
     const request = nivel === 4 ? this.transaccionesAdquirenciaService.getEntidades(nodeID)
       : nivel === 5 ? this.transaccionesAdquirenciaService.getSucursales(nodeID)
       : this.transaccionesAdquirenciaService.getCajas(nodeID);

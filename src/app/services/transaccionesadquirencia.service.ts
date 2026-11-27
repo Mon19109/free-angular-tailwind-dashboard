@@ -122,14 +122,19 @@ export class TransaccionesAdquirenciaService {
 
  private readonly http=inject(HttpClient);
  private readonly base='/api/transacciones-adquirencia';
- private readonly requestOptions = { headers: { 'X-Portal-Request': '1' } };
+ private readonly requestOptions = { withCredentials: true, headers: { 'X-Portal-Request': '1' } };
+ private nivelUrl(nivel: 'entidades' | 'sucursales' | 'cajas', nodeID?: string): string {
+   const nodo = nodeID?.trim();
+   // Sin seleccion explicita, el BFF obtiene el nodo de la sesion del servidor.
+   return `${this.base}/${nivel}${nodo ? `/${encodeURIComponent(nodo)}` : ''}`;
+ }
  getOperaciones():Observable<any>{return this.http.get(`${this.base}/operaciones`,this.requestOptions);}
  getEstadosTransaccion():Observable<any>{return this.http.get(`${this.base}/estados`,this.requestOptions);}
  getSubafiliados():Observable<any>{return this.http.get(`${this.base}/subafiliados`,this.requestOptions);}
  getSubafiliadoById():Observable<any>{return this.http.get(`${this.base}/subafiliado-sesion`,this.requestOptions);}
- getEntidades(nodeID:string):Observable<any>{return this.http.get(`${this.base}/entidades/${encodeURIComponent(nodeID)}`,this.requestOptions);}
- getSucursales(nodeID:string):Observable<any>{return this.http.get(`${this.base}/sucursales/${encodeURIComponent(nodeID)}`,this.requestOptions);}
- getCajas(nodeID:string):Observable<any>{return this.http.get(`${this.base}/cajas/${encodeURIComponent(nodeID)}`,this.requestOptions);}
+ getEntidades(nodeID?:string):Observable<any>{return this.http.get(this.nivelUrl('entidades',nodeID),this.requestOptions);}
+ getSucursales(nodeID?:string):Observable<any>{return this.http.get(this.nivelUrl('sucursales',nodeID),this.requestOptions);}
+ getCajas(nodeID?:string):Observable<any>{return this.http.get(this.nivelUrl('cajas',nodeID),this.requestOptions);}
  buscarTransacciones(filtros:FiltrosTransaccion):Observable<any>{return this.http.post(`${this.base}/buscar`,filtros,this.requestOptions);}
  verTicket(data:TicketRequest):Observable<TicketResponse>{return this.http.post<TicketResponse>(`${this.base}/ticket`,data,this.requestOptions);}
  
