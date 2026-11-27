@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '../../services/auth.service';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { TransaccionesAdquirenciaComponent } from './transaccionesAdquirencia.component';
 import { TransaccionesAdquirenciaService } from '../../services/transaccionesadquirencia.service';
 
@@ -9,12 +9,47 @@ describe('Filtros de Transacciones Adquirencia', () => {
   let service: jasmine.SpyObj<TransaccionesAdquirenciaService>;
 
   beforeEach(() => {
-    service = jasmine.createSpyObj('TransaccionesAdquirenciaService', ['getSubafiliados', 'getEntidades', 'getSucursales', 'getCajas']);
+    service = jasmine.createSpyObj('TransaccionesAdquirenciaService', [
+      'getSubafiliados', 'getSubafiliadoById', 'getEntidades', 'getSucursales', 'getCajas',
+      'getOperaciones', 'getEstadosTransaccion', 'buscarTransacciones'
+    ]);
+    service.getSubafiliados.and.returnValue(of([]));
+    service.getSubafiliadoById.and.returnValue(of([]));
+    service.getOperaciones.and.returnValue(of({ catTransactionTypes: [] }));
+    service.getEstadosTransaccion.and.returnValue(of({ catResponseCodes: [] }));
+    service.buscarTransacciones.and.returnValue(of([]));
     for (const method of [service.getEntidades, service.getSucursales, service.getCajas]) method.and.returnValue(of([]));
     TestBed.configureTestingModule({ providers: [{ provide: TransaccionesAdquirenciaService, useValue: service },
       { provide: AuthService, useValue: { getSessionValue: () => null } }] });
     component = TestBed.runInInjectionContext(() => new TransaccionesAdquirenciaComponent());
     component.rolId = '2';
+  });
+
+  it('consulta los cinco servicios al iniciar y conserva el subafiliado de la sesion', () => {
+    spyOn(TestBed.inject(AuthService), 'getSessionValue').and.callFake(key =>
+      ({ idRol: '3', idContext: '83', nodeID: 'sub-sesion' } as Record<string, string>)[key] ?? null
+    );
+    service.getSubafiliados.and.returnValue(of([{ idNode: 'otro', levelType: 3 }]));
+    service.getSubafiliadoById.and.returnValue(of([{ idNode: 'sub-sesion', levelType: 3 }]));
+
+    component.ngOnInit();
+
+    expect(service.getSubafiliados).toHaveBeenCalledTimes(1);
+    expect(service.getSubafiliadoById).toHaveBeenCalledTimes(1);
+    expect(service.getEntidades).toHaveBeenCalledOnceWith('sub-sesion');
+    expect(service.getSucursales).toHaveBeenCalledOnceWith('sub-sesion');
+    expect(service.getCajas).toHaveBeenCalledOnceWith('sub-sesion');
+    expect(component.filtros.subafiliado).toBe('sub-sesion');
+    expect(service.buscarTransacciones).toHaveBeenCalledTimes(1);
+  });
+
+  it('conserva el catalogo general aunque falle la consulta del subafiliado de sesion', () => {
+    service.getSubafiliados.and.returnValue(of([{ idNode: 'sub', levelType: 3 }]));
+    service.getSubafiliadoById.and.returnValue(throwError(() => new Error('Sin subafiliado')));
+
+    component.cargarSubafiliados();
+
+    expect(component.subafiliados().map(item => item.idNode)).toEqual(['sub']);
   });
 
   for (const [inicio, fin] of [

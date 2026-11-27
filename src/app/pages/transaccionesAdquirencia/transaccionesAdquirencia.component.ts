@@ -1,5 +1,5 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription } from 'rxjs';
+import { catchError, forkJoin, of, Subscription } from 'rxjs';
 import { nodosDelNivelEstricto } from '../../shared/utils/niveles-operaciones';
 import { obtenerNodoSesion } from '../../shared/utils/nodo-sesion';
 import { AuthService } from '../../services/auth.service';
@@ -92,7 +92,7 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
     this.inicializarFechas();
     this.cargarCatalogos();
     this.cargarDependenciasIniciales();
-
+    this.buscarTransacciones();
   }
   
   ngAfterViewInit() {
@@ -239,31 +239,18 @@ export class TransaccionesAdquirenciaComponent implements OnInit, AfterViewInit 
 
   cargarSubafiliados() {
     const idContextSesion = this.sessionAuth.getSessionValue('idContext') || '';
-    if (this.rolId !== '2' || (idContextSesion && idContextSesion !== '0')) {
-      this.cargarSubafiliadoSesion();
-      return;
-    }
+    const usarSesion = this.rolId !== '2' || !!(idContextSesion && idContextSesion !== '0');
     this.subafiliados.set([]);
-    this.transaccionesAdquirenciaService.getSubafiliados().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => {
-        const lista = nodosDelNivelEstricto(res, 3);
+    forkJoin({
+      subafiliados: this.transaccionesAdquirenciaService.getSubafiliados().pipe(catchError(() => of(null))),
+      sesion: this.transaccionesAdquirenciaService.getSubafiliadoById().pipe(catchError(() => of(null))),
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ({ subafiliados, sesion }) => {
+        const respuesta = usarSesion ? sesion : (subafiliados ?? sesion);
+        const lista = nodosDelNivelEstricto(respuesta, 3);
         this.subafiliados.set(lista);
         this.seleccionarSubafiliadoSesion(lista);
       },
-      error: () => this.cargarSubafiliadoSesion(),
-    });
-  }
-
-  private cargarSubafiliadoSesion() {
-    this.subafiliados.set([]);
-    if (!obtenerNodoSesion(this.sessionAuth)) return;
-    this.transaccionesAdquirenciaService.getSubafiliadoById().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => {
-        const lista = nodosDelNivelEstricto(res, 3);
-        this.subafiliados.set(lista);
-        this.seleccionarSubafiliadoSesion(lista);
-      },
-      error: () => this.seleccionarSubafiliadoSesion([]),
     });
   }
 
