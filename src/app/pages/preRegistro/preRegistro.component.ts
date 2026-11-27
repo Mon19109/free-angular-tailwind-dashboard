@@ -98,7 +98,7 @@ type DocumentoNodo = Pick<DocumentoRequerido, 'archivo' | 'archivoNombre'>;
     ArbolNegocioComponent,
   ],
   templateUrl: './preRegistro.component.html',
-  styleUrls: ['./preRegistro.component.css'],
+  styleUrls: ['./preRegistro.component.css', '../../shared/components/processing-overlay/preregistro-popups.css'],
 }) 
 export class PreRegistroComponent {
   private readonly fb = inject(FormBuilder);
@@ -1465,6 +1465,7 @@ export class PreRegistroComponent {
   }
   get ubicacionArbolSeleccionada(): string {
     const nodoId = this.arbolNegocioForm.controls.nodoSeleccionado.value || this.primerNodoCapturableArbol()?.id || 'sucursal-1';
+    if (this.buscarNodoArbol(nodoId)?.nivel === 'caja') return this.buscarNodoArbol(nodoId)!.ruta;
     return this.formatearRutaNodoDesdeDatos(nodoId)
       || this.buscarNodoArbol(nodoId)?.ruta
       || this.arbolNegocioForm.controls.ubicacionSeleccionada.value;
@@ -1511,9 +1512,14 @@ export class PreRegistroComponent {
     if (this.contextoAlta) return this.contextoAlta.arbol;
     if (this.arbolRegistrado) {
       const nombres = this.obtenerNombresArbol();
-      const actualizar = (nodes: NodoArbolNegocio[]): NodoArbolNegocio[] => nodes.map(node => ({
-        ...node, nombre: nombres[node.id] || node.nombre, hijos: actualizar(node.hijos || []),
-      }));
+      const datos = this.obtenerDatosPorSucursal();
+      const actualizar = (nodes: NodoArbolNegocio[], padre?: NodoArbolNegocio, rutaPadre = ''): NodoArbolNegocio[] => nodes.map((node, index) => {
+        const nombreSucursal = padre ? String(datos[padre.id]?.['nombreComercial'] || datos[padre.id]?.['razonSocial'] || padre.nombre).trim() : '';
+        const automatico = node.nivel === 'caja' && /^caja \d+$/i.test(node.nombre);
+        const nombre = nombres[node.id] || (automatico ? `CAJA ${nombreSucursal} ${this.formatearNumero(index + 1)}` : node.nombre);
+        const ruta = [rutaPadre, nombre].filter(Boolean).join(' > ');
+        return { ...node, nombre, ruta, hijos: actualizar(node.hijos || [], { ...node, nombre }, ruta) };
+      });
       return actualizar(this.arbolRegistrado);
     }
     const config = this.configuracionArbol;
@@ -2058,6 +2064,8 @@ export class PreRegistroComponent {
     const payload = this.construirComercioPayload(nodoId, { usarFormularioActual: false });
     delete payload.poss;
     delete payload.password;
+    const nodo = this.buscarNodoArbol(nodoId);
+    if (nodo?.nivel === 'caja') { payload.nameCommerce = nodo.nombre; payload.name = nodo.nombre; }
     if (this.prospectoCreado) {
       const datos = this.obtenerDatosPorSucursal()[nodoId] ?? {};
       const idGiro = Number(datos['giroId']);
@@ -3460,7 +3468,7 @@ const nombreComercio = String(
 ).trim();
 
 const nombrePredeterminado = nombreComercio
-  ? `${nombreComercio} - Caja ${cajaIndex + 1}`
+  ? `CAJA ${nombreComercio} ${this.formatearNumero(cajaIndex + 1)}`
   : `Caja ${this.formatearNumero(cajaIndex + 1)}`;
 
 const cajaNombre = this.nombreNodoArbol(cajaId, nombrePredeterminado);

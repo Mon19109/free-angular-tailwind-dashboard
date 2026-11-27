@@ -98,6 +98,27 @@
     </div>
   </div>
   }
+  @if (subiendoDocumentoPublico || buscandoNodoDocumental) {
+    <div class="preregistro-popup processing-overlay" role="status" aria-live="polite">
+      <div class="processing-card">
+        <span class="processing-spinner" aria-hidden="true"></span>
+        <strong>Trabajando</strong>
+        <small>{{ subiendoDocumentoPublico ? 'Subiendo documento, por favor espera…' : 'Consultando documentos, por favor espera…' }}</small>
+      </div>
+    </div>
+  } @else if (modalDocumentoPublico) {
+    <div class="preregistro-popup result-modal-backdrop" (click)="cerrarModalDocumentoPublico()">
+      <section class="result-modal" role="alertdialog" aria-modal="true" aria-labelledby="documento-modal-title" aria-describedby="documento-modal-message" (click)="$event.stopPropagation()">
+        <div class="result-modal-body">
+          <i class="far result-modal-icon" [class.fa-check-circle]="modalDocumentoPublico === 'exito'" [class.success]="modalDocumentoPublico === 'exito'" [class.fa-times-circle]="modalDocumentoPublico === 'error'" [class.error]="modalDocumentoPublico === 'error'" aria-hidden="true"></i>
+          <h2 id="documento-modal-title">{{ modalDocumentoPublico === 'exito' ? 'Documento cargado correctamente' : 'No se pudo completar la operación' }}</h2>
+          <p id="documento-modal-message">{{ modalDocumentoPublico === 'exito' ? 'El documento se subió correctamente y será revisado por el área correspondiente' : mensajeDocumentoPublico }}</p>
+        </div>
+        <footer class="result-modal-footer"><button type="button" class="button primary result-modal-ok" (click)="cerrarModalDocumentoPublico()" autofocus>Aceptar</button></footer>
+      </section>
+    </div>
+  }
+
   @if (guardandoDatosGenerales) {
   <app-processing-overlay texto="Actualizando información..."
     descripcion="Estamos guardando los datos generales del comercio. Espera un momento." />
@@ -113,7 +134,7 @@
   @if (modoInterno) {
     <ng-container *ngTemplateOutlet="seccionesFinales" />
   } @else {
-  <article class="registro-card" [attr.inert]="guardando || guardandoLiquidacion || guardandoDatosGenerales || modalDatosGenerales || errorProspecto || modalAccesos !== null ? '' : null">
+  <article class="registro-card" [attr.inert]="subiendoDocumentoPublico || buscandoNodoDocumental || modalDocumentoPublico || guardando || guardandoLiquidacion || guardandoDatosGenerales || modalDatosGenerales || errorProspecto || modalAccesos !== null ? '' : null">
     <header class="registro-card-header">
       <div class="prospect-header-toolbar">
         <img class="prospect-header-logo" src="/kashpay_dorado.png" alt="Kashpay" />
@@ -316,6 +337,9 @@
                   [mensajeCargaDocumento]="mensajeDocumentoPublico"
                   (subirDocumento)="subirDocumentoPublico($event)"
                   (verArchivo)="verDocumentoProspecto($event)"/>
+                <div class="documentos-continuar">
+                  <button type="button" class="button primary" [disabled]="subiendoDocumentoPublico || buscandoNodoDocumental || cargandoDocumentos || !!errorProspecto || !!errorDocumentos" (click)="continuarDocumentosPublicos()">Guardar y continuar</button>
+                </div>
               }
             } @else {
             <app-step-documentos

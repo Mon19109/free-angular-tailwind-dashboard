@@ -2,7 +2,7 @@
   @if (errorCatalogos) { <p role="alert">{{ errorCatalogos }}</p> }
   
   @if (enviandoPreRegistro) {
-  <div class="processing-overlay" role="status" aria-live="polite">
+  <div class="preregistro-popup processing-overlay" role="status" aria-live="polite">
     <div class="processing-card">
       <span class="processing-spinner" aria-hidden="true"></span>
       <strong>Enviando preregistro...</strong>
@@ -405,7 +405,7 @@
 </main>
 
 @if (mostrarModalResultadoPreRegistro) {
-<div class="result-modal-backdrop" (click)="cerrarModalResultadoPreRegistro()">
+<div class="preregistro-popup result-modal-backdrop" (click)="cerrarModalResultadoPreRegistro()">
   <section
     class="result-modal"
     role="alertdialog"

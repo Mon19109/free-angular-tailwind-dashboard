@@ -20,6 +20,8 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 //import { concatMap, finalize, from, map, Observable, of, Subject, takeUntil, switchMap, tap, throwError, toArray } from 'rxjs';
 import {
   catchError,
+  defer,
+  firstValueFrom,
   concatMap,
   debounceTime,
   distinctUntilChanged,
@@ -92,7 +94,7 @@ interface NodoProspecto {
     ThemeToggleButtonComponent
   ],
   templateUrl: './registroProspectoCliente.component.html',
-  styleUrls: ['../login/login.component.css', '../registroCliente/registroCliente.component.css', './registroProspectoCliente.component.css']
+  styleUrls: ['../login/login.component.css', '../registroCliente/registroCliente.component.css', './registroProspectoCliente.component.css', '../../shared/components/processing-overlay/preregistro-popups.css']
 })
 export class RegistroProspectoClienteComponent implements OnInit, OnChanges {
   private readonly sessionAuth = inject(AuthService);
@@ -1640,6 +1642,42 @@ const formData = new FormData();
     return estado === 'APPROVED' || estado === 'REJECTED' || estado === 'IN_REVIEW' ? estado : undefined;
   }
 
+  modalDocumentoPublico: 'exito' | 'error' | null = null;
+  cerrarModalDocumentoPublico(): void {
+    this.modalDocumentoPublico = null;
+    this.mensajeDocumentoPublico = '';
+  }
+
+  buscandoNodoDocumental = false;
+
+  async continuarDocumentosPublicos(): Promise<void> {
+    if (this.modoInterno || !this.enlaceAutorizado || this.errorProspecto || this.subiendoDocumentoPublico || this.buscandoNodoDocumental || this.cargandoDocumentos) return;
+    const aplanar = (nodes: NodoProspecto[]): NodoProspecto[] => nodes.flatMap(node => [node, ...aplanar(node.hijos || [])]);
+    const nodos = aplanar(this.arbol).filter(node => node.nivel !== 'caja' && node.levelType !== 6);
+    const index = nodos.findIndex(node => node.id === this.nodoSeleccionado);
+    const siguientes = [...nodos.slice(index + 1), ...nodos.slice(0, Math.max(index, 0))];
+    const version = this.seguimientoVersion, actual = this.nodoSeleccionado;
+    this.buscandoNodoDocumental = true;
+    try {
+      for (const nodo of siguientes) {
+        const response = await firstValueFrom(this.seguimientoProspectoService.consultarDocumentos(nodo.id).pipe(takeUntilDestroyed(this.destroyRef)));
+        if (version !== this.seguimientoVersion || actual !== this.nodoSeleccionado || !this.enlaceAutorizado) return;
+        if (!response.documents.length || response.documents.some(documento => documento.status !== 'APPROVED')) {
+          this.buscandoNodoDocumental = false;
+          this.seleccionarNodo(nodo.id);
+          this.seccionInformativaAbierta = 'documentos';
+          return;
+        }
+      }
+      this.mensajeDocumentoPublico = 'No se encontraron otros nodos con documentación pendiente en la consulta actual.';
+    } catch (error) {
+      if (version !== this.seguimientoVersion || actual !== this.nodoSeleccionado) return;
+      this.manejarErrorAutorizacionPublica(error);
+      this.mensajeDocumentoPublico = 'No fue posible consultar los documentos del siguiente nodo. Intenta nuevamente.';
+      this.modalDocumentoPublico = 'error';
+    } finally { this.buscandoNodoDocumental = false; }
+  }
+
   numeroDocumentoPublico = 1;
   subiendoDocumentoPublico = false;
   mensajeDocumentoPublico = '';
@@ -1658,7 +1696,7 @@ const formData = new FormData();
   }
   async subirDocumentoPublico(event: { archivo: File; documento: DocumentoRequerido }): Promise<void> {
     const file = event.archivo;
-    if (!file || !this.permiteCargaPublica || this.subiendoDocumentoPublico) return;
+    if (!file || !this.permiteCargaPublica || this.subiendoDocumentoPublico || this.buscandoNodoDocumental) return;
     if (!this.documentosCargaPublica.some(documento => documento.numero === event.documento.numero)) return;
     const adicional = documentoAdicional(event.documento.numero);
     if (adicional ? !archivoAdicionalValido(file, event.documento.numero) : (!file.size || file.size > 10 * 1024 * 1024 || !['application/pdf', 'image/png', 'image/jpeg'].includes(file.type))) {
@@ -1667,6 +1705,7 @@ const formData = new FormData();
     }
     const node = this.nodoSeleccionado, navigation = this.seguimientoVersion;
     this.subiendoDocumentoPublico = true;
+    this.modalDocumentoPublico = null;
     try {
       const bytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
       const signature = adicional?.extension === 'xlsm' ? [80,75,3,4]
@@ -1674,17 +1713,20 @@ const formData = new FormData();
         : file.type === 'image/png' ? [137,80,78,71,13,10,26,10] : [255,216,255];
       if (!signature.every((value, i) => bytes[i] === value)) throw new Error('Invalid signature');
     } catch {
+      this.modalDocumentoPublico = 'error';
       this.subiendoDocumentoPublico = false;
       this.mensajeDocumentoPublico = adicional ? `El contenido del archivo no coincide con un ${adicional.extension.toUpperCase()} válido.` : 'El contenido del archivo no coincide con un PDF, PNG o JPEG válido.'; return;
     }
     this.numeroDocumentoPublico = event.documento.numero;
     if (node !== this.nodoSeleccionado || navigation !== this.seguimientoVersion || !this.permiteCargaPublica) { this.subiendoDocumentoPublico = false; return; }
     this.subiendoDocumentoPublico = true; this.errorDocumentos = ''; this.mensajeDocumentoPublico = '';
-    this.seguimientoProspectoService.subirDocumentoNodo(node, this.numeroDocumentoPublico, file).pipe(
+    defer(() => this.seguimientoProspectoService.subirDocumentoNodo(node, this.numeroDocumentoPublico, file)).pipe(
       finalize(() => { this.subiendoDocumentoPublico = false; }), takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: response => {
         if (this.nodoSeleccionado !== node || this.seguimientoVersion !== navigation) return;
+        if (response.success !== true) { this.mensajeDocumentoPublico = 'No fue posible confirmar la carga del documento.'; this.modalDocumentoPublico = 'error'; return; }
+        this.modalDocumentoPublico = 'exito';
         if (response.documentacion?.estado === 'actualizado' && response.documentacion.idStatus === 30) this.consultarCuentaNodoPublico();
         this.mensajeDocumentoPublico = 'Documento cargado. Su revisión corresponde al portal administrativo.';
         this.consultarDocumentos();
@@ -1692,6 +1734,7 @@ const formData = new FormData();
       error: error => {
         if (this.nodoSeleccionado !== node || this.seguimientoVersion !== navigation) return;
         this.manejarErrorAutorizacionPublica(error);
+        this.modalDocumentoPublico = 'error';
         this.mensajeDocumentoPublico = 'No fue posible confirmar la carga del documento.';
       }
     });
@@ -1772,7 +1815,7 @@ const formData = new FormData();
   }
 
   seleccionarNodo(id: string): void {
-    if (this.guardandoDatosGenerales || this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico) return;
+    if (this.guardandoDatosGenerales || this.guardando || this.guardandoLiquidacion || this.validandoArchivos || this.subiendoDocumentoPublico || this.buscandoNodoDocumental) return;
     if (!this.modoInterno && (!this.enlaceAutorizado || this.errorProspecto || !this.buscarNodo(this.arbol, id))) return;
     this.error = '';
     if (id === this.nodoSeleccionado) return;
