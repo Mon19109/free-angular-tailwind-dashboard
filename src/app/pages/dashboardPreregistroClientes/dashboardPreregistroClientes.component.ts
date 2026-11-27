@@ -52,15 +52,14 @@ export class DashboardPreregistroClientesComponent {
   readonly pasosPreregistro = [
  
   
-  { paso: 1, nombre: 'PROSPECTO', status: '25', color: '#3b82f6' },
-  { paso: 2, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN', status: '26', color: '#6366f1' },
+  { paso: 1, nombre: 'PROSPECTO', status: '26', color: '#3b82f6' },
+  { paso: 2, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN', status: '30', color: '#6366f1' },
   { paso: 3, nombre: 'EN VALIDACIÓN DOCUMENTACIÓN MD', status: '35', color: '#a855f7' },  
   { paso: 4, nombre: 'PENDIENTE CUENTAS LIQUIDACIÓN', status: '31', color: '#ec4899' },
   { paso: 5, nombre: 'EN VALIDACIÓN CARTA Y CARÁTULA EDC', status: '33', color: '#f43f5e' },
-  { paso: 6, nombre: 'PENDIENTE ACCESOS A PLATAFORMA', status: '36', color: '#06b6d4' },
-  { paso: 7, nombre: 'PENDIENTE DE AFILIACIÓN', status: '34', color: '#f97316' },
-  { paso: 8, nombre: 'ACCESO A CLIENTE', status: '19', color: '#10b981' },
-  { paso: 9, nombre: 'PENDIENTE FIRMA DE CONTRATO', status: 'PENDIENTE_FIRMA_CONTRATO', color: '#eab308' }
+  { paso: 6, nombre: 'PENDIENTE DE AFILIACIÓN', status: '34', color: '#f97316' },
+  { paso: 7, nombre: 'ACCESO A CLIENTE', status: '19', color: '#10b981' },
+  { paso: 8, nombre: 'PENDIENTE FIRMA DE CONTRATO', status: 'PENDIENTE_FIRMA_CONTRATO', color: '#eab308' }
 ];
 
   pasoSeleccionado: number | null = 1;
@@ -144,24 +143,43 @@ totalesPorPaso: Record<number, number | null> = {};
   }
 
  private esPendienteAutorizacionCore(status: unknown): boolean {
-  return this.obtenerPasoPorEstatus(status) === 9;
+  return this.obtenerPasoPorEstatus(status) === 8;
 }
   private obtenerPasoPorEstatus(status: unknown): number | null {
   const valor = this.normalizarTexto(String(status ?? ''))
     .replace(/[\s-]+/g, '_');
 
   const equivalencias: Record<string, number> = {
-    '25': 1, 'PROSPECTO': 1,
-    '26': 2, 'PROSPECTO_ADMIN': 2, 'EN_VALIDACION_DOCUMENTACION': 2,
-    '30': 3, 'EN_REVISION_DOCUMENTACION': 3,
-    '35': 3, 'EN_VALIDACION_DOCUMENTACION_MD': 3,
-    '31': 4, 'PENDIENTE_CUENTAS_LIQUIDACION': 4,
-    '33': 5, 'EN_VALIDACION_CARTA_Y_CARATULA_EDC': 5,
-    'EN_VALIDACION_CARTA_Y_CARATULA_DE_EDC': 5,
-    '36': 6, 'PENDIENTE_ACCESOS_A_PLATAFORMA': 6,
-    '34': 7, 'PENDIENTE_DE_AFILIACION': 7,
-    '19': 8, 'PENDIENTE_AUTORIZACION_CORE': 8, 'ACCESO_A_CLIENTE': 8,
-    'PENDIENTE_FIRMA_CONTRATO': 9, 'PENDIENTE_FIRMA_DE_CONTRATO': 9
+  '26': 1,
+  'PROSPECTO_ADMIN': 1,
+
+    /*'30': 3,
+    'EN_REVISION_DOCUMENTACION': 3,
+*/
+
+'30': 2,
+'EN_VALIDACION_DOCUMENTACION': 2,
+'EN_REVISION_DOCUMENTACION': 2,
+
+'35': 3,
+'EN_VALIDACION_DOCUMENTACION_MD': 3,
+
+
+    '31': 4,
+    'PENDIENTE_CUENTAS_LIQUIDACION': 4,
+
+    '33': 5,
+    'EN_VALIDACION_CARTA_Y_CARATULA_EDC': 5,
+
+    '34': 6,
+    'PENDIENTE_DE_AFILIACION': 6,
+
+    'PENDIENTE_FIRMA_CONTRATO': 8,
+    'PENDIENTE_FIRMA_DE_CONTRATO': 8,
+
+    '19': 7,
+    'PENDIENTE_AUTORIZACION_CORE': 7
+
   };
 
   return equivalencias[valor] ?? null;
@@ -362,7 +380,7 @@ private aplicarFiltroNivel(): void {
 
       if (
         this.filtros.nivel === 'pendiente-core' &&
-        pasoComercio !== 9
+        pasoComercio !== 8
       ) {
         return false;
       }

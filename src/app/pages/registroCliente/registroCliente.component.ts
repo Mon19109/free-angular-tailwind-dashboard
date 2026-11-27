@@ -3130,7 +3130,7 @@ guardarInformacionActa(): void {
           this.mostrarModalRegistro(
             'success',
             'Información guardada',
-            'La información se guardó correctamente. El comercio pasó al estatus EN VALIDACIÓN DOCUMENTACIÓN MD.'
+            'La información se guardó correctamente. El comercio pasó al estatus 35 – EN VALIDACIÓN DOCUMENTACIÓN MD.'
           );
 
           this.refrescarEstadoDocumentalBff();
@@ -3234,7 +3234,6 @@ private consultarInformacionActa(): void {
       .toUpperCase().replace(/^\d+\s*[-–]\s*/, '').replace(/\s+/g, '_');
     if (['26', 'PROSPECTO_ADMIN'].includes(normalized)) return '26 - PROSPECTO_ADMIN';
     if (['30', 'EN_REVISION_DOCUMENTACION'].includes(normalized)) return '30 - EN REVISIÓN DOCUMENTACIÓN';
-    if (['36', 'PENDIENTE_ACCESOS_A_PLATAFORMA'].includes(normalized)) return '36 - PENDIENTE ACCESOS A PLATAFORMA';
     if (['31', 'PENDIENTE_CUENTAS_LIQUIDACION'].includes(normalized)) return '31 - PENDIENTE CUENTAS LIQUIDACIÓN';
     return status;
   }
@@ -3296,13 +3295,13 @@ private consultarInformacionActa(): void {
           this.documentosConfirmadosBffPorNodo[nodeRef] = Object.fromEntries(documents.map(doc => [doc.ref, doc.status]));
           return;
         }
-        if (response.statusChanged === true && response.idStatus === 36) {
-  this.actaStatus = 36;
+        if (response.statusChanged === true && response.idStatus === 34) {
+  this.actaStatus = 34;
 
   this.mostrarModalRegistro(
     'success',
     'Estatus actualizado',
-    'La información se guardó correctamente. El comercio pasó al estatus PENDIENTE ACCESOS A PLATAFORMA.'
+    'El comercio pasó a PENDIENTE DE AFILIACIÓN.'
   );
 
   this.refrescarEstadoDocumentalBff();

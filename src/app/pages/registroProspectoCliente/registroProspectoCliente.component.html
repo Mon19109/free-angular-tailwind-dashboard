@@ -382,10 +382,6 @@
 </ng-template>
 
 <ng-template #seccionesFinales>
-        @if (!modoInterno && estatusPublico === 33) {
-          <p class="registration-message" role="status">Tu información de liquidación se encuentra en proceso de validación. Una vez aprobada la Carta y Carátula EDC, podrás continuar con el registro de tus accesos a plataforma.</p>
-          <button type="button" class="button ghost" (click)="reintentarLiquidacion()" [disabled]="cargandoCuenta || guardandoLiquidacion || guardando">Consultar estado</button>
-        }
         @if (!modoInterno && liquidacionConsultada && pasosFinalesBloqueadosPorEstatus) {
           <p class="registration-message" role="status">Cuenta de liquidación y Accesos a plataforma no están habilitados para el estatus actual del comercio.</p>
         } @else if (!modoInterno && liquidacionConsultada && liquidacionPublicaBloqueada && !liquidacionCompleta) {
