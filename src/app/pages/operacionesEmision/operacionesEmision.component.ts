@@ -288,6 +288,31 @@ etiquetaDetalle(operacion: any): string {
   return accionOperacion(operacion.type)?.titulo || '';
 }
 
+valorEntidad(cuenta: any): string {
+    return String(
+      cuenta?.sirioId ??
+      cuenta?.sirioID ??
+      cuenta?.idSirio ??
+      cuenta?.bundle ??
+      cuenta?.issueId ??
+      cuenta?.entitySonID ??
+      cuenta?.entitySonId ??
+      cuenta?.affiliationId ??
+      cuenta?.fatherID ??
+      cuenta?.fatherId ??
+      cuenta?.idEntity ??
+      cuenta?.idEntidad ??
+      cuenta?.id ??
+      ''
+    );
+  }
+
+  textoEntidad(cuenta: any): string {
+    const id = this.valorEntidad(cuenta);
+    const nombre = cuenta?.bussinesName || cuenta?.businessName || cuenta?.name || cuenta?.nombre || '';
+    return [id, nombre].filter(Boolean).join(' - ');
+  }
+
 conceptoComprobante(operacion: any): string {
   const descripcion = String(operacion.description ?? '');
   const partes = descripcion.split('|');
