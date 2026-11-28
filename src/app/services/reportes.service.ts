@@ -25,24 +25,22 @@ export class ReportesService {
   private readonly http=inject(HttpClient);
   private readonly cuentasService=inject(DashboardService);
   private readonly base='/api/reportes';
+  private readonly requestOptions = { withCredentials: true, headers: { 'X-Portal-Request': '1' } };
   obtenerSaldo():Observable<AccountBalanceResponse>{
     // El token y la entidad se resuelven en el servidor, igual que en el servicio PHP.
     return this.cuentasService.getBalanceSirio();
   }
   obtenerCuentas():Observable<{cuentas:CuentaReporte[]}>{
-    return this.http.get<{cuentas:CuentaReporte[]}>(`${this.base}/cuentas`,{withCredentials:true});
+    return this.http.get<{cuentas:CuentaReporte[]}>(`${this.base}/cuentas`,this.requestOptions);
   }
   buscar(filtro:FiltroReporte):Observable<{rows:unknown}>{
-    return this.http.post<{rows:unknown}>(`${this.base}/buscar`,filtro,{withCredentials:true,headers: {
-        'X-Portal-Request': '1'}});
+    return this.http.post<{rows:unknown}>(`${this.base}/buscar`,filtro,this.requestOptions);
   }
   buscarReporte(filtro:FiltroReporte,reporte:string):Observable<{rows:unknown}>{
-    return this.http.post<{rows:unknown}>(`${this.base}/buscar-reporte`,{...filtro,reporte},{withCredentials:true, headers: {
-        'X-Portal-Request': '1'
-      }});
+    return this.http.post<{rows:unknown}>(`${this.base}/buscar-reporte`,{...filtro,reporte},this.requestOptions);
   }
   descargar(tipo:TipoDescarga,filtro:Partial<FiltroReporte>&{fecha?:string;clabe?:string}):Observable<Blob>{
-    return this.http.post(`${this.base}/descargar`,{tipo,...filtro},{withCredentials:true,responseType:'blob'});
+    return this.http.post(`${this.base}/descargar`,{tipo,...filtro},{...this.requestOptions,responseType:'blob'});
   }
   guardarArchivo(blob:Blob,nombre:string):void {
     const url=URL.createObjectURL(blob);
@@ -58,7 +56,7 @@ export class ReportesService {
       clabe
     }, {
       responseType: 'blob',
-      withCredentials: true
+      ...this.requestOptions
     });
   }
 
@@ -70,7 +68,7 @@ export class ReportesService {
       clabe
     }, {
       responseType: 'blob',
-      withCredentials: true
+      ...this.requestOptions
     });
   }
 }

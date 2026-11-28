@@ -20,6 +20,7 @@ describe('ReportesService BFF', () => {
     const request = http.expectOne('/api/account/balance');
     expect(request.request.method).toBe('GET');
     expect(request.request.withCredentials).toBeTrue();
+    expect(request.request.headers.get('X-Portal-Request')).toBe('1');
     expect(request.request.params.keys()).toEqual([]);
     expect(request.request.headers.has('Authorization')).toBeFalse();
     expect(request.request.headers.has('SonEntity-i')).toBeFalse();
@@ -31,6 +32,7 @@ describe('ReportesService BFF', () => {
     expect(cuentas.request.method).toBe('GET');
     expect(cuentas.request.params.keys()).toEqual([]);
     expect(cuentas.request.withCredentials).toBeTrue();
+    expect(cuentas.request.headers.get('X-Portal-Request')).toBe('1');
     expect(cuentas.request.headers.has('Authorization')).toBeFalse();
     cuentas.flush({ cuentas: [] });
     service.buscar(filtro).subscribe();
@@ -40,6 +42,7 @@ describe('ReportesService BFF', () => {
       expect(request.request.method).toBe('POST');
       expect(request.request.body).toEqual(path === 'buscar' ? filtro : { ...filtro, reporte: 'EnRed' });
       expect(request.request.withCredentials).toBeTrue();
+      expect(request.request.headers.get('X-Portal-Request')).toBe('1');
       expect(request.request.headers.has('Authorization')).toBeFalse();
       request.flush({ rows: [] });
     }
@@ -50,6 +53,7 @@ describe('ReportesService BFF', () => {
     service.descargar('estado-pdf', { periodo: filtro.periodo, cuenta: filtro.cuenta, clabe: '' }).subscribe(value => result = value);
     const request = http.expectOne('/api/reportes/descargar');
     expect(request.request.responseType).toBe('blob');
+    expect(request.request.headers.get('X-Portal-Request')).toBe('1');
     expect(request.request.body).toEqual({ tipo: 'estado-pdf', periodo: filtro.periodo, cuenta: filtro.cuenta, clabe: '' });
     request.flush(archivo); expect(result).toBe(archivo);
   });

@@ -38,7 +38,8 @@ export class DashboardService {
 
   getBalanceSirio(): Observable<AccountBalanceResponse> {
     return this.http.get<AccountBalanceResponse>('/api/account/balance', {
-      withCredentials: true
+      withCredentials: true,
+      headers: { 'X-Portal-Request': '1' }
     }).pipe(map(response => {
       if (response?.success !== true ||
           (response.virtualAccount !== null && typeof response.virtualAccount !== 'string')) {
