@@ -56,7 +56,7 @@ export class BeneficiariosService {
     }));
   }
   eliminarContactos(ids: Array<string | number>): Observable<any> {
-    return this.http.delete(`${this.base}/contactos`, { params: new HttpParams().set('contactIds', ids.join(',')), headers: this.headers });
+    return this.http.delete(`${this.base}/contactos`, { params: new HttpParams().set('contactIds', ids.join(',')), headers: this.headers, withCredentials: true });
   }
   consultarEstatus(fileKey: string): Observable<any> {
     return this.http.get(`${this.base}/estatus`, { params: new HttpParams().set('fileKey', fileKey), headers: this.headers });
